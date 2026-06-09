@@ -28,6 +28,8 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - API contract (source of truth): `lib/api-spec/openapi.yaml` → Orval-generated hooks + Zod via `pnpm --filter @workspace/api-spec run codegen`.
 - Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`, `billing-customers.ts`), exported from `lib/db/src/index.ts`.
 - Billing/Stripe: `artifacts/api-server/src/lib/stripe.ts` (client) + `billing.ts` (checkout + webhook entitlement), route in `src/routes/stripe.ts`, raw webhook wired in `src/app.ts`; seed in `scripts/src/seed-stripe-products.ts`; frontend in `artifacts/kixxme/src/pages/premium.tsx`.
+- Support: repo-owned `support_reports` table (`lib/db/src/schema/support-reports.ts`); API `src/routes/support.ts` (POST `/support/reports`, saves + notifies); frontend `artifacts/kixxme/src/components/support-dialog.tsx` + `pages/support.tsx` (Soporte page), entry points in `profile.tsx` / `public-profile.tsx`.
+- Email: `artifacts/api-server/src/lib/email.ts` (neon/fire HTML templates + provider-agnostic `sendEmail`) over `gmail.ts` (Gmail-connector transport). See `.agents/memory/kixxme-transactional-email.md`.
 
 ## Architecture decisions
 
@@ -45,6 +47,8 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - One-to-one realtime chat with text and image messages, read receipts, and unread counts.
 - Block / unblock users: blocking hides each user from the other across discovery, favorites, likes, and chat, and prevents new contact in either direction.
 - Premium subscriptions (Stripe Checkout): Plus and Gold tiers, monthly or yearly (EUR), with the active plan reflected on the premium page.
+- Support: a Spanish "Soporte" page plus "Contactar soporte" / "Reportar problema" entry points that save reports to the DB and notify `supportkixxme@gmail.com`.
+- Transactional emails (neon/fire branded): welcome on signup and a premium-welcome on subscribe; sent from `supportkixxme@gmail.com` via the Gmail connector.
 
 ## User preferences
 
@@ -56,6 +60,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 - Two separate databases (see Architecture decisions). You cannot `CREATE`/`ALTER TABLE` on Supabase from this repo; new repo-owned tables go in the Replit Postgres (`DATABASE_URL`) via Drizzle.
 - After editing `lib/api-spec/openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen`. After editing a `lib/*` package, run `pnpm run typecheck:libs` before leaf typechecks.
 - Chat image uploads are base64 in the request body; very large images can hit the Express body size limit (`PayloadTooLargeError`).
+- Transactional emails send via the **Gmail connector** — until it is connected, `sendEmail` degrades gracefully (logs and returns false; signup/checkout/support still succeed). After connecting, wire the real client into `gmail.ts` (see `.agents/memory/kixxme-transactional-email.md`). Password-reset emails are handled by **Supabase Auth**, not this repo.
+- Stripe Checkout will not load inside the Replit preview iframe — open it in a pre-opened tab from the click gesture, not a `window.location` redirect (see `premium.tsx`).
 
 ## Pointers
 

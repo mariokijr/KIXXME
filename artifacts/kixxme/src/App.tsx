@@ -20,6 +20,7 @@ import Chats from "@/pages/chats";
 import ChatPage from "@/pages/chat";
 import Premium from "@/pages/premium";
 import Favorites from "@/pages/favorites";
+import Support from "@/pages/support";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,7 @@ function Router() {
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
+      <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />
     </Switch>

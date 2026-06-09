@@ -4,6 +4,12 @@ import { eq } from "drizzle-orm";
 import { db, billingCustomersTable } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getUncachableStripeClient } from "./stripe.js";
+import {
+  sendEmail,
+  appBaseUrl,
+  PREMIUM_WELCOME_SUBJECT,
+  premiumWelcomeEmailHtml,
+} from "./email.js";
 
 export type Tier = "plus" | "gold";
 export type Interval = "month" | "year";
@@ -275,6 +281,20 @@ export async function handleStripeWebhook(
         const stripe = await getUncachableStripeClient();
         await cancelSupersededSubscriptions(stripe, cust, subId, log);
       }
+      // Premium welcome email. Triggered ONLY here (checkout.session.completed
+      // fires once per successful purchase) to avoid duplicates from the
+      // subscription.* events. Fire-and-forget so a mail failure never turns
+      // into a webhook 500 / Stripe retry. sendEmail itself never throws.
+      void (async () => {
+        const email = await getUserEmail(userId);
+        if (!email) return;
+        const base = appBaseUrl();
+        await sendEmail({
+          to: email,
+          subject: PREMIUM_WELCOME_SUBJECT,
+          html: premiumWelcomeEmailHtml(base ? `${base}/premium` : undefined),
+        });
+      })();
       log.info({ userId, tier }, "Activated plan from checkout");
       return;
     }

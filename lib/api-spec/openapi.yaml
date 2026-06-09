@@ -18,6 +18,8 @@ tags:
     description: Conversations and messages
   - name: billing
     description: Subscription billing and checkout
+  - name: support
+    description: Support requests and problem reports
 paths:
   /healthz:
     get:
@@ -873,6 +875,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /support/reports:
+    post:
+      operationId: createSupportReport
+      tags: [support]
+      summary: Submit a support request or report a problem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportReportRequest"
+      responses:
+        "201":
+          description: Report received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportReportResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -915,6 +950,39 @@ components:
           type: string
           description: Stripe-hosted Checkout URL to redirect the user to
       required: [url]
+
+    SupportReportRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [contact, chat, profile, settings, general]
+          description: Where the report originated / its nature
+        targetUserId:
+          type: string
+          description: Profile being reported, when applicable
+        subject:
+          type: string
+          maxLength: 200
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        contactEmail:
+          type: string
+          description: Optional reply-to address supplied by the reporter
+      required: [category, message]
+
+    SupportReportResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required: [id, status, createdAt]
 
     Session:
       type: object

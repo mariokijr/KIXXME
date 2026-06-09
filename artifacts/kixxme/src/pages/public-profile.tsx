@@ -24,9 +24,11 @@ import {
   MessageCircle,
   BadgeCheck,
   Ban,
+  Flag,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SupportDialog } from "@/components/support-dialog";
 import { formatDistance } from "./discover";
 
 export default function PublicProfile() {
@@ -36,6 +38,7 @@ export default function PublicProfile() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [activePhoto, setActivePhoto] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const { data: profile, isLoading, error } = useGetProfile(id, {
     query: { enabled: !!id, queryKey: getGetProfileQueryKey(id) },
@@ -173,10 +176,19 @@ export default function PublicProfile() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h1 className="font-display text-xl tracking-wide truncate flex items-center gap-1.5">
+        <h1 className="font-display text-xl tracking-wide truncate flex items-center gap-1.5 min-w-0 flex-1">
           {profile.username}
           {profile.is_verified && <BadgeCheck className="w-5 h-5 text-sky-400" />}
         </h1>
+        <button
+          onClick={() => setReportOpen(true)}
+          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-red-400 transition-colors"
+          style={{ background: "rgba(255,255,255,0.04)" }}
+          data-testid="button-report-profile"
+          title="Reportar perfil"
+        >
+          <Flag className="w-4 h-4" />
+        </button>
       </header>
 
       <div className="flex-1 max-w-lg w-full mx-auto px-5 pt-6 pb-32 flex flex-col items-center text-center space-y-6">
@@ -338,6 +350,20 @@ export default function PublicProfile() {
           </>
         )}
       </div>
+
+      <SupportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        category="profile"
+        targetUserId={profile.id}
+        title="Reportar perfil"
+        description={`Cuéntanos qué problema hay con el perfil de ${profile.username}.`}
+        messageLabel="Motivo del reporte"
+        messagePlaceholder="Describe el comportamiento o el contenido inapropiado…"
+        submitLabel="Enviar reporte"
+        successTitle="Reporte enviado"
+        successDescription="Gracias. Revisaremos este perfil lo antes posible."
+      />
     </div>
   );
 }

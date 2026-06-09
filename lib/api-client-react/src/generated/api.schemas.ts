@@ -41,6 +41,42 @@ export interface CheckoutResponse {
   url: string;
 }
 
+/**
+ * Where the report originated / its nature
+ */
+export type SupportReportRequestCategory = typeof SupportReportRequestCategory[keyof typeof SupportReportRequestCategory];
+
+
+export const SupportReportRequestCategory = {
+  contact: 'contact',
+  chat: 'chat',
+  profile: 'profile',
+  settings: 'settings',
+  general: 'general',
+} as const;
+
+export interface SupportReportRequest {
+  /** Where the report originated / its nature */
+  category: SupportReportRequestCategory;
+  /** Profile being reported, when applicable */
+  targetUserId?: string;
+  /** @maxLength 200 */
+  subject?: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  message: string;
+  /** Optional reply-to address supplied by the reporter */
+  contactEmail?: string;
+}
+
+export interface SupportReportResponse {
+  id: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface Session {
   access_token: string;
   refresh_token: string;

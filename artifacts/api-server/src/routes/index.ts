@@ -6,6 +6,7 @@ import conversationsRouter from "./conversations.js";
 import messagesRouter from "./messages.js";
 import profilesRouter from "./profiles.js";
 import stripeRouter from "./stripe.js";
+import supportRouter from "./support.js";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(conversationsRouter);
 router.use(messagesRouter);
 router.use(profilesRouter);
 router.use(stripeRouter);
+router.use(supportRouter);
 
 export default router;

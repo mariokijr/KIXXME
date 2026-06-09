@@ -1,5 +1,11 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
+import {
+  sendEmail,
+  appBaseUrl,
+  WELCOME_SUBJECT,
+  welcomeEmailHtml,
+} from "../lib/email.js";
 
 const router = Router();
 
@@ -27,6 +33,15 @@ router.post("/auth/signup", async (req, res) => {
     res.status(400).json({ error: error.message });
     return;
   }
+
+  // Fire-and-forget welcome email. sendEmail never throws (it logs and returns
+  // false when email is not configured), so signup is never blocked or failed.
+  const base = appBaseUrl();
+  void sendEmail({
+    to: email,
+    subject: WELCOME_SUBJECT,
+    html: welcomeEmailHtml(base ? `${base}/` : undefined),
+  });
 
   res.status(201).json({
     user: {

@@ -45,6 +45,8 @@ import type {
   SetPhotoAsAvatar200,
   SignUpRequest,
   SuccessResponse,
+  SupportReportRequest,
+  SupportReportResponse,
   UpdateProfileRequest,
   UploadAvatar200,
   UploadChatImage201,
@@ -2317,5 +2319,76 @@ export const useCreateStripeCheckout = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getCreateStripeCheckoutMutationOptions(options));
+    }
+
+export const getCreateSupportReportUrl = () => {
+
+
+
+
+  return `/api/support/reports`
+}
+
+/**
+ * @summary Submit a support request or report a problem
+ */
+export const createSupportReport = async (supportReportRequest: SupportReportRequest, options?: RequestInit): Promise<SupportReportResponse> => {
+
+  return customFetch<SupportReportResponse>(getCreateSupportReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      supportReportRequest,)
+  }
+);}
+
+
+
+
+export const getCreateSupportReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportReport>>, TError,{data: BodyType<SupportReportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSupportReport>>, TError,{data: BodyType<SupportReportRequest>}, TContext> => {
+
+const mutationKey = ['createSupportReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSupportReport>>, {data: BodyType<SupportReportRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSupportReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSupportReportMutationResult = NonNullable<Awaited<ReturnType<typeof createSupportReport>>>
+    export type CreateSupportReportMutationBody = BodyType<SupportReportRequest>
+    export type CreateSupportReportMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Submit a support request or report a problem
+ */
+export const useCreateSupportReport = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportReport>>, TError,{data: BodyType<SupportReportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSupportReport>>,
+        TError,
+        {data: BodyType<SupportReportRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateSupportReportMutationOptions(options));
     }
 

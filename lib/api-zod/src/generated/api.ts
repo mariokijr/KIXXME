@@ -530,3 +530,21 @@ export const CreateStripeCheckoutResponse = zod.object({
 })
 
 
+/**
+ * @summary Submit a support request or report a problem
+ */
+export const createSupportReportBodySubjectMax = 200;
+
+export const createSupportReportBodyMessageMax = 5000;
+
+
+
+export const CreateSupportReportBody = zod.object({
+  "category": zod.enum(['contact', 'chat', 'profile', 'settings', 'general']).describe('Where the report originated \/ its nature'),
+  "targetUserId": zod.string().optional().describe('Profile being reported, when applicable'),
+  "subject": zod.string().max(createSupportReportBodySubjectMax).optional(),
+  "message": zod.string().min(1).max(createSupportReportBodyMessageMax),
+  "contactEmail": zod.string().optional().describe('Optional reply-to address supplied by the reporter')
+})
+
+

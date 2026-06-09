@@ -32,13 +32,19 @@ import {
   Navigation,
   ChevronUp,
   ChevronDown,
+  LifeBuoy,
+  MessageCircle,
+  MessageSquareWarning,
 } from "lucide-react";
+import { SupportDialog } from "@/components/support-dialog";
 
 export default function Profile() {
   const { session } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [contactOpen, setContactOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const { data: profile, isLoading, error } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
@@ -381,6 +387,71 @@ export default function Profile() {
           {updateProfile.isPending ? "Guardando..." : isOnboarding ? "Completar perfil →" : "Guardar cambios"}
         </Button>
       </div>
+
+      <div className="mx-4 mb-6 border border-border/40 rounded-2xl p-5 space-y-3"
+        style={{ background: "rgba(255,255,255,0.02)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <LifeBuoy className="w-4 h-4 text-primary" />
+          <h3 className="font-display text-lg tracking-widest text-foreground">Soporte y ayuda</h3>
+        </div>
+        <button
+          type="button"
+          onClick={() => setContactOpen(true)}
+          className="w-full h-11 rounded-xl border border-primary/30 flex items-center justify-center gap-2 font-sans text-sm text-primary hover:bg-primary/5 transition-colors"
+          style={{ background: "rgba(168,85,247,0.06)" }}
+          data-testid="button-contact-support"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Contactar soporte
+        </button>
+        <button
+          type="button"
+          onClick={() => setReportOpen(true)}
+          className="w-full h-11 rounded-xl border border-border/50 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+          data-testid="button-report-problem"
+        >
+          <MessageSquareWarning className="w-4 h-4" />
+          Reportar un problema
+        </button>
+        <button
+          type="button"
+          onClick={() => setLocation("/support")}
+          className="w-full text-center font-sans text-xs text-primary/80 hover:text-primary pt-1"
+          data-testid="link-support-center"
+        >
+          Centro de ayuda
+        </button>
+        <a
+          href="mailto:supportkixxme@gmail.com"
+          className="block text-center font-sans text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          data-testid="link-support-email"
+        >
+          ¿Necesitas ayuda? supportkixxme@gmail.com
+        </a>
+      </div>
+
+      <SupportDialog
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        category="contact"
+        title="Contactar soporte"
+        description="Cuéntanos en qué podemos ayudarte y te responderemos por email."
+        submitLabel="Enviar mensaje"
+        successTitle="Mensaje enviado"
+        successDescription="Gracias por escribirnos. Te responderemos muy pronto."
+      />
+      <SupportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        category="general"
+        title="Reportar un problema"
+        description="Describe el error o el problema con el mayor detalle posible."
+        messageLabel="Describe el problema"
+        messagePlaceholder="¿Qué ha pasado? ¿En qué pantalla? ¿Qué esperabas que ocurriera?"
+        submitLabel="Enviar reporte"
+        successTitle="Reporte enviado"
+        successDescription="Gracias. Lo revisaremos lo antes posible."
+      />
     </div>
   );
 }
