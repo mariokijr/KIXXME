@@ -54,16 +54,27 @@ function initialsFor(u: string) {
   return (u || "?").slice(0, 2).toUpperCase();
 }
 
+// Escape values before they go into raw marker HTML (Leaflet divIcon bypasses
+// React escaping, so unsanitized profile fields would be a stored-XSS vector).
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function markerHtml(user: PublicProfile): string {
   const ring = user.is_online
     ? "box-shadow:0 0 0 2px hsl(142,71%,45%),0 0 12px rgba(168,85,247,0.7);"
     : "box-shadow:0 0 10px rgba(168,85,247,0.5);";
   if (user.avatar_url) {
-    return `<img src="${user.avatar_url}" style="width:42px;height:42px;border-radius:9999px;object-fit:cover;border:2px solid rgba(168,85,247,0.7);${ring}" />`;
+    const src = escapeHtml(user.avatar_url);
+    return `<img src="${src}" style="width:42px;height:42px;border-radius:9999px;object-fit:cover;border:2px solid rgba(168,85,247,0.7);${ring}" />`;
   }
-  return `<div style="width:42px;height:42px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;background:linear-gradient(135deg,hsl(273,85%,55%),hsl(330,85%,52%));border:2px solid rgba(255,255,255,0.2);${ring}">${initialsFor(
-    user.username
-  )}</div>`;
+  const initials = escapeHtml(initialsFor(user.username));
+  return `<div style="width:42px;height:42px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;background:linear-gradient(135deg,hsl(273,85%,55%),hsl(330,85%,52%));border:2px solid rgba(255,255,255,0.2);${ring}">${initials}</div>`;
 }
 
 export default function MapView() {

@@ -79,6 +79,7 @@ router.get("/profiles", async (req, res) => {
     .select(PUBLIC_COLUMNS)
     .neq("id", auth.userId)
     .not("username", "is", null)
+    .order("last_active_at", { ascending: false, nullsFirst: false })
     .limit(200);
 
   if (error) {
@@ -99,10 +100,8 @@ router.get("/profiles", async (req, res) => {
     });
   } else if (sort === "online") {
     profiles.sort((a, b) => Number(b.is_online) - Number(a.is_online));
-  } else {
-    // recent: keep DB ordering by most recently active
-    profiles.sort((a, b) => Number(b.is_online) - Number(a.is_online));
   }
+  // recent: rows already arrive ordered by last_active_at desc from the DB.
 
   res.json(profiles);
 });

@@ -40,7 +40,7 @@ const GRAD_PALETTE = [
   "from-rose-600 to-pink-900",
 ];
 
-function gradFor(id: string) {
+export function gradFor(id: string) {
   let h = 0;
   for (const c of id) {
     h = (h << 5) - h + c.charCodeAt(0);
@@ -147,6 +147,16 @@ export default function Discover() {
             </span>
           )}
         </div>
+        <Link href="/favorites">
+          <button
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            aria-label="Favoritos"
+            data-testid="link-favorites"
+          >
+            <Heart className="w-4 h-4 text-primary" />
+          </button>
+        </Link>
       </header>
 
       <div className="px-4 pt-4 pb-2">
@@ -250,7 +260,7 @@ function EmptyState({ view, onShare }: { view: ViewType; onShare: () => void }) 
   );
 }
 
-function UserCard({
+export function UserCard({
   user,
   grad,
   onMessage,

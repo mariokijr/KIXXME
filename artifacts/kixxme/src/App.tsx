@@ -19,6 +19,7 @@ import MapView from "@/pages/map-view";
 import Chats from "@/pages/chats";
 import ChatPage from "@/pages/chat";
 import Premium from "@/pages/premium";
+import Favorites from "@/pages/favorites";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ function Router() {
       <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
+      <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />
     </Switch>
