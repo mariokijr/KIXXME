@@ -90,7 +90,20 @@ export default function Profile() {
     return <div className="min-h-[100dvh] flex items-center justify-center bg-background"><span className="text-2xl font-display uppercase animate-pulse">Loading...</span></div>;
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 p-8 text-center">
+        <h2 className="text-3xl font-display uppercase text-primary">Setting up your locker...</h2>
+        <p className="text-muted-foreground font-sans">Your profile is being created. Try refreshing in a moment.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-6 py-3 border-2 border-primary text-primary font-display text-xl uppercase hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground pb-20">

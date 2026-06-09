@@ -1,5 +1,5 @@
 import React from "react";
-import { useGetProfile } from "@workspace/api-client-react";
+import { useGetProfile, getGetProfileQueryKey } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -7,7 +7,7 @@ import { format } from "date-fns";
 export default function PublicProfile() {
   const params = useParams();
   const id = params.id as string;
-  const { data: profile, isLoading, error } = useGetProfile(id, { query: { enabled: !!id } });
+  const { data: profile, isLoading, error } = useGetProfile(id, { query: { enabled: !!id, queryKey: getGetProfileQueryKey(id) } });
 
   if (isLoading) {
     return <div className="min-h-[100dvh] flex items-center justify-center bg-background"><span className="text-2xl font-display uppercase animate-pulse">Loading Athlete...</span></div>;

@@ -2,9 +2,8 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
-import { useLocation, Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -18,6 +17,8 @@ const formSchema = z.object({
 export default function Login() {
   const { login } = useAuth();
   const { toast } = useToast();
+  const search = useSearch();
+  const confirmEmail = new URLSearchParams(search).get("confirm") === "1";
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,6 +48,13 @@ export default function Login() {
           <h1 className="text-6xl font-display uppercase tracking-tight" data-testid="heading-login">KIXXME</h1>
           <p className="text-muted-foreground font-sans mt-2" data-testid="text-login-sub">Enter the locker room.</p>
         </div>
+
+        {confirmEmail && (
+          <div className="bg-primary/10 border-2 border-primary p-4 text-center" data-testid="banner-confirm-email">
+            <p className="font-display text-lg uppercase text-primary">Check your email</p>
+            <p className="font-sans text-sm text-muted-foreground mt-1">Confirm your account then sign in below.</p>
+          </div>
+        )}
 
         <div className="bg-card border-2 border-border p-6 shadow-[8px_8px_0_0_rgba(182,255,10,1)] dark:shadow-[8px_8px_0_0_rgba(182,255,10,0.2)]">
           <Form {...form}>

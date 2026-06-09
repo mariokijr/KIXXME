@@ -64,8 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (data: any) => {
     const res = await signupMut.mutateAsync({ data });
-    setSessionData(res.session, res.user);
-    setLocation("/profile");
+    if (res.session) {
+      setSessionData(res.session, res.user);
+      setLocation("/profile");
+    } else {
+      // Supabase email confirmation is enabled — session won't exist until confirmed
+      setLocation("/login?confirm=1");
+    }
   };
 
   const logout = () => {
