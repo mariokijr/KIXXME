@@ -8,6 +8,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/scripts run seed-stripe` — create/sync Stripe products & prices (requires Stripe connected)
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
@@ -25,7 +26,8 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - Web app (React + Vite): `artifacts/kixxme/` — pages in `src/pages/` (discover, map, chat, public-profile, profile, auth).
 - API server (Express): `artifacts/api-server/` — routes in `src/routes/` (`profiles.ts`, `conversations.ts`), helpers in `src/lib/` (`supabase.ts`, `auth.ts`, `blocks.ts`, `geo.ts`).
 - API contract (source of truth): `lib/api-spec/openapi.yaml` → Orval-generated hooks + Zod via `pnpm --filter @workspace/api-spec run codegen`.
-- Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`), exported from `lib/db/src/index.ts`.
+- Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`, `billing-customers.ts`), exported from `lib/db/src/index.ts`.
+- Billing/Stripe: `artifacts/api-server/src/lib/stripe.ts` (client) + `billing.ts` (checkout + webhook entitlement), route in `src/routes/stripe.ts`, raw webhook wired in `src/app.ts`; seed in `scripts/src/seed-stripe-products.ts`; frontend in `artifacts/kixxme/src/pages/premium.tsx`.
 
 ## Architecture decisions
 
@@ -33,6 +35,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - **No cross-DB foreign keys.** Relationships between Replit-Postgres tables and Supabase tables are enforced in application code, not SQL joins (e.g. block filtering loads block sets, then filters Supabase rows in JS).
 - **Block enforcement is centralized** in `artifacts/api-server/src/lib/blocks.ts` and applied at every surface that exposes another user (discover/map, favorites, conversation list/create, send/read messages, image upload, like).
 - **Contract-first.** Endpoints are defined in OpenAPI, then server validates with generated Zod and the client uses generated React Query hooks.
+- **Billing/entitlement.** Subscriptions via Stripe Checkout. `profiles.plan` in Supabase is the entitlement source of truth, written **only** by the Stripe webhook. Stripe data + a `billing_customers` mapping live in Replit Postgres (`stripe-replit-sync` `stripe` schema). Price resolution is by `lookup_key`; tier switches cancel the superseded subscription. See `.agents/memory/kixxme-stripe-billing.md`.
 
 ## Product
 
@@ -41,6 +44,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - Like profiles and view a favorites list.
 - One-to-one realtime chat with text and image messages, read receipts, and unread counts.
 - Block / unblock users: blocking hides each user from the other across discovery, favorites, likes, and chat, and prevents new contact in either direction.
+- Premium subscriptions (Stripe Checkout): Plus and Gold tiers, monthly or yearly (EUR), with the active plan reflected on the premium page.
 
 ## User preferences
 

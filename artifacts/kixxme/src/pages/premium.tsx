@@ -1,4 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  useCreateStripeCheckout,
+  useGetMyProfile,
+  getGetMyProfileQueryKey,
+  type CheckoutRequestTier,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 import {
   Star,
   Flame,
@@ -11,6 +20,7 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 
 type Billing = "mensual" | "anual";
@@ -36,8 +46,84 @@ export default function Premium() {
   const [billing, setBilling] = useState<Billing>("mensual");
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
-  const plusPrice = billing === "mensual" ? "9,99" : "6,99";
-  const goldPrice = billing === "mensual" ? "19,99" : "13,99";
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: profile } = useGetMyProfile({
+    query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
+  });
+  const currentPlan = profile?.plan ?? "free";
+
+  const checkout = useCreateStripeCheckout();
+  const pendingTier = checkout.isPending
+    ? checkout.variables?.data.tier
+    : undefined;
+
+  // Handle the redirect back from Stripe Checkout.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("checkout");
+    if (!status) return;
+
+    if (status === "success") {
+      toast({
+        title: "¡Pago completado!",
+        description: "Tu plan se está activando…",
+      });
+      // The webhook updates the plan; refetch now and shortly after.
+      queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
+      const t = setTimeout(
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: getGetMyProfileQueryKey(),
+          }),
+        3000,
+      );
+      cleanUrl(params);
+      return () => clearTimeout(t);
+    }
+
+    if (status === "cancel") {
+      toast({ title: "Pago cancelado", variant: "destructive" });
+    }
+    cleanUrl(params);
+    return;
+  }, [queryClient, toast]);
+
+  function cleanUrl(params: URLSearchParams) {
+    params.delete("checkout");
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (query ? `?${query}` : ""),
+    );
+  }
+
+  function startCheckout(tier: CheckoutRequestTier) {
+    const interval = billing === "mensual" ? "month" : "year";
+    const returnUrl =
+      window.location.origin + import.meta.env.BASE_URL + "premium";
+    checkout.mutate(
+      { data: { tier, interval, returnUrl } },
+      {
+        onSuccess: (res) => {
+          window.location.href = res.url;
+        },
+        onError: (err: any) => {
+          toast({
+            title: "No se pudo iniciar el pago",
+            description: err?.data?.error ?? err?.message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  }
+
+  const plusPrice = billing === "mensual" ? "9,99" : "5,00";
+  const goldPrice = billing === "mensual" ? "19,99" : "10,00";
 
   return (
     <div className="min-h-full pb-4">
@@ -85,7 +171,7 @@ export default function Premium() {
                   className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
                   style={{ background: "rgba(34,197,94,0.2)", color: "rgb(74,222,128)" }}
                 >
-                  −30%
+                  −50%
                 </span>
               )}
             </button>
@@ -113,6 +199,11 @@ export default function Premium() {
               <div className="text-right">
                 <span className="font-display text-3xl text-foreground">{plusPrice}€</span>
                 <span className="font-sans text-xs text-muted-foreground">/mes</span>
+                {billing === "anual" && (
+                  <p className="font-sans text-[10px] text-muted-foreground/70">
+                    59,99€ facturado anualmente
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -129,10 +220,15 @@ export default function Premium() {
               </div>
             ))}
             <button
-              className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+              onClick={() => startCheckout("plus")}
+              disabled={currentPlan === "plus" || checkout.isPending}
+              className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
             >
-              Activar Plus
+              {pendingTier === "plus" && (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              )}
+              {currentPlan === "plus" ? "Plan actual" : "Activar Plus"}
             </button>
           </div>
         </div>
@@ -162,6 +258,11 @@ export default function Premium() {
               <div className="text-right">
                 <span className="font-display text-3xl text-foreground">{goldPrice}€</span>
                 <span className="font-sans text-xs text-muted-foreground">/mes</span>
+                {billing === "anual" && (
+                  <p className="font-sans text-[10px] text-muted-foreground/70">
+                    119,99€ facturado anualmente
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -178,10 +279,15 @@ export default function Premium() {
               </div>
             ))}
             <button
-              className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+              onClick={() => startCheckout("gold")}
+              disabled={currentPlan === "gold" || checkout.isPending}
+              className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))" }}
             >
-              Activar Gold
+              {pendingTier === "gold" && (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              )}
+              {currentPlan === "gold" ? "Plan actual" : "Activar Gold"}
             </button>
           </div>
         </div>

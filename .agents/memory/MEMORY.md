@@ -1,1 +1,2 @@
-- [KixxMe dual database](kixxme-dual-database.md) — app tables live in Supabase (PostgREST only, no DDL from repo); new tables go in the separate Replit Postgres via @workspace/db + Drizzle, joined in app code.
+- [KixxMe dual database](kixxme-dual-database.md) — app tables in Supabase (PostgREST, no DDL from repo); repo-owned tables in Replit Postgres via @workspace/db Drizzle, joined in app code.
+- [KixxMe Stripe billing](kixxme-stripe-billing.md) — Supabase profiles.plan = entitlement, written only by webhook; map user via sub metadata, price via lookup_key, cancel old subs on tier switch.

@@ -516,3 +516,17 @@ export const DeleteMessageResponse = zod.object({
 })
 
 
+/**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const CreateStripeCheckoutBody = zod.object({
+  "tier": zod.enum(['plus', 'gold']),
+  "interval": zod.enum(['month', 'year']),
+  "returnUrl": zod.string().describe('Absolute URL on an allowed Replit domain to return to after checkout')
+})
+
+export const CreateStripeCheckoutResponse = zod.object({
+  "url": zod.string().describe('Stripe-hosted Checkout URL to redirect the user to')
+})
+
+

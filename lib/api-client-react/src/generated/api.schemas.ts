@@ -13,6 +13,34 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type CheckoutRequestTier = typeof CheckoutRequestTier[keyof typeof CheckoutRequestTier];
+
+
+export const CheckoutRequestTier = {
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export type CheckoutRequestInterval = typeof CheckoutRequestInterval[keyof typeof CheckoutRequestInterval];
+
+
+export const CheckoutRequestInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export interface CheckoutRequest {
+  tier: CheckoutRequestTier;
+  interval: CheckoutRequestInterval;
+  /** Absolute URL on an allowed Replit domain to return to after checkout */
+  returnUrl: string;
+}
+
+export interface CheckoutResponse {
+  /** Stripe-hosted Checkout URL to redirect the user to */
+  url: string;
+}
+
 export interface Session {
   access_token: string;
   refresh_token: string;

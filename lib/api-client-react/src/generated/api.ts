@@ -22,6 +22,8 @@ import type {
 import type {
   AuthResponse,
   AvatarUploadRequest,
+  CheckoutRequest,
+  CheckoutResponse,
   Conversation,
   CreateOrGetConversationBody,
   DeletePhoto200,
@@ -2244,5 +2246,76 @@ export const useDeleteMessage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeleteMessageMutationOptions(options));
+    }
+
+export const getCreateStripeCheckoutUrl = () => {
+
+
+
+
+  return `/api/stripe/checkout`
+}
+
+/**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const createStripeCheckout = async (checkoutRequest: CheckoutRequest, options?: RequestInit): Promise<CheckoutResponse> => {
+
+  return customFetch<CheckoutResponse>(getCreateStripeCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutRequest,)
+  }
+);}
+
+
+
+
+export const getCreateStripeCheckoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStripeCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStripeCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext> => {
+
+const mutationKey = ['createStripeCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStripeCheckout>>, {data: BodyType<CheckoutRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStripeCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStripeCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createStripeCheckout>>>
+    export type CreateStripeCheckoutMutationBody = BodyType<CheckoutRequest>
+    export type CreateStripeCheckoutMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const useCreateStripeCheckout = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStripeCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStripeCheckout>>,
+        TError,
+        {data: BodyType<CheckoutRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateStripeCheckoutMutationOptions(options));
     }
 

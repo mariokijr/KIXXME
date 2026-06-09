@@ -5,6 +5,7 @@ import photosRouter from "./photos.js";
 import conversationsRouter from "./conversations.js";
 import messagesRouter from "./messages.js";
 import profilesRouter from "./profiles.js";
+import stripeRouter from "./stripe.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(photosRouter);
 router.use(conversationsRouter);
 router.use(messagesRouter);
 router.use(profilesRouter);
+router.use(stripeRouter);
 
 export default router;

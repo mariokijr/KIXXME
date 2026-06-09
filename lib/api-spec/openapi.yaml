@@ -16,6 +16,8 @@ tags:
     description: User profile operations
   - name: conversations
     description: Conversations and messages
+  - name: billing
+    description: Subscription billing and checkout
 paths:
   /healthz:
     get:
@@ -832,6 +834,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /stripe/checkout:
+    post:
+      operationId: createStripeCheckout
+      tags: [billing]
+      summary: Create a Stripe Checkout session for a subscription plan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Stripe error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -852,6 +893,28 @@ components:
         error:
           type: string
       required: [error]
+
+    CheckoutRequest:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [plus, gold]
+        interval:
+          type: string
+          enum: [month, year]
+        returnUrl:
+          type: string
+          description: Absolute URL on an allowed Replit domain to return to after checkout
+      required: [tier, interval, returnUrl]
+
+    CheckoutResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Stripe-hosted Checkout URL to redirect the user to
+      required: [url]
 
     Session:
       type: object
