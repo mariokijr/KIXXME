@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Upload, Share2 } from "lucide-react";
+import { LogOut, Upload, Share2, Flame } from "lucide-react";
 
 export default function Profile() {
   const { session, logout } = useAuth();
@@ -67,12 +67,12 @@ export default function Profile() {
       }
     }, {
       onSuccess: (data) => {
-        toast({ title: "Profile updated" });
+        toast({ title: "¡Perfil actualizado!" });
         queryClient.setQueryData(getGetMyProfileQueryKey(), data);
       },
       onError: (err: any) => {
-        const msg = err?.data?.error ?? err?.message ?? "Unknown error";
-        toast({ title: "Failed to update profile", description: msg, variant: "destructive" });
+        const msg = err?.data?.error ?? err?.message ?? "Error desconocido";
+        toast({ title: "No se pudo guardar", description: msg, variant: "destructive" });
       }
     });
   };
@@ -87,11 +87,11 @@ export default function Profile() {
       uploadAvatar.mutate({ data: { base64, mime_type: file.type, filename: file.name } }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
-          toast({ title: "Avatar updated" });
+          toast({ title: "¡Foto actualizada!" });
         },
         onError: (err: any) => {
-          const msg = err?.data?.error ?? err?.message ?? "Unknown error";
-          toast({ title: "Failed to upload avatar", description: msg, variant: "destructive" });
+          const msg = err?.data?.error ?? err?.message ?? "Error desconocido";
+          toast({ title: "No se pudo subir la foto", description: msg, variant: "destructive" });
         }
       });
     };
@@ -102,125 +102,194 @@ export default function Profile() {
     if (!profile) return;
     const url = `${window.location.origin}/profile/${profile.id}`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copied!" });
+    toast({ title: "¡Enlace copiado!" });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <span className="text-2xl font-display uppercase animate-pulse">Loading...</span>
+      <div
+        className="min-h-[100dvh] flex items-center justify-center"
+        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
+      >
+        <span className="text-2xl font-display tracking-widest text-gradient-brand animate-pulse">
+          Cargando...
+        </span>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 p-8 text-center">
-        <h2 className="text-3xl font-display uppercase text-primary">Setting up your locker...</h2>
-        <p className="text-muted-foreground font-sans">
+      <div
+        className="min-h-[100dvh] flex flex-col items-center justify-center gap-5 p-8 text-center"
+        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
+      >
+        <Flame className="w-12 h-12 text-orange-400" style={{ filter: "drop-shadow(0 0 12px rgba(249,115,22,0.8))" }} />
+        <h2 className="text-4xl font-display text-primary tracking-widest">
+          Preparando tu perfil...
+        </h2>
+        <p className="text-muted-foreground font-sans text-sm max-w-xs">
           {error
-            ? `Error: ${(error as any)?.data?.error ?? (error as any)?.message ?? "Unknown error"}`
-            : "Your profile is being created. Try refreshing in a moment."}
+            ? `Error: ${(error as any)?.data?.error ?? (error as any)?.message ?? "Error desconocido"}`
+            : "Tu espacio se está configurando. Recarga en un momento."}
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 px-6 py-3 border-2 border-primary text-primary font-display text-xl uppercase hover:bg-primary hover:text-primary-foreground transition-colors"
+          className="mt-2 px-7 py-3 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity"
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
         >
-          Refresh
+          Recargar
         </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground pb-20">
-      <header className="border-b-4 border-border p-4 flex justify-between items-center bg-card">
-        <h1 className="text-3xl font-display uppercase m-0 leading-none">KIXXME</h1>
-        <Button variant="ghost" size="icon" onClick={logout} data-testid="button-logout">
-          <LogOut className="h-6 w-6" />
+    <div
+      className="min-h-[100dvh] text-foreground pb-20"
+      style={{ background: "radial-gradient(ellipse 90% 50% at 50% 0%, hsl(270 35% 10%) 0%, hsl(238 25% 5%) 60%)" }}
+    >
+      <header className="border-b border-border/40 px-5 py-4 flex justify-between items-center"
+        style={{ background: "rgba(13,11,26,0.7)", backdropFilter: "blur(12px)" }}>
+        <div className="flex items-center gap-2">
+          <Flame
+            className="w-6 h-6 text-orange-400"
+            style={{ filter: "drop-shadow(0 0 6px rgba(249,115,22,0.8))" }}
+          />
+          <h1 className="text-3xl font-display tracking-tight text-gradient-brand m-0 leading-none">
+            KIXXME
+          </h1>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={logout}
+          className="text-muted-foreground hover:text-foreground"
+          data-testid="button-logout"
+        >
+          <LogOut className="h-5 w-5" />
         </Button>
       </header>
 
-      <main className="max-w-2xl mx-auto p-6 space-y-10 mt-8">
+      <main className="max-w-2xl mx-auto p-6 space-y-8 mt-6">
 
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center space-y-5">
           <div className="relative group cursor-pointer" data-testid="avatar-container">
-            <Avatar className="w-40 h-40 border-4 border-primary rounded-none shadow-[8px_8px_0_0_hsl(var(--primary))] bg-muted">
+            <Avatar
+              className="w-36 h-36 border-2 border-primary/50 rounded-2xl glow-purple"
+              style={{ boxShadow: "0 0 35px rgba(168,85,247,0.3)" }}
+            >
               {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
-              <AvatarFallback className="font-display text-5xl uppercase bg-card">
+              <AvatarFallback className="font-display text-4xl uppercase bg-card text-primary">
                 {profile.username?.slice(0, 2) || "KX"}
               </AvatarFallback>
             </Avatar>
-            <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <Upload className="w-10 h-10 text-primary" />
+            <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
+              <Upload className="w-9 h-9 text-white" />
               <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} data-testid="input-avatar-upload" />
             </label>
             {uploadAvatar.isPending && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <span className="font-display text-primary animate-pulse text-xl uppercase">Uploading...</span>
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-2xl">
+                <span className="font-display text-primary animate-pulse text-lg tracking-widest">Subiendo...</span>
               </div>
             )}
           </div>
 
-          <Button onClick={copyLink} variant="outline" className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-display text-lg uppercase tracking-wide h-12 px-6 rounded-none" data-testid="button-copy-link">
-            <Share2 className="w-5 h-5 mr-2" /> Share Profile
+          <Button
+            onClick={copyLink}
+            variant="outline"
+            className="border border-primary/40 text-primary hover:bg-primary/10 font-display text-lg tracking-widest h-11 px-6 rounded-xl"
+            data-testid="button-copy-link"
+          >
+            <Share2 className="w-4 h-4 mr-2" /> Compartir perfil
           </Button>
         </div>
 
-        <div className="bg-card border-4 border-border p-8 space-y-8 shadow-[8px_8px_0_0_hsl(var(--border))]">
+        <div
+          className="border border-border/50 rounded-2xl p-7 space-y-7"
+          style={{ background: "rgba(13,11,26,0.75)", boxShadow: "0 0 40px rgba(168,85,247,0.12)" }}
+        >
 
-          <div className="space-y-3">
-            <label className="font-display text-2xl uppercase tracking-wide text-primary">Username</label>
-            <Input value={username} onChange={e => setUsername(e.target.value)}
-              className="text-xl p-6 rounded-none border-2 focus-visible:ring-primary font-sans h-14"
-              data-testid="input-edit-username" />
+          <div className="space-y-2">
+            <label className="font-display text-xl tracking-widest text-muted-foreground">
+              Nombre de usuario
+            </label>
+            <Input
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              className="text-lg px-4 py-3 h-12 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40"
+              data-testid="input-edit-username"
+            />
           </div>
 
-          <div className="space-y-3">
-            <label className="font-display text-2xl uppercase tracking-wide text-primary">Bio</label>
-            <Textarea value={bio} onChange={e => setBio(e.target.value)}
-              className="text-lg p-4 rounded-none border-2 focus-visible:ring-primary font-sans min-h-[120px] resize-none"
-              placeholder="Tell the world about your stats, PRs, and goals..."
-              data-testid="input-edit-bio" />
+          <div className="space-y-2">
+            <label className="font-display text-xl tracking-widest text-muted-foreground">Bio</label>
+            <Textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              className="text-base px-4 py-3 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[110px] resize-none bg-input/40"
+              placeholder="Cuéntale al mundo tus metas, marcas personales y pasiones..."
+              data-testid="input-edit-bio"
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="font-display text-2xl uppercase tracking-wide text-primary">Age</label>
-              <Input type="number" min={1} max={120} value={age} onChange={e => setAge(e.target.value)}
-                className="text-xl p-6 rounded-none border-2 focus-visible:ring-primary font-sans h-14"
-                placeholder="25" data-testid="input-edit-age" />
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="font-display text-xl tracking-widest text-muted-foreground">Edad</label>
+              <Input
+                type="number"
+                min={1}
+                max={120}
+                value={age}
+                onChange={e => setAge(e.target.value)}
+                className="text-lg px-4 py-3 h-12 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40"
+                placeholder="25"
+                data-testid="input-edit-age"
+              />
             </div>
-            <div className="space-y-3">
-              <label className="font-display text-2xl uppercase tracking-wide text-primary">Gender</label>
-              <Input value={gender} onChange={e => setGender(e.target.value)}
-                className="text-xl p-6 rounded-none border-2 focus-visible:ring-primary font-sans h-14"
-                placeholder="e.g. Male" data-testid="input-edit-gender" />
+            <div className="space-y-2">
+              <label className="font-display text-xl tracking-widest text-muted-foreground">Género</label>
+              <Input
+                value={gender}
+                onChange={e => setGender(e.target.value)}
+                className="text-lg px-4 py-3 h-12 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40"
+                placeholder="Hombre"
+                data-testid="input-edit-gender"
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="font-display text-2xl uppercase tracking-wide text-primary">City</label>
-              <Input value={city} onChange={e => setCity(e.target.value)}
-                className="text-xl p-6 rounded-none border-2 focus-visible:ring-primary font-sans h-14"
-                placeholder="New York" data-testid="input-edit-city" />
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="font-display text-xl tracking-widest text-muted-foreground">Ciudad</label>
+              <Input
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                className="text-lg px-4 py-3 h-12 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40"
+                placeholder="Madrid"
+                data-testid="input-edit-city"
+              />
             </div>
-            <div className="space-y-3">
-              <label className="font-display text-2xl uppercase tracking-wide text-primary">Location</label>
-              <Input value={location} onChange={e => setLocation(e.target.value)}
-                className="text-xl p-6 rounded-none border-2 focus-visible:ring-primary font-sans h-14"
-                placeholder="USA" data-testid="input-edit-location" />
+            <div className="space-y-2">
+              <label className="font-display text-xl tracking-widest text-muted-foreground">Ubicación</label>
+              <Input
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                className="text-lg px-4 py-3 h-12 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40"
+                placeholder="España"
+                data-testid="input-edit-location"
+              />
             </div>
           </div>
 
           <Button
             onClick={handleSave}
             disabled={updateProfile.isPending || !isDirty}
-            className="w-full h-16 rounded-none font-display text-2xl uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full h-14 rounded-xl font-display text-2xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
             data-testid="button-save-profile"
           >
-            {updateProfile.isPending ? "Saving..." : "Update Locker"}
+            {updateProfile.isPending ? "Guardando..." : "Guardar cambios"}
           </Button>
         </div>
       </main>

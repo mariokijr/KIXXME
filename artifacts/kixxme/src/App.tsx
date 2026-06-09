@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { Flame } from "lucide-react";
 
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
@@ -43,8 +44,17 @@ function HomeRedirect() {
   }, [isLoading, session, setLocation]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground">
-      <h1 className="text-4xl animate-pulse">LOADING...</h1>
+    <div
+      className="min-h-screen w-full flex flex-col items-center justify-center gap-4"
+      style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
+    >
+      <Flame
+        className="w-10 h-10 text-orange-400 animate-pulse"
+        style={{ filter: "drop-shadow(0 0 12px rgba(249,115,22,0.8))" }}
+      />
+      <span className="text-3xl font-display tracking-widest text-gradient-brand animate-pulse">
+        CARGANDO...
+      </span>
     </div>
   );
 }
