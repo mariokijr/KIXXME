@@ -1,2 +1,15 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type { AuthResponse } from "./generated/types/authResponse";
+export type { AuthUser } from "./generated/types/authUser";
+export type { AvatarUploadRequest } from "./generated/types/avatarUploadRequest";
+export type { ErrorResponse } from "./generated/types/errorResponse";
+export type { HealthStatus } from "./generated/types/healthStatus";
+export type { LoginRequest } from "./generated/types/loginRequest";
+export type { Logout200 } from "./generated/types/logout200";
+export type { Profile } from "./generated/types/profile";
+export type { PublicProfile } from "./generated/types/publicProfile";
+export type { RefreshSession200 } from "./generated/types/refreshSession200";
+export type { Session } from "./generated/types/session";
+export type { SignUpRequest } from "./generated/types/signUpRequest";
+export type { UpdateProfileRequest } from "./generated/types/updateProfileRequest";
+export type { UploadAvatar200 } from "./generated/types/uploadAvatar200";
