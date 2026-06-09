@@ -28,18 +28,35 @@ router.get("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  req.log.info({ userId: auth.userId }, "profiles/me: fetching profile");
+  console.log("[profiles/me] auth user id:", auth.userId);
 
+  // Diagnostic: query without filter to reveal table columns and RLS behavior
   const client = supabaseForUser(auth.token);
+  const { data: allRows, error: allErr } = await client
+    .from("profiles")
+    .select("*")
+    .limit(5);
+  console.log("[profiles/me] unfiltered rows (max 5):", JSON.stringify(allRows));
+  console.log("[profiles/me] unfiltered error:", JSON.stringify(allErr));
+
+  // Primary query by id
   const { data, error } = await client
     .from("profiles")
     .select("*")
     .eq("id", auth.userId)
-    .single();
+    .maybeSingle();
 
-  req.log.info({ userId: auth.userId, profileId: data?.id ?? null, error: error?.message ?? null }, "profiles/me: query result");
+  console.log("[profiles/me] query id used:", auth.userId);
+  console.log("[profiles/me] query result data:", JSON.stringify(data));
+  console.log("[profiles/me] query result error:", JSON.stringify(error));
 
-  if (error || !data) {
+  if (error) {
+    console.error("[profiles/me] Supabase error code:", error.code, "details:", error.details, "hint:", error.hint);
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  if (!data) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
