@@ -41,7 +41,19 @@ router.get("/profiles/me", async (req, res) => {
   }
 
   if (!data) {
-    res.status(404).json({ error: "Profile not found" });
+    const { data: created, error: createError } = await supabase
+      .from("profiles")
+      .upsert({ id: auth.userId }, { onConflict: "id" })
+      .select()
+      .single();
+
+    if (createError) {
+      req.log.error({ error: createError.message }, "profiles/me: auto-create error");
+      res.status(500).json({ error: createError.message });
+      return;
+    }
+
+    res.json(created);
     return;
   }
 
@@ -62,30 +74,27 @@ router.put("/profiles/me", async (req, res) => {
     avatar_url?: string;
   };
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (username !== undefined) updates.username = username;
-  if (bio !== undefined) updates.bio = bio;
-  if (age !== undefined) updates.age = age;
-  if (city !== undefined) updates.city = city;
-  if (gender !== undefined) updates.gender = gender;
-  if (location !== undefined) updates.location = location;
-  if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+  const record: Record<string, unknown> = {
+    id: auth.userId,
+    updated_at: new Date().toISOString(),
+  };
+  if (username !== undefined) record.username = username;
+  if (bio !== undefined) record.bio = bio;
+  if (age !== undefined) record.age = age;
+  if (city !== undefined) record.city = city;
+  if (gender !== undefined) record.gender = gender;
+  if (location !== undefined) record.location = location;
+  if (avatar_url !== undefined) record.avatar_url = avatar_url;
 
   const { data, error } = await supabase
     .from("profiles")
-    .update(updates)
-    .eq("id", auth.userId)
+    .upsert(record, { onConflict: "id" })
     .select()
-    .maybeSingle();
+    .single();
 
   if (error) {
-    req.log.error({ error: error.message, code: error.code }, "profiles/me PUT: update error");
+    req.log.error({ error: error.message, code: error.code }, "profiles/me PUT: upsert error");
     res.status(400).json({ error: error.message });
-    return;
-  }
-
-  if (!data) {
-    res.status(404).json({ error: "Profile not found" });
     return;
   }
 
