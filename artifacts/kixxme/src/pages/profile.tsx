@@ -5,20 +5,34 @@ import {
   useUpdateMyProfile,
   useUploadAvatar,
   useListMyPhotos,
+  getListMyPhotosQueryKey,
   useUploadPhoto,
   useDeletePhoto,
   useSetPhotoAsAvatar,
+  useReorderPhotos,
   ProfilePhoto,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useGeolocation } from "@/lib/use-geolocation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Share2, Camera, Plus, Trash2, Star, Loader2 } from "lucide-react";
+import {
+  Share2,
+  Camera,
+  Plus,
+  Trash2,
+  Star,
+  Loader2,
+  BadgeCheck,
+  Navigation,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 
 export default function Profile() {
   const { session } = useAuth();
@@ -36,6 +50,8 @@ export default function Profile() {
   const uploadPhoto = useUploadPhoto();
   const deletePhoto = useDeletePhoto();
   const setAvatarPhoto = useSetPhotoAsAvatar();
+  const reorderPhotos = useReorderPhotos();
+  const geo = useGeolocation();
 
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
@@ -145,6 +161,28 @@ export default function Profile() {
     );
   };
 
+  const handleReorder = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= photos.length) return;
+    const next = [...photos];
+    [next[index], next[target]] = [next[target], next[index]];
+    queryClient.setQueryData(getListMyPhotosQueryKey(), next);
+    reorderPhotos.mutate(
+      { data: { photo_ids: next.map((p) => p.id) } },
+      {
+        onError: (err: any) => {
+          refetchPhotos();
+          toast({ title: "No se pudo reordenar", description: err?.data?.error ?? err?.message, variant: "destructive" });
+        },
+        onSuccess: () => refetchPhotos(),
+      }
+    );
+  };
+
+  const handleUseLocation = () => {
+    geo.request(() => toast({ title: "¡Ubicación actualizada!" }));
+  };
+
   const copyLink = () => {
     if (!profile) return;
     navigator.clipboard.writeText(`${window.location.origin}/profile/${profile.id}`);
@@ -220,9 +258,17 @@ export default function Profile() {
             </div>
           )}
         </div>
-        <p className="font-sans text-xs text-muted-foreground text-center">
-          Foto de perfil principal · Gym, playa o casual
-        </p>
+        {profile.is_verified ? (
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium text-sky-400 border border-sky-500/30"
+            style={{ background: "rgba(14,165,233,0.1)" }}>
+            <BadgeCheck className="w-3.5 h-3.5" />
+            Verificado
+          </span>
+        ) : (
+          <p className="font-sans text-xs text-muted-foreground text-center">
+            Foto de perfil principal · Gym, playa o casual
+          </p>
+        )}
       </div>
 
       <div className="px-4 pb-4">
@@ -231,12 +277,16 @@ export default function Profile() {
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/6</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((photo: ProfilePhoto) => (
+          {photos.map((photo: ProfilePhoto, index: number) => (
             <PhotoSlot
               key={photo.id}
               photo={photo}
+              index={index}
+              total={photos.length}
               onDelete={() => handleDeletePhoto(photo.id)}
               onSetAvatar={() => handleSetAvatar(photo.id)}
+              onMoveUp={() => handleReorder(index, -1)}
+              onMoveDown={() => handleReorder(index, 1)}
               isDeleting={deletePhoto.isPending}
               isSettingAvatar={setAvatarPhoto.isPending}
             />
@@ -297,6 +347,33 @@ export default function Profile() {
               placeholder="España" data-testid="input-edit-location" />
           </Field>
         </div>
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={handleUseLocation}
+            disabled={geo.isPending || geo.state === "locating"}
+            className="w-full h-11 rounded-xl border border-primary/30 flex items-center justify-center gap-2 font-sans text-sm text-primary transition-colors hover:bg-primary/5 disabled:opacity-60"
+            style={{ background: "rgba(168,85,247,0.06)" }}
+            data-testid="button-use-location"
+          >
+            {geo.isPending || geo.state === "locating" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Navigation className="w-4 h-4" />
+            )}
+            {profile.latitude != null ? "Actualizar mi ubicación" : "Usar mi ubicación actual"}
+          </button>
+          {profile.latitude != null && geo.state !== "denied" && (
+            <p className="font-sans text-[11px] text-green-400 mt-1.5 text-center">
+              Ubicación activa · apareces en el mapa
+            </p>
+          )}
+          {geo.state === "denied" && (
+            <p className="font-sans text-[11px] text-red-400 mt-1.5 text-center">
+              Permiso denegado. Actívalo en los ajustes del navegador.
+            </p>
+          )}
+        </div>
         <Button onClick={handleSave} disabled={updateProfile.isPending || !isDirty}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
@@ -310,14 +387,22 @@ export default function Profile() {
 
 function PhotoSlot({
   photo,
+  index,
+  total,
   onDelete,
   onSetAvatar,
+  onMoveUp,
+  onMoveDown,
   isDeleting,
   isSettingAvatar,
 }: {
   photo: ProfilePhoto;
+  index: number;
+  total: number;
   onDelete: () => void;
   onSetAvatar: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   isDeleting: boolean;
   isSettingAvatar: boolean;
 }) {
@@ -331,7 +416,21 @@ function PhotoSlot({
           <Star className="w-2.5 h-2.5 text-white" />
         </div>
       )}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={onMoveUp} disabled={index === 0}
+          className="w-6 h-6 flex items-center justify-center rounded-md text-white disabled:opacity-30"
+          style={{ background: "rgba(13,11,26,0.85)" }}
+          title="Mover antes">
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={onMoveDown} disabled={index === total - 1}
+          className="w-6 h-6 flex items-center justify-center rounded-md text-white disabled:opacity-30"
+          style={{ background: "rgba(13,11,26,0.85)" }}
+          title="Mover después">
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 p-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
         {!photo.is_avatar && (
           <button onClick={onSetAvatar} disabled={isSettingAvatar}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-white"

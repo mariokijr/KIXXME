@@ -15,6 +15,11 @@ export interface Profile {
   gender?: string | null;
   location?: string | null;
   avatar_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  last_active_at?: string | null;
+  plan?: string | null;
+  is_verified?: boolean;
   created_at?: string;
   updated_at?: string;
 }

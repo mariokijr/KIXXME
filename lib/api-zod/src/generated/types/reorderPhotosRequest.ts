@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type SendMessageBody = {
-  content: string;
-};
+export interface ReorderPhotosRequest {
+  photo_ids: string[];
+}

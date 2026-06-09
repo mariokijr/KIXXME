@@ -15,5 +15,9 @@ export interface PublicProfile {
   gender?: string | null;
   location?: string | null;
   avatar_url?: string | null;
+  distance_km?: number | null;
+  is_online?: boolean;
+  is_verified?: boolean;
+  liked_by_me?: boolean;
   created_at?: string;
 }

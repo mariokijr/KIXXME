@@ -88,6 +88,11 @@ export const GetMyProfileResponse = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "last_active_at": zod.string().nullish(),
+  "plan": zod.string().nullish(),
+  "is_verified": zod.boolean().optional(),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -115,6 +120,11 @@ export const UpdateMyProfileResponse = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "last_active_at": zod.string().nullish(),
+  "plan": zod.string().nullish(),
+  "is_verified": zod.boolean().optional(),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -136,6 +146,10 @@ export const GetProfileResponse = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 })
 
@@ -157,6 +171,10 @@ export const UploadAvatarResponse = zod.object({
 /**
  * @summary List public profiles for discovery (excludes current user)
  */
+export const ListProfilesQueryParams = zod.object({
+  "sort": zod.enum(['recent', 'distance', 'online']).optional()
+})
+
 export const ListProfilesResponseItem = zod.object({
   "id": zod.string(),
   "username": zod.string(),
@@ -166,6 +184,10 @@ export const ListProfilesResponseItem = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
@@ -235,9 +257,15 @@ export const ListConversationsResponseItem = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
+  "last_message": zod.string().nullish(),
+  "unread_count": zod.number().optional(),
   "created_at": zod.string()
 })
 export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
@@ -261,9 +289,15 @@ export const CreateOrGetConversationResponse = zod.object({
   "gender": zod.string().nullish(),
   "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
+  "last_message": zod.string().nullish(),
+  "unread_count": zod.number().optional(),
   "created_at": zod.string()
 })
 
@@ -279,9 +313,11 @@ export const ListMessagesResponseItem = zod.object({
   "id": zod.string(),
   "conversation_id": zod.string(),
   "sender_id": zod.string(),
-  "content": zod.string(),
+  "content": zod.string().nullish(),
+  "image_url": zod.string().nullish(),
   "created_at": zod.string(),
-  "read_at": zod.string().nullish()
+  "read_at": zod.string().nullish(),
+  "deleted_at": zod.string().nullish()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
 
@@ -294,7 +330,164 @@ export const SendMessageParams = zod.object({
 })
 
 export const SendMessageBody = zod.object({
-  "content": zod.string()
+  "content": zod.string().optional(),
+  "image_url": zod.string().optional()
+})
+
+
+/**
+ * @summary Upload an image to send in a conversation
+ */
+export const UploadChatImageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UploadChatImageBody = zod.object({
+  "base64": zod.string(),
+  "mime_type": zod.string(),
+  "filename": zod.string()
+})
+
+
+/**
+ * @summary Update the current user's GPS location
+ */
+export const UpdateMyLocationBody = zod.object({
+  "latitude": zod.number(),
+  "longitude": zod.number()
+})
+
+export const UpdateMyLocationResponse = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "last_active_at": zod.string().nullish(),
+  "plan": zod.string().nullish(),
+  "is_verified": zod.boolean().optional(),
+  "created_at": zod.string().optional(),
+  "updated_at": zod.string().optional()
+})
+
+
+/**
+ * @summary List profiles the current user has liked
+ */
+export const ListMyLikesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "created_at": zod.string().optional()
+})
+export const ListMyLikesResponse = zod.array(ListMyLikesResponseItem)
+
+
+/**
+ * @summary Reorder the current user's photos
+ */
+export const ReorderPhotosBody = zod.object({
+  "photo_ids": zod.array(zod.string())
+})
+
+export const ReorderPhotosResponseItem = zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})
+export const ReorderPhotosResponse = zod.array(ReorderPhotosResponseItem)
+
+
+/**
+ * @summary List a user's public photos
+ */
+export const ListProfilePhotosParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ListProfilePhotosResponseItem = zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})
+export const ListProfilePhotosResponse = zod.array(ListProfilePhotosResponseItem)
+
+
+/**
+ * @summary Like a profile
+ */
+export const LikeProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
+ * @summary Remove a like from a profile
+ */
+export const UnlikeProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnlikeProfileResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Mark all incoming messages in a conversation as read
+ */
+export const MarkConversationReadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const MarkConversationReadResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Report or block a conversation
+ */
+export const ReportConversationParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ReportConversationBody = zod.object({
+  "reason": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete one of the current user's messages
+ */
+export const DeleteMessageParams = zod.object({
+  "messageId": zod.coerce.string()
+})
+
+export const DeleteMessageResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

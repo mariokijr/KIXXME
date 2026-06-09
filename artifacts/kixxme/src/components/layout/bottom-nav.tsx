@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Flame, Globe, MessageCircle, User, Star } from "lucide-react";
+import { useNotifications } from "@/lib/notifications";
 
 const tabs = [
   { href: "/discover", Icon: Flame, label: "Descubrir" },
@@ -11,6 +12,7 @@ const tabs = [
 
 export default function BottomNav() {
   const [location] = useLocation();
+  const { totalUnread } = useNotifications();
 
   return (
     <nav
@@ -21,6 +23,7 @@ export default function BottomNav() {
         {tabs.map(({ href, Icon, label }) => {
           const active = location === href;
           const isPremium = href === "/premium";
+          const showBadge = href === "/chats" && totalUnread > 0;
           return (
             <Link
               key={href}
@@ -36,6 +39,15 @@ export default function BottomNav() {
                       : "linear-gradient(90deg, hsl(273,85%,65%), hsl(330,85%,60%))",
                   }}
                 />
+              )}
+              {showBadge && (
+                <span
+                  className="absolute top-1 left-1/2 ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
+                  style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                  data-testid="badge-unread"
+                >
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
               )}
               <Icon
                 className="w-5 h-5 transition-all duration-200"

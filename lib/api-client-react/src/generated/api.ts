@@ -27,6 +27,8 @@ import type {
   DeletePhoto200,
   ErrorResponse,
   HealthStatus,
+  ListProfilesParams,
+  LocationUpdateRequest,
   LoginRequest,
   Logout200,
   Message,
@@ -35,11 +37,15 @@ import type {
   PublicProfile,
   RefreshSession200,
   RefreshSessionBody,
-  SendMessageBody,
+  ReorderPhotosRequest,
+  ReportRequest,
+  SendMessageRequest,
   SetPhotoAsAvatar200,
   SignUpRequest,
+  SuccessResponse,
   UpdateProfileRequest,
   UploadAvatar200,
+  UploadChatImage201,
   UploadPhotoRequest
 } from './api.schemas';
 
@@ -711,20 +717,27 @@ export const useUploadAvatar = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUploadAvatarMutationOptions(options));
     }
 
-export const getListProfilesUrl = () => {
+export const getListProfilesUrl = (params?: ListProfilesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/profiles`
+  return stringifiedParams.length > 0 ? `/api/profiles?${stringifiedParams}` : `/api/profiles`
 }
 
 /**
  * @summary List public profiles for discovery (excludes current user)
  */
-export const listProfiles = async ( options?: RequestInit): Promise<PublicProfile[]> => {
+export const listProfiles = async (params?: ListProfilesParams, options?: RequestInit): Promise<PublicProfile[]> => {
 
-  return customFetch<PublicProfile[]>(getListProfilesUrl(),
+  return customFetch<PublicProfile[]>(getListProfilesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -737,23 +750,23 @@ export const listProfiles = async ( options?: RequestInit): Promise<PublicProfil
 
 
 
-export const getListProfilesQueryKey = () => {
+export const getListProfilesQueryKey = (params?: ListProfilesParams,) => {
     return [
-    `/api/profiles`
+    `/api/profiles`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<ErrorResponse>>(params?: ListProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProfilesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListProfilesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfiles>>> = ({ signal }) => listProfiles({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfiles>>> = ({ signal }) => listProfiles(params, { signal, ...requestOptions });
 
 
 
@@ -771,11 +784,11 @@ export type ListProfilesQueryError = ErrorType<ErrorResponse>
  */
 
 export function useListProfiles<TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListProfilesQueryOptions(options)
+  const queryOptions = getListProfilesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1313,7 +1326,7 @@ export const getSendMessageUrl = (id: string,) => {
  * @summary Send a message in a conversation
  */
 export const sendMessage = async (id: string,
-    sendMessageBody: SendMessageBody, options?: RequestInit): Promise<Message> => {
+    sendMessageRequest: SendMessageRequest, options?: RequestInit): Promise<Message> => {
 
   return customFetch<Message>(getSendMessageUrl(id),
   {
@@ -1321,7 +1334,7 @@ export const sendMessage = async (id: string,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      sendMessageBody,)
+      sendMessageRequest,)
   }
 );}
 
@@ -1329,8 +1342,8 @@ export const sendMessage = async (id: string,
 
 
 export const getSendMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageBody>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageRequest>}, TContext> => {
 
 const mutationKey = ['sendMessage'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1342,7 +1355,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendMessage>>, {id: string;data: BodyType<SendMessageBody>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendMessage>>, {id: string;data: BodyType<SendMessageRequest>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  sendMessage(id,data,requestOptions)
@@ -1356,20 +1369,740 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SendMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendMessage>>>
-    export type SendMessageMutationBody = BodyType<SendMessageBody>
+    export type SendMessageMutationBody = BodyType<SendMessageRequest>
     export type SendMessageMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Send a message in a conversation
  */
 export const useSendMessage = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: string;data: BodyType<SendMessageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof sendMessage>>,
         TError,
-        {id: string;data: BodyType<SendMessageBody>},
+        {id: string;data: BodyType<SendMessageRequest>},
         TContext
       > => {
       return useMutation(getSendMessageMutationOptions(options));
+    }
+
+export const getUploadChatImageUrl = (id: string,) => {
+
+
+
+
+  return `/api/conversations/${id}/images`
+}
+
+/**
+ * @summary Upload an image to send in a conversation
+ */
+export const uploadChatImage = async (id: string,
+    avatarUploadRequest: AvatarUploadRequest, options?: RequestInit): Promise<UploadChatImage201> => {
+
+  return customFetch<UploadChatImage201>(getUploadChatImageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      avatarUploadRequest,)
+  }
+);}
+
+
+
+
+export const getUploadChatImageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatImage>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadChatImage>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext> => {
+
+const mutationKey = ['uploadChatImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadChatImage>>, {id: string;data: BodyType<AvatarUploadRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  uploadChatImage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadChatImageMutationResult = NonNullable<Awaited<ReturnType<typeof uploadChatImage>>>
+    export type UploadChatImageMutationBody = BodyType<AvatarUploadRequest>
+    export type UploadChatImageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Upload an image to send in a conversation
+ */
+export const useUploadChatImage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatImage>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadChatImage>>,
+        TError,
+        {id: string;data: BodyType<AvatarUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getUploadChatImageMutationOptions(options));
+    }
+
+export const getUpdateMyLocationUrl = () => {
+
+
+
+
+  return `/api/profiles/me/location`
+}
+
+/**
+ * @summary Update the current user's GPS location
+ */
+export const updateMyLocation = async (locationUpdateRequest: LocationUpdateRequest, options?: RequestInit): Promise<Profile> => {
+
+  return customFetch<Profile>(getUpdateMyLocationUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      locationUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateMyLocationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<LocationUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<LocationUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateMyLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyLocation>>, {data: BodyType<LocationUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyLocationMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyLocation>>>
+    export type UpdateMyLocationMutationBody = BodyType<LocationUpdateRequest>
+    export type UpdateMyLocationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update the current user's GPS location
+ */
+export const useUpdateMyLocation = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<LocationUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyLocation>>,
+        TError,
+        {data: BodyType<LocationUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyLocationMutationOptions(options));
+    }
+
+export const getListMyLikesUrl = () => {
+
+
+
+
+  return `/api/profiles/me/likes`
+}
+
+/**
+ * @summary List profiles the current user has liked
+ */
+export const listMyLikes = async ( options?: RequestInit): Promise<PublicProfile[]> => {
+
+  return customFetch<PublicProfile[]>(getListMyLikesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyLikesQueryKey = () => {
+    return [
+    `/api/profiles/me/likes`
+    ] as const;
+    }
+
+
+export const getListMyLikesQueryOptions = <TData = Awaited<ReturnType<typeof listMyLikes>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyLikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyLikes>>> = ({ signal }) => listMyLikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyLikes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyLikesQueryResult = NonNullable<Awaited<ReturnType<typeof listMyLikes>>>
+export type ListMyLikesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List profiles the current user has liked
+ */
+
+export function useListMyLikes<TData = Awaited<ReturnType<typeof listMyLikes>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyLikesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getReorderPhotosUrl = () => {
+
+
+
+
+  return `/api/profiles/me/photos/reorder`
+}
+
+/**
+ * @summary Reorder the current user's photos
+ */
+export const reorderPhotos = async (reorderPhotosRequest: ReorderPhotosRequest, options?: RequestInit): Promise<ProfilePhoto[]> => {
+
+  return customFetch<ProfilePhoto[]>(getReorderPhotosUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderPhotosRequest,)
+  }
+);}
+
+
+
+
+export const getReorderPhotosMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderPhotos>>, TError,{data: BodyType<ReorderPhotosRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderPhotos>>, TError,{data: BodyType<ReorderPhotosRequest>}, TContext> => {
+
+const mutationKey = ['reorderPhotos'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderPhotos>>, {data: BodyType<ReorderPhotosRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reorderPhotos(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderPhotosMutationResult = NonNullable<Awaited<ReturnType<typeof reorderPhotos>>>
+    export type ReorderPhotosMutationBody = BodyType<ReorderPhotosRequest>
+    export type ReorderPhotosMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Reorder the current user's photos
+ */
+export const useReorderPhotos = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderPhotos>>, TError,{data: BodyType<ReorderPhotosRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderPhotos>>,
+        TError,
+        {data: BodyType<ReorderPhotosRequest>},
+        TContext
+      > => {
+      return useMutation(getReorderPhotosMutationOptions(options));
+    }
+
+export const getListProfilePhotosUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/photos`
+}
+
+/**
+ * @summary List a user's public photos
+ */
+export const listProfilePhotos = async (id: string, options?: RequestInit): Promise<ProfilePhoto[]> => {
+
+  return customFetch<ProfilePhoto[]>(getListProfilePhotosUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProfilePhotosQueryKey = (id: string,) => {
+    return [
+    `/api/profiles/${id}/photos`
+    ] as const;
+    }
+
+
+export const getListProfilePhotosQueryOptions = <TData = Awaited<ReturnType<typeof listProfilePhotos>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfilePhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProfilePhotosQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfilePhotos>>> = ({ signal }) => listProfilePhotos(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProfilePhotos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProfilePhotosQueryResult = NonNullable<Awaited<ReturnType<typeof listProfilePhotos>>>
+export type ListProfilePhotosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List a user's public photos
+ */
+
+export function useListProfilePhotos<TData = Awaited<ReturnType<typeof listProfilePhotos>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfilePhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProfilePhotosQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getLikeProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/like`
+}
+
+/**
+ * @summary Like a profile
+ */
+export const likeProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getLikeProfileUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getLikeProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['likeProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeProfile>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  likeProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikeProfileMutationResult = NonNullable<Awaited<ReturnType<typeof likeProfile>>>
+
+    export type LikeProfileMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Like a profile
+ */
+export const useLikeProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof likeProfile>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getLikeProfileMutationOptions(options));
+    }
+
+export const getUnlikeProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/like`
+}
+
+/**
+ * @summary Remove a like from a profile
+ */
+export const unlikeProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getUnlikeProfileUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnlikeProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unlikeProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeProfile>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unlikeProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeProfile>>>
+
+    export type UnlikeProfileMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a like from a profile
+ */
+export const useUnlikeProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeProfile>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getUnlikeProfileMutationOptions(options));
+    }
+
+export const getMarkConversationReadUrl = (id: string,) => {
+
+
+
+
+  return `/api/conversations/${id}/read`
+}
+
+/**
+ * @summary Mark all incoming messages in a conversation as read
+ */
+export const markConversationRead = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getMarkConversationReadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkConversationReadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['markConversationRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markConversationRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markConversationRead(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkConversationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markConversationRead>>>
+
+    export type MarkConversationReadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark all incoming messages in a conversation as read
+ */
+export const useMarkConversationRead = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markConversationRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getMarkConversationReadMutationOptions(options));
+    }
+
+export const getReportConversationUrl = (id: string,) => {
+
+
+
+
+  return `/api/conversations/${id}/report`
+}
+
+/**
+ * @summary Report or block a conversation
+ */
+export const reportConversation = async (id: string,
+    reportRequest?: ReportRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getReportConversationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reportRequest,)
+  }
+);}
+
+
+
+
+export const getReportConversationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportConversation>>, TError,{id: string;data?: BodyType<ReportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportConversation>>, TError,{id: string;data?: BodyType<ReportRequest>}, TContext> => {
+
+const mutationKey = ['reportConversation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportConversation>>, {id: string;data?: BodyType<ReportRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportConversation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportConversationMutationResult = NonNullable<Awaited<ReturnType<typeof reportConversation>>>
+    export type ReportConversationMutationBody = BodyType<ReportRequest> | undefined
+    export type ReportConversationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Report or block a conversation
+ */
+export const useReportConversation = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportConversation>>, TError,{id: string;data?: BodyType<ReportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportConversation>>,
+        TError,
+        {id: string;data?: BodyType<ReportRequest>},
+        TContext
+      > => {
+      return useMutation(getReportConversationMutationOptions(options));
+    }
+
+export const getDeleteMessageUrl = (messageId: string,) => {
+
+
+
+
+  return `/api/messages/${messageId}`
+}
+
+/**
+ * @summary Delete one of the current user's messages
+ */
+export const deleteMessage = async (messageId: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteMessageUrl(messageId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,{messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,{messageId: string}, TContext> => {
+
+const mutationKey = ['deleteMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMessage>>, {messageId: string}> = (props) => {
+          const {messageId} = props ?? {};
+
+          return  deleteMessage(messageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
+
+    export type DeleteMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete one of the current user's messages
+ */
+export const useDeleteMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,{messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMessage>>,
+        TError,
+        {messageId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteMessageMutationOptions(options));
     }
 

@@ -1,29 +1,40 @@
 import { Router } from "express";
-import { supabase, supabaseAuth } from "../lib/supabase.js";
+import { supabase } from "../lib/supabase.js";
+import { requireAuth } from "../lib/auth.js";
+import { isOnline } from "../lib/geo.js";
 
 const router = Router();
-
-function getToken(req: { headers: { authorization?: string } }): string | null {
-  return req.headers.authorization?.replace("Bearer ", "") ?? null;
-}
-
-async function requireAuth(
-  req: Parameters<typeof getToken>[0],
-  res: { status: (n: number) => { json: (o: unknown) => void } }
-): Promise<{ userId: string; token: string } | null> {
-  const token = getToken(req);
-  if (!token) { res.status(401).json({ error: "Unauthorized" }); return null; }
-  const { data, error } = await supabaseAuth.auth.getUser(token);
-  if (error || !data.user) { res.status(401).json({ error: "Invalid or expired token" }); return null; }
-  return { userId: data.user.id, token };
-}
 
 async function getOtherProfile(userId: string) {
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, city, age, gender, location, created_at")
+    .select("id, username, bio, avatar_url, city, age, gender, location, created_at, last_active_at, is_verified")
     .eq("id", userId)
     .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id,
+    username: data.username,
+    bio: data.bio,
+    avatar_url: data.avatar_url,
+    city: data.city,
+    age: data.age,
+    gender: data.gender,
+    location: data.location,
+    created_at: data.created_at,
+    is_online: isOnline(data.last_active_at),
+    is_verified: Boolean(data.is_verified),
+  };
+}
+
+async function isParticipant(convId: string, userId: string) {
+  const { data } = await supabase
+    .from("conversations")
+    .select("user1_id, user2_id")
+    .eq("id", convId)
+    .maybeSingle();
+  if (!data) return null;
+  if (data.user1_id !== userId && data.user2_id !== userId) return null;
   return data;
 }
 
@@ -36,16 +47,49 @@ router.get("/conversations", async (req, res) => {
     .select("*")
     .or(`user1_id.eq.${auth.userId},user2_id.eq.${auth.userId}`)
     .order("last_message_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
-  if (error) { req.log.error({ error: error.message }, "conversations GET: error"); res.status(500).json({ error: error.message }); return; }
+  if (error) {
+    req.log.error({ error: error.message }, "conversations GET: error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
 
   const enriched = await Promise.all(
     (conversations ?? []).map(async (conv) => {
       const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
       const otherUser = await getOtherProfile(otherId);
-      return { ...conv, other_user: otherUser };
-    })
+
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .neq("sender_id", auth.userId)
+        .is("read_at", null)
+        .is("deleted_at", null);
+
+      const { data: last } = await supabase
+        .from("messages")
+        .select("content, image_url, created_at, deleted_at")
+        .eq("conversation_id", conv.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let lastMessage: string | null = null;
+      if (last) {
+        if (last.deleted_at) lastMessage = "Mensaje eliminado";
+        else if (last.image_url) lastMessage = "📷 Foto";
+        else lastMessage = last.content;
+      }
+
+      return {
+        ...conv,
+        other_user: otherUser,
+        unread_count: count ?? 0,
+        last_message: lastMessage,
+      };
+    }),
   );
 
   res.json(enriched);
@@ -57,8 +101,14 @@ router.post("/conversations", async (req, res) => {
 
   const { other_user_id } = req.body as { other_user_id?: string };
 
-  if (!other_user_id) { res.status(400).json({ error: "other_user_id is required" }); return; }
-  if (other_user_id === auth.userId) { res.status(400).json({ error: "Cannot chat with yourself" }); return; }
+  if (!other_user_id) {
+    res.status(400).json({ error: "other_user_id is required" });
+    return;
+  }
+  if (other_user_id === auth.userId) {
+    res.status(400).json({ error: "Cannot chat with yourself" });
+    return;
+  }
 
   const [u1, u2] = [auth.userId, other_user_id].sort();
 
@@ -72,7 +122,7 @@ router.post("/conversations", async (req, res) => {
   const otherUser = await getOtherProfile(other_user_id);
 
   if (existing) {
-    res.json({ ...existing, other_user: otherUser });
+    res.json({ ...existing, other_user: otherUser, unread_count: 0, last_message: null });
     return;
   }
 
@@ -82,9 +132,13 @@ router.post("/conversations", async (req, res) => {
     .select()
     .single();
 
-  if (error) { req.log.error({ error: error.message }, "conversations POST: create error"); res.status(400).json({ error: error.message }); return; }
+  if (error) {
+    req.log.error({ error: error.message }, "conversations POST: create error");
+    res.status(400).json({ error: error.message });
+    return;
+  }
 
-  res.status(201).json({ ...created, other_user: otherUser });
+  res.status(201).json({ ...created, other_user: otherUser, unread_count: 0, last_message: null });
 });
 
 router.get("/conversations/:id/messages", async (req, res) => {
@@ -92,14 +146,8 @@ router.get("/conversations/:id/messages", async (req, res) => {
   if (!auth) return;
 
   const { id } = req.params;
-
-  const { data: conv } = await supabase
-    .from("conversations")
-    .select("user1_id, user2_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!conv || (conv.user1_id !== auth.userId && conv.user2_id !== auth.userId)) {
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
     res.status(403).json({ error: "Not authorized" });
     return;
   }
@@ -109,9 +157,20 @@ router.get("/conversations/:id/messages", async (req, res) => {
     .select("*")
     .eq("conversation_id", id)
     .order("created_at", { ascending: true })
-    .limit(200);
+    .limit(500);
 
-  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  // Mark incoming messages as read on open.
+  await supabase
+    .from("messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("conversation_id", id)
+    .neq("sender_id", auth.userId)
+    .is("read_at", null);
 
   res.json(messages ?? []);
 });
@@ -121,28 +180,35 @@ router.post("/conversations/:id/messages", async (req, res) => {
   if (!auth) return;
 
   const { id } = req.params;
-  const { content } = req.body as { content?: string };
+  const { content, image_url } = req.body as { content?: string; image_url?: string };
 
-  if (!content?.trim()) { res.status(400).json({ error: "content is required" }); return; }
+  const trimmed = content?.trim() ?? "";
+  if (!trimmed && !image_url) {
+    res.status(400).json({ error: "content or image_url is required" });
+    return;
+  }
 
-  const { data: conv } = await supabase
-    .from("conversations")
-    .select("user1_id, user2_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!conv || (conv.user1_id !== auth.userId && conv.user2_id !== auth.userId)) {
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
     res.status(403).json({ error: "Not authorized" });
     return;
   }
 
   const { data: message, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: id, sender_id: auth.userId, content: content.trim() })
+    .insert({
+      conversation_id: id,
+      sender_id: auth.userId,
+      content: trimmed || null,
+      image_url: image_url ?? null,
+    })
     .select()
     .single();
 
-  if (error) { res.status(400).json({ error: error.message }); return; }
+  if (error) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
 
   await supabase
     .from("conversations")
@@ -150,6 +216,97 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .eq("id", id);
 
   res.status(201).json(message);
+});
+
+router.post("/conversations/:id/images", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
+    res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  const { base64, mime_type, filename } = req.body as {
+    base64?: string;
+    mime_type?: string;
+    filename?: string;
+  };
+
+  if (!base64 || !mime_type || !filename) {
+    res.status(400).json({ error: "base64, mime_type, and filename are required" });
+    return;
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+  const storagePath = `${auth.userId}/chat/${id}/${Date.now()}_${filename}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(storagePath, buffer, { contentType: mime_type, upsert: false });
+
+  if (uploadError) {
+    req.log.error({ error: uploadError.message }, "chat image upload: error");
+    res.status(400).json({ error: uploadError.message });
+    return;
+  }
+
+  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
+  res.status(201).json({ image_url: urlData.publicUrl });
+});
+
+router.post("/conversations/:id/read", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
+    res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  await supabase
+    .from("messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("conversation_id", id)
+    .neq("sender_id", auth.userId)
+    .is("read_at", null);
+
+  res.json({ success: true });
+});
+
+router.post("/conversations/:id/report", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  const { reason } = req.body as { reason?: string };
+
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
+    res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  const reportedUserId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+
+  const { error } = await supabase.from("reports").insert({
+    reporter_id: auth.userId,
+    reported_user_id: reportedUserId,
+    conversation_id: id,
+    reason: reason ?? null,
+  });
+
+  if (error) {
+    req.log.error({ error: error.message }, "conversations report: error");
+    res.status(400).json({ error: error.message });
+    return;
+  }
+
+  res.status(201).json({ success: true });
 });
 
 export default router;

@@ -1,22 +1,10 @@
 import { Router } from "express";
-import { supabase, supabaseAuth } from "../lib/supabase.js";
+import { supabase } from "../lib/supabase.js";
+import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
 
-function getToken(req: { headers: { authorization?: string } }): string | null {
-  return req.headers.authorization?.replace("Bearer ", "") ?? null;
-}
-
-async function requireAuth(
-  req: Parameters<typeof getToken>[0],
-  res: { status: (n: number) => { json: (o: unknown) => void } }
-): Promise<{ userId: string; token: string } | null> {
-  const token = getToken(req);
-  if (!token) { res.status(401).json({ error: "Unauthorized" }); return null; }
-  const { data, error } = await supabaseAuth.auth.getUser(token);
-  if (error || !data.user) { res.status(401).json({ error: "Invalid or expired token" }); return null; }
-  return { userId: data.user.id, token };
-}
+const MAX_PHOTOS = 6;
 
 router.get("/profiles/me/photos", async (req, res) => {
   const auth = await requireAuth(req, res);
@@ -28,7 +16,11 @@ router.get("/profiles/me/photos", async (req, res) => {
     .eq("user_id", auth.userId)
     .order("position", { ascending: true });
 
-  if (error) { req.log.error({ error: error.message }, "photos GET: query error"); res.status(500).json({ error: error.message }); return; }
+  if (error) {
+    req.log.error({ error: error.message }, "photos GET: query error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
   res.json(data ?? []);
 });
 
@@ -37,11 +29,24 @@ router.post("/profiles/me/photos", async (req, res) => {
   if (!auth) return;
 
   const { base64, mime_type, filename, set_as_avatar } = req.body as {
-    base64?: string; mime_type?: string; filename?: string; set_as_avatar?: boolean;
+    base64?: string;
+    mime_type?: string;
+    filename?: string;
+    set_as_avatar?: boolean;
   };
 
   if (!base64 || !mime_type || !filename) {
     res.status(400).json({ error: "base64, mime_type, and filename are required" });
+    return;
+  }
+
+  const { count: existingCount } = await supabase
+    .from("profile_photos")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", auth.userId);
+
+  if ((existingCount ?? 0) >= MAX_PHOTOS) {
+    res.status(400).json({ error: `Puedes subir un máximo de ${MAX_PHOTOS} fotos` });
     return;
   }
 
@@ -61,12 +66,8 @@ router.post("/profiles/me/photos", async (req, res) => {
   const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
   const url = urlData.publicUrl;
 
-  const { count } = await supabase
-    .from("profile_photos")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", auth.userId);
-
-  const isAvatar = set_as_avatar ?? false;
+  // First photo becomes the avatar automatically.
+  const isAvatar = (set_as_avatar ?? false) || (existingCount ?? 0) === 0;
 
   if (isAvatar) {
     await supabase.from("profile_photos").update({ is_avatar: false }).eq("user_id", auth.userId);
@@ -74,17 +75,75 @@ router.post("/profiles/me/photos", async (req, res) => {
 
   const { data: photo, error: insertError } = await supabase
     .from("profile_photos")
-    .insert({ user_id: auth.userId, storage_path: storagePath, url, is_avatar: isAvatar, position: count ?? 0 })
+    .insert({
+      user_id: auth.userId,
+      storage_path: storagePath,
+      url,
+      is_avatar: isAvatar,
+      position: existingCount ?? 0,
+    })
     .select()
     .single();
 
-  if (insertError) { res.status(400).json({ error: insertError.message }); return; }
+  if (insertError) {
+    res.status(400).json({ error: insertError.message });
+    return;
+  }
 
   if (isAvatar) {
-    await supabase.from("profiles").update({ avatar_url: url, updated_at: new Date().toISOString() }).eq("id", auth.userId);
+    await supabase
+      .from("profiles")
+      .update({ avatar_url: url, updated_at: new Date().toISOString() })
+      .eq("id", auth.userId);
   }
 
   res.status(201).json(photo);
+});
+
+router.post("/profiles/me/photos/reorder", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { photo_ids } = req.body as { photo_ids?: string[] };
+  if (!Array.isArray(photo_ids) || photo_ids.length === 0) {
+    res.status(400).json({ error: "photo_ids must be a non-empty array" });
+    return;
+  }
+
+  const { data: owned } = await supabase
+    .from("profile_photos")
+    .select("id")
+    .eq("user_id", auth.userId);
+
+  const ownedIds = new Set((owned ?? []).map((p) => p.id as string));
+  for (const id of photo_ids) {
+    if (!ownedIds.has(id)) {
+      res.status(400).json({ error: "photo_ids contains a photo you do not own" });
+      return;
+    }
+  }
+
+  await Promise.all(
+    photo_ids.map((id, index) =>
+      supabase
+        .from("profile_photos")
+        .update({ position: index })
+        .eq("id", id)
+        .eq("user_id", auth.userId),
+    ),
+  );
+
+  const { data, error } = await supabase
+    .from("profile_photos")
+    .select("*")
+    .eq("user_id", auth.userId)
+    .order("position", { ascending: true });
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+  res.json(data ?? []);
 });
 
 router.delete("/profiles/me/photos/:photoId", async (req, res) => {
@@ -100,7 +159,10 @@ router.delete("/profiles/me/photos/:photoId", async (req, res) => {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  if (fetchError || !photo) { res.status(404).json({ error: "Photo not found" }); return; }
+  if (fetchError || !photo) {
+    res.status(404).json({ error: "Photo not found" });
+    return;
+  }
 
   await supabase.storage.from("avatars").remove([photo.storage_path]);
   await supabase.from("profile_photos").delete().eq("id", photoId);
@@ -108,12 +170,15 @@ router.delete("/profiles/me/photos/:photoId", async (req, res) => {
   if (photo.is_avatar) {
     const { data: next } = await supabase
       .from("profile_photos")
-      .select("url")
+      .select("id, url")
       .eq("user_id", auth.userId)
-      .neq("id", photoId)
       .order("position", { ascending: true })
       .limit(1)
       .maybeSingle();
+
+    if (next) {
+      await supabase.from("profile_photos").update({ is_avatar: true }).eq("id", next.id);
+    }
 
     await supabase
       .from("profiles")
@@ -137,11 +202,17 @@ router.patch("/profiles/me/photos/:photoId/avatar", async (req, res) => {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  if (fetchError || !photo) { res.status(404).json({ error: "Photo not found" }); return; }
+  if (fetchError || !photo) {
+    res.status(404).json({ error: "Photo not found" });
+    return;
+  }
 
   await supabase.from("profile_photos").update({ is_avatar: false }).eq("user_id", auth.userId);
   await supabase.from("profile_photos").update({ is_avatar: true }).eq("id", photoId);
-  await supabase.from("profiles").update({ avatar_url: photo.url, updated_at: new Date().toISOString() }).eq("id", auth.userId);
+  await supabase
+    .from("profiles")
+    .update({ avatar_url: photo.url, updated_at: new Date().toISOString() })
+    .eq("id", auth.userId);
 
   res.json({ success: true });
 });

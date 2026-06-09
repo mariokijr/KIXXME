@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { AuthUser, Session, setAuthTokenGetter, useLogin, useSignUp, useLogout } from "@workspace/api-client-react";
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { AuthUser, Session, setAuthTokenGetter, refreshSession, useLogin, useSignUp, useLogout } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { setRealtimeAuth } from "./supabase";
 
@@ -20,6 +20,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "kixxme_session";
+// Refresh proactively when the access token is within this many seconds of expiry.
+const EXPIRY_BUFFER_SECONDS = 60;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ session: null, user: null });
@@ -29,15 +31,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMut = useLogout();
   const [, setLocation] = useLocation();
 
+  // Always-current snapshots so the long-lived token getter closure reads fresh state.
+  const sessionRef = useRef<Session | null>(null);
+  const userRef = useRef<AuthUser | null>(null);
+  const refreshInFlight = useRef<Promise<string | null> | null>(null);
+
+  const persist = (session: Session | null, user: AuthUser | null) => {
+    sessionRef.current = session;
+    userRef.current = user;
+    setState({ session, user });
+    if (session && user) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ session, user }));
+      setRealtimeAuth(session.access_token);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+      setRealtimeAuth(null);
+    }
+  };
+
+  // Register a single async token getter that proactively refreshes the access
+  // token before (or right after) it expires, so polling never 401s forever.
+  useEffect(() => {
+    setAuthTokenGetter(async () => {
+      const session = sessionRef.current;
+      if (!session) return null;
+
+      const now = Math.floor(Date.now() / 1000);
+      if (session.expires_at - EXPIRY_BUFFER_SECONDS > now) {
+        return session.access_token;
+      }
+
+      // Token expired/expiring — refresh once and let concurrent callers share it.
+      if (!refreshInFlight.current) {
+        refreshInFlight.current = (async () => {
+          try {
+            // Pass the (stale) bearer so customFetch skips the auth getter and
+            // we don't recurse into another refresh while fetching /auth/refresh.
+            const res = await refreshSession(
+              { refresh_token: session.refresh_token },
+              { headers: { Authorization: `Bearer ${session.access_token}` } },
+            );
+            persist(res.session, userRef.current);
+            return res.session.access_token;
+          } catch {
+            // Refresh token revoked/expired — sign out and bounce to login.
+            persist(null, null);
+            setLocation("/login");
+            return null;
+          } finally {
+            refreshInFlight.current = null;
+          }
+        })();
+      }
+      return refreshInFlight.current;
+    });
+
+    return () => setAuthTokenGetter(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore persisted session on mount.
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.session && parsed.user) {
-          setState(parsed);
-          setAuthTokenGetter(() => parsed.session.access_token);
-          setRealtimeAuth(parsed.session.access_token);
+          persist(parsed.session, parsed.user);
         }
       }
     } catch (e) {
@@ -45,31 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const setSessionData = (session: Session | null, user: AuthUser | null) => {
-    setState({ session, user });
-    if (session && user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ session, user }));
-      setAuthTokenGetter(() => session.access_token);
-      setRealtimeAuth(session.access_token);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-      setAuthTokenGetter(() => null);
-      setRealtimeAuth(null);
-    }
-  };
 
   const login = async (data: any) => {
     const res = await loginMut.mutateAsync({ data });
-    setSessionData(res.session, res.user);
+    persist(res.session, res.user);
     setLocation("/profile");
   };
 
   const signup = async (data: any) => {
     const res = await signupMut.mutateAsync({ data });
     if (res.session) {
-      setSessionData(res.session, res.user);
+      persist(res.session, res.user);
       setLocation("/profile");
     } else {
       setLocation("/login?confirm=1");
@@ -79,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     logoutMut.mutate(undefined, {
       onSettled: () => {
-        setSessionData(null, null);
+        persist(null, null);
         setLocation("/login");
       }
     });

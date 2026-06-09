@@ -10,7 +10,9 @@ export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  content: string;
+  content?: string | null;
+  image_url?: string | null;
   created_at: string;
   read_at?: string | null;
+  deleted_at?: string | null;
 }

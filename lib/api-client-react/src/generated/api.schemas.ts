@@ -51,6 +51,11 @@ export interface Profile {
   gender?: string | null;
   location?: string | null;
   avatar_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  last_active_at?: string | null;
+  plan?: string | null;
+  is_verified?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -64,6 +69,10 @@ export interface PublicProfile {
   gender?: string | null;
   location?: string | null;
   avatar_url?: string | null;
+  distance_km?: number | null;
+  is_online?: boolean;
+  is_verified?: boolean;
+  liked_by_me?: boolean;
   created_at?: string;
 }
 
@@ -104,6 +113,8 @@ export interface Conversation {
   id: string;
   other_user: PublicProfile;
   last_message_at?: string | null;
+  last_message?: string | null;
+  unread_count?: number;
   created_at: string;
 }
 
@@ -111,9 +122,33 @@ export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  content: string;
+  content?: string | null;
+  image_url?: string | null;
   created_at: string;
   read_at?: string | null;
+  deleted_at?: string | null;
+}
+
+export interface LocationUpdateRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface ReorderPhotosRequest {
+  photo_ids: string[];
+}
+
+export interface ReportRequest {
+  reason?: string;
+}
+
+export interface SendMessageRequest {
+  content?: string;
+  image_url?: string;
+}
+
+export interface SuccessResponse {
+  success: boolean;
 }
 
 export type Logout200 = {
@@ -132,6 +167,19 @@ export type UploadAvatar200 = {
   avatar_url: string;
 };
 
+export type ListProfilesParams = {
+sort?: ListProfilesSort;
+};
+
+export type ListProfilesSort = typeof ListProfilesSort[keyof typeof ListProfilesSort];
+
+
+export const ListProfilesSort = {
+  recent: 'recent',
+  distance: 'distance',
+  online: 'online',
+} as const;
+
 export type DeletePhoto200 = {
   success: boolean;
 };
@@ -144,7 +192,7 @@ export type CreateOrGetConversationBody = {
   other_user_id: string;
 };
 
-export type SendMessageBody = {
-  content: string;
+export type UploadChatImage201 = {
+  image_url: string;
 };
 

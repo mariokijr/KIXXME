@@ -1,10 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { MessageCircle, Search, Edit2, Lock, Loader2, ChevronRight } from "lucide-react";
+import { MessageCircle, Edit2, Lock, Loader2, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useListConversations, getListConversationsQueryKey, Conversation } from "@workspace/api-client-react";
-import { useAuth } from "@/lib/auth";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -17,7 +16,6 @@ function timeAgo(iso: string) {
 }
 
 export default function Chats() {
-  const { session } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: conversations = [], isLoading } = useListConversations({
@@ -40,13 +38,6 @@ export default function Chats() {
           </button>
         </Link>
       </header>
-
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/40" style={{ background: "rgba(255,255,255,0.04)" }}>
-          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          <span className="font-sans text-sm text-muted-foreground">Buscar conversaciones...</span>
-        </div>
-      </div>
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -89,30 +80,61 @@ export default function Chats() {
 function ConvCard({ conv, onClick }: { conv: Conversation; onClick: () => void }) {
   const u = conv.other_user;
   const initials = (u.username || "?").slice(0, 2).toUpperCase();
+  const unread = conv.unread_count ?? 0;
+  const hasUnread = unread > 0;
+  const preview = conv.last_message?.trim() || (u.city ? u.city : "Nuevo usuario");
 
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/20 hover:bg-white/[0.02] transition-colors text-left"
     >
-      <Avatar className="w-12 h-12 rounded-xl flex-shrink-0 border border-border/30">
-        {u.avatar_url && <AvatarImage src={u.avatar_url} className="object-cover" />}
-        <AvatarFallback className="font-display text-lg bg-card text-primary">{initials}</AvatarFallback>
-      </Avatar>
+      <div className="relative flex-shrink-0">
+        <Avatar className="w-12 h-12 rounded-xl border border-border/30">
+          {u.avatar_url && <AvatarImage src={u.avatar_url} className="object-cover" />}
+          <AvatarFallback className="font-display text-lg bg-card text-primary">{initials}</AvatarFallback>
+        </Avatar>
+        {u.is_online && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
+            style={{ background: "hsl(142,71%,45%)", borderColor: "hsl(238,25%,6%)" }}
+          />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className="font-display text-base text-foreground tracking-wide truncate">{u.username}</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-display text-base text-foreground tracking-wide truncate flex items-center gap-1">
+            {u.username}
+            {u.is_verified && <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />}
+          </span>
           {conv.last_message_at && (
-            <span className="font-sans text-xs text-muted-foreground ml-2 flex-shrink-0">
+            <span
+              className={`font-sans text-xs ml-2 flex-shrink-0 ${
+                hasUnread ? "text-primary font-semibold" : "text-muted-foreground"
+              }`}
+            >
               {timeAgo(conv.last_message_at)}
             </span>
           )}
         </div>
-        <p className="font-sans text-sm text-muted-foreground truncate mt-0.5">
-          {u.city ? `${u.city}` : "Nuevo usuario"}{u.age ? ` · ${u.age} años` : ""}
-        </p>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p
+            className={`font-sans text-sm truncate ${
+              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+            }`}
+          >
+            {preview}
+          </p>
+          {hasUnread && (
+            <span
+              className="flex-shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full text-[11px] font-bold text-white"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </div>
       </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
     </button>
   );
 }

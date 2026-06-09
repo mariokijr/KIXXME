@@ -11,5 +11,7 @@ export interface Conversation {
   id: string;
   other_user: PublicProfile;
   last_message_at?: string | null;
+  last_message?: string | null;
+  unread_count?: number;
   created_at: string;
 }

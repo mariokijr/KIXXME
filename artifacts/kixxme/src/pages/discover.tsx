@@ -1,15 +1,33 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, SlidersHorizontal, MapPin, Wifi, Loader2, Share2, Users, FlaskConical } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { MapPin, Loader2, Share2, Users, Heart, BadgeCheck } from "lucide-react";
 import {
   useListProfiles,
+  getListProfilesQueryKey,
   useCreateOrGetConversation,
+  useLikeProfile,
+  useUnlikeProfile,
   PublicProfile,
+  type ListProfilesSort,
 } from "@workspace/api-client-react";
-import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
-type FilterType = "todos" | "online" | "con-foto";
+type ViewType = "todos" | "cerca" | "online" | "con-foto";
+
+const VIEW_LABEL: Record<ViewType, string> = {
+  todos: "Todos",
+  cerca: "Cerca",
+  online: "Online",
+  "con-foto": "Con foto",
+};
+
+const VIEW_SORT: Record<ViewType, ListProfilesSort> = {
+  todos: "recent",
+  cerca: "distance",
+  online: "online",
+  "con-foto": "recent",
+};
 
 const GRAD_PALETTE = [
   "from-violet-700 to-purple-900",
@@ -24,27 +42,43 @@ const GRAD_PALETTE = [
 
 function gradFor(id: string) {
   let h = 0;
-  for (const c of id) { h = ((h << 5) - h) + c.charCodeAt(0); h |= 0; }
+  for (const c of id) {
+    h = (h << 5) - h + c.charCodeAt(0);
+    h |= 0;
+  }
   return GRAD_PALETTE[Math.abs(h) % GRAD_PALETTE.length];
 }
 
-function initialsFor(username: string) {
+function initialsFor(username: string | null) {
   return (username || "?").slice(0, 2).toUpperCase();
 }
 
+export function formatDistance(km: number | null | undefined): string | null {
+  if (km == null) return null;
+  if (km < 1) return "< 1 km";
+  if (km < 10) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
+}
+
 export default function Discover() {
-  const { session } = useAuth();
-  const [filter, setFilter] = useState<FilterType>("todos");
+  const [view, setView] = useState<ViewType>("todos");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [seeding, setSeeding] = useState(false);
+  const qc = useQueryClient();
 
-  const { data: profiles = [], isLoading, isError } = useListProfiles();
+  const {
+    data: profiles = [],
+    isLoading,
+    isError,
+  } = useListProfiles({ sort: VIEW_SORT[view] });
 
   const createConv = useCreateOrGetConversation();
+  const likeMut = useLikeProfile();
+  const unlikeMut = useUnlikeProfile();
 
   const filtered = profiles.filter((u) => {
-    if (filter === "con-foto") return !!u.avatar_url;
+    if (view === "con-foto") return !!u.avatar_url;
+    if (view === "online") return !!u.is_online;
     return true;
   });
 
@@ -53,10 +87,24 @@ export default function Discover() {
   const handleMessage = (userId: string) => {
     createConv.mutate(
       { data: { other_user_id: userId } },
-      {
-        onSuccess: (conv) => setLocation(`/chats/${conv.id}`),
-      }
+      { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
     );
+  };
+
+  const handleToggleLike = (user: PublicProfile) => {
+    const onSettled = () =>
+      qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+    if (user.liked_by_me) {
+      unlikeMut.mutate({ id: user.id }, { onSettled });
+    } else {
+      likeMut.mutate(
+        { id: user.id },
+        {
+          onSuccess: () => toast({ title: `Te gusta ${user.username ?? "este perfil"} ❤️` }),
+          onSettled,
+        }
+      );
+    }
   };
 
   const handleShare = async () => {
@@ -77,19 +125,7 @@ export default function Discover() {
     }
   };
 
-  const handleSeedUsers = async () => {
-    setSeeding(true);
-    try {
-      const res = await fetch("/api/dev/seed-users", { method: "POST" });
-      const json = await res.json();
-      const created = json.results?.filter((r: any) => r.status === "created").length ?? 0;
-      toast({ title: `${created} usuario${created !== 1 ? "s" : ""} creado${created !== 1 ? "s" : ""} ✓` });
-    } catch {
-      toast({ title: "Error al crear usuarios", variant: "destructive" });
-    } finally {
-      setSeeding(false);
-    }
-  };
+  const onlineCount = profiles.filter((u) => u.is_online).length;
 
   return (
     <div className="min-h-full">
@@ -101,25 +137,15 @@ export default function Discover() {
           <span className="font-display text-2xl tracking-tight text-gradient-brand leading-none">
             KIXXME
           </span>
-          {!isLoading && !isError && profiles.length > 0 && (
+          {!isLoading && !isError && onlineCount > 0 && (
             <span
-              className="flex items-center gap-1 text-[10px] font-sans px-2 py-0.5 rounded-full border border-green-500/30 text-green-400"
+              className="flex items-center gap-1.5 text-[10px] font-sans px-2 py-0.5 rounded-full border border-green-500/30 text-green-400"
               style={{ background: "rgba(34,197,94,0.08)" }}
             >
-              <Wifi className="w-2.5 h-2.5" />
-              {profiles.length} perfil{profiles.length !== 1 ? "es" : ""}
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              {onlineCount} en línea
             </span>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)" }}>
-            <Bell className="w-4 h-4" />
-          </button>
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)" }}>
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -129,24 +155,34 @@ export default function Discover() {
         </h2>
         {!isLoading && !isError && filtered.length > 0 && (
           <p className="text-muted-foreground font-sans text-sm mt-1">
-            {filtered.length} perfil{filtered.length !== 1 ? "es" : ""} disponible{filtered.length !== 1 ? "s" : ""}
+            {filtered.length} perfil{filtered.length !== 1 ? "es" : ""} disponible
+            {filtered.length !== 1 ? "s" : ""}
           </p>
         )}
       </div>
 
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
-        {(["todos", "con-foto", "online"] as FilterType[]).map((f) => (
+        {(["todos", "cerca", "online", "con-foto"] as ViewType[]).map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => setView(f)}
             className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-sans font-medium border transition-all duration-200"
             style={
-              filter === f
-                ? { background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", borderColor: "transparent", color: "white" }
-                : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "hsl(240,10%,55%)" }
+              view === f
+                ? {
+                    background:
+                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                    borderColor: "transparent",
+                    color: "white",
+                  }
+                : {
+                    background: "rgba(255,255,255,0.04)",
+                    borderColor: "rgba(255,255,255,0.1)",
+                    color: "hsl(240,10%,55%)",
+                  }
             }
           >
-            {f === "todos" ? "Todos" : f === "con-foto" ? "Con foto" : "Online"}
+            {VIEW_LABEL[f]}
           </button>
         ))}
       </div>
@@ -157,7 +193,7 @@ export default function Discover() {
           <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
         </div>
       ) : isEmpty ? (
-        <EmptyState onShare={handleShare} onSeed={handleSeedUsers} seeding={seeding} />
+        <EmptyState view={view} onShare={handleShare} />
       ) : (
         <div className="px-4 pb-6 grid grid-cols-2 gap-3">
           {filtered.map((user) => (
@@ -166,6 +202,7 @@ export default function Discover() {
               user={user}
               grad={gradFor(user.id)}
               onMessage={() => handleMessage(user.id)}
+              onToggleLike={() => handleToggleLike(user)}
             />
           ))}
         </div>
@@ -174,16 +211,13 @@ export default function Discover() {
   );
 }
 
-function EmptyState({
-  onShare,
-  onSeed,
-  seeding,
-}: {
-  onShare: () => void;
-  onSeed: () => void;
-  seeding: boolean;
-}) {
-  const isDev = import.meta.env.DEV;
+function EmptyState({ view, onShare }: { view: ViewType; onShare: () => void }) {
+  const title =
+    view === "online"
+      ? "Nadie en línea ahora mismo."
+      : view === "con-foto"
+        ? "Nadie con foto por aquí todavía."
+        : "Todavía no hay usuarios cerca.";
 
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-8">
@@ -198,9 +232,7 @@ function EmptyState({
       </div>
 
       <div className="space-y-2">
-        <h3 className="font-display text-2xl tracking-wide text-foreground">
-          Todavía no hay usuarios cerca.
-        </h3>
+        <h3 className="font-display text-2xl tracking-wide text-foreground">{title}</h3>
         <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
           Invita a tus amigos para empezar.
         </p>
@@ -214,22 +246,6 @@ function EmptyState({
         <Share2 className="w-4 h-4" />
         Compartir KixxMe
       </button>
-
-      {isDev && (
-        <button
-          onClick={onSeed}
-          disabled={seeding}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-sans text-sm font-medium border border-amber-500/30 text-amber-400 hover:border-amber-500/60 transition-colors disabled:opacity-50"
-          style={{ background: "rgba(234,179,8,0.06)" }}
-        >
-          {seeding ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <FlaskConical className="w-3.5 h-3.5" />
-          )}
-          {seeding ? "Creando..." : "Crear 5 usuarios de prueba"}
-        </button>
-      )}
     </div>
   );
 }
@@ -238,18 +254,26 @@ function UserCard({
   user,
   grad,
   onMessage,
+  onToggleLike,
 }: {
   user: PublicProfile;
   grad: string;
   onMessage: () => void;
+  onToggleLike: () => void;
 }) {
+  const distance = formatDistance(user.distance_km);
+
   return (
     <div
       className="relative rounded-2xl overflow-hidden border border-border/30 group"
       style={{ background: "rgba(13,11,26,0.8)", aspectRatio: "3/4" }}
     >
       {user.avatar_url ? (
-        <img src={user.avatar_url} alt={user.username} className="absolute inset-0 w-full h-full object-cover" />
+        <img
+          src={user.avatar_url}
+          alt={user.username ?? ""}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       ) : (
         <>
           <div className={`absolute inset-0 bg-gradient-to-br ${grad} opacity-60`} />
@@ -261,13 +285,51 @@ function UserCard({
         </>
       )}
 
+      <div className="absolute top-2 left-2 flex items-center gap-1.5">
+        {user.is_online && (
+          <span
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-sans font-medium text-white"
+            style={{ background: "rgba(34,197,94,0.85)" }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            En línea
+          </span>
+        )}
+      </div>
+
+      {user.is_verified && (
+        <div className="absolute top-2 right-2">
+          <BadgeCheck
+            className="w-5 h-5 text-sky-400"
+            style={{ filter: "drop-shadow(0 0 4px rgba(56,189,248,0.6))" }}
+          />
+        </div>
+      )}
+
+      <button
+        onClick={onToggleLike}
+        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-sm transition-transform active:scale-90"
+        style={{ background: "rgba(0,0,0,0.4)" }}
+        aria-label={user.liked_by_me ? "Quitar me gusta" : "Me gusta"}
+      >
+        <Heart
+          className="w-5 h-5 transition-colors"
+          style={{
+            color: user.liked_by_me ? "hsl(330,85%,60%)" : "white",
+            fill: user.liked_by_me ? "hsl(330,85%,60%)" : "transparent",
+          }}
+        />
+      </button>
+
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
         style={{ background: "rgba(0,0,0,0.5)" }}
       >
         <Link href={`/profile/${user.id}`}>
-          <button className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-white/30"
-            style={{ background: "rgba(255,255,255,0.12)" }}>
+          <button
+            className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-white/30"
+            style={{ background: "rgba(255,255,255,0.12)" }}
+          >
             Ver
           </button>
         </Link>
@@ -281,20 +343,20 @@ function UserCard({
       </div>
 
       <div
-        className="absolute bottom-0 left-0 right-0 px-3 py-3"
+        className="absolute bottom-0 left-0 right-0 px-3 py-3 pointer-events-none"
         style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)" }}
       >
         <p className="font-display text-base text-white leading-tight tracking-wide truncate">
           {user.username}
         </p>
         <div className="flex items-center justify-between mt-0.5">
-          <span className="font-sans text-xs text-white/70">
+          <span className="font-sans text-xs text-white/70 truncate">
             {[user.age, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
           </span>
-          {user.city && (
-            <span className="flex items-center gap-0.5 font-sans text-[10px] text-white/60">
+          {distance && (
+            <span className="flex items-center gap-0.5 font-sans text-[10px] text-white/60 flex-shrink-0 ml-1">
               <MapPin className="w-2.5 h-2.5" />
-              {user.city}
+              {distance}
             </span>
           )}
         </div>

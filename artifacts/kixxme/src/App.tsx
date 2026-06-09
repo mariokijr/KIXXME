@@ -1,10 +1,12 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { NotificationsProvider } from "@/lib/notifications";
+import { useGeolocation } from "@/lib/use-geolocation";
 import { Flame } from "lucide-react";
 import BottomNav from "@/components/layout/bottom-nav";
 
@@ -66,6 +68,28 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
+function LocationSync() {
+  const { session } = useAuth();
+  const { request } = useGeolocation();
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    if (!session || doneRef.current) return;
+    if (!("permissions" in navigator) || !("geolocation" in navigator)) return;
+    navigator.permissions
+      .query({ name: "geolocation" as PermissionName })
+      .then((res) => {
+        if (res.state === "granted") {
+          doneRef.current = true;
+          request();
+        }
+      })
+      .catch(() => {});
+  }, [session, request]);
+
+  return null;
+}
+
 function HomeRedirect() {
   const { session, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -109,7 +133,10 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
-            <Router />
+            <NotificationsProvider>
+              <LocationSync />
+              <Router />
+            </NotificationsProvider>
           </AuthProvider>
         </WouterRouter>
         <Toaster />

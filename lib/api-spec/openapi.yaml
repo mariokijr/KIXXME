@@ -253,6 +253,13 @@ paths:
       summary: List public profiles for discovery (excludes current user)
       security:
         - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [recent, distance, online]
       responses:
         "200":
           description: Array of public profiles
@@ -488,11 +495,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                content:
-                  type: string
-              required: [content]
+              $ref: "#/components/schemas/SendMessageRequest"
       responses:
         "201":
           description: Sent message
@@ -502,6 +505,282 @@ paths:
                 $ref: "#/components/schemas/Message"
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{id}/images:
+    post:
+      operationId: uploadChatImage
+      tags: [conversations]
+      summary: Upload an image to send in a conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvatarUploadRequest"
+      responses:
+        "201":
+          description: Uploaded image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_url:
+                    type: string
+                required: [image_url]
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/location:
+    put:
+      operationId: updateMyLocation
+      tags: [profiles]
+      summary: Update the current user's GPS location
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationUpdateRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/likes:
+    get:
+      operationId: listMyLikes
+      tags: [profiles]
+      summary: List profiles the current user has liked
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liked profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/photos/reorder:
+    post:
+      operationId: reorderPhotos
+      tags: [profiles]
+      summary: Reorder the current user's photos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderPhotosRequest"
+      responses:
+        "200":
+          description: Reordered photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfilePhoto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/{id}/photos:
+    get:
+      operationId: listProfilePhotos
+      tags: [profiles]
+      summary: List a user's public photos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfilePhoto"
+
+  /profiles/{id}/like:
+    post:
+      operationId: likeProfile
+      tags: [profiles]
+      summary: Like a profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Liked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unlikeProfile
+      tags: [profiles]
+      summary: Remove a like from a profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unliked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /conversations/{id}/read:
+    post:
+      operationId: markConversationRead
+      tags: [conversations]
+      summary: Mark all incoming messages in a conversation as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{id}/report:
+    post:
+      operationId: reportConversation
+      tags: [conversations]
+      summary: Report or block a conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportRequest"
+      responses:
+        "201":
+          description: Reported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /messages/{messageId}:
+    delete:
+      operationId: deleteMessage
+      tags: [conversations]
+      summary: Delete one of the current user's messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -609,6 +888,20 @@ components:
         avatar_url:
           type: string
           nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        last_active_at:
+          type: string
+          nullable: true
+        plan:
+          type: string
+          nullable: true
+        is_verified:
+          type: boolean
         created_at:
           type: string
         updated_at:
@@ -640,6 +933,15 @@ components:
         avatar_url:
           type: string
           nullable: true
+        distance_km:
+          type: number
+          nullable: true
+        is_online:
+          type: boolean
+        is_verified:
+          type: boolean
+        liked_by_me:
+          type: boolean
         created_at:
           type: string
       required: [id, username]
@@ -715,6 +1017,11 @@ components:
         last_message_at:
           type: string
           nullable: true
+        last_message:
+          type: string
+          nullable: true
+        unread_count:
+          type: integer
         created_at:
           type: string
       required: [id, other_user, created_at]
@@ -730,9 +1037,55 @@ components:
           type: string
         content:
           type: string
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
         created_at:
           type: string
         read_at:
           type: string
           nullable: true
-      required: [id, conversation_id, sender_id, content, created_at]
+        deleted_at:
+          type: string
+          nullable: true
+      required: [id, conversation_id, sender_id, created_at]
+
+    LocationUpdateRequest:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+      required: [latitude, longitude]
+
+    ReorderPhotosRequest:
+      type: object
+      properties:
+        photo_ids:
+          type: array
+          items:
+            type: string
+      required: [photo_ids]
+
+    ReportRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    SendMessageRequest:
+      type: object
+      properties:
+        content:
+          type: string
+        image_url:
+          type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
