@@ -4,7 +4,6 @@ import {
   getGetMyProfileQueryKey, 
   useUpdateMyProfile, 
   useUploadAvatar,
-  useLogout
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -13,16 +12,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Upload, Share2, Copy } from "lucide-react";
+import { LogOut, Upload, Share2 } from "lucide-react";
 
 export default function Profile() {
-  const { data: profile, isLoading } = useGetMyProfile();
-  const updateProfile = useUpdateMyProfile();
-  const uploadAvatar = useUploadAvatar();
-  const { logout } = useAuth();
+  const { session, user, logout } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
+  const { data: profile, isLoading, error } = useGetMyProfile({
+    query: {
+      enabled: !!session,
+      queryKey: getGetMyProfileQueryKey(),
+    }
+  });
+
+  useEffect(() => {
+    console.log("[Profile] auth user id:", user?.id ?? "none");
+    console.log("[Profile] session present:", !!session);
+  }, [user, session]);
+
+  useEffect(() => {
+    console.log("[Profile] isLoading:", isLoading);
+    console.log("[Profile] profile id:", profile?.id ?? "none");
+    console.log("[Profile] profile data:", profile ?? null);
+    if (error) console.error("[Profile] query error:", error);
+  }, [isLoading, profile, error]);
+
+  const updateProfile = useUpdateMyProfile();
+  const uploadAvatar = useUploadAvatar();
+
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const initRef = useRef<string | null>(null);
@@ -75,10 +93,6 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
-  const handleLogout = () => {
-    logout();
-  };
-
   const copyLink = () => {
     if (!profile) return;
     const url = `${window.location.origin}/profile/${profile.id}`;
@@ -94,7 +108,9 @@ export default function Profile() {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 p-8 text-center">
         <h2 className="text-3xl font-display uppercase text-primary">Setting up your locker...</h2>
-        <p className="text-muted-foreground font-sans">Your profile is being created. Try refreshing in a moment.</p>
+        <p className="text-muted-foreground font-sans">
+          {error ? `Error: ${(error as any)?.data?.error ?? (error as any)?.message ?? "Unknown error"}` : "Your profile is being created. Try refreshing in a moment."}
+        </p>
         <button
           onClick={() => window.location.reload()}
           className="mt-4 px-6 py-3 border-2 border-primary text-primary font-display text-xl uppercase hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -109,7 +125,7 @@ export default function Profile() {
     <div className="min-h-[100dvh] bg-background text-foreground pb-20">
       <header className="border-b-4 border-border p-4 flex justify-between items-center bg-card">
         <h1 className="text-3xl font-display uppercase m-0 leading-none">KIXXME</h1>
-        <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
+        <Button variant="ghost" size="icon" onClick={logout} data-testid="button-logout">
           <LogOut className="h-6 w-6" />
         </Button>
       </header>

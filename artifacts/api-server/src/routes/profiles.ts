@@ -28,13 +28,18 @@ router.get("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  const { data, error } = await supabase
+  req.log.info({ userId: auth.userId }, "profiles/me: fetching profile");
+
+  const client = supabaseForUser(auth.token);
+  const { data, error } = await client
     .from("profiles")
     .select("*")
     .eq("id", auth.userId)
     .single();
 
-  if (error) {
+  req.log.info({ userId: auth.userId, profileId: data?.id ?? null, error: error?.message ?? null }, "profiles/me: query result");
+
+  if (error || !data) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
@@ -57,7 +62,8 @@ router.put("/profiles/me", async (req, res) => {
   if (bio !== undefined) updates.bio = bio;
   if (avatar_url !== undefined) updates.avatar_url = avatar_url;
 
-  const { data, error } = await supabase
+  const client = supabaseForUser(auth.token);
+  const { data, error } = await client
     .from("profiles")
     .update(updates)
     .eq("id", auth.userId)
@@ -105,21 +111,22 @@ router.post("/profiles/me/avatar", async (req, res) => {
   }
 
   const buffer = Buffer.from(base64, "base64");
-  const path = `${auth.userId}/${filename}`;
+  const storagePath = `${auth.userId}/${filename}`;
+  const client = supabaseForUser(auth.token);
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await client.storage
     .from("avatars")
-    .upload(path, buffer, { contentType: mime_type, upsert: true });
+    .upload(storagePath, buffer, { contentType: mime_type, upsert: true });
 
   if (uploadError) {
     res.status(400).json({ error: uploadError.message });
     return;
   }
 
-  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+  const { data: urlData } = client.storage.from("avatars").getPublicUrl(storagePath);
   const avatarUrl = urlData.publicUrl;
 
-  await supabase
+  await client
     .from("profiles")
     .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
     .eq("id", auth.userId);
