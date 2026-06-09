@@ -15,6 +15,7 @@ import PublicProfile from "@/pages/public-profile";
 import Discover from "@/pages/discover";
 import MapView from "@/pages/map-view";
 import Chats from "@/pages/chats";
+import ChatPage from "@/pages/chat";
 import Premium from "@/pages/premium";
 
 const queryClient = new QueryClient();
@@ -41,9 +42,7 @@ function ProtectedMain({ component: Component }: { component: React.ComponentTyp
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !session) {
-      setLocation("/login");
-    }
+    if (!isLoading && !session) setLocation("/login");
   }, [isLoading, session, setLocation]);
 
   if (isLoading || !session) return null;
@@ -60,13 +59,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !session) {
-      setLocation("/login");
-    }
+    if (!isLoading && !session) setLocation("/login");
   }, [isLoading, session, setLocation]);
 
   if (isLoading || !session) return null;
-
   return <Component />;
 }
 
@@ -75,26 +71,16 @@ function HomeRedirect() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading) {
-      setLocation(session ? "/discover" : "/login");
-    }
+    if (!isLoading) setLocation(session ? "/discover" : "/login");
   }, [isLoading, session, setLocation]);
 
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center justify-center gap-4"
-      style={{
-        background:
-          "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)",
-      }}
+      style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
     >
-      <Flame
-        className="w-10 h-10 text-orange-400 animate-pulse"
-        style={{ filter: "drop-shadow(0 0 12px rgba(249,115,22,0.8))" }}
-      />
-      <span className="text-3xl font-display tracking-widest text-gradient-brand animate-pulse">
-        CARGANDO...
-      </span>
+      <Flame className="w-10 h-10 text-orange-400 animate-pulse" style={{ filter: "drop-shadow(0 0 12px rgba(249,115,22,0.8))" }} />
+      <span className="text-3xl font-display tracking-widest text-gradient-brand animate-pulse">CARGANDO...</span>
     </div>
   );
 }
@@ -108,6 +94,7 @@ function Router() {
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
+      <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>

@@ -83,6 +83,39 @@ export interface AvatarUploadRequest {
   filename: string;
 }
 
+export interface UploadPhotoRequest {
+  base64: string;
+  mime_type: string;
+  filename: string;
+  set_as_avatar?: boolean;
+}
+
+export interface ProfilePhoto {
+  id: string;
+  user_id: string;
+  url: string;
+  storage_path: string;
+  is_avatar: boolean;
+  position: number;
+  created_at?: string;
+}
+
+export interface Conversation {
+  id: string;
+  other_user: PublicProfile;
+  last_message_at?: string | null;
+  created_at: string;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  read_at?: string | null;
+}
+
 export type Logout200 = {
   message: string;
 };
@@ -97,5 +130,21 @@ export type RefreshSession200 = {
 
 export type UploadAvatar200 = {
   avatar_url: string;
+};
+
+export type DeletePhoto200 = {
+  success: boolean;
+};
+
+export type SetPhotoAsAvatar200 = {
+  success: boolean;
+};
+
+export type CreateOrGetConversationBody = {
+  other_user_id: string;
+};
+
+export type SendMessageBody = {
+  content: string;
 };
 

@@ -24,6 +24,22 @@ async function requireAuth(
   return { userId: data.user.id, token };
 }
 
+router.get("/profiles", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, bio, avatar_url, age, city, gender, location, created_at")
+    .neq("id", auth.userId)
+    .not("username", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  if (error) { req.log.error({ error: error.message }, "profiles GET list: error"); res.status(500).json({ error: error.message }); return; }
+  res.json(data ?? []);
+});
+
 router.get("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;

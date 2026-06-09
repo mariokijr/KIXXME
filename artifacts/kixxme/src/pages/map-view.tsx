@@ -1,25 +1,23 @@
 import React, { useState } from "react";
-import { MapPin, Users, Flame } from "lucide-react";
+import { MapPin, Users, Flame, Loader2 } from "lucide-react";
+import { useListProfiles, PublicProfile, useCreateOrGetConversation } from "@workspace/api-client-react";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 type TimeFilter = "ahora" | "hoy" | "semana";
 
-const PINS = [
-  { id: "1", x: "41%", y: "33%", count: 4, online: true, label: "Madrid" },
-  { id: "2", x: "47%", y: "31%", count: 2, online: true, label: "Barcelona" },
-  { id: "3", x: "38%", y: "37%", count: 1, online: false, label: "Lisboa" },
-  { id: "4", x: "51%", y: "28%", count: 3, online: true, label: "París" },
-  { id: "5", x: "55%", y: "30%", count: 2, online: false, label: "Roma" },
-  { id: "6", x: "57%", y: "26%", count: 1, online: true, label: "Berlín" },
-  { id: "7", x: "26%", y: "44%", count: 5, online: true, label: "NYC" },
-  { id: "8", x: "20%", y: "50%", count: 2, online: false, label: "México" },
-  { id: "9", x: "23%", y: "57%", count: 3, online: true, label: "Bogotá" },
-  { id: "10", x: "27%", y: "62%", count: 1, online: false, label: "Lima" },
-  { id: "11", x: "68%", y: "36%", count: 6, online: true, label: "Dubái" },
-  { id: "12", x: "78%", y: "32%", count: 2, online: true, label: "Mumbai" },
-  { id: "13", x: "82%", y: "28%", count: 4, online: false, label: "Beijing" },
-  { id: "14", x: "88%", y: "40%", count: 3, online: true, label: "Tokio" },
-  { id: "15", x: "85%", y: "58%", count: 2, online: false, label: "Sídney" },
-];
+function idToPos(id: string): { x: number; y: number } {
+  let h = 0;
+  for (const c of id) { h = ((h << 5) - h) + c.charCodeAt(0); h |= 0; }
+  const h2 = Math.abs(h >> 8);
+  const x = 15 + (Math.abs(h) % 1000) / 1000 * 70;
+  const y = 20 + (h2 % 1000) / 1000 * 55;
+  return { x, y };
+}
+
+function initialsFor(u: string) {
+  return (u || "?").slice(0, 2).toUpperCase();
+}
 
 const REGION_LABELS = [
   { x: "24%", y: "47%", text: "AMÉRICAS" },
@@ -30,11 +28,21 @@ const REGION_LABELS = [
 ];
 
 export default function MapView() {
+  const { session } = useAuth();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("ahora");
   const [selected, setSelected] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
 
-  const totalOnline = PINS.filter((p) => p.online).reduce((acc, p) => acc + p.count, 0);
-  const totalUsers = PINS.reduce((acc, p) => acc + p.count, 0);
+  const { data: profiles = [], isLoading } = useListProfiles();
+
+  const createConv = useCreateOrGetConversation();
+
+  const handleMessage = (userId: string) => {
+    createConv.mutate(
+      { data: { other_user_id: userId } },
+      { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -44,14 +52,9 @@ export default function MapView() {
       >
         <h1 className="font-display text-2xl tracking-wide">Mapa Global</h1>
         <div className="flex items-center gap-2 text-sm font-sans">
-          <span className="flex items-center gap-1 text-green-400">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
-            </span>
-            {totalOnline} online
+          <span className="text-muted-foreground">
+            {isLoading ? "..." : `${profiles.length} usuarios`}
           </span>
-          <span className="text-muted-foreground">· {totalUsers} total</span>
         </div>
       </header>
 
@@ -88,65 +91,74 @@ export default function MapView() {
             backgroundSize: "36px 36px, 36px 36px, 100% 100%",
           }}
         />
-
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "radial-gradient(ellipse 50% 30% at 50% 50%, rgba(168,85,247,0.04) 0%, transparent 70%)",
-          }}
-        />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 50% 30% at 50% 50%, rgba(168,85,247,0.04) 0%, transparent 70%)" }} />
 
         {REGION_LABELS.map((r) => (
-          <span
-            key={r.text}
-            className="absolute font-display text-[9px] tracking-widest select-none pointer-events-none"
-            style={{ left: r.x, top: r.y, color: "rgba(168,85,247,0.25)", transform: "translate(-50%,-50%)" }}
-          >
+          <span key={r.text} className="absolute font-display text-[9px] tracking-widest select-none pointer-events-none"
+            style={{ left: r.x, top: r.y, color: "rgba(168,85,247,0.25)", transform: "translate(-50%,-50%)" }}>
             {r.text}
           </span>
         ))}
 
-        {PINS.map((pin) => {
-          const isSelected = selected === pin.id;
-          return (
-            <button
-              key={pin.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
-              style={{ left: pin.x, top: pin.y }}
-              onClick={() => setSelected(isSelected ? null : pin.id)}
-            >
-              {pin.online && (
-                <span
-                  className="absolute inset-0 rounded-full animate-ping"
-                  style={{
-                    background: "rgba(168,85,247,0.25)",
-                    transform: "scale(1.8)",
-                  }}
-                />
-              )}
-              <div
-                className="relative w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold font-display shadow-lg transition-transform group-hover:scale-110"
-                style={{
-                  background: pin.online
-                    ? "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))"
-                    : "rgba(80,70,110,0.8)",
-                  boxShadow: pin.online ? "0 0 12px rgba(168,85,247,0.5)" : "none",
-                }}
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : profiles.length === 0 ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-8">
+            <span className="text-4xl">🌍</span>
+            <p className="font-display text-lg tracking-wide text-foreground/60">
+              Todavía no hay usuarios cerca.
+            </p>
+          </div>
+        ) : (
+          profiles.map((user) => {
+            const pos = idToPos(user.id);
+            const isSelected = selected === user.id;
+            return (
+              <button
+                key={user.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                onClick={() => setSelected(isSelected ? null : user.id)}
               >
-                {pin.count}
-              </div>
-              {isSelected && (
-                <div
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 rounded-lg text-[10px] font-sans whitespace-nowrap border border-border/40"
-                  style={{ background: "rgba(13,11,26,0.95)" }}
-                >
-                  <span className="text-foreground font-medium">{pin.label}</span>
-                  <span className="text-muted-foreground ml-1">· {pin.count} usuarios</span>
-                </div>
-              )}
-            </button>
-          );
-        })}
+                <span className="absolute inset-0 rounded-full animate-ping"
+                  style={{ background: "rgba(168,85,247,0.2)", transform: "scale(1.8)" }} />
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.username}
+                    className="relative w-8 h-8 rounded-full object-cover border-2 border-primary/50 shadow-lg"
+                    style={{ boxShadow: "0 0 8px rgba(168,85,247,0.5)" }}
+                  />
+                ) : (
+                  <div
+                    className="relative w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold font-display shadow-lg"
+                    style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 0 8px rgba(168,85,247,0.5)" }}
+                  >
+                    {initialsFor(user.username)}
+                  </div>
+                )}
+                {isSelected && (
+                  <div
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-xl text-[10px] font-sans whitespace-nowrap border border-border/40 flex flex-col items-center gap-1 z-10"
+                    style={{ background: "rgba(13,11,26,0.97)" }}
+                  >
+                    <span className="text-foreground font-medium">{user.username}</span>
+                    {user.city && <span className="text-muted-foreground">{user.city}</span>}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleMessage(user.id); }}
+                      className="mt-0.5 px-3 py-1 rounded-lg text-white text-[10px] font-sans font-medium"
+                      style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                    >
+                      Mensaje
+                    </button>
+                  </div>
+                )}
+              </button>
+            );
+          })
+        )}
 
         <div
           className="absolute bottom-3 left-3 right-3 px-4 py-3 rounded-xl border border-primary/20 flex items-center gap-3"
@@ -155,22 +167,18 @@ export default function MapView() {
           <Flame className="w-4 h-4 text-orange-400 flex-shrink-0" style={{ filter: "drop-shadow(0 0 6px rgba(249,115,22,0.8))" }} />
           <div>
             <p className="font-display text-sm tracking-wide text-primary">Mapa en tiempo real</p>
-            <p className="font-sans text-[10px] text-muted-foreground">Próximamente: ve quién está cerca ahora mismo</p>
+            <p className="font-sans text-[10px] text-muted-foreground">Próximamente: posiciones GPS reales</p>
           </div>
         </div>
       </div>
 
       <div className="px-4 pb-4 grid grid-cols-3 gap-2">
         {[
-          { icon: Users, label: "Conectados", value: `${totalOnline}` },
-          { icon: MapPin, label: "Ciudades", value: `${PINS.length}` },
-          { icon: Flame, label: "Países", value: "12" },
+          { icon: Users, label: "Usuarios", value: String(profiles.length) },
+          { icon: MapPin, label: "Con foto", value: String(profiles.filter(p => p.avatar_url).length) },
+          { icon: Flame, label: "Sin foto", value: String(profiles.filter(p => !p.avatar_url).length) },
         ].map(({ icon: Icon, label, value }) => (
-          <div
-            key={label}
-            className="flex flex-col items-center py-3 rounded-xl border border-border/30"
-            style={{ background: "rgba(13,11,26,0.7)" }}
-          >
+          <div key={label} className="flex flex-col items-center py-3 rounded-xl border border-border/30" style={{ background: "rgba(13,11,26,0.7)" }}>
             <span className="font-display text-xl text-primary">{value}</span>
             <span className="font-sans text-[10px] text-muted-foreground mt-0.5">{label}</span>
           </div>

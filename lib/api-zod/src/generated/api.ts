@@ -154,3 +154,147 @@ export const UploadAvatarResponse = zod.object({
 })
 
 
+/**
+ * @summary List public profiles for discovery (excludes current user)
+ */
+export const ListProfilesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "created_at": zod.string().optional()
+})
+export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
+
+
+/**
+ * @summary List current user's profile photos
+ */
+export const ListMyPhotosResponseItem = zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})
+export const ListMyPhotosResponse = zod.array(ListMyPhotosResponseItem)
+
+
+/**
+ * @summary Upload a profile photo (base64)
+ */
+export const UploadPhotoBody = zod.object({
+  "base64": zod.string(),
+  "mime_type": zod.string(),
+  "filename": zod.string(),
+  "set_as_avatar": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Delete a profile photo
+ */
+export const DeletePhotoParams = zod.object({
+  "photoId": zod.coerce.string()
+})
+
+export const DeletePhotoResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Set a photo as the avatar
+ */
+export const SetPhotoAsAvatarParams = zod.object({
+  "photoId": zod.coerce.string()
+})
+
+export const SetPhotoAsAvatarResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List current user's conversations
+ */
+export const ListConversationsResponseItem = zod.object({
+  "id": zod.string(),
+  "other_user": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "created_at": zod.string().optional()
+}),
+  "last_message_at": zod.string().nullish(),
+  "created_at": zod.string()
+})
+export const ListConversationsResponse = zod.array(ListConversationsResponseItem)
+
+
+/**
+ * @summary Get or create a conversation with another user
+ */
+export const CreateOrGetConversationBody = zod.object({
+  "other_user_id": zod.string()
+})
+
+export const CreateOrGetConversationResponse = zod.object({
+  "id": zod.string(),
+  "other_user": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "created_at": zod.string().optional()
+}),
+  "last_message_at": zod.string().nullish(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary List messages in a conversation
+ */
+export const ListMessagesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ListMessagesResponseItem = zod.object({
+  "id": zod.string(),
+  "conversation_id": zod.string(),
+  "sender_id": zod.string(),
+  "content": zod.string(),
+  "created_at": zod.string(),
+  "read_at": zod.string().nullish()
+})
+export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
+
+
+/**
+ * @summary Send a message in a conversation
+ */
+export const SendMessageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SendMessageBody = zod.object({
+  "content": zod.string()
+})
+
+

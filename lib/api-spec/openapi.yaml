@@ -14,6 +14,8 @@ tags:
     description: Authentication operations
   - name: profiles
     description: User profile operations
+  - name: conversations
+    description: Conversations and messages
 paths:
   /healthz:
     get:
@@ -244,6 +246,267 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List public profiles for discovery (excludes current user)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of public profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/photos:
+    get:
+      operationId: listMyPhotos
+      tags: [profiles]
+      summary: List current user's profile photos
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfilePhoto"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: uploadPhoto
+      tags: [profiles]
+      summary: Upload a profile photo (base64)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadPhotoRequest"
+      responses:
+        "201":
+          description: Uploaded photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhoto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/photos/{photoId}:
+    delete:
+      operationId: deletePhoto
+      tags: [profiles]
+      summary: Delete a profile photo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/photos/{photoId}/avatar:
+    patch:
+      operationId: setPhotoAsAvatar
+      tags: [profiles]
+      summary: Set a photo as the avatar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Avatar updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [conversations]
+      summary: List current user's conversations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createOrGetConversation
+      tags: [conversations]
+      summary: Get or create a conversation with another user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                other_user_id:
+                  type: string
+              required: [other_user_id]
+      responses:
+        "200":
+          description: Existing conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "201":
+          description: New conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [conversations]
+      summary: List messages in a conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: sendMessage
+      tags: [conversations]
+      summary: Send a message in a conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required: [content]
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -409,3 +672,67 @@ components:
         filename:
           type: string
       required: [base64, mime_type, filename]
+
+    UploadPhotoRequest:
+      type: object
+      properties:
+        base64:
+          type: string
+        mime_type:
+          type: string
+        filename:
+          type: string
+        set_as_avatar:
+          type: boolean
+      required: [base64, mime_type, filename]
+
+    ProfilePhoto:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        url:
+          type: string
+        storage_path:
+          type: string
+        is_avatar:
+          type: boolean
+        position:
+          type: integer
+        created_at:
+          type: string
+      required: [id, user_id, url, storage_path, is_avatar, position]
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+        other_user:
+          $ref: "#/components/schemas/PublicProfile"
+        last_message_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, other_user, created_at]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        conversation_id:
+          type: string
+        sender_id:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+        read_at:
+          type: string
+          nullable: true
+      required: [id, conversation_id, sender_id, content, created_at]

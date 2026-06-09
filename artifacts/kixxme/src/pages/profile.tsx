@@ -4,6 +4,11 @@ import {
   getGetMyProfileQueryKey,
   useUpdateMyProfile,
   useUploadAvatar,
+  useListMyPhotos,
+  useUploadPhoto,
+  useDeletePhoto,
+  useSetPhotoAsAvatar,
+  ProfilePhoto,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -13,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Share2, Camera } from "lucide-react";
+import { Share2, Camera, Plus, Trash2, Star, Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { session } = useAuth();
@@ -27,6 +32,10 @@ export default function Profile() {
 
   const updateProfile = useUpdateMyProfile();
   const uploadAvatar = useUploadAvatar();
+  const { data: photos = [], refetch: refetchPhotos } = useListMyPhotos();
+  const uploadPhoto = useUploadPhoto();
+  const deletePhoto = useDeletePhoto();
+  const setAvatarPhoto = useSetPhotoAsAvatar();
 
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
@@ -64,16 +73,7 @@ export default function Profile() {
 
   const handleSave = () => {
     updateProfile.mutate(
-      {
-        data: {
-          username,
-          bio,
-          age: age !== "" ? Number(age) : undefined,
-          city: city || undefined,
-          gender: gender || undefined,
-          location: location || undefined,
-        },
-      },
+      { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined } },
       {
         onSuccess: (data) => {
           queryClient.setQueryData(getGetMyProfileQueryKey(), data);
@@ -91,28 +91,58 @@ export default function Profile() {
     );
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target?.result as string;
-      const base64 = base64String.split(",")[1];
+    reader.onload = (ev) => {
+      const b64 = (ev.target?.result as string).split(",")[1];
       uploadAvatar.mutate(
-        { data: { base64, mime_type: file.type, filename: file.name } },
+        { data: { base64: b64, mime_type: file.type, filename: file.name } },
         {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
-            toast({ title: "¡Foto actualizada!" });
-          },
-          onError: (err: any) => {
-            const msg = err?.data?.error ?? err?.message ?? "Error desconocido";
-            toast({ title: "No se pudo subir la foto", description: msg, variant: "destructive" });
-          },
+          onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); toast({ title: "¡Foto actualizada!" }); },
+          onError: (err: any) => { toast({ title: "Error subiendo foto", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
         }
       );
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const b64 = (ev.target?.result as string).split(",")[1];
+      uploadPhoto.mutate(
+        { data: { base64: b64, mime_type: file.type, filename: file.name } },
+        {
+          onSuccess: () => { refetchPhotos(); toast({ title: "¡Foto añadida!" }); },
+          onError: (err: any) => { toast({ title: "Error subiendo foto", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeletePhoto = (photoId: string) => {
+    deletePhoto.mutate(
+      { photoId },
+      {
+        onSuccess: () => { refetchPhotos(); queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); },
+        onError: (err: any) => { toast({ title: "Error borrando foto", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
+      }
+    );
+  };
+
+  const handleSetAvatar = (photoId: string) => {
+    setAvatarPhoto.mutate(
+      { photoId },
+      {
+        onSuccess: () => { refetchPhotos(); queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); toast({ title: "¡Foto de perfil actualizada!" }); },
+        onError: (err: any) => { toast({ title: "Error", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
+      }
+    );
   };
 
   const copyLink = () => {
@@ -124,9 +154,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <span className="text-xl font-display tracking-widest text-gradient-brand animate-pulse">
-          Cargando...
-        </span>
+        <span className="text-xl font-display tracking-widest text-gradient-brand animate-pulse">Cargando...</span>
       </div>
     );
   }
@@ -134,24 +162,20 @@ export default function Profile() {
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5 p-8 text-center">
-        <h2 className="text-3xl font-display text-primary tracking-widest">
-          Preparando tu perfil...
-        </h2>
+        <h2 className="text-3xl font-display text-primary tracking-widest">Preparando tu perfil...</h2>
         <p className="text-muted-foreground font-sans text-sm max-w-xs">
-          {error
-            ? `Error: ${(error as any)?.data?.error ?? (error as any)?.message ?? "Error desconocido"}`
-            : "Tu espacio se está configurando. Recarga en un momento."}
+          {error ? `Error: ${(error as any)?.data?.error ?? (error as any)?.message}` : "Recarga en un momento."}
         </p>
-        <button
-          onClick={() => window.location.reload()}
+        <button onClick={() => window.location.reload()}
           className="px-7 py-3 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-        >
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}>
           Recargar
         </button>
       </div>
     );
   }
+
+  const canAddMore = photos.length < 6;
 
   return (
     <div>
@@ -160,21 +184,16 @@ export default function Profile() {
         <h1 className="font-display text-2xl tracking-wide">
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
-        <button
-          onClick={copyLink}
+        <button onClick={copyLink}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-          data-testid="button-copy-link"
-        >
+          style={{ background: "rgba(255,255,255,0.04)" }}>
           <Share2 className="w-4 h-4" />
         </button>
       </header>
 
       {isOnboarding && (
-        <div
-          className="mx-4 mt-4 px-4 py-3 rounded-xl border border-primary/20 flex items-center gap-3"
-          style={{ background: "rgba(168,85,247,0.07)" }}
-        >
+        <div className="mx-4 mt-4 px-4 py-3 rounded-xl border border-primary/20 flex items-center gap-3"
+          style={{ background: "rgba(168,85,247,0.07)" }}>
           <span className="text-xl">🔥</span>
           <p className="font-sans text-sm text-foreground/80 leading-snug">
             Completa tu perfil para aparecer en el mapa y conectar con gente cerca de ti.
@@ -182,135 +201,157 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="px-4 pt-6 pb-4 flex flex-col items-center gap-4">
+      <div className="px-4 pt-6 pb-4 flex flex-col items-center gap-3">
         <div className="relative group" data-testid="avatar-container">
-          <Avatar
-            className="w-28 h-28 border-2 border-primary/40 rounded-2xl"
-            style={{ boxShadow: "0 0 30px rgba(168,85,247,0.25)" }}
-          >
+          <Avatar className="w-28 h-28 border-2 border-primary/40 rounded-2xl"
+            style={{ boxShadow: "0 0 30px rgba(168,85,247,0.25)" }}>
             {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
             <AvatarFallback className="font-display text-4xl uppercase bg-card text-primary">
               {profile.username?.slice(0, 2) || "KX"}
             </AvatarFallback>
           </Avatar>
-          <label
-            className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl"
-          >
+          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
             <Camera className="w-8 h-8 text-white" />
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleFileChange}
-              data-testid="input-avatar-upload"
-            />
+            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} data-testid="input-avatar-upload" />
           </label>
           {uploadAvatar.isPending && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-2xl">
-              <span className="font-display text-primary animate-pulse text-sm tracking-widest">Subiendo...</span>
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
             </div>
           )}
         </div>
         <p className="font-sans text-xs text-muted-foreground text-center">
-          Fotos de gym, playa o perfil normal · Solo se bloquea contenido explícito
+          Foto de perfil principal · Gym, playa o casual
         </p>
       </div>
 
-      <div
-        className="mx-4 mb-4 border border-border/40 rounded-2xl p-5 space-y-5"
-        style={{ background: "rgba(13,11,26,0.7)" }}
-      >
-        <Field label="Nombre de usuario" testId="input-edit-username">
-          <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
-            data-testid="input-edit-username"
-          />
-        </Field>
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-lg tracking-wide text-foreground/80">Mis fotos</h2>
+          <span className="font-sans text-xs text-muted-foreground">{photos.length}/6</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((photo: ProfilePhoto) => (
+            <PhotoSlot
+              key={photo.id}
+              photo={photo}
+              onDelete={() => handleDeletePhoto(photo.id)}
+              onSetAvatar={() => handleSetAvatar(photo.id)}
+              isDeleting={deletePhoto.isPending}
+              isSettingAvatar={setAvatarPhoto.isPending}
+            />
+          ))}
+          {canAddMore && (
+            <label
+              className="relative rounded-xl overflow-hidden border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
+              style={{ aspectRatio: "1", background: "rgba(13,11,26,0.6)" }}
+            >
+              {uploadPhoto.isPending ? (
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              ) : (
+                <>
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                  <span className="font-sans text-[10px] text-muted-foreground mt-1">Añadir</span>
+                </>
+              )}
+              <input type="file" className="hidden" accept="image/*" onChange={handleAddPhoto} disabled={uploadPhoto.isPending} />
+            </label>
+          )}
+        </div>
+      </div>
 
+      <div className="mx-4 mb-4 border border-border/40 rounded-2xl p-5 space-y-5"
+        style={{ background: "rgba(13,11,26,0.7)" }}>
+        <Field label="Nombre de usuario">
+          <Input value={username} onChange={(e) => setUsername(e.target.value)}
+            className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+            data-testid="input-edit-username" />
+        </Field>
         <Field label="Bio">
-          <Textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
+          <Textarea value={bio} onChange={(e) => setBio(e.target.value)}
             className="rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[90px] resize-none bg-input/40 text-sm"
             placeholder="Cuéntale al mundo tus metas, marcas personales y pasiones..."
-            data-testid="input-edit-bio"
-          />
+            data-testid="input-edit-bio" />
         </Field>
-
         <div className="grid grid-cols-2 gap-4">
           <Field label="Edad">
-            <Input
-              type="number"
-              min={1}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+            <Input type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)}
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
-              placeholder="25"
-              data-testid="input-edit-age"
-            />
+              placeholder="25" data-testid="input-edit-age" />
           </Field>
           <Field label="Género">
-            <Input
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
+            <Input value={gender} onChange={(e) => setGender(e.target.value)}
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
-              placeholder="Hombre"
-              data-testid="input-edit-gender"
-            />
+              placeholder="Hombre" data-testid="input-edit-gender" />
           </Field>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <Field label="Ciudad">
-            <Input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
+            <Input value={city} onChange={(e) => setCity(e.target.value)}
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
-              placeholder="Madrid"
-              data-testid="input-edit-city"
-            />
+              placeholder="Madrid" data-testid="input-edit-city" />
           </Field>
           <Field label="País">
-            <Input
-              value={location}
-              onChange={(e) => setLocation2(e.target.value)}
+            <Input value={location} onChange={(e) => setLocation2(e.target.value)}
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
-              placeholder="España"
-              data-testid="input-edit-location"
-            />
+              placeholder="España" data-testid="input-edit-location" />
           </Field>
         </div>
-
-        <Button
-          onClick={handleSave}
-          disabled={updateProfile.isPending || !isDirty}
+        <Button onClick={handleSave} disabled={updateProfile.isPending || !isDirty}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-          data-testid="button-save-profile"
-        >
-          {updateProfile.isPending
-            ? "Guardando..."
-            : isOnboarding
-            ? "Completar perfil →"
-            : "Guardar cambios"}
+          data-testid="button-save-profile">
+          {updateProfile.isPending ? "Guardando..." : isOnboarding ? "Completar perfil →" : "Guardar cambios"}
         </Button>
       </div>
     </div>
   );
 }
 
-function Field({
-  label,
-  children,
-  testId,
+function PhotoSlot({
+  photo,
+  onDelete,
+  onSetAvatar,
+  isDeleting,
+  isSettingAvatar,
 }: {
-  label: string;
-  children: React.ReactNode;
-  testId?: string;
+  photo: ProfilePhoto;
+  onDelete: () => void;
+  onSetAvatar: () => void;
+  isDeleting: boolean;
+  isSettingAvatar: boolean;
 }) {
+  return (
+    <div className="relative rounded-xl overflow-hidden group border border-border/30"
+      style={{ aspectRatio: "1" }}>
+      <img src={photo.url} alt="" className="w-full h-full object-cover" />
+      {photo.is_avatar && (
+        <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}>
+          <Star className="w-2.5 h-2.5 text-white" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+        {!photo.is_avatar && (
+          <button onClick={onSetAvatar} disabled={isSettingAvatar}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white"
+            style={{ background: "rgba(168,85,247,0.8)" }}
+            title="Usar como perfil">
+            <Star className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button onClick={onDelete} disabled={isDeleting}
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-white"
+          style={{ background: "rgba(239,68,68,0.8)" }}
+          title="Eliminar">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="font-display text-base tracking-widest text-muted-foreground">{label}</label>

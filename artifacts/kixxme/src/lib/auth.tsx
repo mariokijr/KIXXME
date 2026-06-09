@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { AuthUser, Session, setAuthTokenGetter, useLogin, useSignUp, useLogout } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { setRealtimeAuth } from "./supabase";
 
 interface AuthState {
   session: Session | null;
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsed.session && parsed.user) {
           setState(parsed);
           setAuthTokenGetter(() => parsed.session.access_token);
+          setRealtimeAuth(parsed.session.access_token);
         }
       }
     } catch (e) {
@@ -50,9 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session && user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ session, user }));
       setAuthTokenGetter(() => session.access_token);
+      setRealtimeAuth(session.access_token);
     } else {
       localStorage.removeItem(STORAGE_KEY);
       setAuthTokenGetter(() => null);
+      setRealtimeAuth(null);
     }
   };
 
@@ -68,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionData(res.session, res.user);
       setLocation("/profile");
     } else {
-      // Supabase email confirmation is enabled — session won't exist until confirmed
       setLocation("/login?confirm=1");
     }
   };
@@ -91,8 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
 }
