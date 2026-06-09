@@ -45,3 +45,22 @@ mapping. Entitlement itself lives in Supabase `profiles.plan` (`free`/`plus`/`go
 - The Stripe **secret key is fetched server-side only** from the Replit connectors API
   (`getUncachableStripeClient`); it must never reach the frontend. The webhook route is
   registered with `express.raw` BEFORE `express.json` so signature verification works.
+
+## Connection credential reality (cost several iterations — the Stripe skill template is stale)
+
+- The Replit Stripe connection (`/api/v2/connection?...connector_names=stripe`) exposes the
+  API key under **`settings.secret`**, plus `publishable`, `account_id`. It does **NOT**
+  return `settings.secret_key` or any `settings.webhook_secret`. The skill's
+  `code-templates.md` still reads `secret_key`/`webhook_secret`, which silently yields
+  "Stripe integration not connected" even after a successful connect. Read `settings.secret`.
+- Because the connection has **no webhook signing secret**, do not `stripe.webhooks.constructEvent`
+  with a connection secret — there isn't one. Verification is owned by `stripe-replit-sync`:
+  `findOrCreateManagedWebhook(url)` (run at startup) creates the Stripe webhook endpoint and
+  persists its signing secret; `StripeSync.processWebhook(rawBody, sig)` then verifies + syncs.
+  **How to apply:** in the webhook route, call `processWebhook` first (a thrown
+  signature error → 400, any other throw → 500 so Stripe retries); only after it succeeds is the
+  body trusted, so `JSON.parse(rawBody)` into a `Stripe.Event` for the entitlement logic.
+  `StripeSync` is constructed with only `stripeSecretKey` (omit `stripeWebhookSecret`).
+- In dev, the managed webhook points at `REPLIT_DOMAINS[0]/api/stripe/webhook`, which is
+  publicly reachable, so real Stripe test-mode events (trial subscriptions need no card) deliver
+  to the dev server within ~2s — usable for true end-to-end entitlement tests.

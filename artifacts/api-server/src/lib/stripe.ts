@@ -2,13 +2,15 @@ import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
 
 /**
- * Fetches Stripe credentials from the Replit connection API.
+ * Fetches the Stripe secret key from the Replit connection API.
  * Not cached -- tokens can rotate, so fetch fresh each time.
+ *
+ * The connection exposes the API secret under `settings.secret`. It does NOT
+ * expose a webhook signing secret -- that is owned by the managed webhook
+ * created via `StripeSync.findOrCreateManagedWebhook`, and signature
+ * verification therefore goes through `StripeSync.processWebhook`.
  */
-export async function getStripeCredentials(): Promise<{
-  secretKey: string;
-  webhookSecret?: string;
-}> {
+export async function getStripeSecretKey(): Promise<string> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
@@ -38,23 +40,18 @@ export async function getStripeCredentials(): Promise<{
   }
 
   const data = (await resp.json()) as {
-    items?: {
-      settings?: { secret_key?: string; webhook_secret?: string };
-    }[];
+    items?: { settings?: { secret?: string } }[];
   };
-  const settings = data.items?.[0]?.settings;
+  const secret = data.items?.[0]?.settings?.secret;
 
-  if (!settings?.secret_key) {
+  if (!secret) {
     throw new Error(
       "Stripe integration not connected or missing secret key. " +
         "Connect Stripe via the Integrations tab first.",
     );
   }
 
-  return {
-    secretKey: settings.secret_key,
-    webhookSecret: settings.webhook_secret,
-  };
+  return secret;
 }
 
 /**
@@ -62,13 +59,16 @@ export async function getStripeCredentials(): Promise<{
  * Not cached -- fetches credentials on every call so rotated keys are picked up.
  */
 export async function getUncachableStripeClient(): Promise<Stripe> {
-  const { secretKey } = await getStripeCredentials();
+  const secretKey = await getStripeSecretKey();
   return new Stripe(secretKey);
 }
 
 /**
  * Returns a fresh StripeSync instance for webhook processing and data sync.
  * Not cached -- fetches credentials on every call so rotated keys are picked up.
+ *
+ * No webhook secret is passed: we use stripe-replit-sync's managed webhook,
+ * so `processWebhook` validates signatures with the secret it created/stored.
  */
 export async function getStripeSync(): Promise<StripeSync> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -76,29 +76,9 @@ export async function getStripeSync(): Promise<StripeSync> {
     throw new Error("DATABASE_URL environment variable is required");
   }
 
-  const { secretKey, webhookSecret } = await getStripeCredentials();
+  const secretKey = await getStripeSecretKey();
   return new StripeSync({
     poolConfig: { connectionString: databaseUrl },
     stripeSecretKey: secretKey,
-    stripeWebhookSecret: webhookSecret ?? "",
   });
-}
-
-/**
- * Verifies a webhook payload and returns the typed Stripe event.
- *
- * stripe-replit-sync's processWebhook() verifies + syncs but returns void, so we
- * re-construct the event here to run our own entitlement logic. Uses the same
- * managed webhook secret from the connection, so this is the canonical secret.
- */
-export async function constructWebhookEvent(
-  payload: Buffer,
-  signature: string,
-): Promise<Stripe.Event> {
-  const { secretKey, webhookSecret } = await getStripeCredentials();
-  if (!webhookSecret) {
-    throw new Error("Missing Stripe webhook secret from connection settings");
-  }
-  const stripe = new Stripe(secretKey);
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }

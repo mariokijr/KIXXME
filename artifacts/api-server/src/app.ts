@@ -1,9 +1,10 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import type Stripe from "stripe";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { constructWebhookEvent, getStripeSync } from "./lib/stripe";
+import { getStripeSync } from "./lib/stripe";
 import { handleStripeWebhook } from "./lib/billing";
 
 const app: Express = express();
@@ -51,31 +52,36 @@ app.post(
       return;
     }
 
-    // 1) Verify signature and get the typed event (400 on bad signature).
-    let event;
-    try {
-      event = await constructWebhookEvent(req.body, signature);
-    } catch (error) {
-      req.log.warn(
-        { error: error instanceof Error ? error.message : String(error) },
-        "Stripe webhook signature verification failed",
-      );
-      res.status(400).json({ error: "Invalid signature" });
-      return;
-    }
-
-    // 2) Sync Stripe objects into the local `stripe` schema (best effort).
+    // 1) Verify signature AND sync Stripe objects into the local `stripe`
+    // schema. stripe-replit-sync owns the managed-webhook signing secret, so
+    // verification happens here. A signature failure is a bad/forged request
+    // (400, no retry); any other failure is transient (500, Stripe retries).
     try {
       const sync = await getStripeSync();
       await sync.processWebhook(req.body, signature);
     } catch (error) {
-      req.log.error(
-        { error: error instanceof Error ? error.message : String(error) },
-        "stripe-replit-sync processWebhook failed",
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      if (/signature|no signatures found|unable to extract/i.test(message)) {
+        req.log.warn({ error: message }, "Stripe webhook signature invalid");
+        res.status(400).json({ error: "Invalid signature" });
+        return;
+      }
+      req.log.error({ error: message }, "stripe-replit-sync processWebhook failed");
+      res.status(500).json({ error: "Webhook processing failed" });
+      return;
     }
 
-    // 3) Apply entitlement changes. Return 500 on failure so Stripe retries.
+    // 2) The payload is now verified, so parse it into a typed event and apply
+    // entitlement changes. Return 500 on failure so Stripe retries.
+    let event: Stripe.Event;
+    try {
+      event = JSON.parse(req.body.toString("utf8")) as Stripe.Event;
+    } catch {
+      req.log.error("Stripe webhook payload was not valid JSON after verification");
+      res.status(400).json({ error: "Invalid payload" });
+      return;
+    }
+
     try {
       await handleStripeWebhook(event, req.log);
       res.status(200).json({ received: true });
