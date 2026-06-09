@@ -6,13 +6,54 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Flame } from "lucide-react";
+import BottomNav from "@/components/layout/bottom-nav";
 
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Profile from "@/pages/profile";
 import PublicProfile from "@/pages/public-profile";
+import Discover from "@/pages/discover";
+import MapView from "@/pages/map-view";
+import Chats from "@/pages/chats";
+import Premium from "@/pages/premium";
 
 const queryClient = new QueryClient();
+
+function MainLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="min-h-[100dvh] flex flex-col"
+      style={{
+        background:
+          "radial-gradient(ellipse 100% 50% at 50% 0%, hsl(270 30% 8%) 0%, hsl(238 25% 4%) 60%)",
+      }}
+    >
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: "72px" }}>
+        {children}
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
+
+function ProtectedMain({ component: Component }: { component: React.ComponentType<any> }) {
+  const { session, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !session) {
+      setLocation("/login");
+    }
+  }, [isLoading, session, setLocation]);
+
+  if (isLoading || !session) return null;
+
+  return (
+    <MainLayout>
+      <Component />
+    </MainLayout>
+  );
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) {
   const { session, isLoading } = useAuth();
@@ -35,18 +76,17 @@ function HomeRedirect() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (session) {
-        setLocation("/profile");
-      } else {
-        setLocation("/login");
-      }
+      setLocation(session ? "/discover" : "/login");
     }
   }, [isLoading, session, setLocation]);
 
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center justify-center gap-4"
-      style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
+      style={{
+        background:
+          "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)",
+      }}
     >
       <Flame
         className="w-10 h-10 text-orange-400 animate-pulse"
@@ -65,12 +105,12 @@ function Router() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
-      <Route path="/profile">
-        {() => <ProtectedRoute component={Profile} />}
-      </Route>
-      <Route path="/profile/:id">
-        {() => <ProtectedRoute component={PublicProfile} />}
-      </Route>
+      <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
+      <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
+      <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
+      <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
+      <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
+      <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );
