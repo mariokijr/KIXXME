@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, SlidersHorizontal, MapPin, Wifi, Loader2 } from "lucide-react";
+import { Bell, SlidersHorizontal, MapPin, Wifi, Loader2, Share2, Users, FlaskConical } from "lucide-react";
 import {
   useListProfiles,
   useCreateOrGetConversation,
   PublicProfile,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 type FilterType = "todos" | "online" | "con-foto";
 
@@ -35,8 +36,10 @@ export default function Discover() {
   const { session } = useAuth();
   const [filter, setFilter] = useState<FilterType>("todos");
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [seeding, setSeeding] = useState(false);
 
-  const { data: profiles = [], isLoading } = useListProfiles();
+  const { data: profiles = [], isLoading, isError } = useListProfiles();
 
   const createConv = useCreateOrGetConversation();
 
@@ -45,6 +48,8 @@ export default function Discover() {
     return true;
   });
 
+  const isEmpty = !isLoading && (isError || filtered.length === 0);
+
   const handleMessage = (userId: string) => {
     createConv.mutate(
       { data: { other_user_id: userId } },
@@ -52,6 +57,38 @@ export default function Discover() {
         onSuccess: (conv) => setLocation(`/chats/${conv.id}`),
       }
     );
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: "KixxMe",
+      text: "¡Únete a KixxMe y conecta con chicos cerca de ti! 🔥",
+      url: window.location.origin,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        /* cancelled */
+      }
+    } else {
+      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+      toast({ title: "¡Enlace copiado!" });
+    }
+  };
+
+  const handleSeedUsers = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/dev/seed-users", { method: "POST" });
+      const json = await res.json();
+      const created = json.results?.filter((r: any) => r.status === "created").length ?? 0;
+      toast({ title: `${created} usuario${created !== 1 ? "s" : ""} creado${created !== 1 ? "s" : ""} ✓` });
+    } catch {
+      toast({ title: "Error al crear usuarios", variant: "destructive" });
+    } finally {
+      setSeeding(false);
+    }
   };
 
   return (
@@ -64,7 +101,7 @@ export default function Discover() {
           <span className="font-display text-2xl tracking-tight text-gradient-brand leading-none">
             KIXXME
           </span>
-          {!isLoading && (
+          {!isLoading && !isError && profiles.length > 0 && (
             <span
               className="flex items-center gap-1 text-[10px] font-sans px-2 py-0.5 rounded-full border border-green-500/30 text-green-400"
               style={{ background: "rgba(34,197,94,0.08)" }}
@@ -90,11 +127,9 @@ export default function Discover() {
         <h2 className="font-display text-3xl tracking-wide leading-tight">
           Conecta con chicos cerca de ti
         </h2>
-        {!isLoading && (
+        {!isLoading && !isError && filtered.length > 0 && (
           <p className="text-muted-foreground font-sans text-sm mt-1">
-            {filtered.length > 0
-              ? `${filtered.length} perfil${filtered.length !== 1 ? "es" : ""} disponible${filtered.length !== 1 ? "s" : ""}`
-              : "Buscando perfiles..."}
+            {filtered.length} perfil{filtered.length !== 1 ? "es" : ""} disponible{filtered.length !== 1 ? "s" : ""}
           </p>
         )}
       </div>
@@ -121,16 +156,8 @@ export default function Discover() {
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-8">
-          <span className="text-5xl">🔍</span>
-          <h3 className="font-display text-xl tracking-wide text-foreground/80">
-            Todavía no hay usuarios cerca.
-          </h3>
-          <p className="font-sans text-sm text-muted-foreground">
-            Sé el primero en completar tu perfil y aparecer aquí.
-          </p>
-        </div>
+      ) : isEmpty ? (
+        <EmptyState onShare={handleShare} onSeed={handleSeedUsers} seeding={seeding} />
       ) : (
         <div className="px-4 pb-6 grid grid-cols-2 gap-3">
           {filtered.map((user) => (
@@ -142,6 +169,66 @@ export default function Discover() {
             />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({
+  onShare,
+  onSeed,
+  seeding,
+}: {
+  onShare: () => void;
+  onSeed: () => void;
+  seeding: boolean;
+}) {
+  const isDev = import.meta.env.DEV;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-8">
+      <div
+        className="w-24 h-24 rounded-2xl flex items-center justify-center border border-primary/20"
+        style={{ background: "rgba(168,85,247,0.08)" }}
+      >
+        <Users
+          className="w-12 h-12 text-primary"
+          style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.5))" }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="font-display text-2xl tracking-wide text-foreground">
+          Todavía no hay usuarios cerca.
+        </h3>
+        <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+          Invita a tus amigos para empezar.
+        </p>
+      </div>
+
+      <button
+        onClick={onShare}
+        className="flex items-center gap-2 h-12 px-8 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+        style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+      >
+        <Share2 className="w-4 h-4" />
+        Compartir KixxMe
+      </button>
+
+      {isDev && (
+        <button
+          onClick={onSeed}
+          disabled={seeding}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-sans text-sm font-medium border border-amber-500/30 text-amber-400 hover:border-amber-500/60 transition-colors disabled:opacity-50"
+          style={{ background: "rgba(234,179,8,0.06)" }}
+        >
+          {seeding ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <FlaskConical className="w-3.5 h-3.5" />
+          )}
+          {seeding ? "Creando..." : "Crear 5 usuarios de prueba"}
+        </button>
       )}
     </div>
   );

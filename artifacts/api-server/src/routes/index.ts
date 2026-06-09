@@ -13,4 +13,10 @@ router.use(photosRouter);
 router.use(conversationsRouter);
 router.use(profilesRouter);
 
+if (process.env.NODE_ENV !== "production") {
+  import("./dev.js").then(({ default: devRouter }) => {
+    router.use(devRouter);
+  });
+}
+
 export default router;
