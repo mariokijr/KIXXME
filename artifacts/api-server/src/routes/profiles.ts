@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { supabase, supabaseForUser } from "../lib/supabase.js";
+import { supabase, supabaseAuth } from "../lib/supabase.js";
 
 const router = Router();
 
@@ -16,7 +16,7 @@ async function requireAuth(
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
-  const { data, error } = await supabase.auth.getUser(token);
+  const { data, error } = await supabaseAuth.auth.getUser(token);
   if (error || !data.user) {
     res.status(401).json({ error: "Invalid or expired token" });
     return null;
@@ -28,30 +28,14 @@ router.get("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  console.log("[profiles/me] auth user id:", auth.userId);
-
-  // Diagnostic: query without filter to reveal table columns and RLS behavior
-  const client = supabaseForUser(auth.token);
-  const { data: allRows, error: allErr } = await client
-    .from("profiles")
-    .select("*")
-    .limit(5);
-  console.log("[profiles/me] unfiltered rows (max 5):", JSON.stringify(allRows));
-  console.log("[profiles/me] unfiltered error:", JSON.stringify(allErr));
-
-  // Primary query by id
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", auth.userId)
     .maybeSingle();
 
-  console.log("[profiles/me] query id used:", auth.userId);
-  console.log("[profiles/me] query result data:", JSON.stringify(data));
-  console.log("[profiles/me] query result error:", JSON.stringify(error));
-
   if (error) {
-    console.error("[profiles/me] Supabase error code:", error.code, "details:", error.details, "hint:", error.hint);
+    req.log.error({ error: error.message }, "profiles/me: query error");
     res.status(500).json({ error: error.message });
     return;
   }
@@ -79,8 +63,7 @@ router.put("/profiles/me", async (req, res) => {
   if (bio !== undefined) updates.bio = bio;
   if (avatar_url !== undefined) updates.avatar_url = avatar_url;
 
-  const client = supabaseForUser(auth.token);
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("profiles")
     .update(updates)
     .eq("id", auth.userId)
@@ -102,9 +85,14 @@ router.get("/profiles/:id", async (req, res) => {
     .from("profiles")
     .select("id, username, bio, avatar_url, created_at")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  if (!data) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
@@ -129,9 +117,8 @@ router.post("/profiles/me/avatar", async (req, res) => {
 
   const buffer = Buffer.from(base64, "base64");
   const storagePath = `${auth.userId}/${filename}`;
-  const client = supabaseForUser(auth.token);
 
-  const { error: uploadError } = await client.storage
+  const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(storagePath, buffer, { contentType: mime_type, upsert: true });
 
@@ -140,10 +127,10 @@ router.post("/profiles/me/avatar", async (req, res) => {
     return;
   }
 
-  const { data: urlData } = client.storage.from("avatars").getPublicUrl(storagePath);
+  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
   const avatarUrl = urlData.publicUrl;
 
-  await client
+  await supabase
     .from("profiles")
     .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
     .eq("id", auth.userId);
