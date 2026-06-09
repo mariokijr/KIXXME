@@ -1,0 +1,79 @@
+When I click “Activar Plus” or “Activar Gold”, the app stays loading forever and Stripe Checkout never opens.
+
+Please debug and fix the Premium checkout flow.
+
+Check:
+
+* The frontend button click handler
+* The checkout API endpoint
+* Stripe Checkout Session creation
+* Price IDs for Plus/Gold monthly/yearly
+* That the backend returns session.url
+* That the frontend redirects with window.location.href = session.url
+* Backend logs for any Stripe error
+* Frontend console errors
+
+After fixing, test with Stripe sandbox and make sure clicking “Activar Plus” opens Stripe Checkout immediately.
+
+Also add a complete Support system.
+
+Support email:
+supportkixxme@gmail.com
+
+Requirements:
+
+* Add a “Soporte” page in Spanish.
+* Add a “Contactar soporte” button in Settings/Profile.
+* Add a footer link: “¿Necesitas ayuda? supportkixxme@gmail.com”.
+* Add a “Reportar problema” option in chats, profiles and settings.
+* Save reports in the database and notify supportkixxme@gmail.com.
+
+Welcome Email:
+When a user registers, automatically send a welcome email in Spanish.
+
+Subject:
+🔥 Bienvenido a KixxMe
+
+Body:
+¡Bienvenido a KixxMe!
+
+Tu perfil ya está listo para descubrir chicos cerca de ti, hacer nuevas conexiones y disfrutar de la experiencia más caliente de la comunidad.
+
+Completa tu perfil, sube tus mejores fotos y empieza a explorar.
+
+🔥 Tu próxima conexión podría estar a solo unos metros.
+
+Equipo KixxMe
+
+Premium Welcome Email:
+When a user subscribes to Plus or Gold, automatically send a premium email.
+
+Subject:
+🔥 Bienvenido a KixxMe Premium
+
+Body:
+¡Ya eres Premium!
+
+Acabas de desbloquear las funciones más exclusivas de KixxMe.
+
+✨ Más visibilidad.
+✨ Más conexiones.
+✨ Más oportunidades para destacar.
+
+🔥 Ahora que tienes acceso completo, es hora de dejar huella.
+
+Gracias por confiar en KixxMe.
+
+Equipo KixxMe
+
+Use a modern neon/fire email design matching the KixxMe branding.
+
+Also review the Premium pricing page because the annual plan pricing is confusing. Show:
+
+* Monthly price
+* Annual total price
+* Monthly equivalent price
+* “Facturado anualmente”
+* Real savings amount
+
+Make the Premium experience feel polished, trustworthy and production-ready.

@@ -105,13 +105,28 @@ export default function Premium() {
     const interval = billing === "mensual" ? "month" : "year";
     const returnUrl =
       window.location.origin + import.meta.env.BASE_URL + "premium";
+
+    // Stripe Checkout refuses to render inside an iframe (e.g. the Replit
+    // preview), so when embedded we open it in a new tab. The tab is opened
+    // synchronously inside the click gesture so the browser doesn't block it
+    // as a popup once the async request resolves ~2s later.
+    const embedded = window.self !== window.top;
+    const preopened = embedded ? window.open("", "_blank") : null;
+
     checkout.mutate(
       { data: { tier, interval, returnUrl } },
       {
         onSuccess: (res) => {
-          window.location.href = res.url;
+          if (preopened && !preopened.closed) {
+            preopened.location.href = res.url;
+          } else if (embedded) {
+            window.open(res.url, "_blank", "noopener");
+          } else {
+            window.location.href = res.url;
+          }
         },
         onError: (err: any) => {
+          preopened?.close();
           toast({
             title: "No se pudo iniciar el pago",
             description: err?.data?.error ?? err?.message,
@@ -122,8 +137,20 @@ export default function Premium() {
     );
   }
 
-  const plusPrice = billing === "mensual" ? "9,99" : "5,00";
-  const goldPrice = billing === "mensual" ? "19,99" : "10,00";
+  const PRICING = {
+    plus: {
+      monthly: "9,99",
+      yearMonthly: "5,00",
+      yearTotal: "59,99",
+      yearSavings: "59,89",
+    },
+    gold: {
+      monthly: "19,99",
+      yearMonthly: "10,00",
+      yearTotal: "119,99",
+      yearSavings: "119,89",
+    },
+  } as const;
 
   return (
     <div className="min-h-full pb-4">
@@ -197,12 +224,29 @@ export default function Premium() {
                 <p className="font-sans text-xs text-muted-foreground mt-0.5">Para empezar a brillar</p>
               </div>
               <div className="text-right">
-                <span className="font-display text-3xl text-foreground">{plusPrice}€</span>
-                <span className="font-sans text-xs text-muted-foreground">/mes</span>
+                <div>
+                  <span className="font-display text-3xl text-foreground">
+                    {billing === "mensual"
+                      ? PRICING.plus.monthly
+                      : PRICING.plus.yearMonthly}
+                    €
+                  </span>
+                  <span className="font-sans text-xs text-muted-foreground">
+                    /mes
+                  </span>
+                </div>
                 {billing === "anual" && (
-                  <p className="font-sans text-[10px] text-muted-foreground/70">
-                    59,99€ facturado anualmente
-                  </p>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="font-sans text-[10px] text-muted-foreground/70">
+                      Facturado anualmente · {PRICING.plus.yearTotal}€/año
+                    </p>
+                    <p
+                      className="font-sans text-[10px] font-semibold"
+                      style={{ color: "rgb(74,222,128)" }}
+                    >
+                      Ahorras {PRICING.plus.yearSavings}€ (50%)
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -256,12 +300,29 @@ export default function Premium() {
                 <p className="font-sans text-xs text-muted-foreground mt-0.5">La experiencia completa</p>
               </div>
               <div className="text-right">
-                <span className="font-display text-3xl text-foreground">{goldPrice}€</span>
-                <span className="font-sans text-xs text-muted-foreground">/mes</span>
+                <div>
+                  <span className="font-display text-3xl text-foreground">
+                    {billing === "mensual"
+                      ? PRICING.gold.monthly
+                      : PRICING.gold.yearMonthly}
+                    €
+                  </span>
+                  <span className="font-sans text-xs text-muted-foreground">
+                    /mes
+                  </span>
+                </div>
                 {billing === "anual" && (
-                  <p className="font-sans text-[10px] text-muted-foreground/70">
-                    119,99€ facturado anualmente
-                  </p>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="font-sans text-[10px] text-muted-foreground/70">
+                      Facturado anualmente · {PRICING.gold.yearTotal}€/año
+                    </p>
+                    <p
+                      className="font-sans text-[10px] font-semibold"
+                      style={{ color: "rgb(74,222,128)" }}
+                    >
+                      Ahorras {PRICING.gold.yearSavings}€ (50%)
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
