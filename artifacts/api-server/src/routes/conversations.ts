@@ -2,6 +2,7 @@ import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { isOnline } from "../lib/geo.js";
+import { getBlockRelations, isBlockedBetween } from "../lib/blocks.js";
 
 const router = Router();
 
@@ -55,8 +56,16 @@ router.get("/conversations", async (req, res) => {
     return;
   }
 
+  const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
+
+  // Hide conversations where the other user has blocked the viewer.
+  const visibleConversations = (conversations ?? []).filter((conv) => {
+    const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+    return !blockedMe.has(otherId);
+  });
+
   const enriched = await Promise.all(
-    (conversations ?? []).map(async (conv) => {
+    visibleConversations.map(async (conv) => {
       const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
       const otherUser = await getOtherProfile(otherId);
 
@@ -85,7 +94,9 @@ router.get("/conversations", async (req, res) => {
 
       return {
         ...conv,
-        other_user: otherUser,
+        other_user: otherUser
+          ? { ...otherUser, blocked_by_me: iBlocked.has(otherId) }
+          : otherUser,
         unread_count: count ?? 0,
         last_message: lastMessage,
       };
@@ -107,6 +118,11 @@ router.post("/conversations", async (req, res) => {
   }
   if (other_user_id === auth.userId) {
     res.status(400).json({ error: "Cannot chat with yourself" });
+    return;
+  }
+
+  if (await isBlockedBetween(auth.userId, other_user_id)) {
+    res.status(403).json({ error: "No puedes contactar a este usuario" });
     return;
   }
 
@@ -152,6 +168,12 @@ router.get("/conversations/:id/messages", async (req, res) => {
     return;
   }
 
+  const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+  if (await isBlockedBetween(auth.userId, otherId)) {
+    res.status(403).json({ error: "No tienes acceso a esta conversación" });
+    return;
+  }
+
   const { data: messages, error } = await supabase
     .from("messages")
     .select("*")
@@ -194,6 +216,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
     return;
   }
 
+  const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+  if (await isBlockedBetween(auth.userId, otherId)) {
+    res.status(403).json({ error: "No puedes enviar mensajes a este usuario" });
+    return;
+  }
+
   const { data: message, error } = await supabase
     .from("messages")
     .insert({
@@ -226,6 +254,12 @@ router.post("/conversations/:id/images", async (req, res) => {
   const conv = await isParticipant(id, auth.userId);
   if (!conv) {
     res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+  if (await isBlockedBetween(auth.userId, otherId)) {
+    res.status(403).json({ error: "No puedes enviar contenido a este usuario" });
     return;
   }
 

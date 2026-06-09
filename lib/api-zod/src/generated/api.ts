@@ -150,6 +150,7 @@ export const GetProfileResponse = zod.object({
   "is_online": zod.boolean().optional(),
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 })
 
@@ -188,6 +189,7 @@ export const ListProfilesResponseItem = zod.object({
   "is_online": zod.boolean().optional(),
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
@@ -261,6 +263,7 @@ export const ListConversationsResponseItem = zod.object({
   "is_online": zod.boolean().optional(),
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -293,6 +296,7 @@ export const CreateOrGetConversationResponse = zod.object({
   "is_online": zod.boolean().optional(),
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -392,6 +396,7 @@ export const ListMyLikesResponseItem = zod.object({
   "is_online": zod.boolean().optional(),
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
   "created_at": zod.string().optional()
 })
 export const ListMyLikesResponse = zod.array(ListMyLikesResponseItem)
@@ -451,6 +456,26 @@ export const UnlikeProfileParams = zod.object({
 })
 
 export const UnlikeProfileResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Block a user (prevents messaging and hides them)
+ */
+export const BlockProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
+ * @summary Unblock a previously blocked user
+ */
+export const UnblockProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnblockProfileResponse = zod.object({
   "success": zod.boolean()
 })
 

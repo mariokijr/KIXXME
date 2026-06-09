@@ -2,6 +2,12 @@ import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth, optionalAuth } from "../lib/auth.js";
 import { distanceKm, isOnline } from "../lib/geo.js";
+import {
+  getBlockRelations,
+  isBlockedBetween,
+  addBlock,
+  removeBlock,
+} from "../lib/blocks.js";
 
 const router = Router();
 
@@ -29,6 +35,7 @@ function toPublic(
   row: ProfileRow,
   viewer: { latitude: number | null; longitude: number | null } | null,
   likedSet: Set<string>,
+  blockedSet: Set<string>,
 ) {
   return {
     id: row.id,
@@ -49,6 +56,7 @@ function toPublic(
     is_online: isOnline(row.last_active_at),
     is_verified: Boolean(row.is_verified),
     liked_by_me: likedSet.has(row.id),
+    blocked_by_me: blockedSet.has(row.id),
   };
 }
 
@@ -73,6 +81,7 @@ router.get("/profiles", async (req, res) => {
     .maybeSingle();
 
   const likedSet = await getLikedSet(auth.userId);
+  const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
 
   const { data, error } = await supabase
     .from("profiles")
@@ -88,9 +97,9 @@ router.get("/profiles", async (req, res) => {
     return;
   }
 
-  let profiles = (data as ProfileRow[]).map((row) =>
-    toPublic(row, me ?? null, likedSet),
-  );
+  let profiles = (data as ProfileRow[])
+    .filter((row) => !iBlocked.has(row.id) && !blockedMe.has(row.id))
+    .map((row) => toPublic(row, me ?? null, likedSet, iBlocked));
 
   if (sort === "distance") {
     profiles.sort((a, b) => {
@@ -250,7 +259,12 @@ router.get("/profiles/me/likes", async (req, res) => {
   }
 
   const likedSet = new Set(ids);
-  res.json((data as ProfileRow[]).map((row) => toPublic(row, me ?? null, likedSet)));
+  const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
+  res.json(
+    (data as ProfileRow[])
+      .filter((row) => !iBlocked.has(row.id) && !blockedMe.has(row.id))
+      .map((row) => toPublic(row, me ?? null, likedSet, iBlocked)),
+  );
 });
 
 router.get("/profiles/:id/photos", async (req, res) => {
@@ -275,6 +289,11 @@ router.post("/profiles/:id/like", async (req, res) => {
   const { id } = req.params;
   if (id === auth.userId) {
     res.status(400).json({ error: "Cannot like yourself" });
+    return;
+  }
+
+  if (await isBlockedBetween(auth.userId, id)) {
+    res.status(403).json({ error: "No puedes dar me gusta a este usuario" });
     return;
   }
 
@@ -313,6 +332,43 @@ router.delete("/profiles/:id/like", async (req, res) => {
   res.json({ success: true });
 });
 
+router.post("/profiles/:id/block", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  if (id === auth.userId) {
+    res.status(400).json({ error: "Cannot block yourself" });
+    return;
+  }
+
+  try {
+    await addBlock(auth.userId, id);
+  } catch (e) {
+    req.log.error({ error: (e as Error).message }, "block POST: error");
+    res.status(400).json({ error: "Could not block user" });
+    return;
+  }
+
+  res.status(201).json({ success: true });
+});
+
+router.delete("/profiles/:id/block", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  try {
+    await removeBlock(auth.userId, id);
+  } catch (e) {
+    req.log.error({ error: (e as Error).message }, "unblock DELETE: error");
+    res.status(400).json({ error: "Could not unblock user" });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
 router.get("/profiles/:id", async (req, res) => {
   const { id } = req.params;
   const viewer = await optionalAuth(req);
@@ -335,6 +391,7 @@ router.get("/profiles/:id", async (req, res) => {
 
   let me: { latitude: number | null; longitude: number | null } | null = null;
   let likedSet = new Set<string>();
+  let blockedSet = new Set<string>();
   if (viewer) {
     const { data: meRow } = await supabase
       .from("profiles")
@@ -343,9 +400,10 @@ router.get("/profiles/:id", async (req, res) => {
       .maybeSingle();
     me = meRow ?? null;
     likedSet = await getLikedSet(viewer.userId);
+    blockedSet = (await getBlockRelations(viewer.userId)).iBlocked;
   }
 
-  res.json(toPublic(data as ProfileRow, me, likedSet));
+  res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet));
 });
 
 router.post("/profiles/me/avatar", async (req, res) => {

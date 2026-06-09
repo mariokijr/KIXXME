@@ -1894,6 +1894,146 @@ export const useUnlikeProfile = <TError = ErrorType<unknown>,
       return useMutation(getUnlikeProfileMutationOptions(options));
     }
 
+export const getBlockProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/block`
+}
+
+/**
+ * @summary Block a user (prevents messaging and hides them)
+ */
+export const blockProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getBlockProfileUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getBlockProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockProfile>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['blockProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockProfile>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  blockProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockProfileMutationResult = NonNullable<Awaited<ReturnType<typeof blockProfile>>>
+
+    export type BlockProfileMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Block a user (prevents messaging and hides them)
+ */
+export const useBlockProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof blockProfile>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getBlockProfileMutationOptions(options));
+    }
+
+export const getUnblockProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/block`
+}
+
+/**
+ * @summary Unblock a previously blocked user
+ */
+export const unblockProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getUnblockProfileUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnblockProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unblockProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockProfile>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unblockProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unblockProfile>>>
+
+    export type UnblockProfileMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unblock a previously blocked user
+ */
+export const useUnblockProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unblockProfile>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getUnblockProfileMutationOptions(options));
+    }
+
 export const getMarkConversationReadUrl = (id: string,) => {
 
 

@@ -1,6 +1,6 @@
-# [Project name]
+# KixxMe
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Spanish-language gay social/dating app: users build a profile, discover nearby people on a list and map, like and chat in real time, and block users they don't want to interact with.
 
 ## Run & Operate
 
@@ -22,15 +22,25 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- Web app (React + Vite): `artifacts/kixxme/` — pages in `src/pages/` (discover, map, chat, public-profile, profile, auth).
+- API server (Express): `artifacts/api-server/` — routes in `src/routes/` (`profiles.ts`, `conversations.ts`), helpers in `src/lib/` (`supabase.ts`, `auth.ts`, `blocks.ts`, `geo.ts`).
+- API contract (source of truth): `lib/api-spec/openapi.yaml` → Orval-generated hooks + Zod via `pnpm --filter @workspace/api-spec run codegen`.
+- Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`), exported from `lib/db/src/index.ts`.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Two databases.** Core app tables (`profiles`, `likes`, `conversations`, `messages`), auth, storage, and realtime live in **Supabase** (PostgREST via `supabase-js`); this schema is NOT DDL-modifiable from this repo. Repo-owned tables (e.g. `blocks`) live in the separate **Replit Postgres** (`DATABASE_URL`) via `@workspace/db` Drizzle. See `.agents/memory/kixxme-dual-database.md`.
+- **No cross-DB foreign keys.** Relationships between Replit-Postgres tables and Supabase tables are enforced in application code, not SQL joins (e.g. block filtering loads block sets, then filters Supabase rows in JS).
+- **Block enforcement is centralized** in `artifacts/api-server/src/lib/blocks.ts` and applied at every surface that exposes another user (discover/map, favorites, conversation list/create, send/read messages, image upload, like).
+- **Contract-first.** Endpoints are defined in OpenAPI, then server validates with generated Zod and the client uses generated React Query hooks.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Email/password auth (Supabase) with profile creation (bio, photos, location).
+- Discover nearby users as a list and on a map, sorted/filtered by distance and online status.
+- Like profiles and view a favorites list.
+- One-to-one realtime chat with text and image messages, read receipts, and unread counts.
+- Block / unblock users: blocking hides each user from the other across discovery, favorites, likes, and chat, and prevents new contact in either direction.
 
 ## User preferences
 
@@ -38,7 +48,10 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The API server has **no hot reload** — restart the `artifacts/api-server: API Server` workflow after backend edits. The web app uses Vite HMR.
+- Two separate databases (see Architecture decisions). You cannot `CREATE`/`ALTER TABLE` on Supabase from this repo; new repo-owned tables go in the Replit Postgres (`DATABASE_URL`) via Drizzle.
+- After editing `lib/api-spec/openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen`. After editing a `lib/*` package, run `pnpm run typecheck:libs` before leaf typechecks.
+- Chat image uploads are base64 in the request body; very large images can hit the Express body size limit (`PayloadTooLargeError`).
 
 ## Pointers
 

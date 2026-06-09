@@ -1,0 +1,1 @@
+- [KixxMe dual database](kixxme-dual-database.md) — app tables live in Supabase (PostgREST only, no DDL from repo); new tables go in the separate Replit Postgres via @workspace/db + Drizzle, joined in app code.

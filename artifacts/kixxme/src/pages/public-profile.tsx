@@ -7,6 +7,8 @@ import {
   useLikeProfile,
   useUnlikeProfile,
   useCreateOrGetConversation,
+  useBlockProfile,
+  useUnblockProfile,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
@@ -21,8 +23,10 @@ import {
   Heart,
   MessageCircle,
   BadgeCheck,
+  Ban,
   Loader2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistance } from "./discover";
 
 export default function PublicProfile() {
@@ -30,6 +34,7 @@ export default function PublicProfile() {
   const id = params.id as string;
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [activePhoto, setActivePhoto] = useState(0);
 
   const { data: profile, isLoading, error } = useGetProfile(id, {
@@ -42,6 +47,8 @@ export default function PublicProfile() {
   const likeProfile = useLikeProfile();
   const unlikeProfile = useUnlikeProfile();
   const createConv = useCreateOrGetConversation();
+  const blockProfile = useBlockProfile();
+  const unblockProfile = useUnblockProfile();
 
   const handleToggleLike = () => {
     if (!profile) return;
@@ -63,7 +70,48 @@ export default function PublicProfile() {
     if (!profile) return;
     createConv.mutate(
       { data: { other_user_id: profile.id } },
-      { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
+      {
+        onSuccess: (conv) => setLocation(`/chats/${conv.id}`),
+        onError: () =>
+          toast({
+            title: "No se pudo abrir el chat",
+            variant: "destructive",
+          }),
+      }
+    );
+  };
+
+  const handleToggleBlock = () => {
+    if (!profile) return;
+    const blocking = !profile.blocked_by_me;
+    const mutation = blocking ? blockProfile : unblockProfile;
+    qc.setQueryData(getGetProfileQueryKey(id), {
+      ...profile,
+      blocked_by_me: blocking,
+    });
+    mutation.mutate(
+      { id },
+      {
+        onSuccess: () =>
+          toast({
+            title: blocking ? "Usuario bloqueado" : "Usuario desbloqueado",
+          }),
+        onError: () => {
+          qc.setQueryData(getGetProfileQueryKey(id), {
+            ...profile,
+            blocked_by_me: !blocking,
+          });
+          toast({
+            title: blocking
+              ? "No se pudo bloquear"
+              : "No se pudo desbloquear",
+            variant: "destructive",
+          });
+        },
+        onSettled: () => {
+          qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id) });
+        },
+      }
     );
   };
 
@@ -232,7 +280,8 @@ export default function PublicProfile() {
         style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}>
         <button
           onClick={handleToggleLike}
-          className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all"
+          disabled={profile.blocked_by_me}
+          className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all disabled:opacity-40"
           style={
             profile.liked_by_me
               ? { background: "rgba(236,72,153,0.15)", borderColor: "hsl(330,85%,55%)" }
@@ -248,22 +297,46 @@ export default function PublicProfile() {
             }}
           />
         </button>
-        <button
-          onClick={handleMessage}
-          disabled={createConv.isPending}
-          className="flex-1 h-14 rounded-2xl font-display text-lg tracking-widest border-0 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-          data-testid="button-message"
-        >
-          {createConv.isPending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              <MessageCircle className="w-5 h-5" />
-              Enviar mensaje
-            </>
-          )}
-        </button>
+        {profile.blocked_by_me ? (
+          <button
+            onClick={handleToggleBlock}
+            disabled={blockProfile.isPending || unblockProfile.isPending}
+            className="flex-1 h-14 rounded-2xl font-display text-lg tracking-widest border border-border/40 text-foreground hover:bg-white/5 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            data-testid="button-unblock"
+          >
+            <Ban className="w-5 h-5" />
+            Desbloquear
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={handleMessage}
+              disabled={createConv.isPending}
+              className="flex-1 h-14 rounded-2xl font-display text-lg tracking-widest border-0 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+              data-testid="button-message"
+            >
+              {createConv.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <MessageCircle className="w-5 h-5" />
+                  Enviar mensaje
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleToggleBlock}
+              disabled={blockProfile.isPending}
+              className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl border border-border/40 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-40"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              data-testid="button-block"
+            >
+              <Ban className="w-6 h-6" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

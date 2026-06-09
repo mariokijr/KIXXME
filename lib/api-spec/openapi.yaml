@@ -693,6 +693,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /profiles/{id}/block:
+    post:
+      operationId: blockProfile
+      tags: [profiles]
+      summary: Block a user (prevents messaging and hides them)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unblockProfile
+      tags: [profiles]
+      summary: Unblock a previously blocked user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unblocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /conversations/{id}/read:
     post:
       operationId: markConversationRead
@@ -941,6 +987,8 @@ components:
         is_verified:
           type: boolean
         liked_by_me:
+          type: boolean
+        blocked_by_me:
           type: boolean
         created_at:
           type: string

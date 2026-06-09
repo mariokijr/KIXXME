@@ -9,6 +9,7 @@ import {
   Trash2,
   Flag,
   UserRound,
+  Ban,
   Check,
   CheckCheck,
 } from "lucide-react";
@@ -23,6 +24,8 @@ import {
   useReportConversation,
   useDeleteMessage,
   useUploadChatImage,
+  useBlockProfile,
+  useUnblockProfile,
   Message,
   PublicProfile,
 } from "@workspace/api-client-react";
@@ -92,6 +95,8 @@ export default function Chat() {
   const reportConv = useReportConversation();
   const deleteMsg = useDeleteMessage();
   const uploadImage = useUploadChatImage();
+  const blockUser = useBlockProfile();
+  const unblockUser = useUnblockProfile();
 
   // Reset local state when switching conversations so messages never bleed across chats.
   useEffect(() => {
@@ -260,6 +265,38 @@ export default function Chat() {
     );
   };
 
+  const handleBlock = () => {
+    if (!otherUser) return;
+    setMenuOpen(false);
+    blockUser.mutate(
+      { id: otherUser.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario bloqueado" });
+          qc.invalidateQueries({ queryKey: getListConversationsQueryKey() });
+        },
+        onError: () =>
+          toast({ title: "No se pudo bloquear", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleUnblock = () => {
+    if (!otherUser) return;
+    setMenuOpen(false);
+    unblockUser.mutate(
+      { id: otherUser.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario desbloqueado" });
+          qc.invalidateQueries({ queryKey: getListConversationsQueryKey() });
+        },
+        onError: () =>
+          toast({ title: "No se pudo desbloquear", variant: "destructive" }),
+      }
+    );
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -350,6 +387,13 @@ export default function Chat() {
               >
                 <UserRound className="w-4 h-4 text-muted-foreground" />
                 Ver perfil
+              </button>
+              <button
+                onClick={otherUser?.blocked_by_me ? handleUnblock : handleBlock}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-sans text-foreground hover:bg-white/5 transition-colors border-t border-border/20"
+              >
+                <Ban className="w-4 h-4 text-muted-foreground" />
+                {otherUser?.blocked_by_me ? "Desbloquear" : "Bloquear"}
               </button>
               <button
                 onClick={handleReport}
@@ -471,6 +515,24 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
+      {otherUser?.blocked_by_me ? (
+        <div
+          className="flex-shrink-0 px-4 py-4 border-t border-border/30 flex flex-col items-center gap-2 text-center"
+          style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        >
+          <p className="font-sans text-sm text-muted-foreground">
+            Has bloqueado a este usuario. No puedes enviar mensajes.
+          </p>
+          <button
+            onClick={handleUnblock}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-sans text-foreground border border-border/40 hover:bg-white/5 transition-colors"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+          >
+            <Ban className="w-4 h-4" />
+            Desbloquear
+          </button>
+        </div>
+      ) : (
       <div
         className="flex-shrink-0 px-4 py-3 border-t border-border/30 flex items-end gap-2"
         style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
@@ -513,6 +575,7 @@ export default function Chat() {
           <Send className="w-4 h-4" />
         </button>
       </div>
+      )}
     </div>
   );
 }

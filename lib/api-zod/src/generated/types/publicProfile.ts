@@ -19,5 +19,6 @@ export interface PublicProfile {
   is_online?: boolean;
   is_verified?: boolean;
   liked_by_me?: boolean;
+  blocked_by_me?: boolean;
   created_at?: string;
 }
