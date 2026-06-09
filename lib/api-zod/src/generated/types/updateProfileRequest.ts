@@ -9,5 +9,9 @@
 export interface UpdateProfileRequest {
   username?: string;
   bio?: string;
+  age?: number;
+  city?: string;
+  gender?: string;
+  location?: string;
   avatar_url?: string;
 }

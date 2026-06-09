@@ -83,6 +83,10 @@ export const GetMyProfileResponse = zod.object({
   "id": zod.string(),
   "username": zod.string(),
   "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -95,6 +99,10 @@ export const GetMyProfileResponse = zod.object({
 export const UpdateMyProfileBody = zod.object({
   "username": zod.string().optional(),
   "bio": zod.string().optional(),
+  "age": zod.number().optional(),
+  "city": zod.string().optional(),
+  "gender": zod.string().optional(),
+  "location": zod.string().optional(),
   "avatar_url": zod.string().optional()
 })
 
@@ -102,6 +110,10 @@ export const UpdateMyProfileResponse = zod.object({
   "id": zod.string(),
   "username": zod.string(),
   "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -119,6 +131,10 @@ export const GetProfileResponse = zod.object({
   "id": zod.string(),
   "username": zod.string(),
   "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "created_at": zod.string().optional()
 })

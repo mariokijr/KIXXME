@@ -10,6 +10,10 @@ export interface PublicProfile {
   id: string;
   username: string;
   bio?: string | null;
+  age?: number | null;
+  city?: string | null;
+  gender?: string | null;
+  location?: string | null;
   avatar_url?: string | null;
   created_at?: string;
 }

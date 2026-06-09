@@ -52,15 +52,23 @@ router.put("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  const { username, bio, avatar_url } = req.body as {
+  const { username, bio, age, city, gender, location, avatar_url } = req.body as {
     username?: string;
     bio?: string;
+    age?: number;
+    city?: string;
+    gender?: string;
+    location?: string;
     avatar_url?: string;
   };
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (username !== undefined) updates.username = username;
   if (bio !== undefined) updates.bio = bio;
+  if (age !== undefined) updates.age = age;
+  if (city !== undefined) updates.city = city;
+  if (gender !== undefined) updates.gender = gender;
+  if (location !== undefined) updates.location = location;
   if (avatar_url !== undefined) updates.avatar_url = avatar_url;
 
   const { data, error } = await supabase
@@ -68,10 +76,16 @@ router.put("/profiles/me", async (req, res) => {
     .update(updates)
     .eq("id", auth.userId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
+    req.log.error({ error: error.message, code: error.code }, "profiles/me PUT: update error");
     res.status(400).json({ error: error.message });
+    return;
+  }
+
+  if (!data) {
+    res.status(404).json({ error: "Profile not found" });
     return;
   }
 

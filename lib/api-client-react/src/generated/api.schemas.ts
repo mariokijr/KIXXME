@@ -46,6 +46,10 @@ export interface Profile {
   id: string;
   username: string;
   bio?: string | null;
+  age?: number | null;
+  city?: string | null;
+  gender?: string | null;
+  location?: string | null;
   avatar_url?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -55,6 +59,10 @@ export interface PublicProfile {
   id: string;
   username: string;
   bio?: string | null;
+  age?: number | null;
+  city?: string | null;
+  gender?: string | null;
+  location?: string | null;
   avatar_url?: string | null;
   created_at?: string;
 }
@@ -62,6 +70,10 @@ export interface PublicProfile {
 export interface UpdateProfileRequest {
   username?: string;
   bio?: string;
+  age?: number;
+  city?: string;
+  gender?: string;
+  location?: string;
   avatar_url?: string;
 }
 

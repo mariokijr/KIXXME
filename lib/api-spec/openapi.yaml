@@ -331,6 +331,18 @@ components:
         bio:
           type: string
           nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
         avatar_url:
           type: string
           nullable: true
@@ -350,6 +362,18 @@ components:
         bio:
           type: string
           nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
         avatar_url:
           type: string
           nullable: true
@@ -363,6 +387,14 @@ components:
         username:
           type: string
         bio:
+          type: string
+        age:
+          type: integer
+        city:
+          type: string
+        gender:
+          type: string
+        location:
           type: string
         avatar_url:
           type: string
