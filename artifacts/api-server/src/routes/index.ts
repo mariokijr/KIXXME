@@ -9,6 +9,7 @@ import stripeRouter from "./stripe.js";
 import supportRouter from "./support.js";
 import notificationsRouter from "./notifications.js";
 import liveRouter from "./live.js";
+import accountRouter from "./account.js";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(stripeRouter);
 router.use(supportRouter);
 router.use(notificationsRouter);
 router.use(liveRouter);
+router.use(accountRouter);
 
 export default router;

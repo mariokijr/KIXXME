@@ -36,6 +36,7 @@ import {
   LifeBuoy,
   MessageCircle,
   MessageSquareWarning,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { SupportDialog } from "@/components/support-dialog";
 
@@ -229,11 +230,20 @@ export default function Profile() {
         <h1 className="font-display text-2xl tracking-wide">
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
-        <button onClick={copyLink}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-          style={{ background: "rgba(255,255,255,0.04)" }}>
-          <Share2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={copyLink}
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+            style={{ background: "rgba(255,255,255,0.04)" }}>
+            <Share2 className="w-4 h-4" />
+          </button>
+          <button onClick={() => setLocation("/settings")}
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            data-testid="button-open-settings"
+            aria-label="Ajustes">
+            <SettingsIcon className="w-4 h-4" />
+          </button>
+        </div>
       </header>
 
       {isOnboarding && (

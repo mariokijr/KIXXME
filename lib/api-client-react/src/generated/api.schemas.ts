@@ -347,6 +347,98 @@ export interface SuccessResponse {
   success: boolean;
 }
 
+export type AccountStatusStatus = typeof AccountStatusStatus[keyof typeof AccountStatusStatus];
+
+
+export const AccountStatusStatus = {
+  active: 'active',
+  deactivated: 'deactivated',
+} as const;
+
+/**
+ * Set only while deactivated
+ */
+export type AccountStatusDeactivationType = typeof AccountStatusDeactivationType[keyof typeof AccountStatusDeactivationType] | null;
+
+
+export const AccountStatusDeactivationType = {
+  '1m': '1m',
+  '3m': '3m',
+  '6m': '6m',
+  indefinite: 'indefinite',
+} as const;
+
+export interface AccountStatus {
+  status: AccountStatusStatus;
+  /** Set only while deactivated */
+  deactivationType?: AccountStatusDeactivationType;
+  deactivatedAt?: string | null;
+  /** When a timed deactivation auto-reactivates; null for indefinite */
+  reactivateAt?: string | null;
+}
+
+export type AccountActionCodeRequestAction = typeof AccountActionCodeRequestAction[keyof typeof AccountActionCodeRequestAction];
+
+
+export const AccountActionCodeRequestAction = {
+  deactivate: 'deactivate',
+  delete: 'delete',
+} as const;
+
+/**
+ * Required when action is "deactivate"; ignored for "delete"
+ */
+export type AccountActionCodeRequestDeactivationType = typeof AccountActionCodeRequestDeactivationType[keyof typeof AccountActionCodeRequestDeactivationType];
+
+
+export const AccountActionCodeRequestDeactivationType = {
+  '1m': '1m',
+  '3m': '3m',
+  '6m': '6m',
+  indefinite: 'indefinite',
+} as const;
+
+export interface AccountActionCodeRequest {
+  action: AccountActionCodeRequestAction;
+  /** Required when action is "deactivate"; ignored for "delete" */
+  deactivationType?: AccountActionCodeRequestDeactivationType;
+}
+
+export interface AccountActionCodeResponse {
+  /** Whether the verification email was dispatched */
+  sent: boolean;
+  expiresAt?: string | null;
+  /** Human-readable status (e.g. when email delivery is unavailable) */
+  message?: string | null;
+}
+
+export type AccountActionConfirmRequestAction = typeof AccountActionConfirmRequestAction[keyof typeof AccountActionConfirmRequestAction];
+
+
+export const AccountActionConfirmRequestAction = {
+  deactivate: 'deactivate',
+  delete: 'delete',
+} as const;
+
+export interface AccountActionConfirmRequest {
+  action: AccountActionConfirmRequestAction;
+  /** The 6-digit code from the verification email */
+  code: string;
+}
+
+export type AccountActionConfirmResponseAction = typeof AccountActionConfirmResponseAction[keyof typeof AccountActionConfirmResponseAction];
+
+
+export const AccountActionConfirmResponseAction = {
+  deactivate: 'deactivate',
+  delete: 'delete',
+} as const;
+
+export interface AccountActionConfirmResponse {
+  success: boolean;
+  action: AccountActionConfirmResponseAction;
+}
+
 export type Logout200 = {
   message: string;
 };

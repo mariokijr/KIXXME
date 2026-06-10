@@ -2,6 +2,7 @@ import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { getBlockRelations } from "../lib/blocks.js";
+import { getDeactivatedIds } from "../lib/account.js";
 
 const router = Router();
 
@@ -20,7 +21,10 @@ router.get("/notifications/summary", async (req, res) => {
 
   const me = auth.userId;
   const { iBlocked, blockedMe } = await getBlockRelations(me);
-  const isBlocked = (id: string) => iBlocked.has(id) || blockedMe.has(id);
+  const deactivated = await getDeactivatedIds();
+  // Deactivated users are hidden everywhere, exactly like a block.
+  const isBlocked = (id: string) =>
+    iBlocked.has(id) || blockedMe.has(id) || deactivated.has(id);
 
   // People who liked me (most recent first).
   const { data: received, error: receivedError } = await supabase
@@ -110,7 +114,9 @@ router.get("/notifications/summary", async (req, res) => {
   const visibleConvIds = (convs ?? [])
     .filter((c) => {
       const otherId = c.user1_id === me ? c.user2_id : c.user1_id;
-      return !blockedMe.has(otherId as string);
+      return (
+        !blockedMe.has(otherId as string) && !deactivated.has(otherId as string)
+      );
     })
     .map((c) => c.id as string);
 

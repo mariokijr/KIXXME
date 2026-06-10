@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../lib/auth.js";
 import { isBlockedBetween } from "../lib/blocks.js";
+import { isDeactivated } from "../lib/account.js";
 import { getPlan } from "../lib/entitlement.js";
 import * as live from "../lib/live.js";
 import {
@@ -129,6 +130,10 @@ router.post("/live/calls", async (req, res) => {
   }
   if (await isBlockedBetween(me, recipientId)) {
     res.status(403).json({ error: "No disponible" });
+    return;
+  }
+  if (await isDeactivated(recipientId)) {
+    res.status(404).json({ error: "No disponible" });
     return;
   }
 

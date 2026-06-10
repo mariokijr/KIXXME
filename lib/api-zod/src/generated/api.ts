@@ -735,3 +735,43 @@ export const EndLiveCallResponse = zod.object({
 })
 
 
+/**
+ * @summary Current account status (active or deactivated)
+ */
+export const GetAccountStatusResponse = zod.object({
+  "status": zod.enum(['active', 'deactivated']),
+  "deactivationType": zod.union([zod.literal('1m'),zod.literal('3m'),zod.literal('6m'),zod.literal('indefinite'),zod.literal(null)]).nullish().describe('Set only while deactivated'),
+  "deactivatedAt": zod.string().nullish(),
+  "reactivateAt": zod.string().nullish().describe('When a timed deactivation auto-reactivates; null for indefinite')
+})
+
+
+/**
+ * @summary Email a verification code to confirm a deactivation or deletion
+ */
+export const RequestAccountActionCodeBody = zod.object({
+  "action": zod.enum(['deactivate', 'delete']),
+  "deactivationType": zod.enum(['1m', '3m', '6m', 'indefinite']).optional().describe('Required when action is \"deactivate\"; ignored for \"delete\"')
+})
+
+export const RequestAccountActionCodeResponse = zod.object({
+  "sent": zod.boolean().describe('Whether the verification email was dispatched'),
+  "expiresAt": zod.string().nullish(),
+  "message": zod.string().nullish().describe('Human-readable status (e.g. when email delivery is unavailable)')
+})
+
+
+/**
+ * @summary Confirm a deactivation or deletion with the emailed code
+ */
+export const ConfirmAccountActionBody = zod.object({
+  "action": zod.enum(['deactivate', 'delete']),
+  "code": zod.string().describe('The 6-digit code from the verification email')
+})
+
+export const ConfirmAccountActionResponse = zod.object({
+  "success": zod.boolean(),
+  "action": zod.enum(['deactivate', 'delete'])
+})
+
+

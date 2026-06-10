@@ -264,3 +264,106 @@ export function supportReportEmailHtml(report: {
     bodyHtml: body,
   });
 }
+
+// --- Account actions: verification codes + confirmations --------------------
+// Email-verified, sensitive account changes. Code emails confirm intent before
+// the action runs; the post-action emails confirm it happened.
+
+function formatDateEs(d: Date): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+}
+
+function codeBlock(code: string): string {
+  return `<div style="margin:18px 0;padding:18px;border:1px solid ${BORDER};border-radius:14px;background:#0d0a1c;text-align:center;">
+              <span style="font-size:34px;font-weight:800;letter-spacing:10px;color:${TEXT};font-family:'Courier New',monospace;">${escapeHtml(code)}</span>
+            </div>`;
+}
+
+export const DELETE_CODE_SUBJECT = "Confirmación de eliminación de cuenta";
+export const DEACTIVATE_CODE_SUBJECT = "Confirmación de desactivación de cuenta";
+
+/** Verification-code email gating a deactivation or deletion. */
+export function accountActionCodeEmail(
+  action: "deactivate" | "delete",
+  code: string,
+): { subject: string; html: string } {
+  const isDelete = action === "delete";
+  const subject = isDelete ? DELETE_CODE_SUBJECT : DEACTIVATE_CODE_SUBJECT;
+  const intro = isDelete
+    ? 'Has solicitado <strong style="color:#f4f1fb;">eliminar permanentemente</strong> tu cuenta de KixxMe. Introduce este código en la app para confirmar:'
+    : 'Has solicitado <strong style="color:#f4f1fb;">desactivar temporalmente</strong> tu cuenta de KixxMe. Introduce este código en la app para confirmar:';
+  const warn = isDelete
+    ? "\u26A0\uFE0F Esta acci\u00F3n es permanente: se borrar\u00E1n tu perfil, tus fotos, tus mensajes y tus me gusta. No se puede deshacer."
+    : "Mientras est\u00E9 desactivada no aparecer\u00E1s para otras personas. Podr\u00E1s reactivarla cuando quieras volviendo a iniciar sesi\u00F3n.";
+  const body = [
+    `<p style="margin:0 0 14px 0;">${intro}</p>`,
+    codeBlock(code),
+    `<p style="margin:14px 0 0 0;">Este c\u00F3digo caduca en 15 minutos. Si no has sido t\u00FA, ignora este correo y tu cuenta seguir\u00E1 intacta.</p>`,
+    `<p style="margin:14px 0 0 0;color:#f3b14b;">${warn}</p>`,
+  ].join("\n            ");
+  return {
+    subject,
+    html: renderEmail({
+      preheader: isDelete
+        ? "Tu c\u00F3digo para eliminar la cuenta"
+        : "Tu c\u00F3digo para desactivar la cuenta",
+      heading: subject,
+      bodyHtml: body,
+    }),
+  };
+}
+
+export const DEACTIVATED_SUBJECT = "Tu cuenta de KixxMe est\u00E1 desactivada";
+
+/** Confirmation sent after a successful deactivation. */
+export function accountDeactivatedEmail(
+  reactivateAt: Date | null,
+  appUrl?: string,
+): { subject: string; html: string } {
+  const when = reactivateAt
+    ? `Tu cuenta se reactivar\u00E1 autom\u00E1ticamente el <strong style="color:#f4f1fb;">${escapeHtml(
+        formatDateEs(reactivateAt),
+      )}</strong>. Tambi\u00E9n puedes volver antes: solo inicia sesi\u00F3n.`
+    : "Tu cuenta seguir\u00E1 desactivada hasta que vuelvas a iniciar sesi\u00F3n. Cuando quieras volver, solo inicia sesi\u00F3n.";
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Tu cuenta se ha desactivado correctamente.</strong>",
+    "Ya no apareces en la b\u00FAsqueda, el mapa ni para el resto de personas.",
+    when,
+    "Te esperamos de vuelta \u{1F49C}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: DEACTIVATED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu cuenta de KixxMe est\u00E1 desactivada.",
+      heading: "Cuenta desactivada",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Volver a KixxMe", url: appUrl } : undefined,
+    }),
+  };
+}
+
+export const DELETED_SUBJECT = "Tu cuenta de KixxMe ha sido eliminada";
+
+/** Confirmation sent after a successful permanent deletion. */
+export function accountDeletedEmail(): { subject: string; html: string } {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Tu cuenta de KixxMe se ha eliminado de forma permanente.</strong>",
+    "Hemos borrado tu perfil, tus fotos, tus mensajes y tus me gusta. Esta acci\u00F3n no se puede deshacer.",
+    "Si en el futuro quieres volver, ser\u00E1s siempre bienvenido: solo tendr\u00E1s que crear una cuenta nueva.",
+    "Gracias por haber formado parte de KixxMe \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: DELETED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu cuenta de KixxMe ha sido eliminada.",
+      heading: "Cuenta eliminada",
+      bodyHtml: body,
+    }),
+  };
+}

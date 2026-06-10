@@ -8,6 +8,7 @@ import {
   addBlock,
   removeBlock,
 } from "../lib/blocks.js";
+import { getDeactivatedIds, isDeactivated } from "../lib/account.js";
 
 const router = Router();
 
@@ -82,6 +83,7 @@ router.get("/profiles", async (req, res) => {
 
   const likedSet = await getLikedSet(auth.userId);
   const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
+  const deactivated = await getDeactivatedIds();
 
   const { data, error } = await supabase
     .from("profiles")
@@ -98,7 +100,12 @@ router.get("/profiles", async (req, res) => {
   }
 
   let profiles = (data as ProfileRow[])
-    .filter((row) => !iBlocked.has(row.id) && !blockedMe.has(row.id))
+    .filter(
+      (row) =>
+        !iBlocked.has(row.id) &&
+        !blockedMe.has(row.id) &&
+        !deactivated.has(row.id),
+    )
     .map((row) => toPublic(row, me ?? null, likedSet, iBlocked));
 
   if (sort === "distance") {
@@ -260,15 +267,28 @@ router.get("/profiles/me/likes", async (req, res) => {
 
   const likedSet = new Set(ids);
   const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
+  const deactivated = await getDeactivatedIds();
   res.json(
     (data as ProfileRow[])
-      .filter((row) => !iBlocked.has(row.id) && !blockedMe.has(row.id))
+      .filter(
+        (row) =>
+          !iBlocked.has(row.id) &&
+          !blockedMe.has(row.id) &&
+          !deactivated.has(row.id),
+      )
       .map((row) => toPublic(row, me ?? null, likedSet, iBlocked)),
   );
 });
 
 router.get("/profiles/:id/photos", async (req, res) => {
   const { id } = req.params;
+
+  // A deactivated user is hidden everywhere: don't expose their photos.
+  if (await isDeactivated(id)) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+
   const { data, error } = await supabase
     .from("profile_photos")
     .select("*")
@@ -294,6 +314,11 @@ router.post("/profiles/:id/like", async (req, res) => {
 
   if (await isBlockedBetween(auth.userId, id)) {
     res.status(403).json({ error: "No puedes dar me gusta a este usuario" });
+    return;
+  }
+
+  if (await isDeactivated(id)) {
+    res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
 
@@ -372,6 +397,12 @@ router.delete("/profiles/:id/block", async (req, res) => {
 router.get("/profiles/:id", async (req, res) => {
   const { id } = req.params;
   const viewer = await optionalAuth(req);
+
+  // A deactivated user is hidden everywhere; treat their profile as not found.
+  if (await isDeactivated(id)) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
 
   const { data, error } = await supabase
     .from("profiles")

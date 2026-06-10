@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
+import { reactivateOnLogin } from "../lib/account.js";
 import {
   sendEmail,
   appBaseUrl,
@@ -78,6 +79,17 @@ router.post("/auth/login", async (req, res) => {
   if (error) {
     res.status(401).json({ error: error.message });
     return;
+  }
+
+  // Logging in is the user's "I'm back" signal: clear any temporary
+  // deactivation (timed or indefinite) before returning the session.
+  try {
+    await reactivateOnLogin(data.user.id);
+  } catch (err) {
+    req.log.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "login: reactivation failed",
+    );
   }
 
   res.json({

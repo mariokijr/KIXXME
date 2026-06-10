@@ -243,6 +243,36 @@ async function cancelSupersededSubscriptions(
 }
 
 /**
+ * Cancel ALL of a user's still-billing subscriptions. Used on account deletion
+ * so a removed user is never charged again. Idempotent (already-cancelled subs
+ * are filtered out by status); a no-op when the user has no Stripe customer.
+ */
+export async function cancelAllSubscriptionsForUser(
+  userId: string,
+  log: Logger,
+): Promise<void> {
+  const row = (
+    await db
+      .select()
+      .from(billingCustomersTable)
+      .where(eq(billingCustomersTable.userId, userId))
+      .limit(1)
+  )[0];
+  if (!row?.stripeCustomerId) return;
+  const stripe = await getUncachableStripeClient();
+  const subs = await stripe.subscriptions.list({
+    customer: row.stripeCustomerId,
+    status: "all",
+    limit: 100,
+  });
+  for (const sub of subs.data) {
+    if (!CANCELABLE_STATUSES.has(sub.status)) continue;
+    await stripe.subscriptions.cancel(sub.id);
+    log.info({ subId: sub.id, userId }, "Cancelled subscription on account deletion");
+  }
+}
+
+/**
  * Apply entitlement changes from a verified Stripe event. Throwing here makes
  * the webhook return 500 so Stripe retries (the upserts are idempotent).
  */

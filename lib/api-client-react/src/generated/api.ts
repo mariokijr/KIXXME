@@ -20,6 +20,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountActionCodeRequest,
+  AccountActionCodeResponse,
+  AccountActionConfirmRequest,
+  AccountActionConfirmResponse,
+  AccountStatus,
   AuthResponse,
   AvatarUploadRequest,
   CheckoutRequest,
@@ -3116,5 +3121,224 @@ export const useEndLiveCall = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getEndLiveCallMutationOptions(options));
+    }
+
+export const getGetAccountStatusUrl = () => {
+
+
+
+
+  return `/api/account/status`
+}
+
+/**
+ * @summary Current account status (active or deactivated)
+ */
+export const getAccountStatus = async ( options?: RequestInit): Promise<AccountStatus> => {
+
+  return customFetch<AccountStatus>(getGetAccountStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAccountStatusQueryKey = () => {
+    return [
+    `/api/account/status`
+    ] as const;
+    }
+
+
+export const getGetAccountStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAccountStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccountStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAccountStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccountStatus>>> = ({ signal }) => getAccountStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAccountStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAccountStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAccountStatus>>>
+export type GetAccountStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current account status (active or deactivated)
+ */
+
+export function useGetAccountStatus<TData = Awaited<ReturnType<typeof getAccountStatus>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccountStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAccountStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRequestAccountActionCodeUrl = () => {
+
+
+
+
+  return `/api/account/verification/request`
+}
+
+/**
+ * @summary Email a verification code to confirm a deactivation or deletion
+ */
+export const requestAccountActionCode = async (accountActionCodeRequest: AccountActionCodeRequest, options?: RequestInit): Promise<AccountActionCodeResponse> => {
+
+  return customFetch<AccountActionCodeResponse>(getRequestAccountActionCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      accountActionCodeRequest,)
+  }
+);}
+
+
+
+
+export const getRequestAccountActionCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountActionCode>>, TError,{data: BodyType<AccountActionCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAccountActionCode>>, TError,{data: BodyType<AccountActionCodeRequest>}, TContext> => {
+
+const mutationKey = ['requestAccountActionCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAccountActionCode>>, {data: BodyType<AccountActionCodeRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAccountActionCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAccountActionCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestAccountActionCode>>>
+    export type RequestAccountActionCodeMutationBody = BodyType<AccountActionCodeRequest>
+    export type RequestAccountActionCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Email a verification code to confirm a deactivation or deletion
+ */
+export const useRequestAccountActionCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountActionCode>>, TError,{data: BodyType<AccountActionCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestAccountActionCode>>,
+        TError,
+        {data: BodyType<AccountActionCodeRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestAccountActionCodeMutationOptions(options));
+    }
+
+export const getConfirmAccountActionUrl = () => {
+
+
+
+
+  return `/api/account/verification/confirm`
+}
+
+/**
+ * @summary Confirm a deactivation or deletion with the emailed code
+ */
+export const confirmAccountAction = async (accountActionConfirmRequest: AccountActionConfirmRequest, options?: RequestInit): Promise<AccountActionConfirmResponse> => {
+
+  return customFetch<AccountActionConfirmResponse>(getConfirmAccountActionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      accountActionConfirmRequest,)
+  }
+);}
+
+
+
+
+export const getConfirmAccountActionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountAction>>, TError,{data: BodyType<AccountActionConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAccountAction>>, TError,{data: BodyType<AccountActionConfirmRequest>}, TContext> => {
+
+const mutationKey = ['confirmAccountAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAccountAction>>, {data: BodyType<AccountActionConfirmRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAccountAction(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAccountActionMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAccountAction>>>
+    export type ConfirmAccountActionMutationBody = BodyType<AccountActionConfirmRequest>
+    export type ConfirmAccountActionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Confirm a deactivation or deletion with the emailed code
+ */
+export const useConfirmAccountAction = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountAction>>, TError,{data: BodyType<AccountActionConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAccountAction>>,
+        TError,
+        {data: BodyType<AccountActionConfirmRequest>},
+        TContext
+      > => {
+      return useMutation(getConfirmAccountActionMutationOptions(options));
     }
 

@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { isOnline } from "../lib/geo.js";
 import { getBlockRelations, isBlockedBetween } from "../lib/blocks.js";
+import { isDeactivated, getDeactivatedIds } from "../lib/account.js";
 
 const router = Router();
 
@@ -57,11 +58,13 @@ router.get("/conversations", async (req, res) => {
   }
 
   const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
+  const deactivated = await getDeactivatedIds();
 
-  // Hide conversations where the other user has blocked the viewer.
+  // Hide conversations where the other user has blocked the viewer or has
+  // deactivated their account.
   const visibleConversations = (conversations ?? []).filter((conv) => {
     const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
-    return !blockedMe.has(otherId);
+    return !blockedMe.has(otherId) && !deactivated.has(otherId);
   });
 
   const enriched = await Promise.all(
@@ -123,6 +126,11 @@ router.post("/conversations", async (req, res) => {
 
   if (await isBlockedBetween(auth.userId, other_user_id)) {
     res.status(403).json({ error: "No puedes contactar a este usuario" });
+    return;
+  }
+
+  if (await isDeactivated(other_user_id)) {
+    res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
 
@@ -221,6 +229,10 @@ router.post("/conversations/:id/messages", async (req, res) => {
     res.status(403).json({ error: "No puedes enviar mensajes a este usuario" });
     return;
   }
+  if (await isDeactivated(otherId)) {
+    res.status(404).json({ error: "Perfil no disponible" });
+    return;
+  }
 
   const { data: message, error } = await supabase
     .from("messages")
@@ -260,6 +272,10 @@ router.post("/conversations/:id/images", async (req, res) => {
   const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
   if (await isBlockedBetween(auth.userId, otherId)) {
     res.status(403).json({ error: "No puedes enviar contenido a este usuario" });
+    return;
+  }
+  if (await isDeactivated(otherId)) {
+    res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
 

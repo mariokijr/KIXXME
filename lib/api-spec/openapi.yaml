@@ -22,6 +22,8 @@ tags:
     description: Support requests and problem reports
   - name: live
     description: KixxMe Live — Gold-only video calls (scaffold)
+  - name: account
+    description: Account self-service — deactivation and deletion (email-verified)
 paths:
   /healthz:
     get:
@@ -1218,6 +1220,99 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /account/status:
+    get:
+      operationId: getAccountStatus
+      tags: [account]
+      summary: Current account status (active or deactivated)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /account/verification/request:
+    post:
+      operationId: requestAccountActionCode
+      tags: [account]
+      summary: Email a verification code to confirm a deactivation or deletion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountActionCodeRequest"
+      responses:
+        "200":
+          description: Code request processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountActionCodeResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests (cooldown)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /account/verification/confirm:
+    post:
+      operationId: confirmAccountAction
+      tags: [account]
+      summary: Confirm a deactivation or deletion with the emailed code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountActionConfirmRequest"
+      responses:
+        "200":
+          description: Action executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountActionConfirmResponse"
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1725,3 +1820,71 @@ components:
         success:
           type: boolean
       required: [success]
+
+    AccountStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, deactivated]
+        deactivationType:
+          type: string
+          nullable: true
+          enum: ["1m", "3m", "6m", "indefinite", null]
+          description: Set only while deactivated
+        deactivatedAt:
+          type: string
+          nullable: true
+        reactivateAt:
+          type: string
+          nullable: true
+          description: When a timed deactivation auto-reactivates; null for indefinite
+      required: [status]
+
+    AccountActionCodeRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [deactivate, delete]
+        deactivationType:
+          type: string
+          enum: ["1m", "3m", "6m", "indefinite"]
+          description: Required when action is "deactivate"; ignored for "delete"
+      required: [action]
+
+    AccountActionCodeResponse:
+      type: object
+      properties:
+        sent:
+          type: boolean
+          description: Whether the verification email was dispatched
+        expiresAt:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+          description: Human-readable status (e.g. when email delivery is unavailable)
+      required: [sent]
+
+    AccountActionConfirmRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [deactivate, delete]
+        code:
+          type: string
+          description: The 6-digit code from the verification email
+      required: [action, code]
+
+    AccountActionConfirmResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        action:
+          type: string
+          enum: [deactivate, delete]
+      required: [success, action]
