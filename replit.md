@@ -24,6 +24,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 ## Where things live
 
 - Web app (React + Vite): `artifacts/kixxme/` — pages in `src/pages/` (discover, map, chat, public-profile, profile, auth).
+- Swipe discovery ("Tarjetas"): `artifacts/kixxme/src/components/swipe-deck.tsx` (`SwipeView` — framer-motion deck + detail sheet) + `discover-mode-toggle.tsx` (`ModeToggle`/`DiscoverMode`); `pages/discover.tsx` default export switches `SwipeView`/`GridDiscover` by mode persisted in localStorage `kixxme:discover-mode`. Shared card helpers (`gradFor`/`initialsFor`/`formatDistance`) in `src/lib/profile-format.ts`. Consumes the likes engine (`useLikeActions`); no backend. See `.agents/memory/kixxme-orval-query-hooks.md`.
 - API server (Express): `artifacts/api-server/` — routes in `src/routes/` (`profiles.ts`, `conversations.ts`), helpers in `src/lib/` (`supabase.ts`, `auth.ts`, `blocks.ts`, `geo.ts`).
 - API contract (source of truth): `lib/api-spec/openapi.yaml` → Orval-generated hooks + Zod via `pnpm --filter @workspace/api-spec run codegen`.
 - Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`, `billing-customers.ts`), exported from `lib/db/src/index.ts`.
@@ -46,7 +47,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 ## Product
 
 - Email/password auth (Supabase) with profile creation (bio, photos, location).
-- Discover nearby users as a list and on a map, sorted/filtered by distance and online status.
+- Discover nearby users two ways from the "Descubrir" tab: a Tinder-style swipe deck ("Tarjetas", default — drag right=Me gusta, left=No me interesa, up/button=SuperLike, tap ℹ️ for photos+details) and the original grid ("Cuadrícula"); choice persists. Plus a map, all sorted/filtered by distance and online status.
 - Like and SuperLike profiles, and view a favorites list. Free users get 15 likes/6h + 1 SuperLike/24h (Plus/Gold higher/unlimited); hitting a limit shows a Spanish message + Premium upsell. A mutual like is a Match ("🎉 ¡Es un Match!") that opens chat. Free users are told when they receive a SuperLike but not by whom; Plus/Gold see the sender.
 - One-to-one realtime chat with text and image messages, read receipts, and unread counts.
 - Block / unblock users: blocking hides each user from the other across discovery, favorites, likes, and chat, and prevents new contact in either direction.

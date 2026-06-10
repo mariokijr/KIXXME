@@ -14,6 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
+import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
+import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
+import { SwipeView } from "@/components/swipe-deck";
+
+export { gradFor, formatDistance } from "@/lib/profile-format";
 
 type ViewType = "todos" | "cerca" | "online" | "con-foto";
 
@@ -31,38 +36,39 @@ const VIEW_SORT: Record<ViewType, ListProfilesSort> = {
   "con-foto": "recent",
 };
 
-const GRAD_PALETTE = [
-  "from-violet-700 to-purple-900",
-  "from-pink-600 to-rose-900",
-  "from-orange-600 to-red-900",
-  "from-cyan-600 to-blue-900",
-  "from-emerald-600 to-teal-900",
-  "from-fuchsia-600 to-purple-900",
-  "from-blue-600 to-indigo-900",
-  "from-rose-600 to-pink-900",
-];
-
-export function gradFor(id: string) {
-  let h = 0;
-  for (const c of id) {
-    h = (h << 5) - h + c.charCodeAt(0);
-    h |= 0;
-  }
-  return GRAD_PALETTE[Math.abs(h) % GRAD_PALETTE.length];
-}
-
-function initialsFor(username: string | null) {
-  return (username || "?").slice(0, 2).toUpperCase();
-}
-
-export function formatDistance(km: number | null | undefined): string | null {
-  if (km == null) return null;
-  if (km < 1) return "< 1 km";
-  if (km < 10) return `${km.toFixed(1)} km`;
-  return `${Math.round(km)} km`;
-}
+const DISCOVER_MODE_KEY = "kixxme:discover-mode";
 
 export default function Discover() {
+  const [mode, setMode] = useState<DiscoverMode>(() => {
+    if (typeof window === "undefined") return "tarjetas";
+    return window.localStorage.getItem(DISCOVER_MODE_KEY) === "cuadricula"
+      ? "cuadricula"
+      : "tarjetas";
+  });
+
+  const changeMode = (m: DiscoverMode) => {
+    setMode(m);
+    try {
+      window.localStorage.setItem(DISCOVER_MODE_KEY, m);
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+
+  return mode === "tarjetas" ? (
+    <SwipeView mode={mode} setMode={changeMode} />
+  ) : (
+    <GridDiscover mode={mode} setMode={changeMode} />
+  );
+}
+
+function GridDiscover({
+  mode,
+  setMode,
+}: {
+  mode: DiscoverMode;
+  setMode: (m: DiscoverMode) => void;
+}) {
   const [view, setView] = useState<ViewType>("todos");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -171,6 +177,10 @@ export default function Discover() {
           </button>
         </Link>
       </header>
+
+      <div className="px-4 pt-3 flex justify-center">
+        <ModeToggle mode={mode} setMode={setMode} />
+      </div>
 
       <div className="px-4 pt-4 pb-2">
         <h2 className="font-display text-3xl tracking-wide leading-tight">
