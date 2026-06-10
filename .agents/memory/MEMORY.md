@@ -2,3 +2,4 @@
 - [KixxMe Stripe billing](kixxme-stripe-billing.md) — Supabase profiles.plan = entitlement, written only by webhook; map user via sub metadata, price via lookup_key, cancel old subs on tier switch.
 - [Replit preview iframe blocks framed third-party flows](replit-preview-iframe-third-party.md) — Stripe Checkout etc. won't render in the proxied preview iframe; pre-open a tab in the click gesture instead of window.location redirect.
 - [KixxMe transactional email](kixxme-transactional-email.md) — all email via Gmail connector from supportkixxme@gmail.com; sendEmail never throws (fire-and-forget); sanitize subject/Reply-To before raw RFC2822.
+- [KixxMe Live (video-call scaffold)](kixxme-live.md) — Gold-only; advisory-lock + FOR UPDATE SKIP LOCKED matcher, no media plane (issueMediaToken stub), in-call renders before paywall.

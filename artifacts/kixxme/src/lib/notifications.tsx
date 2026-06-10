@@ -216,7 +216,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       if (freshMatches.length > 0) {
         const m = freshMatches[0];
         toast({
-          title: "🔥 ¡Nuevo match!",
+          title: "💞 ¡Nuevo match!",
           description: m.username
             ? `${m.username} y tú os habéis gustado`
             : "Tienes un nuevo match",

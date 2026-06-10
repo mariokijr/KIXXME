@@ -7,7 +7,7 @@ import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { NotificationsProvider } from "@/lib/notifications";
 import { useGeolocation } from "@/lib/use-geolocation";
-import { Flame } from "lucide-react";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import BottomNav from "@/components/layout/bottom-nav";
 
 import Login from "@/pages/login";
@@ -21,6 +21,7 @@ import ChatPage from "@/pages/chat";
 import Premium from "@/pages/premium";
 import Favorites from "@/pages/favorites";
 import Support from "@/pages/support";
+import Live from "@/pages/live";
 
 const queryClient = new QueryClient();
 
@@ -105,7 +106,9 @@ function HomeRedirect() {
       className="min-h-screen w-full flex flex-col items-center justify-center gap-4"
       style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
     >
-      <Flame className="w-10 h-10 text-orange-400 animate-pulse" style={{ filter: "drop-shadow(0 0 12px rgba(249,115,22,0.8))" }} />
+      <div className="animate-pulse">
+        <KixxMeLogo size={72} badge />
+      </div>
       <span className="text-3xl font-display tracking-widest text-gradient-brand animate-pulse">CARGANDO...</span>
     </div>
   );
@@ -119,6 +122,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
+      <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>
       <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
       <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>

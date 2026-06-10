@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Users, Flame, Loader2, Navigation, BadgeCheck, MapPin } from "lucide-react";
+import { Users, Zap, Loader2, Navigation, BadgeCheck, MapPin } from "lucide-react";
 import {
   useListProfiles,
   useGetMyProfile,
@@ -283,7 +283,7 @@ export default function MapView() {
       <div className="px-4 pb-4 grid grid-cols-3 gap-2">
         {[
           { icon: Users, label: "Cerca", value: String(placeable.length) },
-          { icon: Flame, label: "En línea", value: String(onlineCount) },
+          { icon: Zap, label: "En línea", value: String(onlineCount) },
           { icon: MapPin, label: "Con foto", value: String(withPhoto) },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="flex flex-col items-center py-3 rounded-xl border border-border/30" style={{ background: "rgba(13,11,26,0.7)" }}>

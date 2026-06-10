@@ -1,0 +1,104 @@
+I want to make two major improvements to KixxMe.
+
+1. KixxMe Live Gold (future feature)
+
+I want a future Gold-only feature called KixxMe Live.
+
+Concept:
+A video-call section fully integrated inside KixxMe, not an external app.
+
+Requirements:
+
+* New tab with a camera icon: 📹 Live
+* Only Gold members can access it.
+* Both users must be Gold to start a video call.
+* Free and Plus users see a premium Gold paywall.
+
+Features:
+
+* Random video calls with other online Gold users.
+* Filters:
+    * Age range
+    * Nearby users
+    * Same city
+    * Spain
+    * Europe
+    * Worldwide
+* Button:
+    🔥 Buscar videollamada
+* Match users randomly based on filters.
+* Both users must accept before the call starts.
+
+Private video calls:
+
+* Add a camera button inside private chats.
+* A user can invite another user to a video call.
+* The call starts only if both users are Gold and both accept.
+
+In-call controls:
+
+* Camera on/off
+* Microphone on/off
+* End call
+* Report user
+* Block user
+
+Gold paywall copy:
+“KixxMe Live es exclusivo para miembros Gold. Desbloquea videollamadas aleatorias, llamadas privadas y conexiones más intensas dentro de KixxMe.”
+
+Button:
+👑 Hazte Gold
+
+Important:
+Do not implement the expensive video infrastructure yet.
+First create the UI, database structure, routes and architecture ready for future WebRTC / LiveKit integration.
+
+2. Rebrand the KixxMe logo and login screen
+
+I like the dark theme, neon colors and overall style, but I no longer want the fire icons.
+
+Current:
+🔥 KIXXME 🔥
+
+The fire icons make the app feel too generic.
+
+Please redesign the branding to look more premium, modern and recognizable.
+
+Replace the fire icons with:
+
+* A custom neon K symbol
+* A location pin integrated into the K
+* A premium emblem
+* Something unique that can become the official KixxMe logo
+
+Keep:
+
+* Dark background
+* Purple/pink neon gradients
+* Mobile-first design
+* Premium aesthetic
+
+Update:
+
+* Login screen
+* Registration screen
+* Splash/loading screen
+* Premium pages
+* Header logo
+* App icon/logo areas
+
+Also improve the login page text.
+
+Current:
+“Entra al mapa más caliente”
+
+Replace it with something more premium, for example:
+
+* “Conecta con chicos cerca de ti.”
+* “Descubre nuevas conexiones cerca de ti.”
+* “Conoce, conecta y disfruta.”
+
+Choose the one that best fits the new premium KixxMe branding.
+
+Goal:
+Make KixxMe feel like a premium social platform with its own identity, not a generic dating app.

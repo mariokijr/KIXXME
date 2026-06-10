@@ -232,6 +232,117 @@ export interface SendMessageRequest {
   image_url?: string;
 }
 
+/**
+ * Match scope for the random search
+ */
+export type LiveQueueRequestScope = typeof LiveQueueRequestScope[keyof typeof LiveQueueRequestScope];
+
+
+export const LiveQueueRequestScope = {
+  nearby: 'nearby',
+  city: 'city',
+  spain: 'spain',
+  europe: 'europe',
+  worldwide: 'worldwide',
+} as const;
+
+export interface LiveQueueRequest {
+  /** Match scope for the random search */
+  scope: LiveQueueRequestScope;
+  /**
+     * @minimum 18
+     * @maximum 99
+     */
+  ageMin: number;
+  /**
+     * @minimum 18
+     * @maximum 99
+     */
+  ageMax: number;
+}
+
+export interface LiveCallRequest {
+  /** Supabase user id of the person being invited to a private call */
+  recipientId: string;
+}
+
+export interface LiveCallEndRequest {
+  /** Optional reason the call ended (e.g. hangup, reported) */
+  reason?: string;
+}
+
+export interface LiveCallParticipant {
+  id: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  age?: number | null;
+  city?: string | null;
+}
+
+export type LiveCallType = typeof LiveCallType[keyof typeof LiveCallType];
+
+
+export const LiveCallType = {
+  random: 'random',
+  private: 'private',
+} as const;
+
+export type LiveCallStatus = typeof LiveCallStatus[keyof typeof LiveCallStatus];
+
+
+export const LiveCallStatus = {
+  ringing: 'ringing',
+  active: 'active',
+  ended: 'ended',
+  declined: 'declined',
+  cancelled: 'cancelled',
+  missed: 'missed',
+} as const;
+
+/**
+ * The current user's role in this call
+ */
+export type LiveCallRole = typeof LiveCallRole[keyof typeof LiveCallRole];
+
+
+export const LiveCallRole = {
+  caller: 'caller',
+  callee: 'callee',
+} as const;
+
+export interface LiveCall {
+  id: string;
+  /** Future LiveKit/WebRTC room identifier */
+  roomName: string;
+  type: LiveCallType;
+  status: LiveCallStatus;
+  /** The current user's role in this call */
+  role: LiveCallRole;
+  callerAccepted: boolean;
+  calleeAccepted: boolean;
+  partner: LiveCallParticipant;
+  /** Placeholder for a future LiveKit token; always null in this scaffold */
+  mediaToken?: string | null;
+  createdAt?: string;
+}
+
+export type LiveStateQueueStatus = typeof LiveStateQueueStatus[keyof typeof LiveStateQueueStatus];
+
+
+export const LiveStateQueueStatus = {
+  idle: 'idle',
+  searching: 'searching',
+} as const;
+
+export interface LiveState {
+  /** Current user's plan (free | plus | gold) */
+  plan: string;
+  /** Whether the user can use KixxMe Live (Gold only) */
+  canAccess: boolean;
+  queueStatus: LiveStateQueueStatus;
+  call?: LiveCall | null;
+}
+
 export interface SuccessResponse {
   success: boolean;
 }

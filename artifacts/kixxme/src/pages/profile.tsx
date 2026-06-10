@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useGeolocation } from "@/lib/use-geolocation";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -238,7 +239,7 @@ export default function Profile() {
       {isOnboarding && (
         <div className="mx-4 mt-4 px-4 py-3 rounded-xl border border-primary/20 flex items-center gap-3"
           style={{ background: "rgba(168,85,247,0.07)" }}>
-          <span className="text-xl">🔥</span>
+          <KixxMeLogo size={22} glow={false} />
           <p className="font-sans text-sm text-foreground/80 leading-snug">
             Completa tu perfil para aparecer en el mapa y conectar con gente cerca de ti.
           </p>

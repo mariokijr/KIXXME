@@ -568,3 +568,156 @@ export const GetNotificationsSummaryResponse = zod.object({
 })
 
 
+/**
+ * @summary Join the random video-call matchmaking queue (Gold only)
+ */
+export const joinLiveQueueBodyAgeMinMin = 18;
+export const joinLiveQueueBodyAgeMinMax = 99;
+
+export const joinLiveQueueBodyAgeMaxMin = 18;
+export const joinLiveQueueBodyAgeMaxMax = 99;
+
+
+
+export const JoinLiveQueueBody = zod.object({
+  "scope": zod.enum(['nearby', 'city', 'spain', 'europe', 'worldwide']).describe('Match scope for the random search'),
+  "ageMin": zod.number().min(joinLiveQueueBodyAgeMinMin).max(joinLiveQueueBodyAgeMinMax),
+  "ageMax": zod.number().min(joinLiveQueueBodyAgeMaxMin).max(joinLiveQueueBodyAgeMaxMax)
+})
+
+export const JoinLiveQueueResponse = zod.object({
+  "plan": zod.string().describe('Current user\'s plan (free | plus | gold)'),
+  "canAccess": zod.boolean().describe('Whether the user can use KixxMe Live (Gold only)'),
+  "queueStatus": zod.enum(['idle', 'searching']),
+  "call": zod.union([zod.object({
+  "id": zod.string(),
+  "roomName": zod.string().describe('Future LiveKit\/WebRTC room identifier'),
+  "type": zod.enum(['random', 'private']),
+  "status": zod.enum(['ringing', 'active', 'ended', 'declined', 'cancelled', 'missed']),
+  "role": zod.enum(['caller', 'callee']).describe('The current user\'s role in this call'),
+  "callerAccepted": zod.boolean(),
+  "calleeAccepted": zod.boolean(),
+  "partner": zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish()
+}),
+  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "createdAt": zod.string().optional()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Leave the random matchmaking queue
+ */
+export const LeaveLiveQueueResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Poll the current Live state (entitlement, queue status, active call)
+ */
+export const GetLiveStateResponse = zod.object({
+  "plan": zod.string().describe('Current user\'s plan (free | plus | gold)'),
+  "canAccess": zod.boolean().describe('Whether the user can use KixxMe Live (Gold only)'),
+  "queueStatus": zod.enum(['idle', 'searching']),
+  "call": zod.union([zod.object({
+  "id": zod.string(),
+  "roomName": zod.string().describe('Future LiveKit\/WebRTC room identifier'),
+  "type": zod.enum(['random', 'private']),
+  "status": zod.enum(['ringing', 'active', 'ended', 'declined', 'cancelled', 'missed']),
+  "role": zod.enum(['caller', 'callee']).describe('The current user\'s role in this call'),
+  "callerAccepted": zod.boolean(),
+  "calleeAccepted": zod.boolean(),
+  "partner": zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish()
+}),
+  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "createdAt": zod.string().optional()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Invite a user to a private video call (both users must be Gold)
+ */
+export const CreateLiveCallBody = zod.object({
+  "recipientId": zod.string().describe('Supabase user id of the person being invited to a private call')
+})
+
+
+/**
+ * @summary Accept a ringing video call (caller or callee)
+ */
+export const AcceptLiveCallParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AcceptLiveCallResponse = zod.object({
+  "id": zod.string(),
+  "roomName": zod.string().describe('Future LiveKit\/WebRTC room identifier'),
+  "type": zod.enum(['random', 'private']),
+  "status": zod.enum(['ringing', 'active', 'ended', 'declined', 'cancelled', 'missed']),
+  "role": zod.enum(['caller', 'callee']).describe('The current user\'s role in this call'),
+  "callerAccepted": zod.boolean(),
+  "calleeAccepted": zod.boolean(),
+  "partner": zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish()
+}),
+  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "createdAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Decline a ringing video call (caller or callee)
+ */
+export const DeclineLiveCallParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeclineLiveCallResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Cancel an outgoing/ringing video call (caller or callee)
+ */
+export const CancelLiveCallParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CancelLiveCallResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary End an active video call (caller or callee)
+ */
+export const EndLiveCallParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const EndLiveCallBody = zod.object({
+  "reason": zod.string().optional().describe('Optional reason the call ended (e.g. hangup, reported)')
+})
+
+export const EndLiveCallResponse = zod.object({
+  "success": zod.boolean()
+})
+
+

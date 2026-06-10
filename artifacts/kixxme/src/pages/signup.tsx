@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Flame } from "lucide-react";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 const formSchema = z.object({
   email: z.string().email("Correo inválido"),
@@ -48,23 +48,16 @@ export default function Signup() {
     >
       <div className="w-full max-w-sm space-y-8">
 
-        <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <Flame
-              className="w-8 h-8 text-orange-400"
-              style={{ filter: "drop-shadow(0 0 10px rgba(249,115,22,0.8))" }}
-            />
-            <h1
-              className="text-7xl font-display tracking-tight text-gradient-brand"
-              data-testid="heading-signup"
-            >
-              KIXXME
-            </h1>
-            <Flame
-              className="w-8 h-8 text-orange-400"
-              style={{ filter: "drop-shadow(0 0 10px rgba(249,115,22,0.8))" }}
-            />
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <KixxMeLogo size={76} badge />
           </div>
+          <h1
+            className="text-7xl font-display tracking-tight text-gradient-brand"
+            data-testid="heading-signup"
+          >
+            KIXXME
+          </h1>
           <p className="text-muted-foreground font-sans text-base tracking-widest" data-testid="text-signup-sub">
             Tu próxima conexión está a un toque
           </p>

@@ -20,6 +20,8 @@ tags:
     description: Subscription billing and checkout
   - name: support
     description: Support requests and problem reports
+  - name: live
+    description: KixxMe Live — Gold-only video calls (scaffold)
 paths:
   /healthz:
     get:
@@ -929,6 +931,238 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /live/queue:
+    post:
+      operationId: joinLiveQueue
+      tags: [live]
+      summary: Join the random video-call matchmaking queue (Gold only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveQueueRequest"
+      responses:
+        "200":
+          description: Queued (or immediately matched)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveState"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "402":
+          description: Gold subscription required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: leaveLiveQueue
+      tags: [live]
+      summary: Leave the random matchmaking queue
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Left the queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /live/state:
+    get:
+      operationId: getLiveState
+      tags: [live]
+      summary: Poll the current Live state (entitlement, queue status, active call)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current Live state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveState"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /live/calls:
+    post:
+      operationId: createLiveCall
+      tags: [live]
+      summary: Invite a user to a private video call (both users must be Gold)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveCallRequest"
+      responses:
+        "201":
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveCall"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "402":
+          description: Gold subscription required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (blocked relationship)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /live/calls/{id}/accept:
+    post:
+      operationId: acceptLiveCall
+      tags: [live]
+      summary: Accept a ringing video call (caller or callee)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Acceptance recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveCall"
+        "403":
+          description: Forbidden (not a participant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Call not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /live/calls/{id}/decline:
+    post:
+      operationId: declineLiveCall
+      tags: [live]
+      summary: Decline a ringing video call (caller or callee)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Declined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden (not a participant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /live/calls/{id}/cancel:
+    post:
+      operationId: cancelLiveCall
+      tags: [live]
+      summary: Cancel an outgoing/ringing video call (caller or callee)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden (not a participant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /live/calls/{id}/end:
+    post:
+      operationId: endLiveCall
+      tags: [live]
+      summary: End an active video call (caller or callee)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveCallEndRequest"
+      responses:
+        "200":
+          description: Ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden (not a participant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1327,6 +1561,108 @@ components:
           type: string
         image_url:
           type: string
+
+    LiveQueueRequest:
+      type: object
+      properties:
+        scope:
+          type: string
+          enum: [nearby, city, spain, europe, worldwide]
+          description: Match scope for the random search
+        ageMin:
+          type: integer
+          minimum: 18
+          maximum: 99
+        ageMax:
+          type: integer
+          minimum: 18
+          maximum: 99
+      required: [scope, ageMin, ageMax]
+
+    LiveCallRequest:
+      type: object
+      properties:
+        recipientId:
+          type: string
+          description: Supabase user id of the person being invited to a private call
+      required: [recipientId]
+
+    LiveCallEndRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Optional reason the call ended (e.g. hangup, reported)
+
+    LiveCallParticipant:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+      required: [id]
+
+    LiveCall:
+      type: object
+      properties:
+        id:
+          type: string
+        roomName:
+          type: string
+          description: Future LiveKit/WebRTC room identifier
+        type:
+          type: string
+          enum: [random, private]
+        status:
+          type: string
+          enum: [ringing, active, ended, declined, cancelled, missed]
+        role:
+          type: string
+          enum: [caller, callee]
+          description: The current user's role in this call
+        callerAccepted:
+          type: boolean
+        calleeAccepted:
+          type: boolean
+        partner:
+          $ref: "#/components/schemas/LiveCallParticipant"
+        mediaToken:
+          type: string
+          nullable: true
+          description: Placeholder for a future LiveKit token; always null in this scaffold
+        createdAt:
+          type: string
+      required:
+        [id, roomName, type, status, role, callerAccepted, calleeAccepted, partner]
+
+    LiveState:
+      type: object
+      properties:
+        plan:
+          type: string
+          description: Current user's plan (free | plus | gold)
+        canAccess:
+          type: boolean
+          description: Whether the user can use KixxMe Live (Gold only)
+        queueStatus:
+          type: string
+          enum: [idle, searching]
+        call:
+          oneOf:
+            - $ref: "#/components/schemas/LiveCall"
+            - type: "null"
+      required: [plan, canAccess, queueStatus]
 
     SuccessResponse:
       type: object

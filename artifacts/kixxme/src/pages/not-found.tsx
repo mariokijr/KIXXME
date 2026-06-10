@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Flame } from "lucide-react";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 export default function NotFound() {
   return (
@@ -8,16 +8,15 @@ export default function NotFound() {
       style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 65%)" }}
     >
       <div className="space-y-6 max-w-sm">
-        <Flame
-          className="w-16 h-16 text-orange-400 mx-auto"
-          style={{ filter: "drop-shadow(0 0 16px rgba(249,115,22,0.9))" }}
-        />
+        <div className="flex justify-center">
+          <KixxMeLogo size={72} badge />
+        </div>
         <h1 className="text-8xl font-display text-gradient-brand">404</h1>
         <p className="font-display text-2xl tracking-widest text-muted-foreground">
           Esta página no existe...
         </p>
         <p className="font-sans text-sm text-muted-foreground/70">
-          Pero tú sí. Vuelve al mapa más caliente.
+          Pero tú sí. Vuelve a KixxMe.
         </p>
         <Link href="/">
           <button

@@ -30,6 +30,11 @@ import type {
   ErrorResponse,
   HealthStatus,
   ListProfilesParams,
+  LiveCall,
+  LiveCallEndRequest,
+  LiveCallRequest,
+  LiveQueueRequest,
+  LiveState,
   LocationUpdateRequest,
   LoginRequest,
   Logout200,
@@ -2469,4 +2474,575 @@ export function useGetNotificationsSummary<TData = Awaited<ReturnType<typeof get
 
 
 
+
+export const getJoinLiveQueueUrl = () => {
+
+
+
+
+  return `/api/live/queue`
+}
+
+/**
+ * @summary Join the random video-call matchmaking queue (Gold only)
+ */
+export const joinLiveQueue = async (liveQueueRequest: LiveQueueRequest, options?: RequestInit): Promise<LiveState> => {
+
+  return customFetch<LiveState>(getJoinLiveQueueUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      liveQueueRequest,)
+  }
+);}
+
+
+
+
+export const getJoinLiveQueueMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinLiveQueue>>, TError,{data: BodyType<LiveQueueRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinLiveQueue>>, TError,{data: BodyType<LiveQueueRequest>}, TContext> => {
+
+const mutationKey = ['joinLiveQueue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinLiveQueue>>, {data: BodyType<LiveQueueRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinLiveQueue(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinLiveQueueMutationResult = NonNullable<Awaited<ReturnType<typeof joinLiveQueue>>>
+    export type JoinLiveQueueMutationBody = BodyType<LiveQueueRequest>
+    export type JoinLiveQueueMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Join the random video-call matchmaking queue (Gold only)
+ */
+export const useJoinLiveQueue = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinLiveQueue>>, TError,{data: BodyType<LiveQueueRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinLiveQueue>>,
+        TError,
+        {data: BodyType<LiveQueueRequest>},
+        TContext
+      > => {
+      return useMutation(getJoinLiveQueueMutationOptions(options));
+    }
+
+export const getLeaveLiveQueueUrl = () => {
+
+
+
+
+  return `/api/live/queue`
+}
+
+/**
+ * @summary Leave the random matchmaking queue
+ */
+export const leaveLiveQueue = async ( options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getLeaveLiveQueueUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getLeaveLiveQueueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveLiveQueue>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveLiveQueue>>, TError,void, TContext> => {
+
+const mutationKey = ['leaveLiveQueue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveLiveQueue>>, void> = () => {
+
+
+          return  leaveLiveQueue(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveLiveQueueMutationResult = NonNullable<Awaited<ReturnType<typeof leaveLiveQueue>>>
+
+    export type LeaveLiveQueueMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Leave the random matchmaking queue
+ */
+export const useLeaveLiveQueue = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveLiveQueue>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof leaveLiveQueue>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLeaveLiveQueueMutationOptions(options));
+    }
+
+export const getGetLiveStateUrl = () => {
+
+
+
+
+  return `/api/live/state`
+}
+
+/**
+ * @summary Poll the current Live state (entitlement, queue status, active call)
+ */
+export const getLiveState = async ( options?: RequestInit): Promise<LiveState> => {
+
+  return customFetch<LiveState>(getGetLiveStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLiveStateQueryKey = () => {
+    return [
+    `/api/live/state`
+    ] as const;
+    }
+
+
+export const getGetLiveStateQueryOptions = <TData = Awaited<ReturnType<typeof getLiveState>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLiveState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLiveStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveState>>> = ({ signal }) => getLiveState({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLiveState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLiveStateQueryResult = NonNullable<Awaited<ReturnType<typeof getLiveState>>>
+export type GetLiveStateQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Poll the current Live state (entitlement, queue status, active call)
+ */
+
+export function useGetLiveState<TData = Awaited<ReturnType<typeof getLiveState>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLiveState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLiveStateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateLiveCallUrl = () => {
+
+
+
+
+  return `/api/live/calls`
+}
+
+/**
+ * @summary Invite a user to a private video call (both users must be Gold)
+ */
+export const createLiveCall = async (liveCallRequest: LiveCallRequest, options?: RequestInit): Promise<LiveCall> => {
+
+  return customFetch<LiveCall>(getCreateLiveCallUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      liveCallRequest,)
+  }
+);}
+
+
+
+
+export const getCreateLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLiveCall>>, TError,{data: BodyType<LiveCallRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLiveCall>>, TError,{data: BodyType<LiveCallRequest>}, TContext> => {
+
+const mutationKey = ['createLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLiveCall>>, {data: BodyType<LiveCallRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLiveCall(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof createLiveCall>>>
+    export type CreateLiveCallMutationBody = BodyType<LiveCallRequest>
+    export type CreateLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Invite a user to a private video call (both users must be Gold)
+ */
+export const useCreateLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLiveCall>>, TError,{data: BodyType<LiveCallRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLiveCall>>,
+        TError,
+        {data: BodyType<LiveCallRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateLiveCallMutationOptions(options));
+    }
+
+export const getAcceptLiveCallUrl = (id: string,) => {
+
+
+
+
+  return `/api/live/calls/${id}/accept`
+}
+
+/**
+ * @summary Accept a ringing video call (caller or callee)
+ */
+export const acceptLiveCall = async (id: string, options?: RequestInit): Promise<LiveCall> => {
+
+  return customFetch<LiveCall>(getAcceptLiveCallUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAcceptLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptLiveCall>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['acceptLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptLiveCall>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  acceptLiveCall(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof acceptLiveCall>>>
+
+    export type AcceptLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Accept a ringing video call (caller or callee)
+ */
+export const useAcceptLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptLiveCall>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getAcceptLiveCallMutationOptions(options));
+    }
+
+export const getDeclineLiveCallUrl = (id: string,) => {
+
+
+
+
+  return `/api/live/calls/${id}/decline`
+}
+
+/**
+ * @summary Decline a ringing video call (caller or callee)
+ */
+export const declineLiveCall = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeclineLiveCallUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDeclineLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof declineLiveCall>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['declineLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof declineLiveCall>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  declineLiveCall(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeclineLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof declineLiveCall>>>
+
+    export type DeclineLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Decline a ringing video call (caller or callee)
+ */
+export const useDeclineLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof declineLiveCall>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeclineLiveCallMutationOptions(options));
+    }
+
+export const getCancelLiveCallUrl = (id: string,) => {
+
+
+
+
+  return `/api/live/calls/${id}/cancel`
+}
+
+/**
+ * @summary Cancel an outgoing/ringing video call (caller or callee)
+ */
+export const cancelLiveCall = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getCancelLiveCallUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelLiveCall>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['cancelLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelLiveCall>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelLiveCall(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof cancelLiveCall>>>
+
+    export type CancelLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Cancel an outgoing/ringing video call (caller or callee)
+ */
+export const useCancelLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelLiveCall>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getCancelLiveCallMutationOptions(options));
+    }
+
+export const getEndLiveCallUrl = (id: string,) => {
+
+
+
+
+  return `/api/live/calls/${id}/end`
+}
+
+/**
+ * @summary End an active video call (caller or callee)
+ */
+export const endLiveCall = async (id: string,
+    liveCallEndRequest?: LiveCallEndRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getEndLiveCallUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      liveCallEndRequest,)
+  }
+);}
+
+
+
+
+export const getEndLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endLiveCall>>, TError,{id: string;data?: BodyType<LiveCallEndRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof endLiveCall>>, TError,{id: string;data?: BodyType<LiveCallEndRequest>}, TContext> => {
+
+const mutationKey = ['endLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof endLiveCall>>, {id: string;data?: BodyType<LiveCallEndRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  endLiveCall(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EndLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof endLiveCall>>>
+    export type EndLiveCallMutationBody = BodyType<LiveCallEndRequest> | undefined
+    export type EndLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary End an active video call (caller or callee)
+ */
+export const useEndLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof endLiveCall>>, TError,{id: string;data?: BodyType<LiveCallEndRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof endLiveCall>>,
+        TError,
+        {id: string;data?: BodyType<LiveCallEndRequest>},
+        TContext
+      > => {
+      return useMutation(getEndLiveCallMutationOptions(options));
+    }
 

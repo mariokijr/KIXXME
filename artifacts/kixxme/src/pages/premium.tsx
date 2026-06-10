@@ -10,7 +10,6 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Star,
-  Flame,
   MessageCircle,
   Eye,
   SlidersHorizontal,
@@ -22,6 +21,7 @@ import {
   ChevronUp,
   Loader2,
 } from "lucide-react";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 type Billing = "mensual" | "anual";
 
@@ -160,18 +160,11 @@ export default function Premium() {
           background: "radial-gradient(ellipse 100% 80% at 50% 0%, hsl(270 40% 12%) 0%, hsl(238 25% 5%) 70%)",
         }}
       >
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Flame
-            className="w-7 h-7 text-orange-400"
-            style={{ filter: "drop-shadow(0 0 10px rgba(249,115,22,0.9))" }}
-          />
+        <div className="flex items-center justify-center gap-2.5 mb-2">
+          <KixxMeLogo size={34} />
           <h1 className="font-display text-4xl tracking-tight text-gradient-brand">
             KIXXME PREMIUM
           </h1>
-          <Flame
-            className="w-7 h-7 text-orange-400"
-            style={{ filter: "drop-shadow(0 0 10px rgba(249,115,22,0.9))" }}
-          />
         </div>
         <p className="font-sans text-sm text-muted-foreground">
           Desbloquea todo KixxMe. Sin límites.

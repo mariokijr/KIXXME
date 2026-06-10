@@ -8,6 +8,7 @@ import profilesRouter from "./profiles.js";
 import stripeRouter from "./stripe.js";
 import supportRouter from "./support.js";
 import notificationsRouter from "./notifications.js";
+import liveRouter from "./live.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(profilesRouter);
 router.use(stripeRouter);
 router.use(supportRouter);
 router.use(notificationsRouter);
+router.use(liveRouter);
 
 export default router;

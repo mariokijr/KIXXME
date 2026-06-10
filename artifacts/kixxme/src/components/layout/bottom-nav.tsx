@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { Flame, Globe, MessageCircle, User, Star } from "lucide-react";
+import { Sparkles, Globe, MessageCircle, User, Star, Video } from "lucide-react";
 import { useNotifications } from "@/lib/notifications";
 
 const tabs = [
-  { href: "/discover", Icon: Flame, label: "Descubrir" },
+  { href: "/discover", Icon: Sparkles, label: "Descubrir" },
   { href: "/map", Icon: Globe, label: "Mapa" },
+  { href: "/live", Icon: Video, label: "Live" },
   { href: "/chats", Icon: MessageCircle, label: "Chats" },
   { href: "/profile", Icon: User, label: "Perfil" },
   { href: "/premium", Icon: Star, label: "Premium" },

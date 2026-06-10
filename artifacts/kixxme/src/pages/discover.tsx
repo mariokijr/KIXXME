@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
+import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 type ViewType = "todos" | "cerca" | "online" | "con-foto";
 
@@ -113,7 +114,7 @@ export default function Discover() {
   const handleShare = async () => {
     const shareData = {
       title: "KixxMe",
-      text: "¡Únete a KixxMe y conecta con chicos cerca de ti! 🔥",
+      text: "¡Únete a KixxMe y conecta con chicos cerca de ti! ✨",
       url: window.location.origin,
     };
     if (navigator.share) {
@@ -137,9 +138,7 @@ export default function Discover() {
         style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
       >
         <div className="flex items-center gap-2">
-          <span className="font-display text-2xl tracking-tight text-gradient-brand leading-none">
-            KIXXME
-          </span>
+          <KixxMeLogo size={22} withWordmark />
           {!isLoading && !isError && onlineCount > 0 && (
             <span
               className="flex items-center gap-1.5 text-[10px] font-sans px-2 py-0.5 rounded-full border border-green-500/30 text-green-400"

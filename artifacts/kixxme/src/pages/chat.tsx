@@ -12,6 +12,7 @@ import {
   Ban,
   Check,
   CheckCheck,
+  Video,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -26,6 +27,9 @@ import {
   useUploadChatImage,
   useBlockProfile,
   useUnblockProfile,
+  useGetMyProfile,
+  getGetMyProfileQueryKey,
+  useCreateLiveCall,
   Message,
   PublicProfile,
 } from "@workspace/api-client-react";
@@ -97,6 +101,12 @@ export default function Chat() {
   const uploadImage = useUploadChatImage();
   const blockUser = useBlockProfile();
   const unblockUser = useUnblockProfile();
+  const createLiveCall = useCreateLiveCall();
+
+  const { data: myProfile } = useGetMyProfile({
+    query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
+  });
+  const isGold = myProfile?.plan === "gold";
 
   // Reset local state when switching conversations so messages never bleed across chats.
   useEffect(() => {
@@ -252,6 +262,30 @@ export default function Chat() {
     );
   };
 
+  const handleVideoCall = () => {
+    if (!otherUser) return;
+    if (!isGold) {
+      toast({
+        title: "Videollamadas solo para Gold",
+        description: "Hazte Gold para iniciar videollamadas privadas.",
+      });
+      setLocation("/premium");
+      return;
+    }
+    createLiveCall.mutate(
+      { data: { recipientId: otherUser.id } },
+      {
+        onSuccess: () => setLocation("/live"),
+        onError: (err: any) =>
+          toast({
+            title: "No se pudo iniciar la videollamada",
+            description: err?.data?.error ?? undefined,
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
   const handleReport = () => {
     if (!conversationId) return;
     setMenuOpen(false);
@@ -362,6 +396,19 @@ export default function Chat() {
               "Desconectado"
             )}
           </p>
+        </button>
+        <button
+          onClick={handleVideoCall}
+          disabled={createLiveCall.isPending}
+          data-testid="button-video-call"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-primary hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-60"
+          style={{ background: "rgba(168,85,247,0.12)" }}
+        >
+          {createLiveCall.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Video className="w-4 h-4" />
+          )}
         </button>
         <button
           onClick={() => setMenuOpen((o) => !o)}
