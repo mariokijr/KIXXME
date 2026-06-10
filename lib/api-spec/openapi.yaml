@@ -30,6 +30,8 @@ tags:
     description: Current user's moderation state
   - name: admin
     description: Admin-only moderation dashboard
+  - name: rewards
+    description: Daily streaks and reward claims (gamification)
 paths:
   /healthz:
     get:
@@ -776,6 +778,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LikeQuota"
+
+  /me/rewards:
+    get:
+      operationId: getRewards
+      tags: [rewards]
+      summary: Current streak, daily-reward claim state, and reward credits
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Rewards state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardsState"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/rewards/claim:
+    post:
+      operationId: claimDailyReward
+      tags: [rewards]
+      summary: Claim today's daily reward (once per UTC calendar day)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Reward claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimRewardResponse"
+        "409":
+          description: Already claimed today
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /profiles/{id}/block:
     post:
@@ -1975,7 +2025,12 @@ components:
         rechargeAt:
           type: string
           nullable: true
-      required: [remaining, limit, unlimited, rechargeAt]
+        credits:
+          type: integer
+          description: >
+            Bonus reward credits available for this kind, already folded into
+            `remaining`. Surfaced separately so the UI can show e.g. "15 (+5)".
+      required: [remaining, limit, unlimited, rechargeAt, credits]
 
     LikeQuota:
       type: object
@@ -1988,6 +2043,53 @@ components:
         superlikes:
           $ref: "#/components/schemas/QuotaState"
       required: [plan, likes, superlikes]
+
+    RewardStreak:
+      type: object
+      properties:
+        current:
+          type: integer
+        longest:
+          type: integer
+      required: [current, longest]
+
+    RewardCredits:
+      type: object
+      properties:
+        likes:
+          type: integer
+        superlikes:
+          type: integer
+      required: [likes, superlikes]
+
+    RewardsState:
+      type: object
+      properties:
+        streak:
+          $ref: "#/components/schemas/RewardStreak"
+        claimable:
+          type: boolean
+        nextClaimAt:
+          type: string
+          nullable: true
+          description: ISO time of the next UTC midnight; set when claimable is false.
+        credits:
+          $ref: "#/components/schemas/RewardCredits"
+      required: [streak, claimable, nextClaimAt, credits]
+
+    ClaimRewardResponse:
+      type: object
+      properties:
+        streak:
+          $ref: "#/components/schemas/RewardStreak"
+        granted:
+          $ref: "#/components/schemas/RewardCredits"
+        credits:
+          $ref: "#/components/schemas/RewardCredits"
+        milestone:
+          type: boolean
+          description: True when this claim reached a SuperLike streak milestone.
+      required: [streak, granted, credits, milestone]
 
     LikeRequest:
       type: object

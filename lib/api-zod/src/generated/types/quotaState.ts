@@ -11,4 +11,7 @@ export interface QuotaState {
   limit: number;
   unlimited: boolean;
   rechargeAt: string | null;
+  /** Bonus reward credits available for this kind, already folded into `remaining`. Surfaced separately so the UI can show e.g. "15 (+5)".
+   */
+  credits: number;
 }

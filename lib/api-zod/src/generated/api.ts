@@ -494,14 +494,53 @@ export const GetLikeQuotaResponse = zod.object({
   "remaining": zod.number(),
   "limit": zod.number(),
   "unlimited": zod.boolean(),
-  "rechargeAt": zod.string().nullable()
+  "rechargeAt": zod.string().nullable(),
+  "credits": zod.number().describe('Bonus reward credits available for this kind, already folded into `remaining`. Surfaced separately so the UI can show e.g. \"15 (+5)\".\n')
 }),
   "superlikes": zod.object({
   "remaining": zod.number(),
   "limit": zod.number(),
   "unlimited": zod.boolean(),
-  "rechargeAt": zod.string().nullable()
+  "rechargeAt": zod.string().nullable(),
+  "credits": zod.number().describe('Bonus reward credits available for this kind, already folded into `remaining`. Surfaced separately so the UI can show e.g. \"15 (+5)\".\n')
 })
+})
+
+
+/**
+ * @summary Current streak, daily-reward claim state, and reward credits
+ */
+export const GetRewardsResponse = zod.object({
+  "streak": zod.object({
+  "current": zod.number(),
+  "longest": zod.number()
+}),
+  "claimable": zod.boolean(),
+  "nextClaimAt": zod.string().nullable().describe('ISO time of the next UTC midnight; set when claimable is false.'),
+  "credits": zod.object({
+  "likes": zod.number(),
+  "superlikes": zod.number()
+})
+})
+
+
+/**
+ * @summary Claim today's daily reward (once per UTC calendar day)
+ */
+export const ClaimDailyRewardResponse = zod.object({
+  "streak": zod.object({
+  "current": zod.number(),
+  "longest": zod.number()
+}),
+  "granted": zod.object({
+  "likes": zod.number(),
+  "superlikes": zod.number()
+}),
+  "credits": zod.object({
+  "likes": zod.number(),
+  "superlikes": zod.number()
+}),
+  "milestone": zod.boolean().describe('True when this claim reached a SuperLike streak milestone.')
 })
 
 

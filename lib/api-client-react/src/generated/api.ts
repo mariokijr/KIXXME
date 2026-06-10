@@ -35,6 +35,7 @@ import type {
   BanUserRequest,
   CheckoutRequest,
   CheckoutResponse,
+  ClaimRewardResponse,
   Conversation,
   CreateOrGetConversationBody,
   CreateReportRequest,
@@ -71,6 +72,7 @@ import type {
   ResolveReportRequest,
   ReviewFlagRequest,
   ReviewVerificationRequest,
+  RewardsState,
   SendMessageRequest,
   SetPhotoAsAvatar200,
   SignUpRequest,
@@ -2093,6 +2095,153 @@ export function useGetLikeQuota<TData = Awaited<ReturnType<typeof getLikeQuota>>
 
 
 
+
+export const getGetRewardsUrl = () => {
+
+
+
+
+  return `/api/me/rewards`
+}
+
+/**
+ * @summary Current streak, daily-reward claim state, and reward credits
+ */
+export const getRewards = async ( options?: RequestInit): Promise<RewardsState> => {
+
+  return customFetch<RewardsState>(getGetRewardsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRewardsQueryKey = () => {
+    return [
+    `/api/me/rewards`
+    ] as const;
+    }
+
+
+export const getGetRewardsQueryOptions = <TData = Awaited<ReturnType<typeof getRewards>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRewards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRewardsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRewards>>> = ({ signal }) => getRewards({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRewards>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRewardsQueryResult = NonNullable<Awaited<ReturnType<typeof getRewards>>>
+export type GetRewardsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current streak, daily-reward claim state, and reward credits
+ */
+
+export function useGetRewards<TData = Awaited<ReturnType<typeof getRewards>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRewards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRewardsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getClaimDailyRewardUrl = () => {
+
+
+
+
+  return `/api/me/rewards/claim`
+}
+
+/**
+ * @summary Claim today's daily reward (once per UTC calendar day)
+ */
+export const claimDailyReward = async ( options?: RequestInit): Promise<ClaimRewardResponse> => {
+
+  return customFetch<ClaimRewardResponse>(getClaimDailyRewardUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getClaimDailyRewardMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyReward>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimDailyReward>>, TError,void, TContext> => {
+
+const mutationKey = ['claimDailyReward'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimDailyReward>>, void> = () => {
+
+
+          return  claimDailyReward(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimDailyRewardMutationResult = NonNullable<Awaited<ReturnType<typeof claimDailyReward>>>
+
+    export type ClaimDailyRewardMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Claim today's daily reward (once per UTC calendar day)
+ */
+export const useClaimDailyReward = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyReward>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimDailyReward>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getClaimDailyRewardMutationOptions(options));
+    }
 
 export const getBlockProfileUrl = (id: string,) => {
 

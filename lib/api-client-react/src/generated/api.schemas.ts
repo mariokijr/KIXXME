@@ -91,6 +91,9 @@ export interface QuotaState {
   limit: number;
   unlimited: boolean;
   rechargeAt: string | null;
+  /** Bonus reward credits available for this kind, already folded into `remaining`. Surfaced separately so the UI can show e.g. "15 (+5)".
+   */
+  credits: number;
 }
 
 export type LikeQuotaPlan = typeof LikeQuotaPlan[keyof typeof LikeQuotaPlan];
@@ -106,6 +109,32 @@ export interface LikeQuota {
   plan: LikeQuotaPlan;
   likes: QuotaState;
   superlikes: QuotaState;
+}
+
+export interface RewardStreak {
+  current: number;
+  longest: number;
+}
+
+export interface RewardCredits {
+  likes: number;
+  superlikes: number;
+}
+
+export interface RewardsState {
+  streak: RewardStreak;
+  claimable: boolean;
+  /** ISO time of the next UTC midnight; set when claimable is false. */
+  nextClaimAt: string | null;
+  credits: RewardCredits;
+}
+
+export interface ClaimRewardResponse {
+  streak: RewardStreak;
+  granted: RewardCredits;
+  credits: RewardCredits;
+  /** True when this claim reached a SuperLike streak milestone. */
+  milestone: boolean;
 }
 
 export type LikeRequestKind = typeof LikeRequestKind[keyof typeof LikeRequestKind];

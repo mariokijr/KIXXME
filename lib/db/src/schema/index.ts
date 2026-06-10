@@ -10,3 +10,5 @@ export * from "./account-flags";
 export * from "./like-actions";
 export * from "./verification-requests";
 export * from "./profile-visits";
+export * from "./reward-credits";
+export * from "./user-streaks";

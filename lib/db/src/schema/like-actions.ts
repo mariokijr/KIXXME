@@ -26,6 +26,11 @@ export const likeActionsTable = pgTable(
     likedId: uuid("liked_id").notNull(),
     // like | superlike
     kind: text("kind").notNull().default("like"),
+    // quota | credit — how this action was paid for. A 'credit' action was
+    // funded by a reward credit (see `reward_credits`) and so does NOT count
+    // toward the base rolling-window quota; quota counting filters source =
+    // 'quota'. Default 'quota' keeps every pre-existing row correct.
+    source: text("source").notNull().default("quota"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
