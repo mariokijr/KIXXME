@@ -13,9 +13,11 @@ Deactivated users must be hidden on **every** surface that exposes another user 
 **How to apply:** When adding/auditing any endpoint that returns or contacts another user (discover, likes, profiles, photos, conversations list + message/image send, notifications, live matcher), confirm BOTH filters are applied. A new surface that only checks blocks is a silent leak.
 
 ## Cross-DB deletion ordering: auth user dies LAST
-`deleteAccount` spans both databases. Order: cancel Stripe subs (best-effort) → delete Supabase rows child-before-parent (reports → messages → conversations → likes → photos → storage → profile) → Replit-Postgres repo-owned rows → **finally** `supabase.auth.admin.deleteUser`.
+`deleteAccount` spans both databases. Order: cancel Stripe subs (best-effort) → delete Supabase rows child-before-parent (so any FK to `profiles` can't block) → **all** repo-owned Replit-Postgres rows → **finally** `supabase.auth.admin.deleteUser`.
 
 **Why:** Deletion is irreversible. If any earlier step throws, the function aborts *before* the auth user is removed, so the account still exists and a freshly-issued code re-runs the whole cleanup idempotently. Deleting the auth user first would orphan data with no way to retry under that identity.
+
+**Deletion completeness (the easy thing to miss):** "permanent delete" must erase **every** repo-owned table that references the user, not just the account-lifecycle tables. When adding any new repo-owned table that stores a Supabase user UUID (billing, support reports, blocks, live, etc.), add a matching delete to `deleteAccount` — including secondary references (e.g. a support report's *target*, not only its *reporter*). A residual row after delete is a privacy/compliance gap. There are no cross-DB FKs, so nothing enforces this for you.
 
 ## Verification-code security model
 6-digit codes (`crypto.randomInt`) stored **sha256-only**, 15-min TTL, 60s per-(user,action) cooldown (429 on violation), attempts incremented **atomically before** compare with a 5-attempt cap, constant-time compare (`timingSafeEqual`), consumed-on-success (no replay), prior unconsumed codes deleted on re-request. All endpoints require auth and act only on the caller, so there is no account-enumeration surface. Known negligible TOCTOU races (cooldown check; `consumedAt` set without a `consumed_at IS NULL` guard) are acceptable because both actions are idempotent.

@@ -8,6 +8,8 @@ import {
   blocksTable,
   liveQueueTable,
   videoCallsTable,
+  billingCustomersTable,
+  supportReportsTable,
   type AccountStatus,
   type AccountActionPayload,
 } from "@workspace/db";
@@ -301,8 +303,8 @@ function throwOnError(
  */
 export async function deleteAccount(userId: string, log: Logger): Promise<void> {
   // 1. Stop billing first. Best-effort: a Stripe hiccup must not trap the user
-  //    in an account they asked to delete; the billing_customers mapping is left
-  //    intact so support can finish a cancellation if needed.
+  //    in an account they asked to delete. The billing_customers mapping is
+  //    purged below (step 3) once cancellation has had its chance to run.
   try {
     await cancelAllSubscriptionsForUser(userId, log);
   } catch (err) {
@@ -372,6 +374,17 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
       or(
         eq(videoCallsTable.callerId, userId),
         eq(videoCallsTable.calleeId, userId),
+      ),
+    );
+  await db
+    .delete(billingCustomersTable)
+    .where(eq(billingCustomersTable.userId, userId));
+  await db
+    .delete(supportReportsTable)
+    .where(
+      or(
+        eq(supportReportsTable.reporterId, userId),
+        eq(supportReportsTable.targetUserId, userId),
       ),
     );
   await db
