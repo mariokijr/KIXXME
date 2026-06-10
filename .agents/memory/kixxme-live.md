@@ -9,12 +9,24 @@ Gold-only video-call feature. Two repo-owned Replit-Postgres tables: `live_queue
 (one searcher per `user_id`) and `video_calls` (random + private calls, status
 machine `ringing → active → ended/declined/cancelled/missed/skipped`).
 
-## Random calls = Chatroulette × Tinder reveal
-Random matches surface a pre-call **Reveal** (partner photo/name/age·city +
-Aceptar/Siguiente/Cancelar) before connecting; private invites keep the classic
-incoming ring. "Siguiente" = skip: it flips the call to `skipped` and re-queues
-**both** parties so each finds someone new. A one-time cosmetic 5→1 countdown
-plays before the in-call surface (keyed by `call.id` in local state).
+## Both call types use the Reveal flow
+**Random AND private** ringing calls render the same pre-call **Reveal** (partner
+photo/name/age·city + Aceptar). The secondary action differs by type: random
+shows "Siguiente" (skip → find someone new); private shows "Rechazar" (decline
+this specific invite). Private has no "Cancelar búsqueda" footer; the private
+caller (auto-accepted on creation) lands directly in the waiting/"Llamando…"
+state. A one-time cosmetic 5→1 countdown plays before the in-call surface (keyed
+by `call.id` in local state).
+**Why:** the single `Ringing` component was removed — keeping two parallel
+incoming-call UIs drifted; route every ringing call through `Reveal`.
+
+## Leaving a random ringing call re-queues the OTHER user
+Skip, **decline**, and cancel of a *random* ringing call all re-queue the
+non-leaving participant (`requeuePartner`, streak reset) so they keep
+roulette-ing instead of being dropped to idle. Private declines/cancels stay
+terminal (`requeuePartner` is a no-op for `type !== "random"`). `declineCall`
+mirrors `cancelCall`: terminate, then requeue only if the returned row's status
+actually flipped.
 
 ## Skip streak / 3-skip anti-abuse
 **Why:** prevent rapid-fire skipping abuse while keeping roulette flowing.

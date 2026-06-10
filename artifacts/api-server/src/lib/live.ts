@@ -508,34 +508,54 @@ export async function acceptCall(
   });
 }
 
+/**
+ * Terminate a call (decline/cancel/end). Returns the outcome plus `flipped`:
+ * `true` only when THIS call actually performed the status transition (vs. a
+ * stale/duplicate request on an already-terminal call). Callers use `flipped`
+ * to run side effects (e.g. partner re-queue) exactly once.
+ */
 async function terminate(
   callId: string,
   userId: string,
   status: "declined" | "cancelled" | "ended",
   allowedFrom: VideoCall["status"][],
   reason: string,
-): Promise<CallOutcome> {
+): Promise<{ outcome: CallOutcome; flipped: boolean }> {
   return db.transaction(async (tx) => {
     const [row] = await tx
       .select()
       .from(videoCallsTable)
       .where(eq(videoCallsTable.id, callId))
       .for("update");
-    if (!row) return "notfound";
-    if (!isParticipant(row, userId)) return "forbidden";
-    if (!allowedFrom.includes(row.status)) return row;
+    if (!row) return { outcome: "notfound", flipped: false };
+    if (!isParticipant(row, userId)) return { outcome: "forbidden", flipped: false };
+    // Already in a terminal/other state — nothing to flip (stale/duplicate).
+    if (!allowedFrom.includes(row.status)) return { outcome: row, flipped: false };
 
     const [updated] = await tx
       .update(videoCallsTable)
       .set({ status, endedAt: new Date(), endReason: reason })
       .where(eq(videoCallsTable.id, callId))
       .returning();
-    return updated ?? "notfound";
+    if (!updated) return { outcome: "notfound", flipped: false };
+    return { outcome: updated, flipped: true };
   });
 }
 
-export function declineCall(callId: string, userId: string): Promise<CallOutcome> {
-  return terminate(callId, userId, "declined", ["ringing"], "declined");
+export async function declineCall(
+  callId: string,
+  userId: string,
+): Promise<CallOutcome> {
+  const { outcome, flipped } = await terminate(
+    callId, userId, "declined", ["ringing"], "declined",
+  );
+  // Declining a random match returns the *other* participant to the queue so
+  // they keep roulette-ing. Only when WE actually flipped the call (not a
+  // stale/duplicate request). requeuePartner is a no-op for private calls.
+  if (flipped && typeof outcome !== "string") {
+    await requeuePartner(outcome, userId);
+  }
+  return outcome;
 }
 
 /**
@@ -562,9 +582,12 @@ export async function cancelCall(
   callId: string,
   userId: string,
 ): Promise<CallOutcome> {
-  const outcome = await terminate(callId, userId, "cancelled", ["ringing"], "cancelled");
-  // Only re-queue the partner when WE actually cancelled a ringing random call.
-  if (typeof outcome !== "string" && outcome.status === "cancelled") {
+  const { outcome, flipped } = await terminate(
+    callId, userId, "cancelled", ["ringing"], "cancelled",
+  );
+  // Only re-queue the partner when WE actually cancelled a ringing random call
+  // (flipped = a genuine transition, not a stale/duplicate request).
+  if (flipped && typeof outcome !== "string") {
     await requeuePartner(outcome, userId);
   }
   return outcome;
@@ -652,16 +675,17 @@ export async function skipCall(
   });
 }
 
-export function endCall(
+export async function endCall(
   callId: string,
   userId: string,
   reason?: string,
 ): Promise<CallOutcome> {
-  return terminate(
+  const { outcome } = await terminate(
     callId,
     userId,
     "ended",
     ["ringing", "active"],
     reason && reason.length > 0 ? reason.slice(0, 100) : "hangup",
   );
+  return outcome;
 }

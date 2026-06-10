@@ -237,33 +237,25 @@ export default function Live() {
   if (call && call.status === "ringing") {
     const myAccepted =
       call.role === "caller" ? call.callerAccepted : call.calleeAccepted;
-    // Random matches get the Chatroulette-style reveal (accept / siguiente /
-    // cancel). Private invites keep the classic incoming-call ring.
-    if (call.type === "random") {
-      return (
-        <Reveal
-          call={call}
-          myAccepted={myAccepted}
-          onAccept={() => accept(call)}
-          onSkip={() => skip(call)}
-          onCancel={() => cancel(call)}
-          onReport={() => reportPartner(call)}
-          onBlock={() => blockPartner(call)}
-          busy={acceptCall.isPending || cancelCall.isPending}
-          skipping={skipCall.isPending}
-        />
-      );
-    }
+    // Both random matches and private chat invites use the same Reveal flow
+    // (partner photo/name/age·city + accept). Random shows "Siguiente" (skip to
+    // another person); private shows "Rechazar" (decline this specific invite).
     return (
-      <Ringing
+      <Reveal
         call={call}
         myAccepted={myAccepted}
         onAccept={() => accept(call)}
+        onSkip={() => skip(call)}
         onDecline={() => decline(call)}
         onCancel={() => cancel(call)}
+        onReport={() => reportPartner(call)}
+        onBlock={() => blockPartner(call)}
         busy={
-          acceptCall.isPending || declineCall.isPending || cancelCall.isPending
+          acceptCall.isPending ||
+          cancelCall.isPending ||
+          declineCall.isPending
         }
+        skipping={skipCall.isPending}
       />
     );
   }
@@ -553,16 +545,19 @@ const SAFETY_LINE =
   "Respeta siempre a la otra persona. Puedes cancelar, bloquear o reportar en cualquier momento.";
 
 /**
- * Chatroulette × Tinder reveal for a RANDOM match: shows the partner's main
- * photo, name, age and city before connecting. "Siguiente" skips to a new
- * person; "Aceptar" connects (call goes active once both accept). Once this user
- * has accepted, it switches to a waiting state.
+ * Chatroulette × Tinder reveal shown before a call connects: the partner's main
+ * photo, name, age and city. Used for BOTH random matches and private chat
+ * invites. For random calls the secondary action is "Siguiente" (skip to a new
+ * person); for private invites it is "Rechazar" (decline). "Aceptar" connects
+ * (the call goes active once both accept). Once this user has accepted, it
+ * switches to a waiting state.
  */
 function Reveal({
   call,
   myAccepted,
   onAccept,
   onSkip,
+  onDecline,
   onCancel,
   onReport,
   onBlock,
@@ -573,12 +568,14 @@ function Reveal({
   myAccepted: boolean;
   onAccept: () => void;
   onSkip: () => void;
+  onDecline: () => void;
   onCancel: () => void;
   onReport: () => void;
   onBlock: () => void;
   busy: boolean;
   skipping: boolean;
 }) {
+  const isPrivate = call.type === "private";
   const name = partnerName(call);
   const meta = [
     call.partner.age ? `${call.partner.age} años` : null,
@@ -587,8 +584,12 @@ function Reveal({
     .filter(Boolean)
     .join(" · ");
 
-  // I accepted; waiting for the other person to accept too.
+  // I accepted; waiting for the other person to accept too. For a private call
+  // the caller lands here immediately (they accept on creation) — "Llamando…".
   if (myAccepted) {
+    const waitingCopy = isPrivate
+      ? `Llamando a ${name}…`
+      : `Esperando a que ${name} acepte…`;
     return (
       <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
         <div className="relative mb-6">
@@ -610,7 +611,7 @@ function Reveal({
         </h2>
         <p className="font-sans text-sm text-muted-foreground mb-10 flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin" />
-          Esperando a que {name} acepte…
+          {waitingCopy}
         </p>
         <button
           onClick={onCancel}
@@ -628,7 +629,7 @@ function Reveal({
   return (
     <div className="min-h-full flex flex-col px-4 pt-5 pb-5">
       <p className="text-center font-display text-sm tracking-[0.3em] text-gradient-brand mb-3">
-        ¡NUEVA CONEXIÓN!
+        {isPrivate ? "LLAMADA PRIVADA" : "¡NUEVA CONEXIÓN!"}
       </p>
 
       {/* Photo card */}
@@ -685,7 +686,7 @@ function Reveal({
           }}
         >
           <h2 className="font-display text-2xl tracking-wide text-foreground">
-            Has conectado con {name}
+            {isPrivate ? `${name} te está llamando` : `Has conectado con ${name}`}
           </h2>
           {meta && (
             <p className="font-sans text-sm text-muted-foreground mt-0.5">
@@ -699,27 +700,52 @@ function Reveal({
         {SAFETY_LINE}
       </p>
 
-      {/* Primary roulette actions */}
+      {/* Primary actions */}
       <div className="flex items-center justify-center gap-10 mb-3">
         <div className="flex flex-col items-center gap-2">
-          <button
-            onClick={onSkip}
-            disabled={skipping || busy}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
-            style={{
-              background:
-                "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-              boxShadow: "0 0 30px rgba(168,85,247,0.4)",
-            }}
-            data-testid="button-skip-call"
-          >
-            {skipping ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <span className="text-2xl leading-none">🔄</span>
-            )}
-          </button>
-          <span className="font-sans text-xs text-muted-foreground">Siguiente</span>
+          {isPrivate ? (
+            <>
+              <button
+                onClick={onDecline}
+                disabled={busy || skipping}
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
+                style={{ background: "hsl(0,75%,55%)" }}
+                data-testid="button-decline-call"
+              >
+                {busy ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <PhoneOff className="w-6 h-6" />
+                )}
+              </button>
+              <span className="font-sans text-xs text-muted-foreground">
+                Rechazar
+              </span>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onSkip}
+                disabled={skipping || busy}
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  boxShadow: "0 0 30px rgba(168,85,247,0.4)",
+                }}
+                data-testid="button-skip-call"
+              >
+                {skipping ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <span className="text-2xl leading-none">🔄</span>
+                )}
+              </button>
+              <span className="font-sans text-xs text-muted-foreground">
+                Siguiente
+              </span>
+            </>
+          )}
         </div>
         <div className="flex flex-col items-center gap-2">
           <button
@@ -742,15 +768,17 @@ function Reveal({
         </div>
       </div>
 
-      <button
-        onClick={onCancel}
-        disabled={busy}
-        className="self-center px-6 h-10 rounded-xl font-sans text-sm text-muted-foreground hover:bg-white/5 transition-colors disabled:opacity-60 flex items-center gap-2"
-        data-testid="button-cancel-call"
-      >
-        <X className="w-4 h-4" />
-        Cancelar búsqueda
-      </button>
+      {!isPrivate && (
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="self-center px-6 h-10 rounded-xl font-sans text-sm text-muted-foreground hover:bg-white/5 transition-colors disabled:opacity-60 flex items-center gap-2"
+          data-testid="button-cancel-call"
+        >
+          <X className="w-4 h-4" />
+          Cancelar búsqueda
+        </button>
+      )}
     </div>
   );
 }
@@ -793,101 +821,6 @@ function Countdown({ call, onDone }: { call: LiveCall; onDone: () => void }) {
       <p className="font-sans text-sm text-muted-foreground">
         Conectando con {name}…
       </p>
-    </div>
-  );
-}
-
-function Ringing({
-  call,
-  myAccepted,
-  onAccept,
-  onDecline,
-  onCancel,
-  busy,
-}: {
-  call: LiveCall;
-  myAccepted: boolean;
-  onAccept: () => void;
-  onDecline: () => void;
-  onCancel: () => void;
-  busy: boolean;
-}) {
-  const name = partnerName(call);
-  const waiting = myAccepted; // I accepted, awaiting the other side.
-
-  let heading: string;
-  if (waiting) heading = `Esperando a ${name}…`;
-  else if (call.type === "private") heading = `${name} te está llamando`;
-  else heading = "Videollamada encontrada";
-
-  return (
-    <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
-      <div className="relative mb-6">
-        <span
-          className="absolute inset-0 rounded-full animate-ping"
-          style={{ background: "rgba(236,72,153,0.25)" }}
-        />
-        <Avatar className="relative w-28 h-28 rounded-full border-2 border-primary/50">
-          {call.partner.avatar_url && (
-            <AvatarImage src={call.partner.avatar_url} className="object-cover" />
-          )}
-          <AvatarFallback className="font-display text-2xl bg-card text-primary">
-            {initialsOf(name)}
-          </AvatarFallback>
-        </Avatar>
-      </div>
-
-      <h2 className="font-display text-2xl tracking-wide text-foreground mb-1">
-        {name}
-        {call.partner.age ? `, ${call.partner.age}` : ""}
-      </h2>
-      <p className="font-sans text-sm text-muted-foreground mb-10">{heading}</p>
-
-      {waiting ? (
-        <button
-          onClick={onCancel}
-          disabled={busy}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
-          style={{ background: "hsl(0,75%,55%)" }}
-          data-testid="button-cancel-call"
-        >
-          <PhoneOff className="w-6 h-6" />
-        </button>
-      ) : (
-        <div className="flex items-center gap-10">
-          <div className="flex flex-col items-center gap-2">
-            <button
-              onClick={onDecline}
-              disabled={busy}
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
-              style={{ background: "hsl(0,75%,55%)" }}
-              data-testid="button-decline-call"
-            >
-              <PhoneOff className="w-6 h-6" />
-            </button>
-            <span className="font-sans text-xs text-muted-foreground">Rechazar</span>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <button
-              onClick={onAccept}
-              disabled={busy}
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
-              style={{
-                background: "hsl(142,71%,42%)",
-                boxShadow: "0 0 30px rgba(34,197,94,0.4)",
-              }}
-              data-testid="button-accept-call"
-            >
-              {busy ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                <Phone className="w-6 h-6" />
-              )}
-            </button>
-            <span className="font-sans text-xs text-muted-foreground">Aceptar</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
