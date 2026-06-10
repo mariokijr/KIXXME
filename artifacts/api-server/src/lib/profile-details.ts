@@ -1,5 +1,5 @@
 import { db, profileDetailsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 /**
  * Extra profile attributes that don't exist on the Supabase `profiles` table
@@ -56,6 +56,28 @@ export async function getProfileDetails(
     .limit(1);
   if (!row) return { ...EMPTY };
   return { role: row.role ?? null, looking_for: row.lookingFor ?? null };
+}
+
+/**
+ * Batch detail lookup for many users at once (e.g. the Descubrir candidate set).
+ * Returns a Map keyed by userId; users with no row are simply absent from it.
+ */
+export async function getProfileDetailsForUsers(
+  userIds: string[],
+): Promise<Map<string, ProfileDetailValues>> {
+  const map = new Map<string, ProfileDetailValues>();
+  if (userIds.length === 0) return map;
+  const rows = await db
+    .select()
+    .from(profileDetailsTable)
+    .where(inArray(profileDetailsTable.userId, userIds));
+  for (const row of rows) {
+    map.set(row.userId, {
+      role: row.role ?? null,
+      looking_for: row.lookingFor ?? null,
+    });
+  }
+  return map;
 }
 
 /**

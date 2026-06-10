@@ -5,7 +5,7 @@ import { removePhotoRow } from "../lib/photos.js";
 
 const router = Router();
 
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 4;
 
 router.get("/profiles/me/photos", async (req, res) => {
   const auth = await requireAuth(req, res);
@@ -162,6 +162,20 @@ router.delete("/profiles/me/photos/:photoId", async (req, res) => {
 
   if (fetchError || !photo) {
     res.status(404).json({ error: "Photo not found" });
+    return;
+  }
+
+  // Every discoverable profile must keep at least one photo (the main photo).
+  // Block deleting the last remaining one — the user must add another first.
+  const { count } = await supabase
+    .from("profile_photos")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", auth.userId);
+
+  if ((count ?? 0) <= 1) {
+    res.status(400).json({
+      error: "No puedes eliminar tu única foto. Sube otra antes de borrar esta.",
+    });
     return;
   }
 

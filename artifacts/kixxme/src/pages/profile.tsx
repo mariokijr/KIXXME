@@ -114,6 +114,27 @@ export default function Profile() {
   const isOnboarding = wasOnboardingRef.current;
 
   const handleSave = () => {
+    // Calidad mínima: onboarding can't finish until the profile has a main photo
+    // and the fields required to appear in Descubrir.
+    if (isOnboarding) {
+      const hasMainPhoto = !!profile?.avatar_url || photos.length > 0;
+      const missing: string[] = [];
+      if (!hasMainPhoto) missing.push("una foto principal");
+      if (!username.trim()) missing.push("nombre de usuario");
+      if (bio.trim().length < 10) missing.push("una biografía (mín. 10 caracteres)");
+      if (age === "" || Number(age) <= 0) missing.push("tu edad");
+      if (!city.trim()) missing.push("tu ciudad");
+      if (!role) missing.push("rol/preferencia");
+      if (!lookingFor) missing.push("qué buscas");
+      if (missing.length > 0) {
+        toast({
+          title: "Completa tu perfil para continuar",
+          description: `Falta: ${missing.join(", ")}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     updateProfile.mutate(
       { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined, role: role || undefined, looking_for: lookingFor || undefined } },
       {
@@ -239,7 +260,7 @@ export default function Profile() {
     );
   }
 
-  const canAddMore = photos.length < 6;
+  const canAddMore = photos.length < 4;
 
   return (
     <div>
@@ -332,7 +353,7 @@ export default function Profile() {
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg tracking-wide text-foreground/80">Mis fotos</h2>
-          <span className="font-sans text-xs text-muted-foreground">{photos.length}/6</span>
+          <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo: ProfilePhoto, index: number) => (

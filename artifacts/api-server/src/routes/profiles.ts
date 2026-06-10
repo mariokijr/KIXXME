@@ -25,6 +25,7 @@ import {
 } from "../lib/visits.js";
 import {
   getProfileDetails,
+  getProfileDetailsForUsers,
   upsertProfileDetails,
   isValidRole,
   isValidLookingFor,
@@ -35,6 +36,9 @@ const router = Router();
 
 const PUBLIC_COLUMNS =
   "id, username, bio, avatar_url, age, city, gender, location, created_at, latitude, longitude, last_active_at, is_verified, plan";
+
+/** Minimum bio length for a profile to count as complete (calidad mínima). */
+const MIN_BIO_LENGTH = 10;
 
 type ProfileRow = {
   id: string;
@@ -143,11 +147,19 @@ router.get("/profiles", async (req, res) => {
 
   // Push the bounding box into the query BEFORE limiting, so we don't merely
   // sample the most-recent 200 rows and then drop everything out of scope.
+  // Calidad mínima: only complete profiles appear in Descubrir. The Supabase
+  // columns (main photo, age, city, bio) are filtered DB-side BEFORE the limit
+  // so we don't waste the 200-row budget on incomplete profiles; role/looking_for
+  // (repo-owned Postgres) are refined in JS below.
   let query = supabase
     .from("profiles")
     .select(PUBLIC_COLUMNS)
     .neq("id", auth.userId)
-    .not("username", "is", null);
+    .not("username", "is", null)
+    .not("avatar_url", "is", null)
+    .not("age", "is", null)
+    .not("city", "is", null)
+    .not("bio", "is", null);
   if (box) {
     query = query
       .gte("latitude", box.latMin)
@@ -174,6 +186,23 @@ router.get("/profiles", async (req, res) => {
       withinMapScope(me ?? null, row.latitude, row.longitude, scope),
     );
   }
+
+  // Calidad mínima (part 2): require a role + "qué busca" and a minimum bio.
+  // role/looking_for live in the repo-owned Postgres, so batch-load them for
+  // the surviving candidates and drop anyone still incomplete.
+  const detailsMap = await getProfileDetailsForUsers(rows.map((r) => r.id));
+  rows = rows.filter((row) => {
+    const d = detailsMap.get(row.id);
+    return (
+      !!row.avatar_url &&
+      row.age != null &&
+      row.age > 0 &&
+      !!row.city?.trim() &&
+      (row.bio?.trim().length ?? 0) >= MIN_BIO_LENGTH &&
+      !!d?.role &&
+      !!d?.looking_for
+    );
+  });
 
   const profiles = rows.map((row) =>
     toPublic(row, me ?? null, likedSet, iBlocked),
