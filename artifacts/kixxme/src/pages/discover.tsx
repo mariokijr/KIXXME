@@ -12,6 +12,7 @@ import {
   type ListProfilesSort,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/lib/notifications";
 
 type ViewType = "todos" | "cerca" | "online" | "con-foto";
 
@@ -65,6 +66,8 @@ export default function Discover() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { newLikes, newMatches } = useNotifications();
+  const likesBadge = newLikes + newMatches;
 
   const {
     data: profiles = [],
@@ -149,12 +152,24 @@ export default function Discover() {
         </div>
         <Link href="/favorites">
           <button
-            className="w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+            className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
             style={{ background: "rgba(255,255,255,0.04)" }}
             aria-label="Favoritos"
             data-testid="link-favorites"
           >
             <Heart className="w-4 h-4 text-primary" />
+            {likesBadge > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                }}
+                data-testid="badge-likes"
+              >
+                {likesBadge > 99 ? "99+" : likesBadge}
+              </span>
+            )}
           </button>
         </Link>
       </header>

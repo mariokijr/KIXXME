@@ -4,12 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, billingCustomersTable } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getUncachableStripeClient } from "./stripe.js";
-import {
-  sendEmail,
-  appBaseUrl,
-  PREMIUM_WELCOME_SUBJECT,
-  premiumWelcomeEmailHtml,
-} from "./email.js";
+import { sendEmail, appBaseUrl, premiumWelcomeEmail } from "./email.js";
 
 export type Tier = "plus" | "gold";
 export type Interval = "month" | "year";
@@ -289,11 +284,11 @@ export async function handleStripeWebhook(
         const email = await getUserEmail(userId);
         if (!email) return;
         const base = appBaseUrl();
-        await sendEmail({
-          to: email,
-          subject: PREMIUM_WELCOME_SUBJECT,
-          html: premiumWelcomeEmailHtml(base ? `${base}/premium` : undefined),
-        });
+        const { subject, html } = premiumWelcomeEmail(
+          tier,
+          base ? `${base}/premium` : undefined,
+        );
+        await sendEmail({ to: email, subject, html });
       })();
       log.info({ userId, tier }, "Activated plan from checkout");
       return;

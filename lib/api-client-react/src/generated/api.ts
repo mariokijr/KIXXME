@@ -34,6 +34,7 @@ import type {
   LoginRequest,
   Logout200,
   Message,
+  NotificationsSummary,
   Profile,
   ProfilePhoto,
   PublicProfile,
@@ -2391,4 +2392,81 @@ export const useCreateSupportReport = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getCreateSupportReportMutationOptions(options));
     }
+
+export const getGetNotificationsSummaryUrl = () => {
+
+
+
+
+  return `/api/notifications/summary`
+}
+
+/**
+ * @summary Aggregated in-app notifications (unread messages, likes, matches)
+ */
+export const getNotificationsSummary = async ( options?: RequestInit): Promise<NotificationsSummary> => {
+
+  return customFetch<NotificationsSummary>(getGetNotificationsSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationsSummaryQueryKey = () => {
+    return [
+    `/api/notifications/summary`
+    ] as const;
+    }
+
+
+export const getGetNotificationsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationsSummary>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationsSummary>>> = ({ signal }) => getNotificationsSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotificationsSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotificationsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationsSummary>>>
+export type GetNotificationsSummaryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Aggregated in-app notifications (unread messages, likes, matches)
+ */
+
+export function useGetNotificationsSummary<TData = Awaited<ReturnType<typeof getNotificationsSummary>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotificationsSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

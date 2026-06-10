@@ -548,3 +548,23 @@ export const CreateSupportReportBody = zod.object({
 })
 
 
+/**
+ * @summary Aggregated in-app notifications (unread messages, likes, matches)
+ */
+export const GetNotificationsSummaryResponse = zod.object({
+  "unread_messages": zod.number(),
+  "likes": zod.array(zod.object({
+  "user_id": zod.string(),
+  "username": zod.string().nullable(),
+  "avatar_url": zod.string().nullable(),
+  "created_at": zod.string()
+})),
+  "matches": zod.array(zod.object({
+  "user_id": zod.string(),
+  "username": zod.string().nullable(),
+  "avatar_url": zod.string().nullable(),
+  "matched_at": zod.string()
+}))
+})
+
+

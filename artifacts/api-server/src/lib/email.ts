@@ -168,14 +168,12 @@ export const WELCOME_SUBJECT = "\u{1F525} Bienvenido a KixxMe";
 
 export function welcomeEmailHtml(appUrl?: string): string {
   const body = paragraphs([
-    "<strong style=\"color:#f4f1fb;\">\u00A1Bienvenido a KixxMe!</strong>",
-    "Tu perfil ya est\u00E1 listo para descubrir chicos cerca de ti, hacer nuevas conexiones y disfrutar de la experiencia m\u00E1s caliente de la comunidad.",
-    "Completa tu perfil, sube tus mejores fotos y empieza a explorar.",
+    "<strong style=\"color:#f4f1fb;\">Bienvenido al mapa m\u00E1s caliente de Espa\u00F1a.</strong> Completa tu perfil, sube tus mejores fotos y empieza a conocer gente cerca de ti.",
     "\u{1F525} Tu pr\u00F3xima conexi\u00F3n podr\u00EDa estar a solo unos metros.",
     "Equipo KixxMe",
   ]);
   return renderEmail({
-    preheader: "Tu pr\u00F3xima conexi\u00F3n podr\u00EDa estar a solo unos metros.",
+    preheader: "Bienvenido al mapa m\u00E1s caliente de Espa\u00F1a.",
     heading: "Bienvenido a la comunidad \u{1F525}",
     bodyHtml: body,
     cta: appUrl ? { label: "Explorar ahora", url: appUrl } : undefined,
@@ -183,24 +181,53 @@ export function welcomeEmailHtml(appUrl?: string): string {
 }
 
 // --- Premium welcome (subscription) ----------------------------------------
+// One template per tier. The Stripe webhook picks the right one from the
+// purchased tier via `premiumWelcomeEmail`.
 
-export const PREMIUM_WELCOME_SUBJECT = "\u{1F525} Bienvenido a KixxMe Premium";
+export const PLUS_WELCOME_SUBJECT = "⭐ Ya eres KixxMe Plus";
+export const GOLD_WELCOME_SUBJECT = "👑 Bienvenido a KixxMe Gold";
 
-export function premiumWelcomeEmailHtml(appUrl?: string): string {
+export function plusWelcomeEmailHtml(appUrl?: string): string {
   const body = paragraphs([
-    "<strong style=\"color:#f4f1fb;\">\u00A1Ya eres Premium!</strong>",
-    "Acabas de desbloquear las funciones m\u00E1s exclusivas de KixxMe.",
-    "\u2728 M\u00E1s visibilidad.<br />\u2728 M\u00E1s conexiones.<br />\u2728 M\u00E1s oportunidades para destacar.",
-    "\u{1F525} Ahora que tienes acceso completo, es hora de dejar huella.",
-    "Gracias por confiar en KixxMe.",
+    "<strong style=\"color:#f4f1fb;\">¡Enhorabuena! Ya eres KixxMe Plus.</strong>",
+    "Acabas de subir de nivel. A partir de ahora tienes acceso a:",
+    "💬 Chats ilimitados<br />👀 Ve quién visita tu perfil<br />🎚️ Filtros avanzados<br />⚡ 1 boost semanal para destacar<br />✅ Perfil verificado",
+    "🔥 Tu perfil va a brillar más que nunca. Es el momento de dejar huella.",
     "Equipo KixxMe",
   ]);
   return renderEmail({
-    preheader: "Acabas de desbloquear las funciones m\u00E1s exclusivas de KixxMe.",
-    heading: "\u00A1Ya eres Premium! \u{1F525}",
+    preheader: "Ya eres KixxMe Plus: chats ilimitados, más visibilidad y mucho más.",
+    heading: "⭐ Ya eres KixxMe Plus",
     bodyHtml: body,
-    cta: appUrl ? { label: "Descubrir Premium", url: appUrl } : undefined,
+    cta: appUrl ? { label: "Empezar ahora", url: appUrl } : undefined,
   });
+}
+
+export function goldWelcomeEmailHtml(appUrl?: string): string {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Bienvenido a la élite. Ya eres KixxMe Gold.</strong>",
+    "Tienes en tus manos la experiencia más exclusiva de KixxMe:",
+    "👑 Todo lo de Plus, y mucho más<br />🕶️ Modo incógnito<br />⚡ Boost diario prioritario<br />👀 Visitas en detalle<br />🎚️ Filtros exclusivos<br />💎 Soporte VIP 24/7",
+    "🔥 Ahora formas parte de lo mejor de KixxMe. Disfruta de cada conexión.",
+    "Equipo KixxMe",
+  ]);
+  return renderEmail({
+    preheader: "Ya eres KixxMe Gold: la experiencia más exclusiva, sin límites.",
+    heading: "👑 Bienvenido a KixxMe Gold",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Descubrir Gold", url: appUrl } : undefined,
+  });
+}
+
+/** Pick the tier-specific welcome email for a completed subscription. */
+export function premiumWelcomeEmail(
+  tier: string,
+  appUrl?: string,
+): { subject: string; html: string } {
+  if (tier === "gold") {
+    return { subject: GOLD_WELCOME_SUBJECT, html: goldWelcomeEmailHtml(appUrl) };
+  }
+  return { subject: PLUS_WELCOME_SUBJECT, html: plusWelcomeEmailHtml(appUrl) };
 }
 
 // --- Support report notification (to the support inbox) ---------------------

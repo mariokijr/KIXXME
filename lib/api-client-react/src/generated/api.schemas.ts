@@ -77,6 +77,26 @@ export interface SupportReportResponse {
   createdAt: string;
 }
 
+export interface LikeNotification {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export interface MatchNotification {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  matched_at: string;
+}
+
+export interface NotificationsSummary {
+  unread_messages: number;
+  likes: LikeNotification[];
+  matches: MatchNotification[];
+}
+
 export interface Session {
   access_token: string;
   refresh_token: string;

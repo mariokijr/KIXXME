@@ -908,6 +908,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /notifications/summary:
+    get:
+      operationId: getNotificationsSummary
+      tags: [notifications]
+      summary: Aggregated in-app notifications (unread messages, likes, matches)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Notification summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -983,6 +1004,51 @@ components:
         createdAt:
           type: string
       required: [id, status, createdAt]
+
+    LikeNotification:
+      type: object
+      properties:
+        user_id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [user_id, username, avatar_url, created_at]
+
+    MatchNotification:
+      type: object
+      properties:
+        user_id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        matched_at:
+          type: string
+      required: [user_id, username, avatar_url, matched_at]
+
+    NotificationsSummary:
+      type: object
+      properties:
+        unread_messages:
+          type: integer
+        likes:
+          type: array
+          items:
+            $ref: "#/components/schemas/LikeNotification"
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchNotification"
+      required: [unread_messages, likes, matches]
 
     Session:
       type: object

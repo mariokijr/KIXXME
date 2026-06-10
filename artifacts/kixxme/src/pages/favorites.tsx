@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Heart } from "lucide-react";
@@ -11,10 +11,17 @@ import {
   PublicProfile,
 } from "@workspace/api-client-react";
 import { UserCard, gradFor } from "./discover";
+import { useNotifications } from "@/lib/notifications";
 
 export default function Favorites() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const { markLikesSeen, markMatchesSeen } = useNotifications();
+
+  useEffect(() => {
+    markLikesSeen();
+    markMatchesSeen();
+  }, [markLikesSeen, markMatchesSeen]);
 
   const {
     data: likes = [],
