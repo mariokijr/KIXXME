@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { useCreateOrGetConversation } from "@workspace/api-client-react";
+import { playSound } from "./sound";
 
 interface MatchUser {
   userId: string;
@@ -31,7 +32,10 @@ export function MatchCelebrationProvider({
   const [, setLocation] = useLocation();
   const createConv = useCreateOrGetConversation();
 
-  const celebrate = useCallback((user: MatchUser) => setMatch(user), []);
+  const celebrate = useCallback((user: MatchUser) => {
+    playSound("match");
+    setMatch(user);
+  }, []);
   const close = useCallback(() => setMatch(null), []);
 
   const handleMessage = () => {

@@ -154,7 +154,10 @@ export default function MapView() {
     query: { queryKey: getGetMyProfileQueryKey() },
   });
   const { data: profiles = [], isLoading } = useListProfiles({ scope });
-  const { data: stats } = useGetDiscoveryStats({ scope });
+  // The headline stat cards ("Usuarios registrados" / "En línea ahora") show
+  // global totals, decoupled from the map scope chips below — otherwise picking
+  // a geo scope (e.g. España) with no users in range would misleadingly read 0.
+  const { data: stats } = useGetDiscoveryStats({ scope: "worldwide" });
   const createConv = useCreateOrGetConversation();
   const likeActions = useLikeActions();
   const geo = useGeolocation();

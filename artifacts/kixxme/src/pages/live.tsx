@@ -19,6 +19,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -833,6 +834,10 @@ function Reveal({
  */
 function Countdown({ call, onDone }: { call: LiveCall; onDone: () => void }) {
   const [n, setN] = useState(5);
+  // Play the "call starting" cue once when the countdown mounts.
+  useEffect(() => {
+    playSound("live");
+  }, []);
   useEffect(() => {
     if (n <= 0) return;
     const t = setTimeout(() => setN((v) => v - 1), 1000);

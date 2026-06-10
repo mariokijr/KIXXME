@@ -36,6 +36,7 @@ import {
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
+import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
@@ -525,6 +526,8 @@ export function SwipeView({
         likeActions.like(profile, { onSettled: invalidateQuota });
       } else if (dir === "superlike") {
         likeActions.superLike(profile, { onSettled: invalidateQuota });
+      } else {
+        playSound("pass");
       }
     }
     setIndex((i) => i + 1);

@@ -37,6 +37,11 @@ single insertion point instead of editing every endpoint.
 **How to apply:** never re-implement block/deactivation filtering inline; call
 `getVisibilityContext`/`getHiddenIds`.
 
+## Headline stat cards are global, decoupled from the scope chips
+The map's "Usuarios registrados / En línea ahora" cards call `useGetDiscoveryStats({ scope: "worldwide" })` — a fixed global scope — while the scope chips only drive the profile list (`useListProfiles({ scope })`).
+**Why:** binding the headline to the active chip made it read `0` whenever a geo scope (e.g. España) had no users *in range*, which looked like a broken counter. Global totals are the intended product meaning of those cards.
+**How to apply:** keep the two hooks on independent scopes; don't "simplify" them back to a shared `scope`.
+
 ## Stats count cap
 `GET /profiles/stats` counts in JS (load-and-count) capped at 5000 rows — an early-stage
 tradeoff, not exact at scale. "En línea ahora" has no client refetch interval, so it can be

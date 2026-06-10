@@ -27,6 +27,11 @@ description: How moderation gating, the admin boundary, reporting storage, and u
 - **Why:** one centralized hide path means a new "unavailable" reason (deactivated, moderated, future states) is added in one place and applies to discover/map/stats/likes/conversations/live at once.
 - **Per-surface gotcha:** "hidden everywhere" must include the *direct* conversation read paths (GET messages, POST read), not just list/send — a stale or hand-crafted conversation URL would otherwise leak a moderated user's chat history. Reads return **404 "Perfil no disponible"** (not 403) so they don't leak the moderation state.
 
+## Clear the shared React Query cache on every auth boundary
+- A single shared `queryClient` (`artifacts/kixxme/src/lib/query-client.ts`) must be `.clear()`-ed on **every** session entry/exit: login, signup, applySession (reset-password session adoption), logout, and the token-refresh-failure sign-out in the auth token getter.
+- **Why:** `isAdmin` (and other per-user responses like `GET /me/moderation`) is cached; without clearing, account B can briefly inherit account A's cached admin state after a session switch on the same tab — the visible "wrong admin / admin not recognized" symptom. Client-only display issue (server `requireAdmin` is still the real boundary), but it's the one users see.
+- **How to apply:** any NEW login/logout/session-adopt path must call `queryClient.clear()` right after `persist(...)`.
+
 ## Admin notifications are derived, never stored
 - There is **no notifications table** in this app — both user notifications (likes/matches) and the admin moderation notification are derived on read at `GET /notifications/summary`. The admin block (`open_reports`/`open_flags`/`latest_report_at`, present only for `isAdminEmail`) mirrors `/admin/summary`'s "open" definitions; the frontend bell toasts when `latest_report_at` advances.
 - **Why:** "every report creates an admin notification" is satisfied by the derived feed, consistent with how likes/matches work — adding a notifications table would be a needless second source of truth.

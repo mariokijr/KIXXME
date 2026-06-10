@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, ReactNod
 import { AuthUser, Session, setAuthTokenGetter, refreshSession, useLogin, useSignUp, useLogout } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { setRealtimeAuth } from "./supabase";
+import { queryClient } from "./query-client";
 
 interface AuthState {
   session: Session | null;
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {
             // Refresh token revoked/expired — sign out and bounce to login.
             persist(null, null);
+            queryClient.clear();
             setLocation("/login");
             return null;
           } finally {
@@ -112,6 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: any) => {
     const res = await loginMut.mutateAsync({ data });
     persist(res.session, res.user);
+    // Drop any cached responses from a previous account so per-user state
+    // (e.g. isAdmin from /me/moderation) is refetched fresh for this session.
+    queryClient.clear();
     setLocation("/profile");
   };
 
@@ -119,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await signupMut.mutateAsync({ data });
     if (res.session) {
       persist(res.session, res.user);
+      queryClient.clear();
       setLocation("/profile");
     } else {
       setLocation("/login?confirm=1");
@@ -129,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logoutMut.mutate(undefined, {
       onSettled: () => {
         persist(null, null);
+        queryClient.clear();
         setLocation("/login");
       }
     });
@@ -141,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applySession = (res: { user: AuthUser; session: Session | null }) => {
     if (res.session) {
       persist(res.session, res.user);
+      queryClient.clear();
       setLocation("/discover");
     } else {
       setLocation("/login?reset=1");

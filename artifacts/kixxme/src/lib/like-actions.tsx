@@ -4,6 +4,7 @@ import { useLikeProfile } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useMatchCelebration } from "./match-celebration";
+import { playSound } from "./sound";
 
 interface LikeTarget {
   id: string;
@@ -43,10 +44,12 @@ export function useLikeActions() {
               avatarUrl: user.avatar_url ?? null,
             });
           } else if (kind === "superlike") {
+            playSound("superlike");
             toast({
               title: `⭐ SuperLike enviado a ${user.username ?? "este perfil"}`,
             });
           } else {
+            playSound("like");
             toast({
               title: `Te gusta ${user.username ?? "este perfil"} ❤️`,
             });
