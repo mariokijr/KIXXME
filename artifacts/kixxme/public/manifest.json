@@ -1,0 +1,48 @@
+{
+  "id": "/",
+  "name": "KixxMe — Conecta con chicos cerca de ti",
+  "short_name": "KixxMe",
+  "description": "Descubre chicos cerca de ti en lista y mapa, dale like, chatea en tiempo real y vive KixxMe Live.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#080712",
+  "theme_color": "#080712",
+  "categories": ["social", "lifestyle", "dating"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Descubrir", "short_name": "Descubrir", "url": "/discover" },
+    { "name": "Mapa", "short_name": "Mapa", "url": "/map" },
+    { "name": "Chats", "short_name": "Chats", "url": "/chats" }
+  ]
+}

@@ -35,6 +35,7 @@ import {
   X,
   Minus,
   Plus,
+  Clock,
 } from "lucide-react";
 
 const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
@@ -290,6 +291,41 @@ export default function Live() {
 // Sub-views
 // ===========================================================================
 
+function ComingSoonBanner() {
+  return (
+    <div
+      className="rounded-2xl border p-4 flex items-start gap-3"
+      style={{
+        borderColor: "hsl(38 95% 55% / 0.35)",
+        background:
+          "linear-gradient(135deg, rgba(234,179,8,0.12), rgba(168,85,247,0.07))",
+      }}
+      data-testid="banner-live-coming-soon"
+    >
+      <div
+        className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))",
+          boxShadow: "0 0 22px rgba(234,179,8,0.35)",
+        }}
+      >
+        <Clock className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <p className="font-display text-base tracking-wide text-yellow-400 mb-0.5">
+          Próximamente
+        </p>
+        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+          KixxMe Live estará disponible próximamente para miembros Gold. Estamos
+          dando los últimos retoques a las videollamadas — muy pronto podrás
+          conectar cara a cara.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Header() {
   return (
     <div className="flex items-center justify-center gap-2.5 pt-9 pb-1">
@@ -324,6 +360,9 @@ function Paywall({ onUpgrade }: { onUpgrade: () => void }) {
         aleatorias, llamadas privadas y conexiones más intensas dentro de
         KixxMe.
       </p>
+      <div className="w-full max-w-sm mb-6">
+        <ComingSoonBanner />
+      </div>
       <button
         onClick={onUpgrade}
         className="w-full max-w-sm py-4 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0"
@@ -402,6 +441,10 @@ function Idle({
       <p className="text-center font-sans text-sm text-muted-foreground px-6 mb-6">
         Conecta cara a cara con chicos al instante.
       </p>
+
+      <div className="px-4 mb-5">
+        <ComingSoonBanner />
+      </div>
 
       <div className="px-4 space-y-5">
         <div

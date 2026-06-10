@@ -29,6 +29,7 @@ export default function BottomNav() {
           const active = location === href;
           const isPremium = href === "/premium";
           const showBadge = href === "/chats" && totalUnread > 0;
+          const showSoon = href === "/live";
           return (
             <Link
               key={href}
@@ -53,6 +54,18 @@ export default function BottomNav() {
                 >
                   {totalUnread > 99 ? "99+" : totalUnread}
                 </span>
+              )}
+              {showSoon && (
+                <span
+                  className="absolute top-1.5 left-1/2 translate-x-2 w-[7px] h-[7px] rounded-full border border-background"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(38,95%,55%), hsl(25,100%,55%))",
+                    boxShadow: "0 0 6px rgba(234,179,8,0.7)",
+                  }}
+                  data-testid="badge-live-soon"
+                  aria-label="Próximamente"
+                />
               )}
               <Icon
                 className="w-5 h-5 transition-all duration-200"
