@@ -42,7 +42,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           "radial-gradient(ellipse 100% 50% at 50% 0%, hsl(270 30% 8%) 0%, hsl(238 25% 4%) 60%)",
       }}
     >
-      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: "72px" }}>
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}
+      >
         {children}
       </div>
       <BottomNav />

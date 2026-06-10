@@ -321,7 +321,11 @@ export default function PublicProfile() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-30 px-5 py-4 border-t border-border/30 flex items-center gap-3 max-w-lg mx-auto"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}>
+        style={{
+          background: "rgba(8,7,18,0.92)",
+          backdropFilter: "blur(20px)",
+          paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+        }}>
         <button
           onClick={handleToggleLike}
           disabled={profile.blocked_by_me}

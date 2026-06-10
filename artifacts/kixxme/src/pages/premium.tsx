@@ -362,33 +362,32 @@ export default function Premium() {
             { q: "¿Puedo cancelar en cualquier momento?", a: "Sí. Puedes cancelar tu suscripción cuando quieras desde los ajustes de tu perfil sin penalizaciones." },
             { q: "¿Mis datos están seguros?", a: "KixxMe usa cifrado de extremo a extremo. Nunca vendemos tus datos a terceros." },
             { q: "¿Qué es el modo incógnito?", a: "Con Gold puedes navegar perfiles sin que aparezca en la lista de visitantes. Tu privacidad, tu elección." },
-          ].map((faq, i) => (
-            <button
-              key={i}
-              className="w-full px-5 py-4 flex items-center justify-between text-left border-b border-border/20 last:border-0"
-              onClick={() => setFaqOpen(faqOpen === i ? null : i)}
-            >
-              <span className="font-sans text-sm text-foreground/90 pr-4">{faq.q}</span>
-              {faqOpen === i
-                ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              }
-              {faqOpen === i && (
-                <div className="absolute" />
-              )}
-            </button>
-          ))}
-          {faqOpen !== null && (
-            <div className="px-5 pb-4">
-              <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-                {[
-                  "Sí. Puedes cancelar tu suscripción cuando quieras desde los ajustes de tu perfil sin penalizaciones.",
-                  "KixxMe usa cifrado de extremo a extremo. Nunca vendemos tus datos a terceros.",
-                  "Con Gold puedes navegar perfiles sin que aparezca en la lista de visitantes. Tu privacidad, tu elección.",
-                ][faqOpen]}
-              </p>
-            </div>
-          )}
+          ].map((faq, i) => {
+            const open = faqOpen === i;
+            return (
+              <div key={i} className="border-b border-border/20 last:border-0">
+                <button
+                  className="w-full px-5 py-4 flex items-center justify-between text-left"
+                  onClick={() => setFaqOpen(open ? null : i)}
+                  aria-expanded={open}
+                  data-testid={`button-faq-${i}`}
+                >
+                  <span className="font-sans text-sm text-foreground/90 pr-4">{faq.q}</span>
+                  {open
+                    ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  }
+                </button>
+                {open && (
+                  <div className="px-5 pb-4 -mt-1" data-testid={`text-faq-answer-${i}`}>
+                    <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+                      {faq.a}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <p className="text-center font-sans text-xs text-muted-foreground/60 pb-2">

@@ -78,6 +78,9 @@ export default function Chat() {
   const [reportOpen, setReportOpen] = useState(false);
   const [activeMsg, setActiveMsg] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const didInitScrollRef = useRef(false);
+  const nearBottomRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -111,6 +114,7 @@ export default function Chat() {
   // Reset local state when switching conversations so messages never bleed across chats.
   useEffect(() => {
     setLocalMessages([]);
+    didInitScrollRef.current = false;
   }, [conversationId]);
 
   // Merge server messages into local state (server is source of truth).
@@ -133,9 +137,31 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, session]);
 
+  // Track whether the user is pinned near the bottom. Measured on user scroll
+  // (before any new message renders) so a tall incoming image can't fool the
+  // distance check into thinking they scrolled away.
+  const handleMessagesScroll = () => {
+    const c = scrollRef.current;
+    if (!c) return;
+    nearBottomRef.current =
+      c.scrollHeight - c.scrollTop - c.clientHeight < 160;
+  };
+
+  // Auto-scroll to the latest message, but don't yank the user down while they
+  // read older messages: snap on first load of a conversation, then only follow
+  // when they were already near the bottom or the newest message is their own.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [localMessages]);
+    if (localMessages.length === 0) return;
+    if (!didInitScrollRef.current) {
+      didInitScrollRef.current = true;
+      bottomRef.current?.scrollIntoView();
+      return;
+    }
+    const mine = localMessages[localMessages.length - 1]?.sender_id === myId;
+    if (mine || nearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [localMessages, myId]);
 
   // Realtime: other users' new messages + any updates (deletes / read receipts).
   useEffect(() => {
@@ -447,7 +473,7 @@ export default function Chat() {
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => setActiveMsg(null)}>
+      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => setActiveMsg(null)}>
         {isLoading && localMessages.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -558,7 +584,11 @@ export default function Chat() {
       {otherUser?.blocked_by_me ? (
         <div
           className="flex-shrink-0 px-4 py-4 border-t border-border/30 flex flex-col items-center gap-2 text-center"
-          style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+          style={{
+            background: "rgba(8,7,18,0.92)",
+            backdropFilter: "blur(20px)",
+            paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+          }}
         >
           <p className="font-sans text-sm text-muted-foreground">
             Has bloqueado a este usuario. No puedes enviar mensajes.
@@ -575,7 +605,11 @@ export default function Chat() {
       ) : (
       <div
         className="flex-shrink-0 px-4 py-3 border-t border-border/30 flex items-end gap-2"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        style={{
+          background: "rgba(8,7,18,0.92)",
+          backdropFilter: "blur(20px)",
+          paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+        }}
       >
         <input
           ref={fileRef}
