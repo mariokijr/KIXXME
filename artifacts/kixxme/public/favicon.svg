@@ -1,18 +1,19 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="64" height="64" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="kxfav" x1="14" y1="12" x2="52" y2="54" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#a855f7"/>
-      <stop offset="0.55" stop-color="#d6409f"/>
-      <stop offset="1" stop-color="#ec4899"/>
+    <linearGradient id="kxfav" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="hsl(273,90%,63%)"/>
+      <stop offset="0.55" stop-color="hsl(312,88%,61%)"/>
+      <stop offset="1" stop-color="hsl(330,92%,58%)"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="#0d0b1a"/>
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="none" stroke="url(#kxfav)" stroke-width="2" opacity="0.55"/>
-  <g transform="translate(8 8)" stroke="url(#kxfav)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M16 9 V 39"/>
-    <path d="M16 24 L 33 39"/>
-    <path d="M16 24 L 26.5 15.5"/>
-    <circle cx="30" cy="12" r="5.5"/>
+  <rect x="1.5" y="1.5" width="45" height="45" rx="12" fill="hsl(258,42%,7%)" stroke="url(#kxfav)" stroke-width="2.5"/>
+  <g transform="translate(7.4 8.5) scale(0.69)">
+    <g stroke="url(#kxfav)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M16 11 V 39"/>
+      <path d="M16 25 L 31 39"/>
+      <path d="M16 25 L 28 18"/>
+      <path d="M28 18 C 22 13 22.5 4.5 28 4.5 C 33.5 4.5 34 13 28 18 Z"/>
+    </g>
+    <circle cx="28" cy="9.4" r="2.1" fill="url(#kxfav)"/>
   </g>
-  <circle cx="38" cy="20" r="2.2" fill="url(#kxfav)"/>
 </svg>

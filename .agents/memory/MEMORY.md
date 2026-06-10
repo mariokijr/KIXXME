@@ -3,3 +3,4 @@
 - [Replit preview iframe blocks framed third-party flows](replit-preview-iframe-third-party.md) — Stripe Checkout etc. won't render in the proxied preview iframe; pre-open a tab in the click gesture instead of window.location redirect.
 - [KixxMe transactional email](kixxme-transactional-email.md) — all email via Gmail connector from supportkixxme@gmail.com; sendEmail never throws (fire-and-forget); sanitize subject/Reply-To before raw RFC2822.
 - [KixxMe Live (video-call scaffold)](kixxme-live.md) — Gold-only; advisory-lock + FOR UPDATE SKIP LOCKED matcher, no media plane (issueMediaToken stub), in-call renders before paywall.
+- [KixxMe branding emblem](kixxme-branding.md) — official mark = neon K + teardrop location pin (KixxMeLogo); favicon.svg is a hand-duplicate to keep in sync; only allowed fire is the Live CTA.

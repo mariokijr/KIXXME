@@ -68,24 +68,24 @@ export function KixxMeLogo({
         />
       )}
 
-      <g transform={badge ? "translate(7.4 7.4) scale(0.69)" : undefined}>
+      <g transform={badge ? "translate(7.4 8.5) scale(0.69)" : undefined}>
         <g
           stroke={`url(#${gradId})`}
-          strokeWidth="5"
+          strokeWidth="4.6"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
           {/* K stem */}
-          <path d="M16 9 V 39" />
+          <path d="M16 11 V 39" />
           {/* K lower arm */}
-          <path d="M16 24 L 33 39" />
-          {/* K upper arm flowing into the pin */}
-          <path d="M16 24 L 26.5 15.5" />
-          {/* location pin head */}
-          <circle cx="30" cy="12" r="5.5" />
+          <path d="M16 25 L 31 39" />
+          {/* K upper arm rising into the pin's tip */}
+          <path d="M16 25 L 28 18" />
+          {/* location pin — a teardrop map marker planted on the K */}
+          <path d="M28 18 C 22 13 22.5 4.5 28 4.5 C 33.5 4.5 34 13 28 18 Z" />
         </g>
-        {/* pin marker dot */}
-        <circle cx="30" cy="12" r="2.1" fill={`url(#${gradId})`} />
+        {/* pin marker center */}
+        <circle cx="28" cy="9.4" r="2.1" fill={`url(#${gradId})`} />
       </g>
     </svg>
   );

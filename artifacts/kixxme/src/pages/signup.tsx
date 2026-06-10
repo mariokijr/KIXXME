@@ -59,7 +59,7 @@ export default function Signup() {
             KIXXME
           </h1>
           <p className="text-muted-foreground font-sans text-base tracking-widest" data-testid="text-signup-sub">
-            Tu próxima conexión está a un toque
+            Conecta con chicos cerca de ti.
           </p>
         </div>
 
