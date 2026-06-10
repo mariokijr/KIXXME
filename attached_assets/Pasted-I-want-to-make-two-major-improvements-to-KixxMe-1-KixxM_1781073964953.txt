@@ -1,0 +1,171 @@
+I want to make two major improvements to KixxMe.
+
+1. KixxMe Live Gold (future feature)
+
+I want KixxMe Live to become one of the main reasons users subscribe to Gold.
+
+Concept:
+A video-call section fully integrated inside KixxMe, not an external app.
+
+Requirements:
+
+* New tab with a camera icon: 📹 Live
+* Only Gold members can access it.
+* Only Gold members can be matched with other Gold members.
+* Free and Plus users see a Gold paywall.
+* Users cannot manually choose who to video call.
+* Matching must be random and exciting.
+
+Matching flow:
+
+1. User opens Live.
+2. User chooses filters:
+    * Age range
+    * Nearby users
+    * Same city
+    * Spain
+    * Europe
+    * Worldwide
+3. User taps:
+    🔥 Buscar videollamada
+4. Show a fun waiting screen while searching.
+5. When a match is found, show a pre-call reveal screen.
+
+Searching screen:
+Title:
+“Buscando una conexión Gold para ti…”
+
+Subtitle:
+“Estamos encontrando a alguien con quien romper el hielo.”
+
+Use a playful animated icon:
+🎲
+✨
+📹
+💫
+
+Pre-call reveal screen:
+Show:
+
+* Profile photo
+* Name
+* Age
+* City
+
+Example:
+
+“Has conectado con Eduardo”
+“28 años · Madrid”
+
+or
+
+“Te vas a conectar con Eduardo, 28, Madrid”
+
+Show a countdown:
+
+“La llamada empieza en 5… 4… 3…”
+
+Buttons:
+
+* ✅ Aceptar
+* 🔄 Siguiente
+* ❌ Cancelar
+
+Behavior:
+
+* Aceptar = wait for both users to accept.
+* Siguiente = skip and search for another random Gold user.
+* Cancelar = stop searching.
+* If both users accept, start the call.
+* If either user cancels, return to searching.
+
+Private video calls:
+
+* Add a camera button inside private chats.
+* A user can invite another user to a video call.
+* The call starts only if both users are Gold and both accept.
+
+In-call controls:
+
+* Camera on/off
+* Microphone on/off
+* End call
+* Report user
+* Block user
+
+Safety:
+
+* Report and Block before and during calls.
+* Show:
+    “Respeta siempre a la otra persona. Puedes cancelar, bloquear o reportar en cualquier momento.”
+
+Important:
+Do not implement expensive video infrastructure yet.
+Prepare the UI, database structure, routes and architecture for future WebRTC / LiveKit integration.
+
+2. KixxMe Brand Redesign
+
+I like the dark theme, neon colors and typography.
+
+However, I do NOT want the fire icons anymore.
+
+Current:
+🔥 KIXXME 🔥
+
+The fire icons make the app feel too generic.
+
+Please redesign the branding to feel premium, modern and recognizable.
+
+Replace the fire icons with:
+
+* A custom neon K symbol
+* A location pin integrated into the K
+* A premium emblem
+* Something unique that can become the official KixxMe logo
+
+Keep:
+
+* Dark background
+* Purple/pink neon gradients
+* Mobile-first design
+* Premium aesthetic
+
+Update:
+
+* Login screen
+* Registration screen
+* Splash screen
+* Premium pages
+* Live pages
+* Header logo
+* Navigation icons
+* App icon/logo areas
+
+Also replace:
+
+“Entra al mapa más caliente”
+
+with something more premium, such as:
+
+“Conecta con chicos cerca de ti.”
+
+or
+
+“Descubre nuevas conexiones cerca de ti.”
+
+or
+
+“Conoce, conecta y disfruta.”
+
+Choose the version that best matches the new premium branding.
+
+Goal:
+Make KixxMe feel like a premium social platform with its own identity, not a generic dating app.
+
+After the redesign, show screenshots of:
+
+* Login screen
+* Registration screen
+* Discover page
+* Live page
+* Premium page
