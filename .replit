@@ -42,4 +42,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ADMIN_EMAILS = ""
+ADMIN_EMAILS = "supportkixxme@gmail.com"
