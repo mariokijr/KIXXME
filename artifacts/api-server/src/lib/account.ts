@@ -20,6 +20,7 @@ import {
 import { supabase } from "./supabase.js";
 import { cancelAllSubscriptionsForUser } from "./billing.js";
 import { purgeUserVerification } from "./verification.js";
+import { purgeUserTickets } from "./support-tickets.js";
 
 /**
  * Account self-service: temporary deactivation, permanent deletion, and the
@@ -415,6 +416,7 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
   await db
     .delete(moderationActionsTable)
     .where(eq(moderationActionsTable.userId, userId));
+  await purgeUserTickets(userId);
   // Verification: remove private selfies from storage + the request rows.
   await purgeUserVerification(userId, log);
 

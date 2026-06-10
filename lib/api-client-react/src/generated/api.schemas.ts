@@ -77,6 +77,127 @@ export interface SupportReportResponse {
   createdAt: string;
 }
 
+export type SupportTicketStatus = typeof SupportTicketStatus[keyof typeof SupportTicketStatus];
+
+
+export const SupportTicketStatus = {
+  pending: 'pending',
+  answered: 'answered',
+  closed: 'closed',
+  urgent: 'urgent',
+} as const;
+
+export type SupportTicketOpenedByRole = typeof SupportTicketOpenedByRole[keyof typeof SupportTicketOpenedByRole];
+
+
+export const SupportTicketOpenedByRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export type SupportTicketLastSenderRole = typeof SupportTicketLastSenderRole[keyof typeof SupportTicketLastSenderRole];
+
+
+export const SupportTicketLastSenderRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  status: SupportTicketStatus;
+  subject: string;
+  openedByRole: SupportTicketOpenedByRole;
+  lastMessageAt: string;
+  lastSenderRole: SupportTicketLastSenderRole;
+  lastMessagePreview?: string | null;
+  /** True when the other side has unread messages for the viewer */
+  unread: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /** Ticket owner's username (admin views only) */
+  username?: string | null;
+  /** Ticket owner's avatar (admin views only) */
+  avatarUrl?: string | null;
+}
+
+export type SupportTicketMessageSenderRole = typeof SupportTicketMessageSenderRole[keyof typeof SupportTicketMessageSenderRole];
+
+
+export const SupportTicketMessageSenderRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface SupportTicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderRole: SupportTicketMessageSenderRole;
+  body: string;
+  createdAt: string;
+}
+
+export interface SupportTicketDetail {
+  ticket: SupportTicket;
+  messages: SupportTicketMessage[];
+}
+
+export interface SupportTicketList {
+  tickets: SupportTicket[];
+  total: number;
+}
+
+export interface OpenSupportTicketRequest {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  subject: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  message: string;
+}
+
+export interface SupportMessageRequest {
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  body: string;
+}
+
+export interface AdminCreateTicketRequest {
+  userId: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  subject: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  message: string;
+}
+
+export type SetTicketStatusRequestStatus = typeof SetTicketStatusRequestStatus[keyof typeof SetTicketStatusRequestStatus];
+
+
+export const SetTicketStatusRequestStatus = {
+  pending: 'pending',
+  answered: 'answered',
+  closed: 'closed',
+  urgent: 'urgent',
+} as const;
+
+export interface SetTicketStatusRequest {
+  status: SetTicketStatusRequestStatus;
+}
+
 export interface LikeNotification {
   user_id: string;
   username: string | null;
@@ -168,13 +289,17 @@ export interface MatchNotification {
 export interface AdminNotificationSummary {
   open_reports: number;
   open_flags: number;
+  open_tickets: number;
   latest_report_at: string | null;
+  latest_ticket_at: string | null;
 }
 
 export interface NotificationsSummary {
   unread_messages: number;
   likes: LikeNotification[];
   matches: MatchNotification[];
+  /** Unread admin replies on the viewer's own support tickets */
+  support_unread: number;
   admin?: AdminNotificationSummary;
 }
 
@@ -835,6 +960,7 @@ export interface AdminSummary {
   banned: number;
   removed: number;
   pendingVerifications: number;
+  openTickets: number;
 }
 
 export interface WarnUserRequest {
@@ -1123,5 +1249,21 @@ export const ListAdminUsersStatus = {
   suspended: 'suspended',
   banned: 'banned',
   removed: 'removed',
+} as const;
+
+export type ListAdminTicketsParams = {
+status?: ListAdminTicketsStatus;
+limit?: number;
+offset?: number;
+};
+
+export type ListAdminTicketsStatus = typeof ListAdminTicketsStatus[keyof typeof ListAdminTicketsStatus];
+
+
+export const ListAdminTicketsStatus = {
+  pending: 'pending',
+  answered: 'answered',
+  closed: 'closed',
+  urgent: 'urgent',
 } as const;
 

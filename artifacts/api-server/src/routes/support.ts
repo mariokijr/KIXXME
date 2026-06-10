@@ -1,13 +1,24 @@
 import { Router } from "express";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, isAdminEmail } from "../lib/auth.js";
 import { db, supportReportsTable } from "@workspace/db";
 import {
   sendEmail,
   SUPPORT_EMAIL,
   supportReportEmailHtml,
 } from "../lib/email.js";
+import { hasGold } from "../lib/entitlement.js";
+import {
+  listMine,
+  createTicket,
+  getTicketDetail,
+  postMessage,
+} from "../lib/support-tickets.js";
+import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
 
 const router = Router();
+
+const MAX_SUBJECT = 200;
+const MAX_BODY = 5000;
 
 const CATEGORIES = new Set([
   "contact",
@@ -137,6 +148,131 @@ router.post("/support/reports", async (req, res) => {
       "support report: failed to save",
     );
     res.status(500).json({ error: "No se pudo guardar el reporte" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Priority support chat ("Soporte Premium Gold"). Threaded admin↔user tickets.
+// OPENING from the user side is Gold-only; replying needs only ownership (so an
+// admin-initiated ticket to a free user can still be answered). Admins act on
+// any ticket. All status transitions live in lib/support-tickets.ts; routes
+// never set status. GET detail + POST messages are SHARED by users and admins.
+// ---------------------------------------------------------------------------
+
+router.get("/support/tickets", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const list = await listMine(auth.userId);
+  res.json(list);
+});
+
+router.post("/support/tickets", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { subject, message } = (req.body ?? {}) as {
+    subject?: unknown;
+    message?: unknown;
+  };
+  if (typeof subject !== "string" || singleLine(subject).length === 0) {
+    res.status(400).json({ error: "El asunto es obligatorio" });
+    return;
+  }
+  if (typeof message !== "string" || message.trim().length === 0) {
+    res.status(400).json({ error: "El mensaje es obligatorio" });
+    return;
+  }
+  if (message.length > MAX_BODY) {
+    res.status(400).json({ error: "El mensaje es demasiado largo" });
+    return;
+  }
+
+  // Gold-only to OPEN a ticket from the user side. Replying to an existing
+  // ticket (including admin-initiated ones) only requires ownership.
+  if (!(await hasGold(auth.userId))) {
+    res.status(402).json({
+      error: "El chat de soporte prioritario es exclusivo de KixxMe Gold",
+      code: "gold_required",
+    });
+    return;
+  }
+
+  try {
+    const detail = await createTicket(
+      auth.userId,
+      singleLine(subject).slice(0, MAX_SUBJECT),
+      message.trim(),
+    );
+    res.status(201).json(detail);
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support ticket: failed to open",
+    );
+    res.status(500).json({ error: "No se pudo abrir el ticket" });
+  }
+});
+
+router.get("/support/tickets/:id", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const detail = await getTicketDetail(
+    id,
+    auth.userId,
+    isAdminEmail(auth.email),
+  );
+  if (!detail) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  res.json(detail);
+});
+
+router.post("/support/tickets/:id/messages", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const { body } = (req.body ?? {}) as { body?: unknown };
+  if (typeof body !== "string" || body.trim().length === 0) {
+    res.status(400).json({ error: "El mensaje es obligatorio" });
+    return;
+  }
+  if (body.length > MAX_BODY) {
+    res.status(400).json({ error: "El mensaje es demasiado largo" });
+    return;
+  }
+
+  const isAdmin = isAdminEmail(auth.email);
+  try {
+    const detail = await postMessage(id, auth.userId, isAdmin, body.trim());
+    if (!detail) {
+      res.status(404).json({ error: "Ticket no encontrado" });
+      return;
+    }
+    // An admin reply (the sender is not the ticket owner) nudges the owner by
+    // email — fire-and-forget; never fails the request.
+    if (detail.ticket.userId !== auth.userId) {
+      void notifySupportReplyByEmail(
+        detail.ticket.userId,
+        detail.ticket.subject,
+      );
+    }
+    res.status(201).json(detail);
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support ticket: failed to post message",
+    );
+    res.status(500).json({ error: "No se pudo enviar el mensaje" });
   }
 });
 

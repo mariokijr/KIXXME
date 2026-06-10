@@ -1066,6 +1066,142 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /support/tickets:
+    get:
+      operationId: listSupportTickets
+      tags: [support]
+      summary: List my priority support tickets
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: My tickets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: openSupportTicket
+      tags: [support]
+      summary: Open a new priority support ticket (Gold only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenSupportTicketRequest"
+      responses:
+        "201":
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "402":
+          description: Gold subscription required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /support/tickets/{id}:
+    get:
+      operationId: getSupportTicket
+      tags: [support]
+      summary: Get a support ticket thread (owner or admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /support/tickets/{id}/messages:
+    post:
+      operationId: sendSupportMessage
+      tags: [support]
+      summary: Reply to a support ticket (owner — no Gold needed — or admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportMessageRequest"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /notifications/summary:
     get:
       operationId: getNotificationsSummary
@@ -1988,6 +2124,126 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/tickets:
+    get:
+      operationId: listAdminTickets
+      tags: [admin]
+      summary: List all support tickets with status filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, answered, closed, urgent]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tickets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateTicket
+      tags: [admin]
+      summary: Start a support ticket with any user (even non-Gold)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateTicketRequest"
+      responses:
+        "201":
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Target user not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/tickets/{id}/status:
+    post:
+      operationId: setAdminTicketStatus
+      tags: [admin]
+      summary: Set a support ticket's status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetTicketStatusRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/photos/{photoId}:
     delete:
       operationId: adminRemovePhoto
@@ -2246,6 +2502,143 @@ components:
           type: string
       required: [id, status, createdAt]
 
+    SupportTicket:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        status:
+          type: string
+          enum: [pending, answered, closed, urgent]
+        subject:
+          type: string
+        openedByRole:
+          type: string
+          enum: [user, admin]
+        lastMessageAt:
+          type: string
+        lastSenderRole:
+          type: string
+          enum: [user, admin]
+        lastMessagePreview:
+          type: string
+          nullable: true
+        unread:
+          type: boolean
+          description: True when the other side has unread messages for the viewer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        username:
+          type: string
+          nullable: true
+          description: Ticket owner's username (admin views only)
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Ticket owner's avatar (admin views only)
+      required:
+        [
+          id,
+          userId,
+          status,
+          subject,
+          openedByRole,
+          lastMessageAt,
+          lastSenderRole,
+          unread,
+          createdAt,
+          updatedAt,
+        ]
+
+    SupportTicketMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        ticketId:
+          type: string
+        senderId:
+          type: string
+        senderRole:
+          type: string
+          enum: [user, admin]
+        body:
+          type: string
+        createdAt:
+          type: string
+      required: [id, ticketId, senderId, senderRole, body, createdAt]
+
+    SupportTicketDetail:
+      type: object
+      properties:
+        ticket:
+          $ref: "#/components/schemas/SupportTicket"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportTicketMessage"
+      required: [ticket, messages]
+
+    SupportTicketList:
+      type: object
+      properties:
+        tickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportTicket"
+        total:
+          type: integer
+      required: [tickets, total]
+
+    OpenSupportTicketRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+      required: [subject, message]
+
+    SupportMessageRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+      required: [body]
+
+    AdminCreateTicketRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+      required: [userId, subject, message]
+
+    SetTicketStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, answered, closed, urgent]
+      required: [status]
+
     LikeNotification:
       type: object
       properties:
@@ -2389,9 +2782,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MatchNotification"
+        support_unread:
+          type: integer
+          description: Unread admin replies on the viewer's own support tickets
         admin:
           $ref: "#/components/schemas/AdminNotificationSummary"
-      required: [unread_messages, likes, matches]
+      required: [unread_messages, support_unread, likes, matches]
 
     AdminNotificationSummary:
       type: object
@@ -2404,10 +2800,16 @@ components:
           type: integer
         open_flags:
           type: integer
+        open_tickets:
+          type: integer
         latest_report_at:
           type: string
           nullable: true
-      required: [open_reports, open_flags, latest_report_at]
+        latest_ticket_at:
+          type: string
+          nullable: true
+      required:
+        [open_reports, open_flags, open_tickets, latest_report_at, latest_ticket_at]
 
     Session:
       type: object
@@ -3168,6 +3570,8 @@ components:
           type: integer
         pendingVerifications:
           type: integer
+        openTickets:
+          type: integer
       required:
         [
           openReports,
@@ -3176,6 +3580,7 @@ components:
           banned,
           removed,
           pendingVerifications,
+          openTickets,
         ]
 
     WarnUserRequest:

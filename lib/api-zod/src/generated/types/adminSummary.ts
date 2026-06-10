@@ -13,4 +13,5 @@ export interface AdminSummary {
   banned: number;
   removed: number;
   pendingVerifications: number;
+  openTickets: number;
 }

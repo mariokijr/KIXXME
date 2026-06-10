@@ -9,3 +9,4 @@
 - [Custom-domain launch](kixxme-custom-domain-launch.md) — `appBaseUrl()` from `APP_BASE_URL` secret (`REPLIT_DOMAINS` fallback); Supabase redirect allowlist must list the domain; addable only post-publish.
 - [PWA & mobile packaging](kixxme-pwa-mobile.md) — prod-only SW must never touch `/api` or cross-origin; `assetlinks.json` served file-first; Play fingerprint = Play App Signing key, not local keystore.
 - [Daily rewards, streaks & credit ledger](kixxme-rewards-streaks.md) — `like_actions.source` discriminator keeps credit-funded likes out of the derived base lockout; credit spend is inside the per-user advisory lock w/ dual refund; unlimited tiers accrue but hide chips.
+- [Support tickets (Gold priority chat)](kixxme-support-tickets.md) — Gold gate (402) only on user-side open; reply needs ownership only; senderRole derived server-side; all status transitions centralized in one db.transaction; GET detail marks read; unread/admin-summary derived not stored.

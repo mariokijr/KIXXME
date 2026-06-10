@@ -26,11 +26,24 @@ import {
   useWarnUser,
   useRemoveUser,
   useRestoreUser,
+  useListAdminTickets,
+  getListAdminTicketsQueryKey,
+  useGetSupportTicket,
+  getGetSupportTicketQueryKey,
+  useSendSupportMessage,
+  useAdminCreateTicket,
+  useSetAdminTicketStatus,
+  getListSupportTicketsQueryKey,
+  getGetNotificationsSummaryQueryKey,
   type AdminReport,
   type AdminFlag,
   type AdminVerificationItem,
   type AdminUserItem,
   type ListAdminUsersParams,
+  type ListAdminTicketsParams,
+  type SupportTicket,
+  type SupportTicketStatus,
+  type SetTicketStatusRequestStatus,
   type Message,
   type ProfilePhoto,
   type PublicProfile,
@@ -64,6 +77,11 @@ import {
   Users,
   RotateCcw,
   Mail,
+  LifeBuoy,
+  Send,
+  Plus,
+  MessageSquare,
+  ChevronLeft,
 } from "lucide-react";
 
 const REPORTS_KEY = "/api/admin/reports";
@@ -115,7 +133,7 @@ export default function AdminPage() {
   const { session } = useAuth();
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<
-    "reports" | "flags" | "verifications" | "users"
+    "reports" | "flags" | "verifications" | "users" | "support"
   >("reports");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
@@ -183,12 +201,20 @@ export default function AdminPage() {
           value={summary?.removed ?? 0}
           tone="red"
         />
+        <SummaryCard
+          icon={<LifeBuoy className="w-4 h-4" />}
+          label="Tickets abiertos"
+          value={summary?.openTickets ?? 0}
+          tone="amber"
+        />
       </div>
 
       <div className="px-4 pt-5">
         <div className="flex gap-2 p-1 rounded-xl border border-border/40 overflow-x-auto no-scrollbar"
           style={{ background: "rgba(255,255,255,0.03)" }}>
-          {(["reports", "flags", "verifications", "users"] as const).map((t) => (
+          {(
+            ["reports", "flags", "verifications", "users", "support"] as const
+          ).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -210,7 +236,9 @@ export default function AdminPage() {
                   ? "Alertas"
                   : t === "verifications"
                     ? "Verif."
-                    : "Usuarios"}
+                    : t === "users"
+                      ? "Usuarios"
+                      : "Soporte"}
             </button>
           ))}
         </div>
@@ -222,8 +250,10 @@ export default function AdminPage() {
         <FlagsTab />
       ) : tab === "verifications" ? (
         <VerificationsTab />
-      ) : (
+      ) : tab === "users" ? (
         <UsersTab />
+      ) : (
+        <SupportTab />
       )}
 
       <ReportDetailDialog
@@ -2052,5 +2082,695 @@ function EmptyState({
         {subtitle}
       </p>
     </div>
+  );
+}
+
+// --- Support tickets -------------------------------------------------------
+
+const TICKET_STATUS_META: Record<
+  SupportTicketStatus,
+  { label: string; className: string }
+> = {
+  pending: {
+    label: "Pendiente",
+    className: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  },
+  answered: {
+    label: "Respondido",
+    className: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  },
+  closed: {
+    label: "Cerrado",
+    className: "bg-white/5 text-muted-foreground border-border/40",
+  },
+  urgent: {
+    label: "Urgente",
+    className: "bg-red-500/15 text-red-300 border-red-500/40",
+  },
+};
+
+function TicketStatusChip({ status }: { status: SupportTicketStatus }) {
+  const meta = TICKET_STATUS_META[status] ?? TICKET_STATUS_META.pending;
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${meta.className}`}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+function SupportTab() {
+  const { session } = useAuth();
+  const [status, setStatus] = useState<"" | SupportTicketStatus>("");
+  const [page, setPage] = useState(0);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [status]);
+
+  const PAGE_SIZE = 30;
+  const params: ListAdminTicketsParams = {
+    ...(status ? { status: status as ListAdminTicketsParams["status"] } : {}),
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  };
+
+  const { data, isLoading, isFetching } = useListAdminTickets(params, {
+    query: {
+      enabled: !!session,
+      queryKey: getListAdminTicketsQueryKey(params),
+      placeholderData: (prev) => prev,
+      refetchInterval: 20_000,
+    },
+  });
+
+  const tickets = data?.tickets ?? [];
+  const total = data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const canPrev = page > 0;
+  const canNext = (page + 1) * PAGE_SIZE < total;
+
+  return (
+    <div className="px-4 pt-4 space-y-4">
+      <button
+        type="button"
+        onClick={() => setCreateOpen(true)}
+        className="w-full h-11 rounded-xl font-display tracking-wide text-white flex items-center justify-center gap-2"
+        style={{
+          background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+        }}
+        data-testid="button-admin-start-ticket"
+      >
+        <Plus className="w-4 h-4" />
+        Iniciar conversación
+      </button>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        <Chip
+          active={status === ""}
+          onClick={() => setStatus("")}
+          testId="chip-ticket-all"
+        >
+          Todos
+        </Chip>
+        {(["pending", "urgent", "answered", "closed"] as const).map((s) => (
+          <Chip
+            key={s}
+            active={status === s}
+            onClick={() => setStatus(s)}
+            testId={`chip-ticket-${s}`}
+          >
+            {TICKET_STATUS_META[s].label}
+          </Chip>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      ) : tickets.length === 0 ? (
+        <EmptyState
+          icon={<LifeBuoy className="w-7 h-7" />}
+          title="Sin tickets"
+          subtitle="No hay tickets de soporte que coincidan con el filtro."
+        />
+      ) : (
+        <div className="space-y-2">
+          {tickets.map((t) => (
+            <AdminTicketRow
+              key={t.id}
+              ticket={t}
+              onClick={() => setSelectedTicketId(t.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={!canPrev || isFetching}
+            className="h-10 px-4 rounded-xl border border-border/50 font-sans text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 flex items-center gap-2"
+            data-testid="button-tickets-prev"
+          >
+            Anterior
+          </button>
+          <span className="font-sans text-xs text-muted-foreground inline-flex items-center gap-2">
+            {isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            Página {page + 1} de {pageCount}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!canNext || isFetching}
+            className="h-10 px-4 rounded-xl border border-border/50 font-sans text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 flex items-center gap-2"
+            data-testid="button-tickets-next"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      <AdminTicketThread
+        ticketId={selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+      />
+      <AdminCreateTicketDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(id) => {
+          setCreateOpen(false);
+          setSelectedTicketId(id);
+        }}
+      />
+    </div>
+  );
+}
+
+function TicketAvatar({
+  username,
+  avatarUrl,
+  size = 40,
+}: {
+  username?: string | null;
+  avatarUrl?: string | null;
+  size?: number;
+}) {
+  const initial = (username ?? "?").charAt(0).toUpperCase();
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={username ?? ""}
+        className="rounded-full object-cover flex-shrink-0"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-display text-foreground"
+      style={{
+        width: size,
+        height: size,
+        background: "linear-gradient(135deg, hsl(273,40%,30%), hsl(330,40%,30%))",
+      }}
+    >
+      {initial}
+    </div>
+  );
+}
+
+function AdminTicketRow({
+  ticket,
+  onClick,
+}: {
+  ticket: SupportTicket;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/40 text-left hover:bg-white/5 transition-colors"
+      style={{ background: "rgba(13,11,26,0.7)" }}
+      data-testid={`admin-ticket-row-${ticket.id}`}
+    >
+      <TicketAvatar username={ticket.username} avatarUrl={ticket.avatarUrl} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-sans text-sm font-medium text-foreground truncate">
+            {ticket.username ?? "Usuario"}
+          </p>
+          {ticket.unread && (
+            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+          )}
+        </div>
+        <p className="font-sans text-xs text-foreground/80 truncate">
+          {ticket.subject}
+        </p>
+        {ticket.lastMessagePreview && (
+          <p className="font-sans text-[11px] text-muted-foreground truncate mt-0.5">
+            {ticket.lastSenderRole === "admin" ? "Soporte: " : ""}
+            {ticket.lastMessagePreview}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <TicketStatusChip status={ticket.status} />
+        <span className="font-sans text-[10px] text-muted-foreground">
+          {fmtDate(ticket.lastMessageAt)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function AdminTicketThread({
+  ticketId,
+  onClose,
+}: {
+  ticketId: string | null;
+  onClose: () => void;
+}) {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [reply, setReply] = useState("");
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const { data, isLoading } = useGetSupportTicket(ticketId ?? "", {
+    query: {
+      enabled: !!session && !!ticketId,
+      queryKey: getGetSupportTicketQueryKey(ticketId ?? ""),
+      refetchInterval: ticketId ? 5000 : false,
+    },
+  });
+
+  const sendMessage = useSendSupportMessage();
+  const setStatus = useSetAdminTicketStatus();
+
+  const ticket = data?.ticket;
+  const messages = data?.messages ?? [];
+
+  React.useEffect(() => {
+    setReply("");
+  }, [ticketId]);
+
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  React.useEffect(() => {
+    if (!ticketId) return;
+    // Reading a thread marks it read for the admin role server-side.
+    qc.invalidateQueries({ queryKey: getGetNotificationsSummaryQueryKey() });
+    qc.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+  }, [qc, ticketId, messages.length]);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+    qc.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetNotificationsSummaryQueryKey() });
+    qc.invalidateQueries({ queryKey: getListSupportTicketsQueryKey() });
+    if (ticketId) {
+      qc.invalidateQueries({
+        queryKey: getGetSupportTicketQueryKey(ticketId),
+      });
+    }
+  };
+
+  const submitReply = () => {
+    if (!ticketId) return;
+    const body = reply.trim();
+    if (body.length < 1) return;
+    sendMessage.mutate(
+      { id: ticketId, data: { body } },
+      {
+        onSuccess: () => {
+          setReply("");
+          invalidate();
+        },
+        onError: (err: any) =>
+          toast({
+            title: "No se pudo enviar",
+            description: errMsg(err, "Inténtalo de nuevo."),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const changeStatus = (next: SetTicketStatusRequestStatus) => {
+    if (!ticketId) return;
+    setStatus.mutate(
+      { id: ticketId, data: { status: next } },
+      {
+        onSuccess: () => {
+          toast({ title: "Estado actualizado" });
+          invalidate();
+        },
+        onError: (err: any) =>
+          toast({
+            title: "No se pudo cambiar el estado",
+            description: errMsg(err, "Inténtalo de nuevo."),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const busy = sendMessage.isPending || setStatus.isPending;
+
+  return (
+    <Dialog open={!!ticketId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[85dvh]">
+        <DialogHeader className="px-4 py-3 border-b border-border/40">
+          <DialogTitle className="font-display tracking-wide flex items-center gap-2 text-left">
+            <TicketAvatar
+              username={ticket?.username}
+              avatarUrl={ticket?.avatarUrl}
+              size={32}
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block truncate">{ticket?.username ?? "Ticket"}</span>
+              <span className="block font-sans text-xs text-muted-foreground font-normal truncate">
+                {ticket?.subject ?? ""}
+              </span>
+            </span>
+            {ticket && <TicketStatusChip status={ticket.status} />}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[180px]"
+          data-testid="admin-ticket-messages"
+        >
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            </div>
+          ) : (
+            messages.map((m) => {
+              const mine = m.senderRole === "admin";
+              return (
+                <div
+                  key={m.id}
+                  className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                >
+                  <div className="max-w-[80%]">
+                    <div
+                      className={`px-3 py-2 rounded-2xl font-sans text-sm whitespace-pre-wrap break-words ${
+                        mine
+                          ? "text-white rounded-br-sm"
+                          : "text-foreground rounded-bl-sm border border-border/40"
+                      }`}
+                      style={
+                        mine
+                          ? {
+                              background:
+                                "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                            }
+                          : { background: "rgba(255,255,255,0.04)" }
+                      }
+                    >
+                      {m.body}
+                    </div>
+                    <p
+                      className={`font-sans text-[10px] text-muted-foreground mt-1 px-1 ${
+                        mine ? "text-right" : "text-left"
+                      }`}
+                    >
+                      {mine ? "Soporte · " : ""}
+                      {fmtDate(m.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="px-4 py-2 border-t border-border/40 flex gap-2 overflow-x-auto no-scrollbar">
+          {ticket?.status !== "closed" && (
+            <button
+              type="button"
+              onClick={() => changeStatus("closed")}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-full font-sans text-xs whitespace-nowrap border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-40"
+              data-testid="button-ticket-close"
+            >
+              Cerrar
+            </button>
+          )}
+          {ticket?.status !== "urgent" && (
+            <button
+              type="button"
+              onClick={() => changeStatus("urgent")}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-full font-sans text-xs whitespace-nowrap border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-40"
+              data-testid="button-ticket-urgent"
+            >
+              Marcar urgente
+            </button>
+          )}
+          {ticket?.status === "closed" && (
+            <button
+              type="button"
+              onClick={() => changeStatus("pending")}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-full font-sans text-xs whitespace-nowrap border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-40"
+              data-testid="button-ticket-reopen"
+            >
+              Reabrir
+            </button>
+          )}
+        </div>
+
+        <div className="px-4 py-3 border-t border-border/40 flex items-end gap-2">
+          <Textarea
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            maxLength={5000}
+            rows={1}
+            placeholder="Escribe una respuesta…"
+            className="resize-none min-h-[44px] max-h-32"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submitReply();
+              }
+            }}
+            data-testid="input-admin-ticket-reply"
+          />
+          <button
+            type="button"
+            onClick={submitReply}
+            disabled={busy || reply.trim().length < 1}
+            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl text-white disabled:opacity-50"
+            style={{
+              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+            }}
+            data-testid="button-admin-send-reply"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AdminCreateTicketDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onCreated: (id: string) => void;
+}) {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [selected, setSelected] = useState<AdminUserItem | null>(null);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const create = useAdminCreateTicket();
+
+  React.useEffect(() => {
+    if (open) {
+      setSearch("");
+      setDebounced("");
+      setSelected(null);
+      setSubject("");
+      setMessage("");
+    }
+  }, [open]);
+
+  React.useEffect(() => {
+    const id = setTimeout(() => setDebounced(search.trim()), 350);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const params: ListAdminUsersParams = {
+    ...(debounced ? { q: debounced } : {}),
+    limit: 8,
+    offset: 0,
+  };
+  const { data: userData, isFetching } = useListAdminUsers(params, {
+    query: {
+      enabled: !!session && open && !selected && debounced.length > 0,
+      queryKey: getListAdminUsersQueryKey(params),
+    },
+  });
+  const candidates = userData?.users ?? [];
+
+  const submit = () => {
+    if (!selected) return;
+    const s = subject.trim();
+    const m = message.trim();
+    if (s.length < 1 || m.length < 1) {
+      toast({
+        title: "Completa el asunto y el mensaje",
+        variant: "destructive",
+      });
+      return;
+    }
+    create.mutate(
+      { data: { userId: selected.id, subject: s, message: m } },
+      {
+        onSuccess: (detail) => {
+          qc.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+          qc.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+          onCreated(detail.ticket.id);
+        },
+        onError: (err: any) =>
+          toast({
+            title: "No se pudo crear el ticket",
+            description: errMsg(err, "Inténtalo de nuevo."),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display tracking-wide flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-primary" />
+            Iniciar conversación
+          </DialogTitle>
+        </DialogHeader>
+
+        {!selected ? (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar usuario por nombre o ciudad…"
+                className="pl-9 rounded-xl border border-border/60 font-sans bg-input/40 text-sm"
+                data-testid="input-admin-ticket-user-search"
+              />
+            </div>
+            {isFetching ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              </div>
+            ) : debounced && candidates.length === 0 ? (
+              <p className="font-sans text-sm text-muted-foreground text-center py-6">
+                Sin resultados.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {candidates.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => setSelected(u)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-border/40 text-left hover:bg-white/5"
+                    style={{ background: "rgba(13,11,26,0.6)" }}
+                    data-testid={`admin-ticket-user-${u.id}`}
+                  >
+                    <TicketAvatar
+                      username={u.username}
+                      avatarUrl={u.avatarUrl}
+                      size={36}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-sans text-sm text-foreground truncate">
+                        {u.username ?? "Usuario"}
+                      </p>
+                      <p className="font-sans text-xs text-muted-foreground truncate">
+                        {[u.city, PLAN_LABELS[u.plan as "free" | "plus" | "gold"]]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl border border-primary/30 bg-primary/5">
+              <TicketAvatar
+                username={selected.username}
+                avatarUrl={selected.avatarUrl}
+                size={36}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-sans text-sm text-foreground truncate">
+                  {selected.username ?? "Usuario"}
+                </p>
+                <p className="font-sans text-xs text-muted-foreground truncate">
+                  {selected.city ?? ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="font-sans text-xs text-primary hover:underline"
+                data-testid="button-admin-ticket-change-user"
+              >
+                Cambiar
+              </button>
+            </div>
+            <div>
+              <label className="font-sans text-xs text-muted-foreground mb-1 block">
+                Asunto
+              </label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                maxLength={200}
+                placeholder="Asunto del mensaje"
+                data-testid="input-admin-ticket-subject"
+              />
+            </div>
+            <div>
+              <label className="font-sans text-xs text-muted-foreground mb-1 block">
+                Mensaje
+              </label>
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                maxLength={5000}
+                rows={5}
+                placeholder="Escribe el mensaje para el usuario…"
+                data-testid="input-admin-ticket-body"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={create.isPending}
+              className="w-full h-11 rounded-xl font-display tracking-wide text-white flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+              }}
+              data-testid="button-admin-create-ticket"
+            >
+              <Send className="w-4 h-4" />
+              {create.isPending ? "Creando…" : "Enviar"}
+            </button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

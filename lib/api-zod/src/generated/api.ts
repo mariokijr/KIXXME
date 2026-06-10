@@ -683,6 +683,94 @@ export const CreateSupportReportBody = zod.object({
 
 
 /**
+ * @summary List my priority support tickets
+ */
+export const ListSupportTicketsResponse = zod.object({
+  "tickets": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Open a new priority support ticket (Gold only)
+ */
+export const openSupportTicketBodySubjectMax = 200;
+
+export const openSupportTicketBodyMessageMax = 5000;
+
+
+
+export const OpenSupportTicketBody = zod.object({
+  "subject": zod.string().min(1).max(openSupportTicketBodySubjectMax),
+  "message": zod.string().min(1).max(openSupportTicketBodyMessageMax)
+})
+
+
+/**
+ * @summary Get a support ticket thread (owner or admin)
+ */
+export const GetSupportTicketParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetSupportTicketResponse = zod.object({
+  "ticket": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "ticketId": zod.string(),
+  "senderId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "body": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Reply to a support ticket (owner — no Gold needed — or admin)
+ */
+export const SendSupportMessageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const sendSupportMessageBodyBodyMax = 5000;
+
+
+
+export const SendSupportMessageBody = zod.object({
+  "body": zod.string().min(1).max(sendSupportMessageBodyBodyMax)
+})
+
+
+/**
  * @summary Aggregated in-app notifications (unread messages, likes, matches)
  */
 export const GetNotificationsSummaryResponse = zod.object({
@@ -701,10 +789,13 @@ export const GetNotificationsSummaryResponse = zod.object({
   "avatar_url": zod.string().nullable(),
   "matched_at": zod.string()
 })),
+  "support_unread": zod.number().describe('Unread admin replies on the viewer\'s own support tickets'),
   "admin": zod.object({
   "open_reports": zod.number(),
   "open_flags": zod.number(),
-  "latest_report_at": zod.string().nullable()
+  "open_tickets": zod.number(),
+  "latest_report_at": zod.string().nullable(),
+  "latest_ticket_at": zod.string().nullable()
 }).optional().describe('Moderation notification state, present only for admin users (absent for everyone else). Lets an admin\'s notification bell surface new reports and flags the same way regular users are notified of likes and matches.')
 })
 
@@ -955,7 +1046,8 @@ export const GetAdminSummaryResponse = zod.object({
   "suspended": zod.number(),
   "banned": zod.number(),
   "removed": zod.number(),
-  "pendingVerifications": zod.number()
+  "pendingVerifications": zod.number(),
+  "openTickets": zod.number()
 })
 
 
@@ -1333,6 +1425,89 @@ export const RestoreUserParams = zod.object({
 
 export const RestoreUserResponse = zod.object({
   "success": zod.boolean()
+})
+
+
+/**
+ * @summary List all support tickets with status filter
+ */
+export const ListAdminTicketsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']).optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListAdminTicketsResponse = zod.object({
+  "tickets": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Start a support ticket with any user (even non-Gold)
+ */
+export const adminCreateTicketBodySubjectMax = 200;
+
+export const adminCreateTicketBodyMessageMax = 5000;
+
+
+
+export const AdminCreateTicketBody = zod.object({
+  "userId": zod.string(),
+  "subject": zod.string().min(1).max(adminCreateTicketBodySubjectMax),
+  "message": zod.string().min(1).max(adminCreateTicketBodyMessageMax)
+})
+
+
+/**
+ * @summary Set a support ticket's status
+ */
+export const SetAdminTicketStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SetAdminTicketStatusBody = zod.object({
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent'])
+})
+
+export const SetAdminTicketStatusResponse = zod.object({
+  "ticket": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "ticketId": zod.string(),
+  "senderId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "body": zod.string(),
+  "createdAt": zod.string()
+}))
 })
 
 

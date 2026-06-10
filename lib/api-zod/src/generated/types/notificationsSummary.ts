@@ -13,5 +13,7 @@ export interface NotificationsSummary {
   unread_messages: number;
   likes: LikeNotification[];
   matches: MatchNotification[];
+  /** Unread admin replies on the viewer's own support tickets */
+  support_unread: number;
   admin?: AdminNotificationSummary;
 }

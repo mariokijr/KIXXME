@@ -42,6 +42,8 @@ import {
   WarnUserBody,
   RemoveUserBody,
   ReviewAdminVerificationBody,
+  AdminCreateTicketBody,
+  SetAdminTicketStatusBody,
 } from "@workspace/api-zod";
 import {
   countPendingVerifications,
@@ -49,8 +51,20 @@ import {
   reviewVerification,
   signSelfieUrl,
 } from "../lib/verification.js";
+import {
+  listAdmin as listAdminTickets,
+  adminCreateTicket,
+  setTicketStatus,
+  adminTicketStats,
+  profileExists,
+} from "../lib/support-tickets.js";
+import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
+import type { SupportTicketStatus } from "@workspace/db";
 
 const router = Router();
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Admin moderation dashboard API. Every endpoint is gated by `requireAdmin`
@@ -141,43 +155,51 @@ router.get("/admin/summary", async (req, res) => {
   if (!auth) return;
 
   const now = new Date();
-  const [openReports, openFlags, suspended, banned, removed, pendingVerifications] =
-    await Promise.all([
-      db
-        .select({ c: sql<number>`count(*)::int` })
-        .from(supportReportsTable)
-        .where(
-          and(
-            isNotNull(supportReportsTable.reportType),
-            eq(supportReportsTable.status, "open"),
+  const [
+    openReports,
+    openFlags,
+    suspended,
+    banned,
+    removed,
+    pendingVerifications,
+    ticketStats,
+  ] = await Promise.all([
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(supportReportsTable)
+      .where(
+        and(
+          isNotNull(supportReportsTable.reportType),
+          eq(supportReportsTable.status, "open"),
+        ),
+      ),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(accountFlagsTable)
+      .where(eq(accountFlagsTable.status, "open")),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(accountModerationTable)
+      .where(
+        and(
+          eq(accountModerationTable.state, "suspended"),
+          or(
+            isNull(accountModerationTable.suspendedUntil),
+            gt(accountModerationTable.suspendedUntil, now),
           ),
         ),
-      db
-        .select({ c: sql<number>`count(*)::int` })
-        .from(accountFlagsTable)
-        .where(eq(accountFlagsTable.status, "open")),
-      db
-        .select({ c: sql<number>`count(*)::int` })
-        .from(accountModerationTable)
-        .where(
-          and(
-            eq(accountModerationTable.state, "suspended"),
-            or(
-              isNull(accountModerationTable.suspendedUntil),
-              gt(accountModerationTable.suspendedUntil, now),
-            ),
-          ),
-        ),
-      db
-        .select({ c: sql<number>`count(*)::int` })
-        .from(accountModerationTable)
-        .where(eq(accountModerationTable.state, "banned")),
-      db
-        .select({ c: sql<number>`count(*)::int` })
-        .from(accountModerationTable)
-        .where(eq(accountModerationTable.state, "removed")),
-      countPendingVerifications(),
-    ]);
+      ),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(accountModerationTable)
+      .where(eq(accountModerationTable.state, "banned")),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(accountModerationTable)
+      .where(eq(accountModerationTable.state, "removed")),
+    countPendingVerifications(),
+    adminTicketStats(),
+  ]);
 
   res.json({
     openReports: openReports[0]?.c ?? 0,
@@ -186,6 +208,7 @@ router.get("/admin/summary", async (req, res) => {
     banned: banned[0]?.c ?? 0,
     removed: removed[0]?.c ?? 0,
     pendingVerifications,
+    openTickets: ticketStats.openTickets,
   });
 });
 
@@ -913,6 +936,99 @@ router.delete("/admin/photos/:photoId", async (req, res) => {
     actedBy: auth.userId,
   });
   res.json({ success: true });
+});
+
+// --- Priority support chat (admin side) ------------------------------------
+// The admin queue across ALL users. Reading a single ticket and replying reuse
+// the SHARED user endpoints (GET /support/tickets/:id, POST
+// /support/tickets/:id/messages) — an admin's session is detected there — so
+// there are no admin-only detail/message endpoints. Here we add the queue list,
+// admin-initiated tickets, and the status override.
+
+const TICKET_STATUSES: SupportTicketStatus[] = [
+  "pending",
+  "answered",
+  "closed",
+  "urgent",
+];
+
+router.get("/admin/tickets", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const statusParam =
+    typeof req.query.status === "string" ? req.query.status : undefined;
+  const status = TICKET_STATUSES.includes(statusParam as SupportTicketStatus)
+    ? (statusParam as SupportTicketStatus)
+    : undefined;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const list = await listAdminTickets({ status, limit, offset });
+  res.json(list);
+});
+
+router.post("/admin/tickets", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const parsed = AdminCreateTicketBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos no válidos" });
+    return;
+  }
+  const { userId, subject, message } = parsed.data;
+  if (!UUID_RE.test(userId)) {
+    res.status(400).json({ error: "Usuario no válido" });
+    return;
+  }
+  // The target must be a real account (cross-DB: Supabase profile).
+  if (!(await profileExists(userId))) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+
+  try {
+    const detail = await adminCreateTicket(
+      auth.userId,
+      userId,
+      subject.replace(/[\u0000-\u001F\u007F]+/g, " ").trim().slice(0, 200),
+      message.trim(),
+    );
+    // Admin-initiated outreach nudges the user by email (fire-and-forget).
+    void notifySupportReplyByEmail(userId, detail.ticket.subject);
+    res.status(201).json(detail);
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "admin support ticket: failed to create",
+    );
+    res.status(500).json({ error: "No se pudo crear el ticket" });
+  }
+});
+
+router.post("/admin/tickets/:id/status", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  if (!UUID_RE.test(req.params.id)) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const parsed = SetAdminTicketStatusBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Estado no válido" });
+    return;
+  }
+  const detail = await setTicketStatus(
+    req.params.id,
+    auth.userId,
+    parsed.data.status as SupportTicketStatus,
+  );
+  if (!detail) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  res.json(detail);
 });
 
 export default router;

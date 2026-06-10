@@ -12,5 +12,7 @@
 export interface AdminNotificationSummary {
   open_reports: number;
   open_flags: number;
+  open_tickets: number;
   latest_report_at: string | null;
+  latest_ticket_at: string | null;
 }

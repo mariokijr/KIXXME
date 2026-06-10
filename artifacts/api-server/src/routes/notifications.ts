@@ -8,6 +8,7 @@ import { getBlockRelations } from "../lib/blocks.js";
 import { getUnavailableIds } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
 import { getSuperLikerIds } from "../lib/likes.js";
+import { countUserUnread, adminTicketStats } from "../lib/support-tickets.js";
 
 const router = Router();
 
@@ -193,14 +194,20 @@ router.get("/notifications/summary", async (req, res) => {
   // separate notifications table), mirroring the /admin/summary definition of
   // "open". Absent entirely for non-admins.
   let admin:
-    | { open_reports: number; open_flags: number; latest_report_at: string | null }
+    | {
+        open_reports: number;
+        open_flags: number;
+        latest_report_at: string | null;
+        open_tickets: number;
+        latest_ticket_at: string | null;
+      }
     | undefined;
   if (isAdminEmail(auth.email)) {
     const openReport = and(
       isNotNull(supportReportsTable.reportType),
       eq(supportReportsTable.status, "open"),
     );
-    const [reportRows, flagRows, latestRows] = await Promise.all([
+    const [reportRows, flagRows, latestRows, ticketStats] = await Promise.all([
       db
         .select({ c: sql<number>`count(*)::int` })
         .from(supportReportsTable)
@@ -215,17 +222,24 @@ router.get("/notifications/summary", async (req, res) => {
         .where(openReport)
         .orderBy(desc(supportReportsTable.createdAt))
         .limit(1),
+      adminTicketStats(),
     ]);
     const latest = latestRows[0]?.at ?? null;
     admin = {
       open_reports: reportRows[0]?.c ?? 0,
       open_flags: flagRows[0]?.c ?? 0,
       latest_report_at: latest ? latest.toISOString() : null,
+      open_tickets: ticketStats.openTickets,
+      latest_ticket_at: ticketStats.latestTicketAt,
     };
   }
 
+  // The user's own unread support replies (admin answered after they last read).
+  const supportUnread = await countUserUnread(me);
+
   res.json({
     unread_messages: unreadMessages,
+    support_unread: supportUnread,
     likes,
     matches,
     ...(admin ? { admin } : {}),

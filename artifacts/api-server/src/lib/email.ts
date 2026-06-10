@@ -656,3 +656,43 @@ export function moderationRestoredEmailHtml(appUrl?: string): string {
     cta: appUrl ? { label: "Volver a KixxMe", url: appUrl } : undefined,
   });
 }
+
+// --- Support ticket reply (priority "Soporte Premium" chat) -----------------
+// Sent fire-and-forget to the ticket owner when an admin replies, so the user
+// knows there's an answer waiting even if the app is closed. The reply body is
+// NOT included (it may contain sensitive context) — we only nudge them in.
+
+export const SUPPORT_REPLY_SUBJECT = "\u{1F4AC} Respuesta de soporte de KixxMe";
+
+export function supportReplyEmailHtml(
+  subject: string,
+  appUrl?: string,
+): string {
+  const safeSubject = subject.trim();
+  const body = [
+    paragraphs([
+      "<strong style=\"color:#f4f1fb;\">El equipo de soporte de KixxMe ha respondido a tu consulta.</strong>",
+      safeSubject
+        ? `Asunto: <span style="color:#f4f1fb;">${escapeHtml(safeSubject)}</span>`
+        : "",
+      "Abre la app para leer la respuesta y continuar la conversaci\u00F3n.",
+      "Equipo KixxMe",
+    ]),
+  ].join("\n            ");
+  return renderEmail({
+    preheader: "El equipo de soporte de KixxMe ha respondido a tu consulta.",
+    heading: "\u{1F4AC} Tienes una respuesta de soporte",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Ver respuesta", url: appUrl } : undefined,
+  });
+}
+
+export function supportReplyEmail(
+  subject: string,
+  appUrl?: string,
+): { subject: string; html: string } {
+  return {
+    subject: SUPPORT_REPLY_SUBJECT,
+    html: supportReplyEmailHtml(subject, appUrl),
+  };
+}
