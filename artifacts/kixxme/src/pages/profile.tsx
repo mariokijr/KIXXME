@@ -44,6 +44,8 @@ import {
 import { SupportDialog } from "@/components/support-dialog";
 import { VerificationCard } from "@/components/verification-card";
 import { VisitorsCard } from "@/components/visitors-card";
+import { RewardsCard } from "@/components/rewards-card";
+import { ProfileCompletionCard } from "@/components/profile-completion-card";
 
 export default function Profile() {
   const { session } = useAuth();
@@ -417,6 +419,8 @@ export default function Profile() {
 
       {!isOnboarding && (
         <>
+          <ProfileCompletionCard />
+          <RewardsCard />
           <VerificationCard />
           <VisitorsCard />
         </>

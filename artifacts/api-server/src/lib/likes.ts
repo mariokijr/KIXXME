@@ -1,7 +1,13 @@
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
-import { db, likeActionsTable, type LikeKind } from "@workspace/db";
+import {
+  db,
+  likeActionsTable,
+  rewardCreditsTable,
+  type LikeKind,
+} from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getPlan, type Plan } from "./entitlement.js";
+import { getCreditBalance } from "./rewards.js";
 
 /**
  * Likes & SuperLikes engine.
@@ -44,16 +50,19 @@ function limitFor(plan: Plan, kind: LikeKind): WindowLimit | null {
 // --- Quota shapes ----------------------------------------------------------
 
 export interface QuotaState {
-  /** Units still available right now. -1 when unlimited. */
+  /** Units still available right now (base allowance + bonus credits). -1 when unlimited. */
   remaining: number;
   /** The tier cap for the window. -1 when unlimited. */
   limit: number;
   unlimited: boolean;
   /**
-   * ISO time the next unit recharges (oldest action in the window + window
-   * length). Only set when the allowance is currently exhausted.
+   * ISO time the next BASE unit recharges (oldest quota-funded action in the
+   * window + window length). Only set when the base allowance is exhausted.
+   * Bonus credits do not affect this — they recharge via daily claims.
    */
   rechargeAt: string | null;
+  /** Bonus reward credits for this kind, already folded into `remaining`. */
+  credits: number;
 }
 
 export interface LikeQuota {
@@ -73,7 +82,11 @@ function windowStart(windowHours: number): Date {
   return new Date(Date.now() - windowHours * 60 * 60 * 1000);
 }
 
-/** Count of a user's actions of a kind in the window, plus the oldest's time. */
+/**
+ * Count of a user's BASE (quota-funded) actions of a kind in the window, plus
+ * the oldest's time. Credit-funded actions (`source='credit'`) are excluded so
+ * they neither consume the base allowance nor extend the base lockout window.
+ */
 async function windowUsage(
   likerId: string,
   kind: LikeKind,
@@ -89,6 +102,7 @@ async function windowUsage(
       and(
         eq(likeActionsTable.likerId, likerId),
         eq(likeActionsTable.kind, kind),
+        eq(likeActionsTable.source, "quota"),
         gt(likeActionsTable.createdAt, windowStart(windowHours)),
       ),
     );
@@ -98,18 +112,25 @@ async function windowUsage(
 function buildQuota(
   limit: WindowLimit | null,
   usage: { count: number; oldest: Date | null },
+  credits: number,
 ): QuotaState {
   if (!limit) {
-    return { remaining: -1, limit: -1, unlimited: true, rechargeAt: null };
+    return { remaining: -1, limit: -1, unlimited: true, rechargeAt: null, credits };
   }
-  const remaining = Math.max(0, limit.max - usage.count);
+  const baseRemaining = Math.max(0, limit.max - usage.count);
   const rechargeAt =
-    remaining <= 0 && usage.oldest
+    baseRemaining <= 0 && usage.oldest
       ? new Date(
           usage.oldest.getTime() + limit.windowHours * 60 * 60 * 1000,
         ).toISOString()
       : null;
-  return { remaining, limit: limit.max, unlimited: false, rechargeAt };
+  return {
+    remaining: baseRemaining + credits,
+    limit: limit.max,
+    unlimited: false,
+    rechargeAt,
+    credits,
+  };
 }
 
 /** Current like + SuperLike allowances for a user, resolved against their tier. */
@@ -117,18 +138,19 @@ export async function getLikeQuota(userId: string): Promise<LikeQuota> {
   const plan = await getPlan(userId);
   const likeLimit = LIKE_LIMITS[plan];
   const superLimit = SUPERLIKE_LIMITS[plan];
-  const [likeUsage, superUsage] = await Promise.all([
+  const [likeUsage, superUsage, credits] = await Promise.all([
     likeLimit
       ? windowUsage(userId, "like", likeLimit.windowHours)
       : Promise.resolve({ count: 0, oldest: null }),
     superLimit
       ? windowUsage(userId, "superlike", superLimit.windowHours)
       : Promise.resolve({ count: 0, oldest: null }),
+    getCreditBalance(userId),
   ]);
   return {
     plan,
-    likes: buildQuota(likeLimit, likeUsage),
-    superlikes: buildQuota(superLimit, superUsage),
+    likes: buildQuota(likeLimit, likeUsage, credits.likes),
+    superlikes: buildQuota(superLimit, superUsage, credits.superlikes),
   };
 }
 
@@ -157,6 +179,8 @@ export async function recordLike(
 
   const gate = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${likerId}))`);
+    let source: "quota" | "credit" = "quota";
+    let spendId: string | null = null;
     if (limit) {
       const [row] = await tx
         .select({ count: sql<number>`count(*)::int` })
@@ -165,18 +189,41 @@ export async function recordLike(
           and(
             eq(likeActionsTable.likerId, likerId),
             eq(likeActionsTable.kind, kind),
+            eq(likeActionsTable.source, "quota"),
             gt(likeActionsTable.createdAt, windowStart(limit.windowHours)),
           ),
         );
       if ((row?.count ?? 0) >= limit.max) {
-        return { blocked: true as const };
+        // Base allowance exhausted — try to spend a bonus reward credit. The
+        // balance (SUM of deltas) is read INSIDE this advisory-locked tx, so a
+        // concurrent like can't double-spend the same credit.
+        const [bal] = await tx
+          .select({
+            balance: sql<number>`coalesce(sum(${rewardCreditsTable.delta}), 0)::int`,
+          })
+          .from(rewardCreditsTable)
+          .where(
+            and(
+              eq(rewardCreditsTable.userId, likerId),
+              eq(rewardCreditsTable.kind, kind),
+            ),
+          );
+        if ((bal?.balance ?? 0) <= 0) {
+          return { blocked: true as const };
+        }
+        const [spend] = await tx
+          .insert(rewardCreditsTable)
+          .values({ userId: likerId, kind, delta: -1, reason: "spend" })
+          .returning({ id: rewardCreditsTable.id });
+        spendId = spend?.id ?? null;
+        source = "credit";
       }
     }
     const [inserted] = await tx
       .insert(likeActionsTable)
-      .values({ likerId, likedId, kind })
+      .values({ likerId, likedId, kind, source })
       .returning({ id: likeActionsTable.id });
-    return { blocked: false as const, id: inserted?.id ?? null };
+    return { blocked: false as const, id: inserted?.id ?? null, spendId };
   });
 
   if (gate.blocked) {
@@ -196,14 +243,25 @@ export async function recordLike(
     );
 
   if (error) {
-    if (gate.id) {
-      try {
-        await db
-          .delete(likeActionsTable)
-          .where(eq(likeActionsTable.id, gate.id));
-      } catch {
-        /* best-effort refund */
-      }
+    // Dual compensating refund: undo BOTH the action log row and any credit
+    // spend row, so a downstream Supabase failure never costs the user a base
+    // unit OR a bonus credit. Both deletes run in one transaction so a partial
+    // failure can't leave the credit spent but the like un-recorded.
+    try {
+      await db.transaction(async (tx) => {
+        if (gate.id) {
+          await tx
+            .delete(likeActionsTable)
+            .where(eq(likeActionsTable.id, gate.id));
+        }
+        if (gate.spendId) {
+          await tx
+            .delete(rewardCreditsTable)
+            .where(eq(rewardCreditsTable.id, gate.spendId));
+        }
+      });
+    } catch {
+      /* best-effort refund */
     }
     return { ok: false, reason: "error", message: error.message };
   }
