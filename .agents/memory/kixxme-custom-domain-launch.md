@@ -42,3 +42,23 @@ Settings → Custom Domain panel generates the exact A-record IP + TXT value —
 cannot be known in advance). So: publish → add domain in UI → copy records into
 the registrar → wait for verification → then set `APP_BASE_URL` + Supabase
 allowlist.
+
+## Dev-side reset (diagnosis breadcrumbs)
+
+- **The redirect allowlist applies in DEV too, not just prod.** Symptom of a
+  missing entry: the recovery link's verify endpoint 303s to the **Site URL**
+  (observed default `http://localhost:3000/`) instead of `/reset-password`, i.e.
+  "the email arrives but clicking it opens nothing / lands on the wrong page". Fix:
+  in Supabase Auth → URL Configuration add the current `*.replit.dev` origin +
+  `/reset-password` to Redirect URLs and set the Site URL to that dev origin. The
+  allowlist is checked at click time, so a link already emailed starts working the
+  moment the URL is added (token TTL permitting) — no re-send needed.
+- Recovery tokens arrive via the URL **hash** (`#access_token`, implicit flow),
+  which is exactly what `reset-password.tsx` parses — no PKCE `?code=` handling
+  needed. Verified live end-to-end (forgot → generate_link → reset → login → admin).
+- `admin.generateLink(recovery)` returns 404 `user_not_found` when the account
+  doesn't exist. The support/admin address (`supportkixxme@gmail.com`, the
+  `ADMIN_EMAILS` allowlist entry) must be **provisioned in Supabase** (admin
+  createUser, `email_confirm:true`) before it can reset/log in — being "the support
+  email" does not auto-create an auth user. It has no profile row until first
+  onboarding, but `/admin` access (keyed off `isAdmin`) does not require a profile.
