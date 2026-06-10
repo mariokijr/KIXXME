@@ -10,13 +10,67 @@ import { sendGmailMessage } from "./gmail.js";
 export const SUPPORT_EMAIL = "supportkixxme@gmail.com";
 const FROM = `KixxMe <${SUPPORT_EMAIL}>`;
 
-/** Public https base URL of the app (first allowed Replit domain), if known. */
+/**
+ * Public https base URL of the app, used to build user-facing links (password
+ * reset, email CTAs, Stripe return URLs).
+ *
+ * Resolution order:
+ *   1. `APP_BASE_URL` — explicit override; set this to the custom domain in
+ *      production (e.g. `https://kixxme.com`) so links are deterministic and
+ *      don't depend on `REPLIT_DOMAINS` ordering.
+ *   2. First entry of `REPLIT_DOMAINS` (the generated `*.replit.app` / dev
+ *      `*.replit.dev` domain) as a fallback.
+ */
 export function appBaseUrl(): string | undefined {
+  const override = (process.env.APP_BASE_URL ?? "").trim();
+  if (override) {
+    try {
+      const parsed = new URL(override);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        // Normalize: strip trailing slashes so callers can append "/path".
+        return override.replace(/\/+$/, "");
+      }
+      logger.warn(
+        { appBaseUrl: override },
+        "APP_BASE_URL has a non-http(s) protocol; ignoring it and falling back to REPLIT_DOMAINS",
+      );
+    } catch {
+      logger.warn(
+        { appBaseUrl: override },
+        "APP_BASE_URL is not a valid URL; ignoring it and falling back to REPLIT_DOMAINS",
+      );
+    }
+  }
   const domain = (process.env.REPLIT_DOMAINS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)[0];
   return domain ? `https://${domain}` : undefined;
+}
+
+/**
+ * Hostnames the app treats as its own — the custom domain (`APP_BASE_URL`) plus
+ * every `REPLIT_DOMAINS` entry. Used to validate client-supplied return URLs so
+ * checkout can be launched from the custom domain without opening a redirect
+ * hole.
+ */
+export function allowedHosts(): string[] {
+  const hosts = new Set<string>();
+  const override = (process.env.APP_BASE_URL ?? "").trim();
+  if (override) {
+    try {
+      hosts.add(new URL(override).hostname);
+    } catch {
+      // Ignore a malformed override; the REPLIT_DOMAINS entries still apply.
+    }
+  }
+  for (const d of (process.env.REPLIT_DOMAINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)) {
+    hosts.add(d);
+  }
+  return [...hosts];
 }
 
 export async function sendEmail(params: {

@@ -4,7 +4,12 @@ import { eq } from "drizzle-orm";
 import { db, billingCustomersTable } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getUncachableStripeClient } from "./stripe.js";
-import { sendEmail, appBaseUrl, premiumWelcomeEmail } from "./email.js";
+import {
+  sendEmail,
+  appBaseUrl,
+  allowedHosts,
+  premiumWelcomeEmail,
+} from "./email.js";
 
 export type Tier = "plus" | "gold";
 export type Interval = "month" | "year";
@@ -146,8 +151,9 @@ async function resolvePriceId(
 
 /**
  * Guard against open redirects: the client supplies its own return URL (it
- * knows its base path behind the proxy), but the server only accepts hosts
- * listed in REPLIT_DOMAINS, then appends the checkout result param itself.
+ * knows its base path behind the proxy), but the server only accepts hosts it
+ * owns (the custom domain via APP_BASE_URL plus every REPLIT_DOMAINS entry),
+ * then appends the checkout result param itself.
  */
 function buildReturnUrl(returnUrl: string, result: "success" | "cancel"): string {
   let parsed: URL;
@@ -159,13 +165,10 @@ function buildReturnUrl(returnUrl: string, result: "success" | "cancel"): string
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new Error("Invalid returnUrl protocol");
   }
-  const domains = (process.env.REPLIT_DOMAINS ?? "")
-    .split(",")
-    .map((d) => d.trim())
-    .filter(Boolean);
+  const hosts = allowedHosts();
   // Fail closed: with no configured allowlist we cannot validate the host, so
   // reject rather than accept an arbitrary (possibly attacker-controlled) URL.
-  if (domains.length === 0 || !domains.includes(parsed.hostname)) {
+  if (hosts.length === 0 || !hosts.includes(parsed.hostname)) {
     throw new Error(`returnUrl host "${parsed.hostname}" is not allowed`);
   }
   parsed.hash = "";

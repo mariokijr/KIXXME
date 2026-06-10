@@ -206,7 +206,7 @@ router.post("/auth/forgot-password", async (req, res) => {
   const base = appBaseUrl();
   if (!base) {
     req.log.warn(
-      "forgot-password: appBaseUrl unavailable (REPLIT_DOMAINS unset); cannot build reset link",
+      "forgot-password: appBaseUrl unavailable (neither APP_BASE_URL nor REPLIT_DOMAINS set); cannot build reset link",
     );
     return;
   }
