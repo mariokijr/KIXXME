@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { Sparkles, Heart, Star } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
@@ -11,12 +10,6 @@ export function welcomeKey(userId: string) {
   return `${KEY_PREFIX}${userId}`;
 }
 
-const STEPS = [
-  { icon: Sparkles, text: "Descubre chicos cerca con Tarjetas y el mapa" },
-  { icon: Heart, text: "Da Me gusta y haz match para empezar a chatear" },
-  { icon: Star, text: "Completa tu perfil con fotos para destacar" },
-];
-
 /**
  * Mounted once near the app root. After a successful registration the signup
  * flow writes `kixxme:welcome-pending:<userId>` to localStorage; this modal
@@ -25,7 +18,6 @@ const STEPS = [
  */
 export function WelcomeModal() {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -51,11 +43,6 @@ export function WelcomeModal() {
     setOpen(false);
   };
 
-  const goProfile = () => {
-    dismiss();
-    setLocation("/profile");
-  };
-
   if (!open) return null;
 
   return (
@@ -76,49 +63,39 @@ export function WelcomeModal() {
       >
         <KixxMeLogo size={64} badge />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <h2
             className="font-display text-3xl tracking-wide text-gradient-brand"
             data-testid="text-welcome-title"
           >
-            ¡Bienvenido a KixxMe!
+            ¡Bienvenido a KixxMe! 🎉
           </h2>
           <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-            Tu perfil está listo. Así puedes empezar a conectar con chicos cerca de ti:
+            Esperamos que disfrutes de la experiencia.
+          </p>
+          <div
+            className="flex items-start gap-3 rounded-xl p-3 text-left"
+            style={{ background: "rgba(168,85,247,0.10)" }}
+          >
+            <ShieldCheck className="w-5 h-5 text-[hsl(280,80%,72%)] shrink-0 mt-0.5" />
+            <p className="font-sans text-sm text-foreground/90 leading-relaxed">
+              Respeta siempre a los demás usuarios, sé educado y ayuda a crear una comunidad
+              agradable para todos.
+            </p>
+          </div>
+          <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+            Diviértete, conoce gente nueva y disfruta de KixxMe.
           </p>
         </div>
 
-        <ul className="w-full flex flex-col gap-2.5 text-left">
-          {STEPS.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-center gap-3">
-              <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "rgba(168,85,247,0.15)" }}
-              >
-                <Icon className="w-4 h-4 text-[hsl(280,80%,72%)]" />
-              </span>
-              <span className="font-sans text-sm text-foreground/90">{text}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex flex-col gap-2.5 w-full pt-1">
-          <button
-            onClick={goProfile}
-            className="h-12 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
-            style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-            data-testid="button-welcome-complete"
-          >
-            Completar mi perfil
-          </button>
-          <button
-            onClick={dismiss}
-            className="h-11 rounded-xl font-sans text-sm text-muted-foreground border border-border/40 hover:text-foreground transition-colors"
-            data-testid="button-welcome-dismiss"
-          >
-            Explorar primero
-          </button>
-        </div>
+        <button
+          onClick={dismiss}
+          className="h-12 w-full rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+          data-testid="button-welcome-start"
+        >
+          Empezar
+        </button>
       </div>
     </div>
   );

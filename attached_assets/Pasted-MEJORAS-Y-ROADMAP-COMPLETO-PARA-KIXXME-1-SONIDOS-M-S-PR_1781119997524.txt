@@ -1,0 +1,329 @@
+MEJORAS Y ROADMAP COMPLETO PARA KIXXME
+
+1. SONIDOS MÁS PREMIUM Y DIVERTIDOS
+
+Los sonidos actuales de Like, Pass/No me gusta y SuperLike siguen sin gustarme.
+
+Quiero sonidos más premium, modernos, divertidos y memorables.
+
+Ideas:
+
+* Like → pop divertido, satisfactorio y adictivo.
+* Pass → swipe/swoosh elegante.
+* SuperLike → brillante, especial y llamativo.
+* Match → celebración premium.
+* KixxMe Live → tono moderno de llamada social.
+
+Deben:
+
+* Ser cortos.
+* No ser molestos.
+* Funcionar en móvil.
+* No sonar en bucle.
+* No bloquear la interfaz.
+* Tener fallback silencioso si el navegador bloquea audio.
+
+⸻
+
+2. FOTOS DE PERFIL OBLIGATORIAS + GALERÍA
+
+Foto principal obligatoria.
+
+No permitir terminar onboarding sin foto principal.
+
+Permitir:
+
+* Hasta 4 fotos.
+* Elegir foto principal.
+* Eliminar fotos.
+* Ver todas las fotos desde Descubrir.
+
+Mostrar:
+
+* Fotos.
+* Biografía.
+* Edad.
+* Ciudad.
+* Rol / Preferencia.
+* Qué busca.
+
+Verificar:
+
+* Que se puedan subir hasta 4 fotos.
+* Que se pueda elegir foto principal.
+* Que se puedan eliminar fotos.
+* Que no se pueda eliminar la foto principal si no queda otra foto.
+* Que onboarding no termine sin foto principal.
+
+⸻
+
+3. EMAILS DE MATCH Y SUPERLIKE
+
+Enviar emails cuando:
+
+* Hay match.
+* Se recibe un SuperLike.
+
+Diseño:
+
+* Español.
+* Branding KixxMe.
+* Estilo premium/neón.
+
+Premium:
+
+* Puede ver quién le dio SuperLike.
+
+Free:
+
+* Mostrar upsell:
+    “Desbloquea KixxMe Plus o Gold para ver quién te ha enviado un SuperLike.”
+
+⸻
+
+4. VIDEOLLAMADAS REALES (FASE DE ANÁLISIS)
+
+Antes de desarrollar:
+
+Necesito una propuesta técnica completa:
+
+* LiveKit vs WebRTC.
+* Coste mensual estimado.
+* Escalabilidad.
+* Riesgos.
+* Secrets necesarios.
+* Infraestructura necesaria.
+
+Objetivo:
+
+* Solo usuarios Gold.
+* Ambos usuarios deben ser Gold.
+* Videollamadas dentro de KixxMe.
+* No abrir apps externas.
+* Emparejamiento aleatorio.
+* Filtros por edad y ubicación.
+* Mostrar nombre, edad y ciudad antes de conectar.
+
+Funciones:
+
+* Aceptar.
+* Siguiente.
+* Cancelar.
+* Activar/desactivar cámara.
+* Activar/desactivar micrófono.
+* Finalizar llamada.
+* Reportar usuario.
+* Bloquear usuario.
+
+Seguridad:
+
+* Guardar reportes.
+* Guardar bloqueos.
+* Integración con moderación.
+* No grabar llamadas.
+
+No implementar todavía sin aprobación previa.
+
+⸻
+
+5. FUNCIONES DIFERENCIADORAS
+
+Añadir al roadmap:
+
+Estado actual:
+
+* Disponible ahora.
+* Buscando chat.
+* Buscando cita.
+* Buscando amistad.
+* Buscando videollamada.
+* Ocupado.
+
+Además:
+
+* Verificación de perfil con selfie.
+* KixxMe Boost.
+* Insignias:
+    * Gold.
+    * Verificado.
+    * Miembro desde…
+    * Perfil destacado.
+    * Top Match.
+* Match sorpresa diario.
+* Lugares favoritos.
+* Historias 24 horas.
+* Quién visitó tu perfil.
+* Compatibilidad (%).
+* Notas de voz.
+* Modo viaje.
+* Eventos KixxMe.
+
+⸻
+
+6. RETENCIÓN Y MONETIZACIÓN
+
+Implementar correctamente:
+
+Usuarios gratuitos:
+
+* 10 likes.
+* 1 SuperLike.
+
+Al agotarse:
+
+* Bloqueo.
+* Modal Premium.
+
+Recarga automática:
+
+* Gestionada desde backend.
+* No manipulable.
+* No reiniciable cambiando dispositivo.
+
+Verificar:
+
+* Que los likes se descuenten.
+* Que los SuperLikes se descuenten.
+* Que el contador visible se actualice.
+* Que el bloqueo funcione.
+* Que Premium tenga límites superiores o ilimitados.
+
+⸻
+
+7. BIENVENIDA
+
+Después del registro mostrar:
+
+“¡Bienvenido a KixxMe! 🎉
+
+Esperamos que disfrutes de la experiencia.
+
+Respeta siempre a los demás usuarios, sé educado y ayuda a crear una comunidad agradable para todos.
+
+Diviértete, conoce gente nueva y disfruta de KixxMe.”
+
+Mostrar una sola vez.
+
+⸻
+
+8. CALIDAD DE PERFILES
+
+No permitir aparecer en Descubrir si falta:
+
+* Foto principal.
+* Edad.
+* Ciudad.
+* Biografía mínima.
+* Rol / Preferencia.
+* Qué busca.
+
+Además:
+
+* Los perfiles verificados deben tener prioridad sobre los no verificados.
+* Los perfiles completos deben posicionarse mejor.
+
+⸻
+
+9. REPORTES Y SEGURIDAD
+
+Añadir:
+
+* Reportar perfil.
+* Reportar foto.
+* Reportar mensaje.
+* Bloquear usuario.
+
+Todo integrado con el panel de moderación.
+
+⸻
+
+10. RECOMPENSAS DIARIAS
+
+Añadir sistema de recompensa diaria.
+
+Ejemplos:
+
+* +1 SuperLike.
+* +1 Boost.
+* Beneficios temporales.
+
+Objetivo:
+
+* Incrementar retención diaria.
+
+⸻
+
+11. SISTEMA DE NIVELES
+
+Ejemplo:
+
+* Nivel 1: Nuevo.
+* Nivel 5: Activo.
+* Nivel 10: Popular.
+* Nivel 20: Leyenda KixxMe.
+
+Mostrar en el perfil.
+
+⸻
+
+12. PRIORIDAD DE DESARROLLO
+
+Quiero una clasificación por:
+
+* Más ingresos.
+* Más retención.
+* Más fáciles de implementar.
+* Más importantes para lanzamiento.
+
+⸻
+
+ROADMAP RECOMENDADO
+
+FASE 1 (LANZAMIENTO)
+
+* Admin.
+* Sonidos premium.
+* Foto obligatoria.
+* Hasta 4 fotos.
+* Rol / Preferencia.
+* Qué busca.
+* Emails de Match.
+* Emails de SuperLike.
+* Verificación básica.
+* Reportar usuario.
+* Bloquear usuario.
+* Límite de Likes y SuperLikes.
+* Bienvenida tras registro.
+* Calidad mínima obligatoria de perfiles.
+
+FASE 2 (CRECIMIENTO)
+
+* Historias 24h.
+* Quién visitó tu perfil.
+* Compatibilidad (%).
+* Estados.
+* KixxMe Boost.
+* Insignias.
+* Match sorpresa.
+* Lugares favoritos.
+* Notas de voz.
+* Recompensas diarias.
+* Sistema de niveles.
+
+FASE 3 (MONETIZACIÓN)
+
+* Modo viaje.
+* Eventos.
+* Funciones Gold avanzadas.
+* Beta de videollamadas.
+
+FASE 4 (ESCALADO)
+
+* Videollamadas completas.
+* Verificación por vídeo.
+* IA para recomendaciones.
+* Funciones sociales avanzadas.
+
+No quiero implementar todo a la vez.
+
+Quiero priorizar primero las funciones que generan más ingresos, más retención y más valor para el lanzamiento.

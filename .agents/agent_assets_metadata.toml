@@ -30,3 +30,33 @@ id = "AkBeHhcvP1PHJ9kNG9WD2"
 uri = "file://attached_assets/generated_audio/live.mp3"
 type = "audio"
 title = "kixxme live cue"
+
+[[outputs]]
+id = "Hc15nGSFW9aS7QiYwF8sU"
+uri = "file://attached_assets/generated_audio/kx_pass.mp3"
+type = "audio"
+title = "kixxme pass swoosh"
+
+[[outputs]]
+id = "vFxItXF27iDsK4jGZ2SVQ"
+uri = "file://attached_assets/generated_audio/kx_like.mp3"
+type = "audio"
+title = "kixxme like pop"
+
+[[outputs]]
+id = "3QyOs2mmiITA43WH0vWsX"
+uri = "file://attached_assets/generated_audio/kx_superlike.mp3"
+type = "audio"
+title = "kixxme superlike sparkle"
+
+[[outputs]]
+id = "qXsjg4dPeQ3iXBhVo9n7H"
+uri = "file://attached_assets/generated_audio/kx_match.mp3"
+type = "audio"
+title = "kixxme match celebration"
+
+[[outputs]]
+id = "1C_27dxqgB3HjxkaDHG7P"
+uri = "file://attached_assets/generated_audio/kx_live.mp3"
+type = "audio"
+title = "kixxme live call tone"
