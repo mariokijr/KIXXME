@@ -133,10 +133,20 @@ export interface MatchNotification {
   matched_at: string;
 }
 
+/**
+ * Moderation notification state, present only for admin users (absent for everyone else). Lets an admin's notification bell surface new reports and flags the same way regular users are notified of likes and matches.
+ */
+export interface AdminNotificationSummary {
+  open_reports: number;
+  open_flags: number;
+  latest_report_at: string | null;
+}
+
 export interface NotificationsSummary {
   unread_messages: number;
   likes: LikeNotification[];
   matches: MatchNotification[];
+  admin?: AdminNotificationSummary;
 }
 
 export interface Session {

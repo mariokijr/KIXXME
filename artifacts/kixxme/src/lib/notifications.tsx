@@ -136,6 +136,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const toastLikeRef = useRef(0);
   const toastMatchRef = useRef(0);
   const toastInitRef = useRef(false);
+  const toastReportRef = useRef(0);
+  const toastReportInitRef = useRef(false);
 
   // On account change, reload that user's markers and reset session trackers.
   useEffect(() => {
@@ -143,6 +145,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     toastInitRef.current = false;
     toastLikeRef.current = 0;
     toastMatchRef.current = 0;
+    toastReportInitRef.current = false;
+    toastReportRef.current = 0;
     setLastSeenLike(likeKey ? readStored(likeKey) : null);
     setLastSeenMatch(matchKey ? readStored(matchKey) : null);
   }, [likeKey, matchKey]);
@@ -263,6 +267,35 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     toastMatchRef.current = Math.max(toastMatchRef.current, newestMatch);
     toastInitRef.current = true;
   }, [summary, toast]);
+
+  // Admin-only: announce newly filed moderation reports in real time. The
+  // `admin` block is only present in the summary for allowlisted admins, so
+  // this is inert for everyone else. Baselines on first load so existing open
+  // reports aren't re-announced on reload.
+  useEffect(() => {
+    const admin = summary?.admin;
+    if (!admin) return;
+    // Treat an empty queue (null latest) as ts=0 so the init flag is still set
+    // on first load — otherwise the very first report after a clean queue would
+    // only baseline and never toast.
+    const ts = admin.latest_report_at ? Date.parse(admin.latest_report_at) : 0;
+    if (toastReportInitRef.current && ts > toastReportRef.current) {
+      toast({
+        title: "🚩 Nuevo reporte de moderación",
+        description: "Tienes un nuevo reporte por revisar",
+        action: (
+          <ToastAction
+            altText="Abrir panel de moderación"
+            onClick={() => setLocation("/admin")}
+          >
+            Revisar
+          </ToastAction>
+        ),
+      });
+    }
+    toastReportRef.current = Math.max(toastReportRef.current, ts);
+    toastReportInitRef.current = true;
+  }, [summary, toast, setLocation]);
 
   return (
     <NotificationsContext.Provider

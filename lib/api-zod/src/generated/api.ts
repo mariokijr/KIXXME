@@ -599,7 +599,12 @@ export const GetNotificationsSummaryResponse = zod.object({
   "username": zod.string().nullable(),
   "avatar_url": zod.string().nullable(),
   "matched_at": zod.string()
-}))
+})),
+  "admin": zod.object({
+  "open_reports": zod.number(),
+  "open_flags": zod.number(),
+  "latest_report_at": zod.string().nullable()
+}).optional().describe('Moderation notification state, present only for admin users (absent for everyone else). Lets an admin\'s notification bell surface new reports and flags the same way regular users are notified of likes and matches.')
 })
 
 

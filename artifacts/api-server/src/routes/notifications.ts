@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { createHash } from "node:crypto";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { db, supportReportsTable, accountFlagsTable } from "@workspace/db";
 import { supabase } from "../lib/supabase.js";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, isAdminEmail } from "../lib/auth.js";
 import { getBlockRelations } from "../lib/blocks.js";
 import { getUnavailableIds } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
@@ -185,10 +187,48 @@ router.get("/notifications/summary", async (req, res) => {
     unreadMessages = count ?? 0;
   }
 
+  // Admin-only moderation notifications: every filed report (and auto-raised
+  // flag) surfaces here so an admin's bell announces new moderation work the
+  // same way users are notified of likes/matches. Derived from open rows (no
+  // separate notifications table), mirroring the /admin/summary definition of
+  // "open". Absent entirely for non-admins.
+  let admin:
+    | { open_reports: number; open_flags: number; latest_report_at: string | null }
+    | undefined;
+  if (isAdminEmail(auth.email)) {
+    const openReport = and(
+      isNotNull(supportReportsTable.reportType),
+      eq(supportReportsTable.status, "open"),
+    );
+    const [reportRows, flagRows, latestRows] = await Promise.all([
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(supportReportsTable)
+        .where(openReport),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(accountFlagsTable)
+        .where(eq(accountFlagsTable.status, "open")),
+      db
+        .select({ at: supportReportsTable.createdAt })
+        .from(supportReportsTable)
+        .where(openReport)
+        .orderBy(desc(supportReportsTable.createdAt))
+        .limit(1),
+    ]);
+    const latest = latestRows[0]?.at ?? null;
+    admin = {
+      open_reports: reportRows[0]?.c ?? 0,
+      open_flags: flagRows[0]?.c ?? 0,
+      latest_report_at: latest ? latest.toISOString() : null,
+    };
+  }
+
   res.json({
     unread_messages: unreadMessages,
     likes,
     matches,
+    ...(admin ? { admin } : {}),
   });
 });
 

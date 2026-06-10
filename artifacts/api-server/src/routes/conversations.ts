@@ -185,6 +185,12 @@ router.get("/conversations/:id/messages", async (req, res) => {
     res.status(403).json({ error: "No tienes acceso a esta conversación" });
     return;
   }
+  // Suspended/banned (or deactivated) users are hidden from everyone — never
+  // serve their conversation history, even via a stale or direct URL.
+  if (await isUnavailable(otherId)) {
+    res.status(404).json({ error: "Perfil no disponible" });
+    return;
+  }
 
   const { data: messages, error } = await supabase
     .from("messages")
@@ -324,6 +330,13 @@ router.post("/conversations/:id/read", async (req, res) => {
   const conv = await isParticipant(id, auth.userId);
   if (!conv) {
     res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+  // Hidden (suspended/banned/deactivated) users are not interactable anywhere.
+  if (await isUnavailable(otherId)) {
+    res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
 

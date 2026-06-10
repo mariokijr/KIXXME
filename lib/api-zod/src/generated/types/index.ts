@@ -19,6 +19,7 @@ export * from './accountStatusDeactivationType';
 export * from './accountStatusStatus';
 export * from './adminFlag';
 export * from './adminFlagList';
+export * from './adminNotificationSummary';
 export * from './adminReport';
 export * from './adminReportDetail';
 export * from './adminReportDetailTargetState';

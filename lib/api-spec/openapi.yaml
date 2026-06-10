@@ -1902,7 +1902,25 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MatchNotification"
+        admin:
+          $ref: "#/components/schemas/AdminNotificationSummary"
       required: [unread_messages, likes, matches]
+
+    AdminNotificationSummary:
+      type: object
+      description: >-
+        Moderation notification state, present only for admin users (absent for
+        everyone else). Lets an admin's notification bell surface new reports and
+        flags the same way regular users are notified of likes and matches.
+      properties:
+        open_reports:
+          type: integer
+        open_flags:
+          type: integer
+        latest_report_at:
+          type: string
+          nullable: true
+      required: [open_reports, open_flags, latest_report_at]
 
     Session:
       type: object

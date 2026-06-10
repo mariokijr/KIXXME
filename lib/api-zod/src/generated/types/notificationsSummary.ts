@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminNotificationSummary } from './adminNotificationSummary';
 import type { LikeNotification } from './likeNotification';
 import type { MatchNotification } from './matchNotification';
 
@@ -12,4 +13,5 @@ export interface NotificationsSummary {
   unread_messages: number;
   likes: LikeNotification[];
   matches: MatchNotification[];
+  admin?: AdminNotificationSummary;
 }

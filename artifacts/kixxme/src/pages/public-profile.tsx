@@ -40,6 +40,7 @@ export default function PublicProfile() {
   const { toast } = useToast();
   const [activePhoto, setActivePhoto] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
+  const [photoReportOpen, setPhotoReportOpen] = useState(false);
 
   const { data: profile, isLoading, error } = useGetProfile(id, {
     query: { enabled: !!id, queryKey: getGetProfileQueryKey(id) },
@@ -172,8 +173,14 @@ export default function PublicProfile() {
     ? format(new Date(profile.created_at), "MMMM yyyy", { locale: es })
     : null;
   const distance = formatDistance(profile.distance_km);
-  const gallery = photos.length > 0 ? photos.map((p) => p.url) : profile.avatar_url ? [profile.avatar_url] : [];
-  const heroImage = gallery[activePhoto] ?? profile.avatar_url ?? null;
+  const gallery: { url: string; id: string | null }[] =
+    photos.length > 0
+      ? photos.map((p) => ({ url: p.url, id: p.id }))
+      : profile.avatar_url
+        ? [{ url: profile.avatar_url, id: null }]
+        : [];
+  const heroImage = gallery[activePhoto]?.url ?? profile.avatar_url ?? null;
+  const activePhotoId = gallery[activePhoto]?.id ?? null;
 
   return (
     <div
@@ -228,18 +235,29 @@ export default function PublicProfile() {
               En línea
             </span>
           )}
+          {activePhotoId && (
+            <button
+              onClick={() => setPhotoReportOpen(true)}
+              className="absolute bottom-3 right-3 w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-white/80 hover:text-red-400 transition-colors"
+              style={{ background: "rgba(13,11,26,0.85)", backdropFilter: "blur(8px)" }}
+              data-testid="button-report-photo"
+              title="Reportar esta foto"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {gallery.length > 1 && (
           <div className="flex gap-2 w-full overflow-x-auto pb-1">
-            {gallery.map((url, i) => (
+            {gallery.map((g, i) => (
               <button
-                key={url}
+                key={g.url}
                 onClick={() => setActivePhoto(i)}
                 className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all"
                 style={{ borderColor: i === activePhoto ? "hsl(273,85%,60%)" : "rgba(255,255,255,0.1)" }}
               >
-                <img src={url} alt="" className="w-full h-full object-cover" />
+                <img src={g.url} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -384,6 +402,15 @@ export default function PublicProfile() {
         targetUserId={profile.id}
         username={profile.username}
         targetType="profile"
+      />
+
+      <ReportDialog
+        open={photoReportOpen}
+        onOpenChange={setPhotoReportOpen}
+        targetUserId={profile.id}
+        username={profile.username}
+        targetType="photo"
+        targetPhotoId={activePhotoId}
       />
     </div>
   );
