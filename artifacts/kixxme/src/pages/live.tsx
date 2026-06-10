@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   useGetLiveState,
@@ -8,6 +8,7 @@ import {
   useAcceptLiveCall,
   useDeclineLiveCall,
   useCancelLiveCall,
+  useSkipLiveCall,
   useEndLiveCall,
   useBlockProfile,
   useCreateSupportReport,
@@ -32,7 +33,6 @@ import {
   Loader2,
   Phone,
   X,
-  Search,
   Minus,
   Plus,
 } from "lucide-react";
@@ -72,6 +72,10 @@ export default function Live() {
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
 
+  // Tracks which active call we've already played the pre-call countdown for, so
+  // it only runs once per call (purely cosmetic, local-only).
+  const [countdownDoneFor, setCountdownDoneFor] = useState<string | null>(null);
+
   const { data, isLoading } = useGetLiveState({
     query: {
       queryKey: getGetLiveStateQueryKey(),
@@ -96,6 +100,7 @@ export default function Live() {
   const acceptCall = useAcceptLiveCall();
   const declineCall = useDeclineLiveCall();
   const cancelCall = useCancelLiveCall();
+  const skipCall = useSkipLiveCall();
   const endCall = useEndLiveCall();
   const blockUser = useBlockProfile();
   const reportUser = useCreateSupportReport();
@@ -135,6 +140,17 @@ export default function Live() {
 
   function cancel(call: LiveCall) {
     cancelCall.mutate({ id: call.id }, { onSettled: refresh });
+  }
+
+  function skip(call: LiveCall) {
+    skipCall.mutate(
+      { id: call.id },
+      {
+        onSettled: refresh,
+        // 429 (skip limit) and other errors surface the server's Spanish message.
+        onError: onError("No se pudo continuar"),
+      },
+    );
   }
 
   function hangUp(call: LiveCall) {
@@ -195,8 +211,13 @@ export default function Live() {
   // An in-progress call always renders first — even if the plan lapsed
   // mid-call (e.g. a webhook downgrade) the user must keep the End Call UI.
 
-  // --- Active in-call ------------------------------------------------------
+  // --- Active in-call (with a one-time pre-call countdown) -----------------
   if (call && call.status === "active") {
+    if (countdownDoneFor !== call.id) {
+      return (
+        <Countdown call={call} onDone={() => setCountdownDoneFor(call.id)} />
+      );
+    }
     return (
       <InCall
         call={call}
@@ -216,6 +237,23 @@ export default function Live() {
   if (call && call.status === "ringing") {
     const myAccepted =
       call.role === "caller" ? call.callerAccepted : call.calleeAccepted;
+    // Random matches get the Chatroulette-style reveal (accept / siguiente /
+    // cancel). Private invites keep the classic incoming-call ring.
+    if (call.type === "random") {
+      return (
+        <Reveal
+          call={call}
+          myAccepted={myAccepted}
+          onAccept={() => accept(call)}
+          onSkip={() => skip(call)}
+          onCancel={() => cancel(call)}
+          onReport={() => reportPartner(call)}
+          onBlock={() => blockPartner(call)}
+          busy={acceptCall.isPending || cancelCall.isPending}
+          skipping={skipCall.isPending}
+        />
+      );
+    }
     return (
       <Ringing
         call={call}
@@ -454,6 +492,8 @@ function Idle({
   );
 }
 
+const SEARCH_ICONS = ["🎲", "✨", "📹", "💫"];
+
 function Searching({
   onCancel,
   canceling,
@@ -461,6 +501,15 @@ function Searching({
   onCancel: () => void;
   canceling: boolean;
 }) {
+  const [iconIndex, setIconIndex] = useState(0);
+  useEffect(() => {
+    const t = setInterval(
+      () => setIconIndex((v) => (v + 1) % SEARCH_ICONS.length),
+      650,
+    );
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
       <div className="relative mb-8">
@@ -476,14 +525,16 @@ function Searching({
             boxShadow: "0 0 50px rgba(168,85,247,0.5)",
           }}
         >
-          <Search className="w-10 h-10 text-white" />
+          <span className="text-4xl" key={iconIndex}>
+            {SEARCH_ICONS[iconIndex]}
+          </span>
         </div>
       </div>
       <h2 className="font-display text-2xl tracking-wide text-gradient-brand mb-2">
-        Buscando conexión…
+        Buscando una conexión Gold para ti…
       </h2>
       <p className="font-sans text-sm text-muted-foreground mb-10 max-w-xs">
-        Te emparejaremos con alguien compatible en cuanto esté disponible.
+        Estamos encontrando a alguien con quien romper el hielo.
       </p>
       <button
         onClick={onCancel}
@@ -494,6 +545,254 @@ function Searching({
         {canceling ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
         Cancelar
       </button>
+    </div>
+  );
+}
+
+const SAFETY_LINE =
+  "Respeta siempre a la otra persona. Puedes cancelar, bloquear o reportar en cualquier momento.";
+
+/**
+ * Chatroulette × Tinder reveal for a RANDOM match: shows the partner's main
+ * photo, name, age and city before connecting. "Siguiente" skips to a new
+ * person; "Aceptar" connects (call goes active once both accept). Once this user
+ * has accepted, it switches to a waiting state.
+ */
+function Reveal({
+  call,
+  myAccepted,
+  onAccept,
+  onSkip,
+  onCancel,
+  onReport,
+  onBlock,
+  busy,
+  skipping,
+}: {
+  call: LiveCall;
+  myAccepted: boolean;
+  onAccept: () => void;
+  onSkip: () => void;
+  onCancel: () => void;
+  onReport: () => void;
+  onBlock: () => void;
+  busy: boolean;
+  skipping: boolean;
+}) {
+  const name = partnerName(call);
+  const meta = [
+    call.partner.age ? `${call.partner.age} años` : null,
+    call.partner.city,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // I accepted; waiting for the other person to accept too.
+  if (myAccepted) {
+    return (
+      <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
+        <div className="relative mb-6">
+          <span
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ background: "rgba(34,197,94,0.25)" }}
+          />
+          <Avatar className="relative w-28 h-28 rounded-full border-2 border-green-500/50">
+            {call.partner.avatar_url && (
+              <AvatarImage src={call.partner.avatar_url} className="object-cover" />
+            )}
+            <AvatarFallback className="font-display text-2xl bg-card text-primary">
+              {initialsOf(name)}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+        <h2 className="font-display text-2xl tracking-wide text-foreground mb-1">
+          {name}
+        </h2>
+        <p className="font-sans text-sm text-muted-foreground mb-10 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Esperando a que {name} acepte…
+        </p>
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="px-8 h-12 rounded-xl font-sans font-medium text-foreground border border-border/40 hover:bg-white/5 transition-colors disabled:opacity-60 flex items-center gap-2"
+          data-testid="button-cancel-call"
+        >
+          <X className="w-4 h-4" />
+          Cancelar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-full flex flex-col px-4 pt-5 pb-5">
+      <p className="text-center font-display text-sm tracking-[0.3em] text-gradient-brand mb-3">
+        ¡NUEVA CONEXIÓN!
+      </p>
+
+      {/* Photo card */}
+      <div
+        className="relative flex-1 rounded-3xl overflow-hidden border border-primary/30 mb-3"
+        style={{ minHeight: 0 }}
+      >
+        {call.partner.avatar_url ? (
+          <img
+            src={call.partner.avatar_url}
+            alt={name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(273,55%,22%), hsl(330,55%,24%))",
+            }}
+          >
+            <span className="font-display text-6xl text-white/80">
+              {initialsOf(name)}
+            </span>
+          </div>
+        )}
+
+        {/* Report / block */}
+        <div className="absolute top-3 right-3 flex gap-2">
+          <button
+            onClick={onReport}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            data-testid="button-report-call"
+          >
+            <Flag className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onBlock}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            data-testid="button-block-call"
+          >
+            <Ban className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Name overlay */}
+        <div
+          className="absolute bottom-0 inset-x-0 px-5 pt-12 pb-5"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(8,7,18,0.92) 10%, rgba(8,7,18,0) 100%)",
+          }}
+        >
+          <h2 className="font-display text-2xl tracking-wide text-foreground">
+            Has conectado con {name}
+          </h2>
+          {meta && (
+            <p className="font-sans text-sm text-muted-foreground mt-0.5">
+              {meta}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <p className="text-center font-sans text-[11px] leading-relaxed text-muted-foreground px-2 mb-3">
+        {SAFETY_LINE}
+      </p>
+
+      {/* Primary roulette actions */}
+      <div className="flex items-center justify-center gap-10 mb-3">
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={onSkip}
+            disabled={skipping || busy}
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+              boxShadow: "0 0 30px rgba(168,85,247,0.4)",
+            }}
+            data-testid="button-skip-call"
+          >
+            {skipping ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <span className="text-2xl leading-none">🔄</span>
+            )}
+          </button>
+          <span className="font-sans text-xs text-muted-foreground">Siguiente</span>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={onAccept}
+            disabled={busy || skipping}
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white disabled:opacity-60"
+            style={{
+              background: "hsl(142,71%,42%)",
+              boxShadow: "0 0 30px rgba(34,197,94,0.4)",
+            }}
+            data-testid="button-accept-call"
+          >
+            {busy ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <Phone className="w-6 h-6" />
+            )}
+          </button>
+          <span className="font-sans text-xs text-muted-foreground">Aceptar</span>
+        </div>
+      </div>
+
+      <button
+        onClick={onCancel}
+        disabled={busy}
+        className="self-center px-6 h-10 rounded-xl font-sans text-sm text-muted-foreground hover:bg-white/5 transition-colors disabled:opacity-60 flex items-center gap-2"
+        data-testid="button-cancel-call"
+      >
+        <X className="w-4 h-4" />
+        Cancelar búsqueda
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Brief "La llamada empieza en 5…" pre-call countdown shown once when a call
+ * goes active, before the in-call surface. Purely cosmetic and local-only.
+ */
+function Countdown({ call, onDone }: { call: LiveCall; onDone: () => void }) {
+  const [n, setN] = useState(5);
+  useEffect(() => {
+    if (n <= 0) return;
+    const t = setTimeout(() => setN((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [n]);
+  useEffect(() => {
+    if (n === 0) onDone();
+  }, [n, onDone]);
+
+  const name = partnerName(call);
+  return (
+    <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
+      <Avatar className="w-24 h-24 rounded-full border-2 border-primary/50 mb-6">
+        {call.partner.avatar_url && (
+          <AvatarImage src={call.partner.avatar_url} className="object-cover" />
+        )}
+        <AvatarFallback className="font-display text-2xl bg-card text-primary">
+          {initialsOf(name)}
+        </AvatarFallback>
+      </Avatar>
+      <p className="font-sans text-sm text-muted-foreground mb-2">
+        La llamada empieza en
+      </p>
+      <div
+        className="font-display text-7xl text-gradient-brand mb-2 tabular-nums"
+        data-testid="text-countdown"
+      >
+        {n > 0 ? n : 1}
+      </div>
+      <p className="font-sans text-sm text-muted-foreground">
+        Conectando con {name}…
+      </p>
     </div>
   );
 }
@@ -702,6 +1001,9 @@ function InCall({
         className="flex-shrink-0 px-6 py-6 border-t border-border/20"
         style={{ background: "rgba(8,7,18,0.95)" }}
       >
+        <p className="text-center font-sans text-[11px] text-muted-foreground mb-3">
+          Sé respetuoso. Puedes reportar o bloquear si algo te incomoda.
+        </p>
         <div className="flex items-center justify-center gap-3">
           <CtrlButton onClick={onToggleMic} active={micOn} testId="button-toggle-mic">
             {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}

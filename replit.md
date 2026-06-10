@@ -31,7 +31,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - Support: repo-owned `support_reports` table (`lib/db/src/schema/support-reports.ts`); API `src/routes/support.ts` (POST `/support/reports`, saves + notifies); frontend `artifacts/kixxme/src/components/support-dialog.tsx` + `pages/support.tsx` (Soporte page), entry points in `profile.tsx` / `public-profile.tsx`.
 - Email: `artifacts/api-server/src/lib/email.ts` (neon/fire HTML templates + provider-agnostic `sendEmail`) over `gmail.ts` (Gmail-connector transport). See `.agents/memory/kixxme-transactional-email.md`.
 - Branding: reusable neon "K + location pin" emblem in `artifacts/kixxme/src/components/brand/kixxme-logo.tsx` (`KixxMeLogo`), used across splash/auth/nav/headers in place of the old Flame icon.
-- KixxMe Live (Gold-only video calls, **scaffold**): repo-owned DB schema `lib/db/src/schema/live.ts` (`live_queue`, `video_calls`); API `routes/live.ts` + matcher `lib/live.ts` + `lib/entitlement.ts`; frontend `artifacts/kixxme/src/pages/live.tsx`, bottom-nav "Live" tab, Gold-gated camera button in `chat.tsx`. See `.agents/memory/kixxme-live.md`.
+- KixxMe Live (Gold-only video calls, **scaffold**): repo-owned DB schema `lib/db/src/schema/live.ts` (`live_queue` w/ `skipCount`+`lastSkippedPartnerId`, `video_calls` w/ dual-filter `{caller,callee}` jsonb + `skipped` status); API `routes/live.ts` (incl. `POST /live/calls/:id/skip`) + matcher/`skipCall` in `lib/live.ts` + `lib/entitlement.ts`; frontend `artifacts/kixxme/src/pages/live.tsx` (Reveal + Countdown + Searching), bottom-nav "Live" tab, Gold-gated camera button in `chat.tsx`. See `.agents/memory/kixxme-live.md`.
 
 ## Architecture decisions
 
@@ -40,7 +40,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - **Block enforcement is centralized** in `artifacts/api-server/src/lib/blocks.ts` and applied at every surface that exposes another user (discover/map, favorites, conversation list/create, send/read messages, image upload, like).
 - **Contract-first.** Endpoints are defined in OpenAPI, then server validates with generated Zod and the client uses generated React Query hooks.
 - **Billing/entitlement.** Subscriptions via Stripe Checkout. `profiles.plan` in Supabase is the entitlement source of truth, written **only** by the Stripe webhook. Stripe data + a `billing_customers` mapping live in Replit Postgres (`stripe-replit-sync` `stripe` schema). Price resolution is by `lookup_key`; tier switches cancel the superseded subscription. See `.agents/memory/kixxme-stripe-billing.md`.
-- **KixxMe Live matchmaking.** Gold-only. The matcher runs in one transaction under a global `pg_advisory_xact_lock`, scans `FOR UPDATE SKIP LOCKED`, and atomically dequeues both users + inserts the call (no double-matching). Staleness/`RING_TTL` expiry is lazy on read; lifecycle transitions re-select `FOR UPDATE` with participant (IDOR) guards. **No media plane** — `lib/live.ts` `issueMediaToken()` is the single future WebRTC/LiveKit stub. See `.agents/memory/kixxme-live.md`.
+- **KixxMe Live matchmaking.** Gold-only. The matcher runs in one transaction under a global `pg_advisory_xact_lock`, scans `FOR UPDATE SKIP LOCKED`, and atomically dequeues both users + inserts the call (no double-matching), storing both parties' filters + skip streak. Staleness/`RING_TTL` expiry is lazy on read; lifecycle transitions re-select `FOR UPDATE` with participant (IDOR) guards. Skip ("Siguiente") flips the call to `skipped` and re-queues **both** users (skipper streak+1, partner reset); 3 consecutive skips → 429. **No media plane** — `lib/live.ts` `issueMediaToken()` is the single future WebRTC/LiveKit stub. See `.agents/memory/kixxme-live.md`.
 
 ## Product
 
@@ -52,7 +52,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - Premium subscriptions (Stripe Checkout): Plus and Gold tiers, monthly or yearly (EUR), with the active plan reflected on the premium page.
 - Support: a Spanish "Soporte" page plus "Contactar soporte" / "Reportar problema" entry points that save reports to the DB and notify `supportkixxme@gmail.com`.
 - Transactional emails (neon/fire branded): welcome on signup and a premium-welcome on subscribe; sent from `supportkixxme@gmail.com` via the Gmail connector.
-- KixxMe Live (Gold-only): a "Live" tab for video calls — random matching with age-range + scope (nearby/city/Spain/Europe/worldwide) filters, a both-accept ringing handshake, private invites via a camera button in chat, and in-call controls (cam/mic/end/report/block). Non-Gold users see a Gold paywall. Currently a UI + matchmaking scaffold; the live video stream is not wired yet.
+- KixxMe Live (Gold-only): a "Live" tab for video calls — random matching with age-range + scope (nearby/city/Spain/Europe/worldwide) filters. Random matches show a pre-call reveal (photo/name/age·city) with "Aceptar" / "Siguiente" (skip → auto-find another, capped at 3 consecutive skips) / "Cancelar", a both-accept countdown into the call, and safety copy throughout. Private invites via a camera button in chat keep the incoming-ring handshake. In-call controls (cam/mic/end/report/block). Non-Gold users see a Gold paywall. Currently a UI + matchmaking scaffold; the live video stream is not wired yet.
 
 ## User preferences
 

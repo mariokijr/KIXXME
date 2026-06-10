@@ -1130,6 +1130,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /live/calls/{id}/skip:
+    post:
+      operationId: skipLiveCall
+      tags: [live]
+      summary: Skip the current random match and search for someone new (Gold only)
+      description: >
+        Ends the current ringing random call and re-queues both participants so
+        each is matched with someone new. Limited to a fixed number of
+        consecutive skips per search session to prevent abuse.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Skipped; both participants returned to the queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "402":
+          description: Gold subscription required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not a participant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Call not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Call cannot be skipped (not a ringing random call)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Consecutive skip limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /live/calls/{id}/end:
     post:
       operationId: endLiveCall

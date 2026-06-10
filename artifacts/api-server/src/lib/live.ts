@@ -6,6 +6,7 @@ import {
   videoCallsTable,
   type VideoCall,
   type LiveScope,
+  type LiveParticipantFilters,
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getBlockRelations } from "./blocks.js";
@@ -28,6 +29,13 @@ const NEARBY_KM = 100;
 const STALE_MS = 30_000;
 /** Ringing calls older than this are auto-expired to "missed". */
 const RING_TTL_MS = 60_000;
+/**
+ * Maximum number of consecutive "Siguiente" skips allowed per search session.
+ * Once a user has skipped this many times in a row without accepting or starting
+ * a fresh search, further skips are refused (anti-abuse). Reset on accept or a
+ * brand-new search.
+ */
+const MAX_SKIPS = 3;
 /**
  * Transaction-scoped advisory lock key. Serializing the match critical section
  * makes a double-match (two concurrent searchers each matching the other)
@@ -72,6 +80,10 @@ interface Snapshot {
   lat: number | null;
   lng: number | null;
   city: string | null;
+  /** Consecutive skips in the current session (carried across re-queues). */
+  skipCount: number;
+  /** Partner just skipped with this user, excluded from the next match. */
+  lastSkippedPartnerId: string | null;
 }
 
 interface Geo {
@@ -185,6 +197,10 @@ async function loadSnapshot(
     lat: (data?.latitude as number | null) ?? null,
     lng: (data?.longitude as number | null) ?? null,
     city: (data?.city as string | null) ?? null,
+    // Fresh load = fresh session: streak resets and no excluded partner. Callers
+    // that need to preserve a streak (skip/heartbeat) override these.
+    skipCount: 0,
+    lastSkippedPartnerId: null,
   };
 }
 
@@ -268,6 +284,34 @@ export async function getActiveCall(
 
 // --- Matchmaking -----------------------------------------------------------
 
+/** Build the values + conflict-update set for upserting a searcher's queue row. */
+function queueUpsertParts(snap: Snapshot, stamp: Date) {
+  const cols = {
+    scope: snap.scope,
+    ageMin: snap.ageMin,
+    ageMax: snap.ageMax,
+    userAge: snap.userAge,
+    lat: snap.lat,
+    lng: snap.lng,
+    city: snap.city,
+    skipCount: snap.skipCount,
+    lastSkippedPartnerId: snap.lastSkippedPartnerId,
+    lastSeenAt: stamp,
+  };
+  return { values: { userId: snap.userId, ...cols }, set: cols };
+}
+
+/** A participant's stored filters, falling back to permissive defaults. */
+function filtersOf(
+  f: LiveParticipantFilters | undefined,
+): { scope: LiveScope; ageMin: number; ageMax: number } {
+  return {
+    scope: f?.scope ?? "worldwide",
+    ageMin: f?.ageMin ?? 18,
+    ageMax: f?.ageMax ?? 99,
+  };
+}
+
 /**
  * Core transactional matcher. Serialized via an advisory xact lock; candidate
  * rows are additionally locked FOR UPDATE SKIP LOCKED. On a match, both queue
@@ -294,6 +338,9 @@ async function runMatch(
     const match = candidates.find((c) => {
       if (blocked.has(c.userId)) return false;
       if (now - c.lastSeenAt.getTime() > STALE_MS) return false;
+      // Don't immediately re-pair two people who just skipped each other.
+      if (snap.lastSkippedPartnerId === c.userId) return false;
+      if (c.lastSkippedPartnerId === me) return false;
       if (!ageMutual(snap, c)) return false;
       // Each side's own scope must be satisfied by the other.
       if (!scopeMatches(snap, c, snap.scope)) return false;
@@ -313,43 +360,32 @@ async function runMatch(
           status: "ringing",
           callerId: me,
           calleeId: match.userId,
+          // Snapshot BOTH parties' filters + skip streaks so either side can be
+          // re-queued correctly on skip/cancel.
           filters: {
-            scope: snap.scope,
-            ageMin: snap.ageMin,
-            ageMax: snap.ageMax,
+            caller: {
+              scope: snap.scope,
+              ageMin: snap.ageMin,
+              ageMax: snap.ageMax,
+              skipCount: snap.skipCount,
+            },
+            callee: {
+              scope: match.scope,
+              ageMin: match.ageMin,
+              ageMax: match.ageMax,
+              skipCount: match.skipCount,
+            },
           },
         })
         .returning();
       return call ?? null;
     }
 
-    const stamp = new Date();
+    const { values, set } = queueUpsertParts(snap, new Date());
     await tx
       .insert(liveQueueTable)
-      .values({
-        userId: me,
-        scope: snap.scope,
-        ageMin: snap.ageMin,
-        ageMax: snap.ageMax,
-        userAge: snap.userAge,
-        lat: snap.lat,
-        lng: snap.lng,
-        city: snap.city,
-        lastSeenAt: stamp,
-      })
-      .onConflictDoUpdate({
-        target: liveQueueTable.userId,
-        set: {
-          scope: snap.scope,
-          ageMin: snap.ageMin,
-          ageMax: snap.ageMax,
-          userAge: snap.userAge,
-          lat: snap.lat,
-          lng: snap.lng,
-          city: snap.city,
-          lastSeenAt: stamp,
-        },
-      });
+      .values(values)
+      .onConflictDoUpdate({ target: liveQueueTable.userId, set });
     return null;
   });
 }
@@ -395,6 +431,8 @@ export async function heartbeatAndMatch(
     lat: row.lat,
     lng: row.lng,
     city: row.city,
+    skipCount: row.skipCount,
+    lastSkippedPartnerId: row.lastSkippedPartnerId,
   };
   const blocked = await blockedSet(me);
   const call = await runMatch(me, snap, blocked);
@@ -500,8 +538,118 @@ export function declineCall(callId: string, userId: string): Promise<CallOutcome
   return terminate(callId, userId, "declined", ["ringing"], "declined");
 }
 
-export function cancelCall(callId: string, userId: string): Promise<CallOutcome> {
-  return terminate(callId, userId, "cancelled", ["ringing"], "cancelled");
+/**
+ * Re-queue the *other* participant of a random call after the given user leaves
+ * (cancel/skip), so the partner keeps roulette-ing instead of being dropped to
+ * idle. Resets the partner's streak (they didn't skip). No-op for private calls.
+ */
+async function requeuePartner(call: VideoCall, exitingUserId: string): Promise<void> {
+  if (call.type !== "random") return;
+  const partnerId =
+    call.callerId === exitingUserId ? call.calleeId : call.callerId;
+  const partnerIsCaller = call.callerId === partnerId;
+  const partnerF = partnerIsCaller ? call.filters?.caller : call.filters?.callee;
+  const base = await loadSnapshot(partnerId, filtersOf(partnerF));
+  const snap: Snapshot = { ...base, skipCount: 0, lastSkippedPartnerId: null };
+  const { values, set } = queueUpsertParts(snap, new Date());
+  await db
+    .insert(liveQueueTable)
+    .values(values)
+    .onConflictDoUpdate({ target: liveQueueTable.userId, set });
+}
+
+export async function cancelCall(
+  callId: string,
+  userId: string,
+): Promise<CallOutcome> {
+  const outcome = await terminate(callId, userId, "cancelled", ["ringing"], "cancelled");
+  // Only re-queue the partner when WE actually cancelled a ringing random call.
+  if (typeof outcome !== "string" && outcome.status === "cancelled") {
+    await requeuePartner(outcome, userId);
+  }
+  return outcome;
+}
+
+export type SkipOutcome =
+  | "notfound"
+  | "forbidden"
+  | "invalid"
+  | "limit"
+  | "ok";
+
+/**
+ * "Siguiente": skip the current random match and return BOTH users to the queue
+ * to find someone new. Random + ringing only; participant-guarded. The skipper's
+ * consecutive-skip streak increments and is capped at MAX_SKIPS (anti-abuse);
+ * the partner's streak resets. The two are excluded from immediately re-matching.
+ */
+export async function skipCall(
+  callId: string,
+  userId: string,
+): Promise<SkipOutcome> {
+  // Pre-read (outside the tx) to validate and to do Supabase snapshot loads
+  // without holding row locks across network I/O.
+  const [pre] = await db
+    .select()
+    .from(videoCallsTable)
+    .where(eq(videoCallsTable.id, callId))
+    .limit(1);
+  if (!pre) return "notfound";
+  if (!isParticipant(pre, userId)) return "forbidden";
+  if (pre.type !== "random" || pre.status !== "ringing") return "invalid";
+
+  const skipperIsCaller = pre.callerId === userId;
+  const partnerId = skipperIsCaller ? pre.calleeId : pre.callerId;
+  const myF = skipperIsCaller ? pre.filters?.caller : pre.filters?.callee;
+  const partnerF = skipperIsCaller ? pre.filters?.callee : pre.filters?.caller;
+  const myStreak = myF?.skipCount ?? 0;
+  if (myStreak >= MAX_SKIPS) return "limit";
+
+  const [myBase, partnerBase] = await Promise.all([
+    loadSnapshot(userId, filtersOf(myF)),
+    loadSnapshot(partnerId, filtersOf(partnerF)),
+  ]);
+  const mySnap: Snapshot = {
+    ...myBase,
+    skipCount: myStreak + 1,
+    lastSkippedPartnerId: partnerId,
+  };
+  const partnerSnap: Snapshot = {
+    ...partnerBase,
+    skipCount: 0,
+    lastSkippedPartnerId: userId,
+  };
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(videoCallsTable)
+      .where(eq(videoCallsTable.id, callId))
+      .for("update");
+    if (!row) return "notfound";
+    if (!isParticipant(row, userId)) return "forbidden";
+    if (row.type !== "random" || row.status !== "ringing") return "invalid";
+    // Re-check the streak against the freshly locked row (guards a racing skip).
+    const lockedStreak =
+      (skipperIsCaller ? row.filters?.caller : row.filters?.callee)?.skipCount ??
+        0;
+    if (lockedStreak >= MAX_SKIPS) return "limit";
+
+    await tx
+      .update(videoCallsTable)
+      .set({ status: "skipped", endedAt: new Date(), endReason: "skipped" })
+      .where(eq(videoCallsTable.id, callId));
+
+    const stamp = new Date();
+    for (const snap of [mySnap, partnerSnap]) {
+      const { values, set } = queueUpsertParts(snap, stamp);
+      await tx
+        .insert(liveQueueTable)
+        .values(values)
+        .onConflictDoUpdate({ target: liveQueueTable.userId, set });
+    }
+    return "ok";
+  });
 }
 
 export function endCall(

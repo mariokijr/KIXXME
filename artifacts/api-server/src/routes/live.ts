@@ -191,6 +191,40 @@ router.post("/live/calls/:id/cancel", async (req, res) => {
   res.json({ success: true });
 });
 
+router.post("/live/calls/:id/skip", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const me = auth.userId;
+
+  // Skipping is part of the Gold-only roulette flow.
+  const plan = await getPlan(me);
+  if (plan !== "gold") {
+    res.status(402).json({ error: GOLD_REQUIRED });
+    return;
+  }
+
+  const result = await live.skipCall(req.params.id, me);
+  if (result === "notfound") {
+    res.status(404).json({ error: "Llamada no encontrada" });
+    return;
+  }
+  if (result === "forbidden") {
+    res.status(403).json({ error: "No autorizado" });
+    return;
+  }
+  if (result === "invalid") {
+    res.status(409).json({ error: "No se puede saltar esta llamada" });
+    return;
+  }
+  if (result === "limit") {
+    res.status(429).json({
+      error: "Has saltado demasiadas veces seguidas. Tómate un respiro 💜",
+    });
+    return;
+  }
+  res.json({ success: true });
+});
+
 router.post("/live/calls/:id/end", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;

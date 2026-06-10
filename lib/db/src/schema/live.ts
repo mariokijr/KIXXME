@@ -25,11 +25,23 @@ import {
 /** Match scope for random video calls. */
 export type LiveScope = "nearby" | "city" | "spain" | "europe" | "worldwide";
 
-/** Snapshot of a random search's filters, stored on the resulting call. */
-export type LiveFilters = {
+/** One participant's search preferences + skip streak at match time. */
+export type LiveParticipantFilters = {
   scope: LiveScope;
   ageMin: number;
   ageMax: number;
+  /** Consecutive "Siguiente" skips this user had accumulated entering the call. */
+  skipCount: number;
+};
+
+/**
+ * Snapshot of BOTH parties' filters, stored on a random call so either side can
+ * be re-queued (with the correct preferences + skip streak) when someone hits
+ * "Siguiente" or cancels. Private calls leave this null.
+ */
+export type LiveCallFilters = {
+  caller: LiveParticipantFilters;
+  callee: LiveParticipantFilters;
 };
 
 /**
@@ -55,6 +67,13 @@ export const liveQueueTable = pgTable(
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
     city: text("city"),
+    // Consecutive "Siguiente" skips in the current search session. Reset to 0 on
+    // a fresh search/accept; incremented when this user skips. The skip endpoint
+    // refuses once this reaches the per-session cap (anti-abuse).
+    skipCount: integer("skip_count").notNull().default(0),
+    // The partner this user just skipped (or was skipped by), so the matcher can
+    // avoid immediately re-pairing the same two people. Cleared on fresh search.
+    lastSkippedPartnerId: uuid("last_skipped_partner_id"),
     // Refreshed on each poll; rows older than the staleness window are expired.
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
       .notNull()
@@ -81,17 +100,27 @@ export const videoCallsTable = pgTable(
     roomName: text("room_name").notNull().unique(),
     // "random" (matchmaking) | "private" (invite from a chat).
     type: text("type").$type<"random" | "private">().notNull(),
-    // ringing | active | ended | declined | cancelled | missed
+    // ringing | active | ended | declined | cancelled | missed | skipped
     status: text("status")
-      .$type<"ringing" | "active" | "ended" | "declined" | "cancelled" | "missed">()
+      .$type<
+        | "ringing"
+        | "active"
+        | "ended"
+        | "declined"
+        | "cancelled"
+        | "missed"
+        | "skipped"
+      >()
       .notNull()
       .default("ringing"),
     // Caller is the user who initiated (search owner or private inviter).
     callerId: uuid("caller_id").notNull(),
     // Callee is the matched/invited user.
     calleeId: uuid("callee_id").notNull(),
-    // Snapshot of the random-search filters that produced the match (if any).
-    filters: jsonb("filters").$type<LiveFilters | null>(),
+    // Snapshot of BOTH parties' random-search filters (caller + callee) that
+    // produced the match, so either side can be re-queued on skip/cancel. Null
+    // for private (invite) calls.
+    filters: jsonb("filters").$type<LiveCallFilters | null>(),
     // Independent acceptances; both required before a call goes active.
     callerAcceptedAt: timestamp("caller_accepted_at", { withTimezone: true }),
     calleeAcceptedAt: timestamp("callee_accepted_at", { withTimezone: true }),

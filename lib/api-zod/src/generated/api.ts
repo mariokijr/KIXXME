@@ -706,6 +706,20 @@ export const CancelLiveCallResponse = zod.object({
 
 
 /**
+ * Ends the current ringing random call and re-queues both participants so each is matched with someone new. Limited to a fixed number of consecutive skips per search session to prevent abuse.
+
+ * @summary Skip the current random match and search for someone new (Gold only)
+ */
+export const SkipLiveCallParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SkipLiveCallResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary End an active video call (caller or callee)
  */
 export const EndLiveCallParams = zod.object({

@@ -2974,6 +2974,78 @@ export const useCancelLiveCall = <TError = ErrorType<ErrorResponse>,
       return useMutation(getCancelLiveCallMutationOptions(options));
     }
 
+export const getSkipLiveCallUrl = (id: string,) => {
+
+
+
+
+  return `/api/live/calls/${id}/skip`
+}
+
+/**
+ * Ends the current ringing random call and re-queues both participants so each is matched with someone new. Limited to a fixed number of consecutive skips per search session to prevent abuse.
+
+ * @summary Skip the current random match and search for someone new (Gold only)
+ */
+export const skipLiveCall = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSkipLiveCallUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSkipLiveCallMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof skipLiveCall>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['skipLiveCall'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof skipLiveCall>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  skipLiveCall(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SkipLiveCallMutationResult = NonNullable<Awaited<ReturnType<typeof skipLiveCall>>>
+
+    export type SkipLiveCallMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Skip the current random match and search for someone new (Gold only)
+ */
+export const useSkipLiveCall = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipLiveCall>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof skipLiveCall>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getSkipLiveCallMutationOptions(options));
+    }
+
 export const getEndLiveCallUrl = (id: string,) => {
 
 
