@@ -1,0 +1,139 @@
+URGENTE – REVISAR KixxMe COMPLETO
+
+Hay varios problemas que siguen sin estar resueltos.
+
+1. ERROR RLS EN PROFILES
+
+La cuenta:
+
+supportkixxme@gmail.com
+
+no puede completar el onboarding.
+
+Error exacto:
+
+new row violates row-level security policy for table "profiles"
+
+Consecuencias:
+- No puede crear o actualizar perfil.
+- Se queda bloqueada en "Preparando tu perfil".
+- No llega al perfil normal.
+- No aparece como administrador.
+- No puedo verificar las funciones de admin.
+
+Revisar:
+- Policies RLS de la tabla profiles.
+- INSERT policy.
+- UPDATE policy.
+- Trigger de creación de perfiles.
+- Flujo onboarding para usuarios creados mediante Admin API.
+- Relación auth.users ↔ profiles.
+
+Objetivo:
+Que supportkixxme@gmail.com pueda completar onboarding sin errores y acceder correctamente a la aplicación.
+
+--------------------------------------------------
+
+2. ADMINISTRADOR NO FUNCIONA
+
+Según los diagnósticos anteriores:
+
+ADMIN_EMAILS = supportkixxme@gmail.com
+
+y el sistema debería devolver:
+
+isAdmin: true
+
+Sin embargo, al iniciar sesión sigo sin tener acceso al panel de administración.
+
+Verificar:
+- Que la API realmente esté usando la versión actualizada.
+- Que la sesión no esté cacheando isAdmin:false.
+- Que el usuario soporte llegue al perfil completo.
+- Que el panel de moderación se muestre cuando isAdmin sea true.
+
+Objetivo:
+Que supportkixxme@gmail.com vea todas las funciones de administrador.
+
+--------------------------------------------------
+
+3. CONTADOR DE USUARIOS INCORRECTO
+
+La aplicación sigue mostrando:
+
+0 usuarios registrados
+
+pero en Supabase existen usuarios reales.
+
+Actualmente se ven usuarios como:
+
+- mariokimbm2003@gmail.com
+- supportkixxme@gmail.com
+- saraolivaz20@gmail.com
+- kixxme_test@mailinator.com
+
+Revisar:
+- Qué tabla usa el contador.
+- auth.users
+- profiles
+- filtros ocultos
+- usuarios desactivados
+- scopes del mapa
+
+Comprobar:
+- Cuántos usuarios hay en auth.users.
+- Cuántos perfiles hay en profiles.
+- Si faltan perfiles para usuarios existentes.
+- Si RLS impide leer perfiles.
+
+Objetivo:
+Que el contador muestre el número real de usuarios registrados.
+
+--------------------------------------------------
+
+4. CAMBIOS NO REFLEJADOS
+
+Los cambios que supuestamente se hicieron no parecen estar reflejados en la versión que estoy usando.
+
+Comprobar:
+- Que el servidor/API esté corriendo la última versión.
+- Que no haya una instancia antigua.
+- Que el frontend y backend estén sincronizados.
+- Que no exista caché sirviendo código antiguo.
+
+--------------------------------------------------
+
+5. DOMINIO
+
+Sigo viendo URLs como:
+
+https://af65ada7-15ca-4628-bd07-7083fef355be-00-3msm3bcyf7ljq.kirk.replit.dev
+
+y no:
+
+https://kixxme.com
+
+Necesito confirmar:
+
+- Si el deployment existe realmente.
+- Si el dominio está conectado.
+- Si APP_BASE_URL está configurado correctamente.
+- Si el dominio sigue pendiente porque nunca se ha completado un deployment válido.
+
+--------------------------------------------------
+
+6. SONIDOS
+
+Verificar que estén funcionando correctamente:
+
+- Like
+- Pass
+- SuperLike
+- Match
+- Inicio de videollamada / KixxMe Live
+
+Porque todavía no los escucho.
+
+--------------------------------------------------
+
+Quiero un diagnóstico REAL ejecutando comprobaciones en vivo y corrigiendo los problemas, no solo una revisión teórica del código.
