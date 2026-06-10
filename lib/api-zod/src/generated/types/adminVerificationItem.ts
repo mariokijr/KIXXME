@@ -19,5 +19,7 @@ export interface AdminVerificationItem {
   plan: AdminVerificationItemPlan;
   is_verified: boolean;
   photos: ProfilePhoto[];
+  /** Short-lived signed URL to the private identity selfie, for admin review only. Null for legacy requests submitted before selfie verification existed. */
+  selfie_url?: string | null;
   createdAt: string;
 }

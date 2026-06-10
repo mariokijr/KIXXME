@@ -71,6 +71,7 @@ import type {
   RefreshSession200,
   RefreshSessionBody,
   ReorderPhotosRequest,
+  RequestVerificationBody,
   ResetPasswordRequest,
   ResolveReportRequest,
   ReviewFlagRequest,
@@ -4735,16 +4736,18 @@ export const getRequestVerificationUrl = () => {
 }
 
 /**
+ * Submits a verification request with a mandatory identity SELFIE. The selfie is stored privately and shown only to admins for review; it never becomes a public profile photo.
  * @summary Request profile verification (manual admin review)
  */
-export const requestVerification = async ( options?: RequestInit): Promise<MyVerificationStatus> => {
+export const requestVerification = async (requestVerificationBody: RequestVerificationBody, options?: RequestInit): Promise<MyVerificationStatus> => {
 
   return customFetch<MyVerificationStatus>(getRequestVerificationUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      requestVerificationBody,)
   }
 );}
 
@@ -4752,8 +4755,8 @@ export const requestVerification = async ( options?: RequestInit): Promise<MyVer
 
 
 export const getRequestVerificationMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,{data: BodyType<RequestVerificationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,{data: BodyType<RequestVerificationBody>}, TContext> => {
 
 const mutationKey = ['requestVerification'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -4765,10 +4768,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestVerification>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestVerification>>, {data: BodyType<RequestVerificationBody>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  requestVerification(requestOptions)
+          return  requestVerification(data,requestOptions)
         }
 
 
@@ -4779,18 +4782,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RequestVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestVerification>>>
-
+    export type RequestVerificationMutationBody = BodyType<RequestVerificationBody>
     export type RequestVerificationMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Request profile verification (manual admin review)
  */
 export const useRequestVerification = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,{data: BodyType<RequestVerificationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof requestVerification>>,
         TError,
-        void,
+        {data: BodyType<RequestVerificationBody>},
         TContext
       > => {
       return useMutation(getRequestVerificationMutationOptions(options));

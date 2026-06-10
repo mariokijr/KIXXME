@@ -30,6 +30,11 @@ export const verificationRequestsTable = pgTable(
     userId: uuid("user_id").notNull(),
     // pending | approved | rejected
     status: text("status").notNull().default("pending"),
+    // Storage path of the identity SELFIE in the PRIVATE `verification-selfies`
+    // Supabase bucket (`${userId}/${ts}.<ext>`). Admins view it via a short-lived
+    // signed URL to compare against the public profile photos before approving.
+    // Nullable for legacy rows created before selfie verification existed.
+    selfiePath: text("selfie_path"),
     // Optional admin note (e.g. rejection reason).
     note: text("note"),
     // Admin (Supabase auth user) who reviewed the request.

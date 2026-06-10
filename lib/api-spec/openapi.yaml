@@ -1870,8 +1870,18 @@ paths:
       operationId: requestVerification
       tags: [profiles]
       summary: Request profile verification (manual admin review)
+      description: >-
+        Submits a verification request with a mandatory identity SELFIE. The
+        selfie is stored privately and shown only to admins for review; it never
+        becomes a public profile photo.
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestVerificationBody"
       responses:
         "200":
           description: Updated verification status
@@ -1879,6 +1889,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MyVerificationStatus"
+        "400":
+          description: Missing or invalid selfie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Unauthorized
           content:
@@ -2999,6 +3015,21 @@ components:
           nullable: true
       required: [status, is_verified, requested_at, reviewed_at, note]
 
+    RequestVerificationBody:
+      type: object
+      description: >-
+        Identity selfie for a verification request. `selfie_base64` is the raw
+        base64 (no data: prefix) of a downscaled JPEG/PNG/WebP; the server
+        enforces a mime allowlist and a decoded-size cap.
+      properties:
+        selfie_base64:
+          type: string
+          minLength: 1
+        selfie_mime_type:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+      required: [selfie_base64, selfie_mime_type]
+
     VisitorProfile:
       type: object
       properties:
@@ -3073,6 +3104,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProfilePhoto"
+        selfie_url:
+          type: string
+          nullable: true
+          description: >-
+            Short-lived signed URL to the private identity selfie, for admin
+            review only. Null for legacy requests submitted before selfie
+            verification existed.
         createdAt:
           type: string
       required: [id, userId, plan, is_verified, photos, createdAt]

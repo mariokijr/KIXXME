@@ -1232,8 +1232,17 @@ export const GetMyVerificationResponse = zod.object({
 
 
 /**
+ * Submits a verification request with a mandatory identity SELFIE. The selfie is stored privately and shown only to admins for review; it never becomes a public profile photo.
  * @summary Request profile verification (manual admin review)
  */
+
+
+
+export const RequestVerificationBody = zod.object({
+  "selfie_base64": zod.string().min(1),
+  "selfie_mime_type": zod.enum(['image/jpeg', 'image/png', 'image/webp'])
+}).describe('Identity selfie for a verification request. `selfie_base64` is the raw base64 (no data: prefix) of a downscaled JPEG\/PNG\/WebP; the server enforces a mime allowlist and a decoded-size cap.')
+
 export const RequestVerificationResponse = zod.object({
   "status": zod.enum(['none', 'pending', 'approved', 'rejected']),
   "is_verified": zod.boolean(),
@@ -1285,6 +1294,7 @@ export const ListAdminVerificationsResponse = zod.object({
   "position": zod.number(),
   "created_at": zod.string().optional()
 })),
+  "selfie_url": zod.string().nullish().describe('Short-lived signed URL to the private identity selfie, for admin review only. Null for legacy requests submitted before selfie verification existed.'),
   "createdAt": zod.string()
 })),
   "total": zod.number()

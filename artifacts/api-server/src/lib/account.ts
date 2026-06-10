@@ -18,6 +18,7 @@ import {
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { cancelAllSubscriptionsForUser } from "./billing.js";
+import { purgeUserVerification } from "./verification.js";
 
 /**
  * Account self-service: temporary deactivation, permanent deletion, and the
@@ -410,6 +411,8 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
   await db
     .delete(accountFlagsTable)
     .where(eq(accountFlagsTable.userId, userId));
+  // Verification: remove private selfies from storage + the request rows.
+  await purgeUserVerification(userId, log);
 
   // 4. Irreversible: remove the Supabase auth user LAST.
   const { error: authErr } = await supabase.auth.admin.deleteUser(userId);

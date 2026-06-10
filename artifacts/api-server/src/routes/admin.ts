@@ -29,6 +29,7 @@ import {
   countPendingVerifications,
   listPendingVerificationRows,
   reviewVerification,
+  signSelfieUrl,
 } from "../lib/verification.js";
 
 const router = Router();
@@ -216,22 +217,26 @@ router.get("/admin/verifications", async (req, res) => {
     }
   }
 
-  const verifications = rows.map((r) => {
-    const p = profileMap.get(r.userId);
-    return {
-      id: r.id,
-      userId: r.userId,
-      username: p?.username ?? null,
-      avatar_url: p?.avatar_url ?? null,
-      age: p?.age ?? null,
-      city: p?.city ?? null,
-      bio: p?.bio ?? null,
-      plan: normalizePlan(p?.plan ?? null),
-      is_verified: Boolean(p?.is_verified),
-      photos: photosMap.get(r.userId) ?? [],
-      createdAt: r.createdAt.toISOString(),
-    };
-  });
+  const verifications = await Promise.all(
+    rows.map(async (r) => {
+      const p = profileMap.get(r.userId);
+      return {
+        id: r.id,
+        userId: r.userId,
+        username: p?.username ?? null,
+        avatar_url: p?.avatar_url ?? null,
+        age: p?.age ?? null,
+        city: p?.city ?? null,
+        bio: p?.bio ?? null,
+        plan: normalizePlan(p?.plan ?? null),
+        is_verified: Boolean(p?.is_verified),
+        photos: photosMap.get(r.userId) ?? [],
+        // Short-lived signed URL to the private selfie (null for legacy rows).
+        selfie_url: await signSelfieUrl(r.selfiePath),
+        createdAt: r.createdAt.toISOString(),
+      };
+    }),
+  );
 
   // Paid tiers first, then oldest pending requests first (longest waiting).
   verifications.sort((a, b) => {

@@ -855,6 +855,24 @@ export interface MyVerificationStatus {
   note: string | null;
 }
 
+export type RequestVerificationBodySelfieMimeType = typeof RequestVerificationBodySelfieMimeType[keyof typeof RequestVerificationBodySelfieMimeType];
+
+
+export const RequestVerificationBodySelfieMimeType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+/**
+ * Identity selfie for a verification request. `selfie_base64` is the raw base64 (no data: prefix) of a downscaled JPEG/PNG/WebP; the server enforces a mime allowlist and a decoded-size cap.
+ */
+export interface RequestVerificationBody {
+  /** @minLength 1 */
+  selfie_base64: string;
+  selfie_mime_type: RequestVerificationBodySelfieMimeType;
+}
+
 export type VisitorProfilePlan = typeof VisitorProfilePlan[keyof typeof VisitorProfilePlan];
 
 
@@ -904,6 +922,8 @@ export interface AdminVerificationItem {
   plan: AdminVerificationItemPlan;
   is_verified: boolean;
   photos: ProfilePhoto[];
+  /** Short-lived signed URL to the private identity selfie, for admin review only. Null for legacy requests submitted before selfie verification existed. */
+  selfie_url?: string | null;
   createdAt: string;
 }
 

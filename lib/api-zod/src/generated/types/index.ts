@@ -96,6 +96,8 @@ export * from './quotaState';
 export * from './refreshSession200';
 export * from './refreshSessionBody';
 export * from './reorderPhotosRequest';
+export * from './requestVerificationBody';
+export * from './requestVerificationBodySelfieMimeType';
 export * from './resetPasswordRequest';
 export * from './resolveReportRequest';
 export * from './resolveReportRequestAction';

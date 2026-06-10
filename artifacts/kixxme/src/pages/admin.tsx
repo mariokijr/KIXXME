@@ -1304,17 +1304,51 @@ function VerificationRow({
         </p>
       )}
 
+      <div className="mt-3">
+        <p className="font-sans text-[11px] uppercase tracking-wider text-sky-300/80 mb-1.5">
+          Selfie de verificación
+        </p>
+        {item.selfie_url ? (
+          <a
+            href={item.selfie_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-xl overflow-hidden border border-sky-500/40"
+            data-testid={`selfie-link-${item.id}`}
+          >
+            <img
+              src={item.selfie_url}
+              alt="Selfie de verificación"
+              className="w-full max-h-64 object-contain bg-black/40"
+              data-testid={`img-selfie-${item.id}`}
+            />
+          </a>
+        ) : (
+          <div
+            className="rounded-xl border border-dashed border-border/50 p-4 text-center"
+            data-testid={`selfie-missing-${item.id}`}
+          >
+            <p className="font-sans text-xs text-muted-foreground">Sin selfie</p>
+          </div>
+        )}
+      </div>
+
       {photos.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 mt-3">
-          {photos.map((p) => (
-            <div
-              key={p.id}
-              className="relative rounded-lg overflow-hidden border border-border/30"
-              style={{ aspectRatio: "1" }}
-            >
-              <img src={p.url} alt="" className="w-full h-full object-cover" />
-            </div>
-          ))}
+        <div className="mt-3">
+          <p className="font-sans text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
+            Fotos del perfil
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {photos.map((p) => (
+              <div
+                key={p.id}
+                className="relative rounded-lg overflow-hidden border border-border/30"
+                style={{ aspectRatio: "1" }}
+              >
+                <img src={p.url} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

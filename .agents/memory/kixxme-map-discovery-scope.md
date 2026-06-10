@@ -36,7 +36,7 @@ does NOT float paid plans — it floats verified then completitud instead.
 - **Sample-local, not global:** priority orders only the most-recent-active ≤200 candidate window, so a
   long-inactive verified profile can fall out of the sample entirely (same caveat as scope filtering).
 - NOTE (was stale): the grid Descubrir ordering is **no longer "untouched"** — verified+completitud
-  priority was added to it in Fase 1 Block 3.
+  priority is now layered onto it.
 
 ## Centralized visibility (hidden ids)
 `artifacts/api-server/src/lib/visibility.ts` is the single source for "who must this viewer
