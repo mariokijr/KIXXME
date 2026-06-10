@@ -373,6 +373,10 @@ export const UpdateProfileRequestLookingFor = {
 export interface UpdateProfileRequest {
   username?: string;
   bio?: string;
+  /**
+     * Must be 18 or older (adults-only app).
+     * @minimum 18
+     */
   age?: number;
   city?: string;
   gender?: string;

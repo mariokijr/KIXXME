@@ -17,6 +17,10 @@ import {
 import { isUnavailable } from "../lib/moderation.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike } from "../lib/likes.js";
+import {
+  notifyMatchByEmail,
+  notifySuperLikeByEmail,
+} from "../lib/like-notifications.js";
 import { getPlan } from "../lib/entitlement.js";
 import {
   recordProfileVisit,
@@ -158,6 +162,7 @@ router.get("/profiles", async (req, res) => {
     .not("username", "is", null)
     .not("avatar_url", "is", null)
     .not("age", "is", null)
+    .gte("age", 18)
     .not("city", "is", null)
     .not("bio", "is", null);
   if (box) {
@@ -196,7 +201,7 @@ router.get("/profiles", async (req, res) => {
     return (
       !!row.avatar_url &&
       row.age != null &&
-      row.age > 0 &&
+      row.age >= 18 &&
       !!row.city?.trim() &&
       (row.bio?.trim().length ?? 0) >= MIN_BIO_LENGTH &&
       !!d?.role &&
@@ -355,6 +360,15 @@ router.put("/profiles/me", async (req, res) => {
   }
   if (looking_for !== undefined && !isValidLookingFor(looking_for)) {
     res.status(400).json({ error: "invalid looking_for" });
+    return;
+  }
+  if (
+    age !== undefined &&
+    (typeof age !== "number" || !Number.isInteger(age) || age < 18)
+  ) {
+    res
+      .status(400)
+      .json({ error: "Debes tener al menos 18 años para usar KixxMe." });
     return;
   }
 
@@ -541,6 +555,20 @@ router.post("/profiles/:id/like", async (req, res) => {
     req.log.error({ error: result.message }, "like POST: error");
     res.status(400).json({ error: result.message });
     return;
+  }
+
+  // Engagement emails (fire-and-forget, never throw). A mutual Match emails
+  // BOTH users; otherwise a SuperLike emails its recipient. Match takes
+  // precedence so a SuperLike that matches sends the (more exciting) Match
+  // email instead of the SuperLike one — mirroring the in-app behaviour.
+  // Gated on `firstEdge`: only a NEW like emits an email, so repeat/duplicate
+  // likes (unlimited for Plus/Gold) can't re-spam the recipient.
+  if (result.firstEdge) {
+    if (result.matched) {
+      void notifyMatchByEmail(auth.userId, id);
+    } else if (result.isSuper) {
+      void notifySuperLikeByEmail(id, auth.userId);
+    }
   }
 
   res.status(201).json({

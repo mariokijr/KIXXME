@@ -122,7 +122,7 @@ export default function Profile() {
       if (!hasMainPhoto) missing.push("una foto principal");
       if (!username.trim()) missing.push("nombre de usuario");
       if (bio.trim().length < 10) missing.push("una biografía (mín. 10 caracteres)");
-      if (age === "" || Number(age) <= 0) missing.push("tu edad");
+      if (age === "") missing.push("tu edad");
       if (!city.trim()) missing.push("tu ciudad");
       if (!role) missing.push("rol/preferencia");
       if (!lookingFor) missing.push("qué buscas");
@@ -134,6 +134,14 @@ export default function Profile() {
         });
         return;
       }
+    }
+    if (age !== "" && Number(age) < 18) {
+      toast({
+        title: "Debes ser mayor de edad",
+        description: "Tienes que tener al menos 18 años para usar KixxMe.",
+        variant: "destructive",
+      });
+      return;
     }
     updateProfile.mutate(
       { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined, role: role || undefined, looking_for: lookingFor || undefined } },
@@ -410,7 +418,7 @@ export default function Profile() {
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Edad">
-            <Input type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)}
+            <Input type="number" min={18} max={120} value={age} onChange={(e) => setAge(e.target.value)}
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
               placeholder="25" data-testid="input-edit-age" />
           </Field>

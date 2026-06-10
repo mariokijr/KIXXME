@@ -2430,6 +2430,8 @@ components:
           type: string
         age:
           type: integer
+          minimum: 18
+          description: Must be 18 or older (adults-only app).
         city:
           type: string
         gender:

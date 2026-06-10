@@ -45,6 +45,21 @@ A redacted superliker must NOT also appear as a named regular like.
 ids. Plus/Gold get `revealed=true` + real sender. A mutual SuperLike is announced
 as a Match (so it's excluded from the likes toast).
 
+## Engagement emails must gate on a NEW edge, not on `matched`
+`recordLike` returns `matched` derived purely from reciprocal-row existence, so
+once a pair is mutual *every* later like (incl. unlimited Plus/Gold likes)
+reports `matched: true` again. Firing Match/SuperLike emails off `matched`/`isSuper`
+alone re-spams the recipient on each repeat like. Gate on `firstEdge` instead:
+the Supabase upsert uses `ignoreDuplicates` (INSERT … ON CONFLICT DO NOTHING), so
+`.select()` returns a row ONLY when a new edge was inserted — `firstEdge =
+rows.length > 0`. The route emails only when `firstEdge`.
+**Why:** `matched` must stay reciprocal-existence-based (the in-app match
+celebration depends on it on every like), so the no-spam guard lives at the email
+layer, not by changing `matched`.
+**Known residual:** an unlike (deletes the edge) → re-like inserts a genuinely
+new edge, so a toggle still re-fires. Fully fixing it needs a persistent
+per-pair "already notified" record (queued follow-up), not edge detection.
+
 ## Misc
 - 429 (quota exceeded) responses carry a Spanish message at JSON `{ error }`
   (frontend reads `err.data.error`, `err.status === 429`).

@@ -310,6 +310,84 @@ export function premiumWelcomeEmail(
   return { subject: PLUS_WELCOME_SUBJECT, html: plusWelcomeEmailHtml(appUrl) };
 }
 
+// --- Match + SuperLike notifications (engagement) ---------------------------
+// Sent when a like becomes a mutual Match (both parties) or when a user
+// receives a SuperLike. The SuperLike sender's identity follows the same
+// redaction rule as in-app notifications: only Plus/Gold recipients learn who
+// sent it (free recipients get "alguien" + an upsell).
+
+export const MATCH_SUBJECT = "\u{1F389} \u00A1Es un Match en KixxMe!";
+
+export function matchEmailHtml(otherName: string, appUrl?: string): string {
+  const name = otherName.trim() || "alguien";
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">\u00A1Enhorabuena! T\u00FA y ${escapeHtml(
+      name,
+    )} os hab\u00E9is gustado.</strong>`,
+    "\u{1F389} Es un Match. Ahora pod\u00E9is hablar y conoceros mejor.",
+    "\u{1F525} No dejes que se enfr\u00EDe: rompe el hielo con un buen mensaje.",
+    "Equipo KixxMe",
+  ]);
+  return renderEmail({
+    preheader: `T\u00FA y ${name} hab\u00E9is hecho Match en KixxMe`,
+    heading: "\u{1F389} \u00A1Es un Match!",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Abrir chat", url: appUrl } : undefined,
+  });
+}
+
+export function matchEmail(
+  otherName: string,
+  appUrl?: string,
+): { subject: string; html: string } {
+  return { subject: MATCH_SUBJECT, html: matchEmailHtml(otherName, appUrl) };
+}
+
+export const SUPERLIKE_SUBJECT =
+  "\u{1F49C} Has recibido un SuperLike en KixxMe";
+
+export function superLikeReceivedEmailHtml(
+  senderName: string | null,
+  appUrl?: string,
+): string {
+  const lead = senderName
+    ? `<strong style="color:#f4f1fb;">${escapeHtml(
+        senderName,
+      )} te ha enviado un SuperLike.</strong>`
+    : `<strong style="color:#f4f1fb;">Alguien te ha enviado un SuperLike.</strong>`;
+  const lines = [
+    lead,
+    "\u{1F49C} Un SuperLike significa que le has gustado de verdad.",
+  ];
+  if (!senderName) {
+    lines.push(
+      "\u{1F440} Hazte KixxMe Plus o Gold para ver qui\u00E9n te env\u00EDa SuperLikes.",
+    );
+  }
+  lines.push(
+    "Entra y desc\u00FAbrelo. Tu pr\u00F3xima conexi\u00F3n te espera \u{1F525}",
+  );
+  lines.push("Equipo KixxMe");
+  return renderEmail({
+    preheader: senderName
+      ? `${senderName} te ha enviado un SuperLike`
+      : "Has recibido un SuperLike en KixxMe",
+    heading: "\u{1F49C} \u00A1Has recibido un SuperLike!",
+    bodyHtml: paragraphs(lines),
+    cta: appUrl ? { label: "Ver en KixxMe", url: appUrl } : undefined,
+  });
+}
+
+export function superLikeReceivedEmail(
+  senderName: string | null,
+  appUrl?: string,
+): { subject: string; html: string } {
+  return {
+    subject: SUPERLIKE_SUBJECT,
+    html: superLikeReceivedEmailHtml(senderName, appUrl),
+  };
+}
+
 // --- Support report notification (to the support inbox) ---------------------
 
 export function supportReportEmailHtml(report: {

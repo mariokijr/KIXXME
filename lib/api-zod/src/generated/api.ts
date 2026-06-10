@@ -143,10 +143,14 @@ export const GetMyProfileResponse = zod.object({
 /**
  * @summary Update the current user's profile
  */
+export const updateMyProfileBodyAgeMin = 18;
+
+
+
 export const UpdateMyProfileBody = zod.object({
   "username": zod.string().optional(),
   "bio": zod.string().optional(),
-  "age": zod.number().optional(),
+  "age": zod.number().min(updateMyProfileBodyAgeMin).optional().describe('Must be 18 or older (adults-only app).'),
   "city": zod.string().optional(),
   "gender": zod.string().optional(),
   "location": zod.string().optional(),

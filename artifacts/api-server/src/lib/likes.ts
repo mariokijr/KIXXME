@@ -72,7 +72,18 @@ export interface LikeQuota {
 }
 
 export type RecordLikeResult =
-  | { ok: true; isSuper: boolean; matched: boolean; quota: LikeQuota }
+  | {
+      ok: true;
+      isSuper: boolean;
+      matched: boolean;
+      /**
+       * Whether this like inserted a NEW liker→liked edge (vs. a no-op repeat
+       * of an already-existing like). Engagement emails fire only on a new
+       * edge so repeat/duplicate likes can't re-spam the recipient.
+       */
+      firstEdge: boolean;
+      quota: LikeQuota;
+    }
   | { ok: false; reason: "limit"; kind: LikeKind; quota: LikeQuota }
   | { ok: false; reason: "error"; message: string };
 
@@ -239,12 +250,17 @@ export async function recordLike(
     };
   }
 
-  const { error } = await supabase
+  const { data: upserted, error } = await supabase
     .from("likes")
     .upsert(
       { liker_id: likerId, liked_id: likedId },
       { onConflict: "liker_id,liked_id", ignoreDuplicates: true },
-    );
+    )
+    .select("liker_id");
+  // With ignoreDuplicates the upsert is INSERT ... ON CONFLICT DO NOTHING, so
+  // RETURNING (`.select()`) yields a row ONLY when a new edge was inserted; a
+  // repeat like of an existing edge comes back empty.
+  const firstEdge = !!(upserted && upserted.length > 0);
 
   if (error) {
     // Dual compensating refund: undo BOTH the action log row and any credit
@@ -281,6 +297,7 @@ export async function recordLike(
     ok: true,
     isSuper: kind === "superlike",
     matched: !!reciprocal,
+    firstEdge,
     quota: await getLikeQuota(likerId),
   };
 }
