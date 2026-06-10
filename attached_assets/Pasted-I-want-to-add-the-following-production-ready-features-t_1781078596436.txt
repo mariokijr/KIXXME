@@ -1,0 +1,476 @@
+I want to add the following production-ready features to KixxMe.
+
+1. Account Management
+
+Add a complete account management section inside Settings.
+
+Options:
+
+Temporarily deactivate account
+
+* User can deactivate the account for:
+    * 1 month
+    * 3 months
+    * 6 months
+    * Indefinitely until they log back in
+* Profile becomes hidden from Discover, Live, search and the map.
+* Chats and user data are preserved.
+
+Permanently delete account
+
+* User can permanently delete their account.
+
+Security flow:
+
+* Send a verification email to the user’s registered email.
+* Include a unique verification code.
+* User must enter the code inside KixxMe before deactivation or deletion is completed.
+* Prevent accidental deletions.
+
+Email example:
+
+Subject:
+Confirmación de eliminación de cuenta
+
+Body:
+“Hemos recibido una solicitud para eliminar tu cuenta de KixxMe. Introduce el siguiente código para confirmar la operación.”
+
+The same flow should exist for temporary deactivation.
+
+2. Swipe / Match System
+
+Create a Tinder-style discovery mode.
+
+New section:
+
+❤️ Descubrir
+
+Features:
+
+* Large profile cards.
+* Swipe left = No me interesa.
+* Swipe right = Me gusta.
+* Tap profile to view more photos.
+* Smooth animations.
+* Mobile-first experience.
+
+3. SuperLike System
+
+All users can use SuperLikes.
+
+Free users:
+
+* 1 SuperLike available.
+* Recharges after a cooldown period.
+
+Plus users:
+
+* More SuperLikes.
+
+Gold users:
+
+* Unlimited SuperLikes.
+
+When a user receives a SuperLike:
+
+* Show notification.
+
+Free users:
+
+* Know they received a SuperLike.
+* Cannot see who sent it.
+
+Plus and Gold users:
+
+* Can see exactly who sent it.
+
+Premium upsell:
+“Descubre quién te ha enviado un SuperLike con KixxMe Plus o Gold.”
+
+4. Like Limits
+
+Free users:
+
+* Maximum 15 likes every 6 hours.
+
+After reaching the limit:
+
+“Has alcanzado tu límite de likes. Vuelve más tarde o desbloquea KixxMe Plus para likes ilimitados.”
+
+Plus users:
+
+* Unlimited likes.
+
+Gold users:
+
+* Unlimited likes.
+
+5. Match System
+
+If two users like each other:
+
+🎉 ¡Es un Match!
+
+Allow:
+
+* Send first message immediately.
+* Open chat directly.
+* Celebration animation.
+
+6. World Map Improvements
+
+Add:
+
+🌍 Usuarios registrados
+
+* Total registered users.
+
+🟢 Usuarios online ahora
+
+* Number of online users.
+
+Filters:
+
+* Nearby
+* Province
+* Spain
+* Europe
+* Worldwide
+
+Show:
+
+* Avatar
+* Name
+* Age
+* Distance
+
+Allow:
+
+* Open profile
+* Send message
+* Give like
+
+7. Premium Improvements
+
+Plus:
+
+* Unlimited likes
+* More SuperLikes
+* See who SuperLiked you
+
+Gold:
+
+* Unlimited likes
+* Unlimited SuperLikes
+* See all profile visitors
+* KixxMe Live access
+* Priority visibility
+* Advanced filters
+
+8. Moderation & Safety System
+
+Users must be able to report:
+
+* Profiles
+* Photos
+* Chat messages
+* Video calls
+* Live users
+* Spam
+* Fake accounts
+* Harassment
+
+Report button locations:
+
+* Profiles
+* Chats
+* Live
+* Map
+* User cards
+
+Report categories:
+
+* Spam
+* Fake profile
+* Harassment
+* Inappropriate behavior during video calls
+* Underage user
+* Other
+
+Every report must:
+
+* Be saved in the database.
+* Generate an admin notification.
+* Generate an email notification.
+
+Send moderation emails to:
+
+supportkixxme@gmail.com
+
+Admin dashboard:
+
+I want an Admin Moderation Dashboard where I can:
+
+* View all reports
+* Search reports
+* Filter reports
+* View reported profiles
+* View reported messages
+* View reported video call incidents
+* Suspend users
+* Ban users
+* Remove photos
+* Resolve reports
+
+9. Live Video Call Safety
+
+Inside every video call:
+
+Buttons:
+
+* Report
+* Block
+* End Call
+
+If a user receives multiple reports:
+
+* Automatically flag account for review.
+
+Display:
+
+“Respeta siempre a la otra persona. Puedes finalizar, bloquear o reportar la llamada en cualquier momento.”
+
+10. Verification System
+
+Users can request profile verification.
+
+Verified users receive:
+✅ Verification badge
+
+Benefits:
+
+* More trust
+* Better visibility
+* Less fake accounts
+
+Gold users get priority review.
+
+11. Visitor System
+
+Gold users can see:
+
+👀 Quién visitó mi perfil
+
+Show:
+
+* Photo
+* Name
+* Time of visit
+
+Free users:
+
+* Only see visitor count.
+
+Premium upsell:
+“Desbloquea KixxMe Plus o Gold para ver quién visitó tu perfil.”
+
+12. Activity & Engagement
+
+Add:
+
+🔥 Daily streaks
+🎁 Daily rewards
+🏆 Profile completion score
+
+Rewards:
+
+* Extra likes
+* Extra SuperLikes
+
+13. Smart Safety Features
+
+Detect:
+
+* Spam messages
+* Repeated copy-paste messages
+* Suspicious behavior
+
+Automatically flag suspicious accounts for moderation review.
+
+14. KixxMe Live Gold
+
+KixxMe Live should become one of the main reasons users subscribe to Gold.
+
+Rules:
+
+* Only Gold users can access Live.
+* Only Gold users can match with other Gold users.
+* Random matching only.
+* No manual user selection.
+
+Filters:
+
+* Age range
+* Nearby
+* Same city
+* Spain
+* Europe
+* Worldwide
+
+Searching screen:
+
+“Buscando una conexión Gold para ti…”
+
+“Estamos encontrando a alguien con quien romper el hielo.”
+
+Use animated elements:
+🎲 ✨ 📹 💫
+
+Pre-call screen:
+
+Show:
+
+* Main photo
+* Name
+* Age
+* City
+
+Example:
+
+“Te vas a conectar con Eduardo, 28 años, Madrid”
+
+Countdown:
+
+“La llamada empieza en 5… 4… 3…”
+
+Buttons:
+
+* Aceptar
+* Siguiente
+* Cancelar
+
+Behavior:
+
+* Aceptar = wait for both users.
+* Siguiente = search another person.
+* Cancelar = stop search.
+
+If both accept:
+
+* Start video call.
+
+Private video calls:
+
+* Camera button inside chats.
+* Invitation system.
+* Only Gold ↔ Gold.
+
+Call controls:
+
+* Camera on/off
+* Mic on/off
+* End call
+* Report
+* Block
+
+Important:
+Build the UI and architecture now.
+Prepare future WebRTC / LiveKit integration later.
+
+15. Brand & Mobile Experience
+
+Keep the current K logo.
+
+Do NOT replace it.
+
+I like the K and want it to remain the main symbol of KixxMe.
+
+Changes:
+
+* Remove all fire icons 🔥
+* Keep purple, pink and gold colors
+* Make branding more premium
+* Create app icon versions for iPhone and Android
+* Improve mobile responsiveness
+* Improve animations
+* Improve onboarding
+
+Replace:
+
+“Entra al mapa más caliente”
+
+With something more premium:
+
+“Conecta con chicos cerca de ti.”
+
+or
+
+“Descubre nuevas conexiones cerca de ti.”
+
+16. Profile Photo Policy
+
+Main profile photo:
+
+* Must clearly show the user’s face.
+* Face photo is mandatory.
+* No body-only photos.
+* No faceless photos.
+* No memes.
+* No landscapes.
+* No blank photos.
+* No explicit content as main profile photo.
+
+If not:
+
+“Tu foto principal debe mostrar claramente tu cara.”
+
+Additional gallery photos:
+
+* Users can upload multiple extra photos.
+* Shirtless photos are allowed.
+* Gym photos are allowed.
+* Beach photos are allowed.
+* More intimate photos are allowed as long as they are legal and consensual.
+
+Do not automatically remove adult-style photos from gallery images.
+
+Allow reports instead.
+
+All photo reports:
+
+* Save in database.
+* Email supportkixxme@gmail.com.
+* Appear in Admin Moderation Dashboard.
+
+Strictly block:
+
+* Underage content
+* Illegal content
+* Violence
+* Hate content
+* Non-consensual content
+* Impersonation
+
+Show during registration:
+
+“Tu foto principal debe ser de tu cara. Las fotos adicionales pueden ser más personales, pero siempre deben cumplir las normas de KixxMe.”
+
+17. Final Review
+
+Before marking complete:
+
+* Test Stripe subscriptions
+* Test likes
+* Test SuperLikes
+* Test matches
+* Test Live Gold
+* Test moderation
+* Test reports
+* Test account deletion
+* Test account deactivation
+* Test verification emails
+* Test notifications
+* Test mobile devices
+* Test performance
+* Ensure all text is Spanish
+* Ensure production readiness
