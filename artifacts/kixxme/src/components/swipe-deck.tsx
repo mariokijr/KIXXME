@@ -23,6 +23,7 @@ import {
   BadgeCheck,
   RefreshCw,
   Sparkles,
+  Flag,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -38,6 +39,7 @@ import { useLikeActions } from "@/lib/like-actions";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
+import { ReportDialog } from "@/components/report-dialog";
 
 type Decision = "like" | "pass" | "superlike";
 
@@ -328,6 +330,7 @@ function ProfileDetailSheet({
         ? [profile.avatar_url]
         : [];
   const distance = formatDistance(profile.distance_km);
+  const [reportOpen, setReportOpen] = useState(false);
 
   return (
     <div
@@ -340,14 +343,25 @@ function ProfileDetailSheet({
           {profile.username}
           {profile.age ? `, ${profile.age}` : ""}
         </h2>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Cerrar"
-          data-testid="button-close-detail"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setReportOpen(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-border/40 text-muted-foreground hover:text-red-400 transition-colors"
+            aria-label="Reportar"
+            title="Reportar"
+            data-testid="button-detail-report"
+          >
+            <Flag className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Cerrar"
+            data-testid="button-close-detail"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -448,6 +462,14 @@ function ProfileDetailSheet({
           <Heart className="w-7 h-7 text-white" fill="white" />
         </ActionButton>
       </div>
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        targetUserId={profile.id}
+        username={profile.username}
+        targetType="profile"
+      />
     </div>
   );
 }

@@ -538,18 +538,6 @@ export const MarkConversationReadResponse = zod.object({
 
 
 /**
- * @summary Report or block a conversation
- */
-export const ReportConversationParams = zod.object({
-  "id": zod.coerce.string()
-})
-
-export const ReportConversationBody = zod.object({
-  "reason": zod.string().optional()
-})
-
-
-/**
  * @summary Delete one of the current user's messages
  */
 export const DeleteMessageParams = zod.object({
@@ -819,6 +807,304 @@ export const ConfirmAccountActionBody = zod.object({
 export const ConfirmAccountActionResponse = zod.object({
   "success": zod.boolean(),
   "action": zod.enum(['deactivate', 'delete'])
+})
+
+
+/**
+ * @summary Report a profile, photo, chat message, video call, or Live user
+ */
+export const createReportBodyMessageMax = 5000;
+
+
+
+export const CreateReportBody = zod.object({
+  "targetUserId": zod.string().describe('Supabase user id of the reported person'),
+  "reportType": zod.enum(['spam', 'fake_profile', 'harassment', 'video_behavior', 'underage', 'other']),
+  "targetType": zod.enum(['profile', 'photo', 'message', 'video_call', 'live_user']),
+  "message": zod.string().max(createReportBodyMessageMax).optional().describe('Optional extra detail from the reporter'),
+  "targetMessageId": zod.string().nullish(),
+  "targetConversationId": zod.string().nullish(),
+  "targetCallId": zod.string().nullish(),
+  "targetPhotoId": zod.string().nullish()
+})
+
+
+/**
+ * @summary Current user's moderation state (and admin flag)
+ */
+export const GetMyModerationResponse = zod.object({
+  "state": zod.enum(['active', 'suspended', 'banned']),
+  "suspendedUntil": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "isAdmin": zod.boolean()
+})
+
+
+/**
+ * @summary Moderation queue counts
+ */
+export const GetAdminSummaryResponse = zod.object({
+  "openReports": zod.number(),
+  "openFlags": zod.number(),
+  "suspended": zod.number(),
+  "banned": zod.number()
+})
+
+
+/**
+ * @summary List moderation reports with filters
+ */
+export const ListAdminReportsQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "reportType": zod.coerce.string().optional(),
+  "targetType": zod.coerce.string().optional(),
+  "q": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListAdminReportsResponse = zod.object({
+  "reports": zod.array(zod.object({
+  "id": zod.string(),
+  "reporterId": zod.string(),
+  "reporterUsername": zod.string().nullish(),
+  "targetUserId": zod.string().nullish(),
+  "targetUsername": zod.string().nullish(),
+  "category": zod.string(),
+  "reportType": zod.string().nullish(),
+  "targetType": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "message": zod.string(),
+  "status": zod.string(),
+  "actionTaken": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Full moderation report with reported content
+ */
+export const GetAdminReportParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetAdminReportResponse = zod.object({
+  "report": zod.object({
+  "id": zod.string(),
+  "reporterId": zod.string(),
+  "reporterUsername": zod.string().nullish(),
+  "targetUserId": zod.string().nullish(),
+  "targetUsername": zod.string().nullish(),
+  "category": zod.string(),
+  "reportType": zod.string().nullish(),
+  "targetType": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "message": zod.string(),
+  "status": zod.string(),
+  "actionTaken": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "reporter": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "created_at": zod.string().optional()
+}).nullish(),
+  "target": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "created_at": zod.string().optional()
+}).nullish(),
+  "targetState": zod.enum(['active', 'suspended', 'banned']),
+  "targetSuspendedUntil": zod.string().nullish(),
+  "targetReportCount": zod.number(),
+  "reportedMessage": zod.object({
+  "id": zod.string(),
+  "conversation_id": zod.string(),
+  "sender_id": zod.string(),
+  "content": zod.string().nullish(),
+  "image_url": zod.string().nullish(),
+  "created_at": zod.string(),
+  "read_at": zod.string().nullish(),
+  "deleted_at": zod.string().nullish()
+}).nullish(),
+  "messageContext": zod.array(zod.object({
+  "id": zod.string(),
+  "conversation_id": zod.string(),
+  "sender_id": zod.string(),
+  "content": zod.string().nullish(),
+  "image_url": zod.string().nullish(),
+  "created_at": zod.string(),
+  "read_at": zod.string().nullish(),
+  "deleted_at": zod.string().nullish()
+})),
+  "call": zod.object({
+  "id": zod.string(),
+  "callerId": zod.string(),
+  "calleeId": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.string(),
+  "endedAt": zod.string().nullish()
+}).nullish(),
+  "targetPhotos": zod.array(zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Update a report's triage state / record an action
+ */
+export const ResolveAdminReportParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const resolveAdminReportBodyNoteMax = 2000;
+
+
+
+export const ResolveAdminReportBody = zod.object({
+  "status": zod.enum(['open', 'in_progress', 'resolved', 'closed']),
+  "note": zod.string().max(resolveAdminReportBodyNoteMax).optional(),
+  "action": zod.enum(['none', 'suspend', 'ban', 'remove_photo', 'dismiss']).optional()
+})
+
+export const ResolveAdminReportResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List auto-flagged accounts
+ */
+export const ListAdminFlagsQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const ListAdminFlagsResponse = zod.object({
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "username": zod.string().nullish(),
+  "reason": zod.string(),
+  "detail": zod.string().nullish(),
+  "count": zod.number(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Mark an account flag reviewed or dismissed
+ */
+export const ReviewAdminFlagParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ReviewAdminFlagBody = zod.object({
+  "status": zod.enum(['open', 'reviewed', 'dismissed'])
+})
+
+export const ReviewAdminFlagResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Suspend a user (temporary or indefinite)
+ */
+export const SuspendUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const suspendUserBodyReasonMax = 500;
+
+
+
+export const SuspendUserBody = zod.object({
+  "durationDays": zod.number().optional().describe('Days until auto-lift; omit for indefinite'),
+  "reason": zod.string().max(suspendUserBodyReasonMax).optional()
+})
+
+export const SuspendUserResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Permanently ban a user
+ */
+export const BanUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const banUserBodyReasonMax = 500;
+
+
+
+export const BanUserBody = zod.object({
+  "reason": zod.string().max(banUserBodyReasonMax).optional()
+})
+
+export const BanUserResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Clear a user's suspension/ban
+ */
+export const LiftUserModerationParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const LiftUserModerationResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a reported photo
+ */
+export const AdminRemovePhotoParams = zod.object({
+  "photoId": zod.coerce.string()
+})
+
+export const AdminRemovePhotoResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

@@ -130,6 +130,11 @@ export default function Signup() {
                   </FormItem>
                 )}
               />
+              <p className="font-sans text-[11px] text-muted-foreground/80 leading-relaxed text-center">
+                Debes ser mayor de 18 años. Al crear tu perfil añadirás fotos
+                tuyas y reales: no se permiten desnudos explícitos, menores de
+                edad ni contenido que incumpla las normas de la comunidad.
+              </p>
               <Button
                 type="submit"
                 disabled={isSubmitting}

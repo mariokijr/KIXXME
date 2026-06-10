@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Loader2, Share2, Users, Heart, Star, BadgeCheck } from "lucide-react";
+import { MapPin, Loader2, Share2, Users, Heart, Star, BadgeCheck, Flag } from "lucide-react";
 import {
   useListProfiles,
   getListProfilesQueryKey,
@@ -17,6 +17,7 @@ import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
+import { ReportDialog } from "@/components/report-dialog";
 
 export { gradFor, formatDistance } from "@/lib/profile-format";
 
@@ -301,6 +302,7 @@ export function UserCard({
   superLikePending?: boolean;
 }) {
   const distance = formatDistance(user.distance_km);
+  const [reportOpen, setReportOpen] = useState(false);
 
   return (
     <div
@@ -394,6 +396,16 @@ export function UserCard({
         >
           Mensaje
         </button>
+        <button
+          onClick={() => setReportOpen(true)}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:text-red-400 border border-white/20"
+          style={{ background: "rgba(0,0,0,0.4)" }}
+          aria-label="Reportar"
+          title="Reportar"
+          data-testid="button-report-card"
+        >
+          <Flag className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       <div
@@ -415,6 +427,14 @@ export function UserCard({
           )}
         </div>
       </div>
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        targetUserId={user.id}
+        username={user.username}
+        targetType="profile"
+      />
     </div>
   );
 }

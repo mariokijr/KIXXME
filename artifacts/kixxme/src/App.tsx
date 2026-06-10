@@ -9,6 +9,7 @@ import { NotificationsProvider } from "@/lib/notifications";
 import { MatchCelebrationProvider } from "@/lib/match-celebration";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
+import { ModerationGate } from "@/components/moderation-gate";
 import BottomNav from "@/components/layout/bottom-nav";
 
 import Login from "@/pages/login";
@@ -24,6 +25,11 @@ import Favorites from "@/pages/favorites";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import Live from "@/pages/live";
+import Admin from "@/pages/admin";
+import {
+  useGetMyModeration,
+  getGetMyModerationQueryKey,
+} from "@workspace/api-client-react";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +76,29 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [isLoading, session, setLocation]);
 
   if (isLoading || !session) return null;
+  return <Component />;
+}
+
+function AdminRoute({ component: Component }: { component: React.ComponentType<any> }) {
+  const { session, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const { data: moderation, isLoading: modLoading } = useGetMyModeration({
+    query: { enabled: !!session, queryKey: getGetMyModerationQueryKey() },
+  });
+
+  useEffect(() => {
+    if (!isLoading && !session) {
+      setLocation("/login");
+      return;
+    }
+    if (session && !modLoading && moderation && !moderation.isAdmin) {
+      setLocation("/discover");
+    }
+  }, [isLoading, session, modLoading, moderation, setLocation]);
+
+  if (isLoading || !session || modLoading) return null;
+  if (!moderation?.isAdmin) return null;
   return <Component />;
 }
 
@@ -132,6 +161,7 @@ function Router() {
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
       <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
       <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
+      <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />
     </Switch>
@@ -147,7 +177,9 @@ function App() {
             <NotificationsProvider>
               <MatchCelebrationProvider>
                 <LocationSync />
-                <Router />
+                <ModerationGate>
+                  <Router />
+                </ModerationGate>
               </MatchCelebrationProvider>
             </NotificationsProvider>
           </AuthProvider>

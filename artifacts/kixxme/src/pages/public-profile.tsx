@@ -28,7 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SupportDialog } from "@/components/support-dialog";
+import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
 import { useLikeActions } from "@/lib/like-actions";
 
@@ -378,18 +378,12 @@ export default function PublicProfile() {
         )}
       </div>
 
-      <SupportDialog
+      <ReportDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
-        category="profile"
         targetUserId={profile.id}
-        title="Reportar perfil"
-        description={`Cuéntanos qué problema hay con el perfil de ${profile.username}.`}
-        messageLabel="Motivo del reporte"
-        messagePlaceholder="Describe el comportamiento o el contenido inapropiado…"
-        submitLabel="Enviar reporte"
-        successTitle="Reporte enviado"
-        successDescription="Gracias. Revisaremos este perfil lo antes posible."
+        username={profile.username}
+        targetType="profile"
       />
     </div>
   );

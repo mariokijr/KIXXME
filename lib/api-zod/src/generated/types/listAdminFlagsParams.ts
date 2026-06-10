@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ReportRequest {
-  reason?: string;
-}
+export type ListAdminFlagsParams = {
+status?: string;
+};

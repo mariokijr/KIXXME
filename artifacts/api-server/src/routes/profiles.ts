@@ -14,7 +14,7 @@ import {
   addBlock,
   removeBlock,
 } from "../lib/blocks.js";
-import { isDeactivated } from "../lib/account.js";
+import { isUnavailable } from "../lib/moderation.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike } from "../lib/likes.js";
 import { LikeProfileBody } from "@workspace/api-zod";
@@ -409,8 +409,9 @@ router.get("/profiles/me/likes", async (req, res) => {
 router.get("/profiles/:id/photos", async (req, res) => {
   const { id } = req.params;
 
-  // A deactivated user is hidden everywhere: don't expose their photos.
-  if (await isDeactivated(id)) {
+  // An unavailable user (deactivated or moderated) is hidden everywhere: don't
+  // expose their photos.
+  if (await isUnavailable(id)) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
@@ -450,7 +451,7 @@ router.post("/profiles/:id/like", async (req, res) => {
     return;
   }
 
-  if (await isDeactivated(id)) {
+  if (await isUnavailable(id)) {
     res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
@@ -538,8 +539,9 @@ router.get("/profiles/:id", async (req, res) => {
   const { id } = req.params;
   const viewer = await optionalAuth(req);
 
-  // A deactivated user is hidden everywhere; treat their profile as not found.
-  if (await isDeactivated(id)) {
+  // An unavailable user (deactivated or moderated) is hidden everywhere; treat
+  // their profile as not found.
+  if (await isUnavailable(id)) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }

@@ -286,10 +286,6 @@ export interface ReorderPhotosRequest {
   photo_ids: string[];
 }
 
-export interface ReportRequest {
-  reason?: string;
-}
-
 export interface SendMessageRequest {
   content?: string;
   image_url?: string;
@@ -502,6 +498,189 @@ export interface AccountActionConfirmResponse {
   action: AccountActionConfirmResponseAction;
 }
 
+export type CreateReportRequestReportType = typeof CreateReportRequestReportType[keyof typeof CreateReportRequestReportType];
+
+
+export const CreateReportRequestReportType = {
+  spam: 'spam',
+  fake_profile: 'fake_profile',
+  harassment: 'harassment',
+  video_behavior: 'video_behavior',
+  underage: 'underage',
+  other: 'other',
+} as const;
+
+export type CreateReportRequestTargetType = typeof CreateReportRequestTargetType[keyof typeof CreateReportRequestTargetType];
+
+
+export const CreateReportRequestTargetType = {
+  profile: 'profile',
+  photo: 'photo',
+  message: 'message',
+  video_call: 'video_call',
+  live_user: 'live_user',
+} as const;
+
+export interface CreateReportRequest {
+  /** Supabase user id of the reported person */
+  targetUserId: string;
+  reportType: CreateReportRequestReportType;
+  targetType: CreateReportRequestTargetType;
+  /**
+     * Optional extra detail from the reporter
+     * @maxLength 5000
+     */
+  message?: string;
+  targetMessageId?: string | null;
+  targetConversationId?: string | null;
+  targetCallId?: string | null;
+  targetPhotoId?: string | null;
+}
+
+export type MyModerationStatusState = typeof MyModerationStatusState[keyof typeof MyModerationStatusState];
+
+
+export const MyModerationStatusState = {
+  active: 'active',
+  suspended: 'suspended',
+  banned: 'banned',
+} as const;
+
+export interface MyModerationStatus {
+  state: MyModerationStatusState;
+  suspendedUntil?: string | null;
+  reason?: string | null;
+  isAdmin: boolean;
+}
+
+export interface AdminReport {
+  id: string;
+  reporterId: string;
+  reporterUsername?: string | null;
+  targetUserId?: string | null;
+  targetUsername?: string | null;
+  category: string;
+  reportType?: string | null;
+  targetType?: string | null;
+  subject?: string | null;
+  message: string;
+  status: string;
+  actionTaken?: string | null;
+  createdAt: string;
+}
+
+export interface AdminReportList {
+  reports: AdminReport[];
+  total: number;
+}
+
+export interface AdminVideoCall {
+  id: string;
+  callerId: string;
+  calleeId: string;
+  status: string;
+  createdAt: string;
+  endedAt?: string | null;
+}
+
+export type AdminReportDetailTargetState = typeof AdminReportDetailTargetState[keyof typeof AdminReportDetailTargetState];
+
+
+export const AdminReportDetailTargetState = {
+  active: 'active',
+  suspended: 'suspended',
+  banned: 'banned',
+} as const;
+
+export interface AdminReportDetail {
+  report: AdminReport;
+  reporter?: PublicProfile | null;
+  target?: PublicProfile | null;
+  targetState: AdminReportDetailTargetState;
+  targetSuspendedUntil?: string | null;
+  targetReportCount: number;
+  reportedMessage?: Message | null;
+  messageContext: Message[];
+  call?: AdminVideoCall | null;
+  targetPhotos: ProfilePhoto[];
+}
+
+export type ResolveReportRequestStatus = typeof ResolveReportRequestStatus[keyof typeof ResolveReportRequestStatus];
+
+
+export const ResolveReportRequestStatus = {
+  open: 'open',
+  in_progress: 'in_progress',
+  resolved: 'resolved',
+  closed: 'closed',
+} as const;
+
+export type ResolveReportRequestAction = typeof ResolveReportRequestAction[keyof typeof ResolveReportRequestAction];
+
+
+export const ResolveReportRequestAction = {
+  none: 'none',
+  suspend: 'suspend',
+  ban: 'ban',
+  remove_photo: 'remove_photo',
+  dismiss: 'dismiss',
+} as const;
+
+export interface ResolveReportRequest {
+  status: ResolveReportRequestStatus;
+  /** @maxLength 2000 */
+  note?: string;
+  action?: ResolveReportRequestAction;
+}
+
+export interface SuspendUserRequest {
+  /** Days until auto-lift; omit for indefinite */
+  durationDays?: number;
+  /** @maxLength 500 */
+  reason?: string;
+}
+
+export interface BanUserRequest {
+  /** @maxLength 500 */
+  reason?: string;
+}
+
+export interface AdminFlag {
+  id: string;
+  userId: string;
+  username?: string | null;
+  reason: string;
+  detail?: string | null;
+  count: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface AdminFlagList {
+  flags: AdminFlag[];
+  total: number;
+}
+
+export type ReviewFlagRequestStatus = typeof ReviewFlagRequestStatus[keyof typeof ReviewFlagRequestStatus];
+
+
+export const ReviewFlagRequestStatus = {
+  open: 'open',
+  reviewed: 'reviewed',
+  dismissed: 'dismissed',
+} as const;
+
+export interface ReviewFlagRequest {
+  status: ReviewFlagRequestStatus;
+}
+
+export interface AdminSummary {
+  openReports: number;
+  openFlags: number;
+  suspended: number;
+  banned: number;
+}
+
 export type Logout200 = {
   message: string;
 };
@@ -576,5 +755,18 @@ export type CreateOrGetConversationBody = {
 
 export type UploadChatImage201 = {
   image_url: string;
+};
+
+export type ListAdminReportsParams = {
+status?: string;
+reportType?: string;
+targetType?: string;
+q?: string;
+limit?: number;
+offset?: number;
+};
+
+export type ListAdminFlagsParams = {
+status?: string;
 };
 

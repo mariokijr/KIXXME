@@ -11,6 +11,8 @@ import {
   billingCustomersTable,
   supportReportsTable,
   likeActionsTable,
+  accountModerationTable,
+  accountFlagsTable,
   type AccountStatus,
   type AccountActionPayload,
 } from "@workspace/db";
@@ -402,6 +404,12 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
   await db
     .delete(accountStatusTable)
     .where(eq(accountStatusTable.userId, userId));
+  await db
+    .delete(accountModerationTable)
+    .where(eq(accountModerationTable.userId, userId));
+  await db
+    .delete(accountFlagsTable)
+    .where(eq(accountFlagsTable.userId, userId));
 
   // 4. Irreversible: remove the Supabase auth user LAST.
   const { error: authErr } = await supabase.auth.admin.deleteUser(userId);

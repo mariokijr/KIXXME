@@ -3,7 +3,11 @@ import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { isOnline } from "../lib/geo.js";
 import { getBlockRelations, isBlockedBetween } from "../lib/blocks.js";
-import { isDeactivated, getDeactivatedIds } from "../lib/account.js";
+import {
+  isUnavailable,
+  getUnavailableIds,
+  detectSpamFromMessage,
+} from "../lib/moderation.js";
 
 const router = Router();
 
@@ -58,13 +62,13 @@ router.get("/conversations", async (req, res) => {
   }
 
   const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
-  const deactivated = await getDeactivatedIds();
+  const unavailable = await getUnavailableIds();
 
-  // Hide conversations where the other user has blocked the viewer or has
-  // deactivated their account.
+  // Hide conversations where the other user has blocked the viewer or is
+  // unavailable (deactivated or suspended/banned).
   const visibleConversations = (conversations ?? []).filter((conv) => {
     const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
-    return !blockedMe.has(otherId) && !deactivated.has(otherId);
+    return !blockedMe.has(otherId) && !unavailable.has(otherId);
   });
 
   const enriched = await Promise.all(
@@ -129,7 +133,7 @@ router.post("/conversations", async (req, res) => {
     return;
   }
 
-  if (await isDeactivated(other_user_id)) {
+  if (await isUnavailable(other_user_id)) {
     res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
@@ -229,7 +233,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
     res.status(403).json({ error: "No puedes enviar mensajes a este usuario" });
     return;
   }
-  if (await isDeactivated(otherId)) {
+  if (await isUnavailable(otherId)) {
     res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
@@ -256,6 +260,11 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .eq("id", id);
 
   res.status(201).json(message);
+
+  // Fire-and-forget spam/copy-paste detection AFTER responding — never blocks
+  // or fails the send. Raises a `spam_pattern` review flag when the same body
+  // is sent to several conversations in a short window.
+  void detectSpamFromMessage(auth.userId, trimmed || null);
 });
 
 router.post("/conversations/:id/images", async (req, res) => {
@@ -274,7 +283,7 @@ router.post("/conversations/:id/images", async (req, res) => {
     res.status(403).json({ error: "No puedes enviar contenido a este usuario" });
     return;
   }
-  if (await isDeactivated(otherId)) {
+  if (await isUnavailable(otherId)) {
     res.status(404).json({ error: "Perfil no disponible" });
     return;
   }
@@ -326,37 +335,6 @@ router.post("/conversations/:id/read", async (req, res) => {
     .is("read_at", null);
 
   res.json({ success: true });
-});
-
-router.post("/conversations/:id/report", async (req, res) => {
-  const auth = await requireAuth(req, res);
-  if (!auth) return;
-
-  const { id } = req.params;
-  const { reason } = req.body as { reason?: string };
-
-  const conv = await isParticipant(id, auth.userId);
-  if (!conv) {
-    res.status(403).json({ error: "Not authorized" });
-    return;
-  }
-
-  const reportedUserId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
-
-  const { error } = await supabase.from("reports").insert({
-    reporter_id: auth.userId,
-    reported_user_id: reportedUserId,
-    conversation_id: id,
-    reason: reason ?? null,
-  });
-
-  if (error) {
-    req.log.error({ error: error.message }, "conversations report: error");
-    res.status(400).json({ error: error.message });
-    return;
-  }
-
-  res.status(201).json({ success: true });
 });
 
 export default router;

@@ -11,7 +11,7 @@ import {
   useSkipLiveCall,
   useEndLiveCall,
   useBlockProfile,
-  useCreateSupportReport,
+  useCreateReport,
   type LiveState,
   type LiveCall,
   type LiveQueueRequestScope,
@@ -103,7 +103,7 @@ export default function Live() {
   const skipCall = useSkipLiveCall();
   const endCall = useEndLiveCall();
   const blockUser = useBlockProfile();
-  const reportUser = useCreateSupportReport();
+  const reportUser = useCreateReport();
 
   const onError = (msg: string) => (err: any) =>
     toast({
@@ -164,9 +164,10 @@ export default function Live() {
     reportUser.mutate(
       {
         data: {
-          category: "profile",
           targetUserId: call.partner.id,
-          subject: "Reporte desde KixxMe Live",
+          reportType: "video_behavior",
+          targetType: "live_user",
+          targetCallId: call.id,
           message: `Reporte de ${partnerName(call)} durante una videollamada.`,
         },
       },

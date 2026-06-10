@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { getBlockRelations } from "../lib/blocks.js";
-import { getDeactivatedIds } from "../lib/account.js";
+import { getUnavailableIds } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
 import { getSuperLikerIds } from "../lib/likes.js";
 
@@ -42,10 +42,10 @@ router.get("/notifications/summary", async (req, res) => {
 
   const me = auth.userId;
   const { iBlocked, blockedMe } = await getBlockRelations(me);
-  const deactivated = await getDeactivatedIds();
-  // Deactivated users are hidden everywhere, exactly like a block.
+  const unavailable = await getUnavailableIds();
+  // Unavailable users (deactivated or moderated) are hidden everywhere, like a block.
   const isBlocked = (id: string) =>
-    iBlocked.has(id) || blockedMe.has(id) || deactivated.has(id);
+    iBlocked.has(id) || blockedMe.has(id) || unavailable.has(id);
 
   // People who liked me (most recent first).
   const { data: received, error: receivedError } = await supabase
@@ -167,7 +167,8 @@ router.get("/notifications/summary", async (req, res) => {
     .filter((c) => {
       const otherId = c.user1_id === me ? c.user2_id : c.user1_id;
       return (
-        !blockedMe.has(otherId as string) && !deactivated.has(otherId as string)
+        !blockedMe.has(otherId as string) &&
+        !unavailable.has(otherId as string)
       );
     })
     .map((c) => c.id as string);

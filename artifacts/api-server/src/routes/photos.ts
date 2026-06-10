@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
+import { removePhotoRow } from "../lib/photos.js";
 
 const router = Router();
 
@@ -164,27 +165,12 @@ router.delete("/profiles/me/photos/:photoId", async (req, res) => {
     return;
   }
 
-  await supabase.storage.from("avatars").remove([photo.storage_path]);
-  await supabase.from("profile_photos").delete().eq("id", photoId);
-
-  if (photo.is_avatar) {
-    const { data: next } = await supabase
-      .from("profile_photos")
-      .select("id, url")
-      .eq("user_id", auth.userId)
-      .order("position", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (next) {
-      await supabase.from("profile_photos").update({ is_avatar: true }).eq("id", next.id);
-    }
-
-    await supabase
-      .from("profiles")
-      .update({ avatar_url: next?.url ?? null, updated_at: new Date().toISOString() })
-      .eq("id", auth.userId);
-  }
+  await removePhotoRow({
+    id: photo.id,
+    user_id: photo.user_id,
+    storage_path: photo.storage_path,
+    is_avatar: photo.is_avatar,
+  });
 
   res.json({ success: true });
 });

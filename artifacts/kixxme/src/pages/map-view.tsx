@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Heart,
   Check,
+  Flag,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -28,6 +29,7 @@ import { useLocation } from "wouter";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useLikeActions } from "@/lib/like-actions";
 import { formatDistance, initialsFor } from "@/lib/profile-format";
+import { ReportDialog } from "@/components/report-dialog";
 
 const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038]; // Madrid
 
@@ -139,6 +141,7 @@ export default function MapView() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [scope, setScope] = useState<Scope>("worldwide");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
@@ -595,6 +598,16 @@ export default function MapView() {
               />
             </button>
             <button
+              onClick={() => setReportOpen(true)}
+              aria-label="Reportar"
+              title="Reportar"
+              data-testid="button-map-report"
+              className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border border-border/40 text-muted-foreground hover:text-red-400"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              <Flag className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => handleMessage(selected.id)}
               disabled={createConv.isPending}
               className="flex-shrink-0 px-4 py-2 rounded-lg text-white text-sm font-sans font-medium disabled:opacity-60"
@@ -606,6 +619,16 @@ export default function MapView() {
               Mensaje
             </button>
           </div>
+        )}
+
+        {selected && (
+          <ReportDialog
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            targetUserId={selected.id}
+            username={selected.username}
+            targetType="profile"
+          />
         )}
       </div>
 

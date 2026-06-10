@@ -24,6 +24,12 @@ tags:
     description: KixxMe Live — Gold-only video calls (scaffold)
   - name: account
     description: Account self-service — deactivation and deletion (email-verified)
+  - name: reports
+    description: User-to-user moderation reports
+  - name: moderation
+    description: Current user's moderation state
+  - name: admin
+    description: Admin-only moderation dashboard
 paths:
   /healthz:
     get:
@@ -844,39 +850,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /conversations/{id}/report:
-    post:
-      operationId: reportConversation
-      tags: [conversations]
-      summary: Report or block a conversation
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReportRequest"
-      responses:
-        "201":
-          description: Reported
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /messages/{messageId}:
     delete:
       operationId: deleteMessage
@@ -1383,6 +1356,385 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /reports:
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Report a profile, photo, chat message, video call, or Live user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportRequest"
+      responses:
+        "201":
+          description: Report received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportReportResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/moderation:
+    get:
+      operationId: getMyModeration
+      tags: [moderation]
+      summary: Current user's moderation state (and admin flag)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Moderation status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyModerationStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      summary: Moderation queue counts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/reports:
+    get:
+      operationId: listAdminReports
+      tags: [admin]
+      summary: List moderation reports with filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: reportType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: targetType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminReportList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/reports/{id}:
+    get:
+      operationId: getAdminReport
+      tags: [admin]
+      summary: Full moderation report with reported content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Report detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminReportDetail"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/reports/{id}/resolve:
+    post:
+      operationId: resolveAdminReport
+      tags: [admin]
+      summary: Update a report's triage state / record an action
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveReportRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/flags:
+    get:
+      operationId: listAdminFlags
+      tags: [admin]
+      summary: List auto-flagged accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFlagList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/flags/{id}/review:
+    post:
+      operationId: reviewAdminFlag
+      tags: [admin]
+      summary: Mark an account flag reviewed or dismissed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewFlagRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/suspend:
+    post:
+      operationId: suspendUser
+      tags: [admin]
+      summary: Suspend a user (temporary or indefinite)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuspendUserRequest"
+      responses:
+        "200":
+          description: Suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/ban:
+    post:
+      operationId: banUser
+      tags: [admin]
+      summary: Permanently ban a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BanUserRequest"
+      responses:
+        "200":
+          description: Banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/lift:
+    post:
+      operationId: liftUserModeration
+      tags: [admin]
+      summary: Clear a user's suspension/ban
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/photos/{photoId}:
+    delete:
+      operationId: adminRemovePhoto
+      tags: [admin]
+      summary: Remove a reported photo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1832,12 +2184,6 @@ components:
             type: string
       required: [photo_ids]
 
-    ReportRequest:
-      type: object
-      properties:
-        reason:
-          type: string
-
     SendMessageRequest:
       type: object
       properties:
@@ -2022,3 +2368,241 @@ components:
           type: string
           enum: [deactivate, delete]
       required: [success, action]
+
+    CreateReportRequest:
+      type: object
+      properties:
+        targetUserId:
+          type: string
+          description: Supabase user id of the reported person
+        reportType:
+          type: string
+          enum: [spam, fake_profile, harassment, video_behavior, underage, other]
+        targetType:
+          type: string
+          enum: [profile, photo, message, video_call, live_user]
+        message:
+          type: string
+          maxLength: 5000
+          description: Optional extra detail from the reporter
+        targetMessageId:
+          type: string
+          nullable: true
+        targetConversationId:
+          type: string
+          nullable: true
+        targetCallId:
+          type: string
+          nullable: true
+        targetPhotoId:
+          type: string
+          nullable: true
+      required: [targetUserId, reportType, targetType]
+
+    MyModerationStatus:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [active, suspended, banned]
+        suspendedUntil:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        isAdmin:
+          type: boolean
+      required: [state, isAdmin]
+
+    AdminReport:
+      type: object
+      properties:
+        id:
+          type: string
+        reporterId:
+          type: string
+        reporterUsername:
+          type: string
+          nullable: true
+        targetUserId:
+          type: string
+          nullable: true
+        targetUsername:
+          type: string
+          nullable: true
+        category:
+          type: string
+        reportType:
+          type: string
+          nullable: true
+        targetType:
+          type: string
+          nullable: true
+        subject:
+          type: string
+          nullable: true
+        message:
+          type: string
+        status:
+          type: string
+        actionTaken:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, reporterId, category, message, status, createdAt]
+
+    AdminReportList:
+      type: object
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminReport"
+        total:
+          type: integer
+      required: [reports, total]
+
+    AdminVideoCall:
+      type: object
+      properties:
+        id:
+          type: string
+        callerId:
+          type: string
+        calleeId:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+        endedAt:
+          type: string
+          nullable: true
+      required: [id, callerId, calleeId, status, createdAt]
+
+    AdminReportDetail:
+      type: object
+      properties:
+        report:
+          $ref: "#/components/schemas/AdminReport"
+        reporter:
+          allOf:
+            - $ref: "#/components/schemas/PublicProfile"
+          nullable: true
+        target:
+          allOf:
+            - $ref: "#/components/schemas/PublicProfile"
+          nullable: true
+        targetState:
+          type: string
+          enum: [active, suspended, banned]
+        targetSuspendedUntil:
+          type: string
+          nullable: true
+        targetReportCount:
+          type: integer
+        reportedMessage:
+          allOf:
+            - $ref: "#/components/schemas/Message"
+          nullable: true
+        messageContext:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        call:
+          allOf:
+            - $ref: "#/components/schemas/AdminVideoCall"
+          nullable: true
+        targetPhotos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfilePhoto"
+      required: [report, targetState, targetReportCount, messageContext, targetPhotos]
+
+    ResolveReportRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        note:
+          type: string
+          maxLength: 2000
+        action:
+          type: string
+          enum: [none, suspend, ban, remove_photo, dismiss]
+      required: [status]
+
+    SuspendUserRequest:
+      type: object
+      properties:
+        durationDays:
+          type: integer
+          description: Days until auto-lift; omit for indefinite
+        reason:
+          type: string
+          maxLength: 500
+
+    BanUserRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+
+    AdminFlag:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+          nullable: true
+        reason:
+          type: string
+        detail:
+          type: string
+          nullable: true
+        count:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+      required: [id, userId, reason, count, status, createdAt]
+
+    AdminFlagList:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminFlag"
+        total:
+          type: integer
+      required: [flags, total]
+
+    ReviewFlagRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, reviewed, dismissed]
+      required: [status]
+
+    AdminSummary:
+      type: object
+      properties:
+        openReports:
+          type: integer
+        openFlags:
+          type: integer
+        suspended:
+          type: integer
+        banned:
+          type: integer
+      required: [openReports, openFlags, suspended, banned]

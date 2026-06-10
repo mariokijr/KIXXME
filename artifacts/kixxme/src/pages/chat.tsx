@@ -15,6 +15,7 @@ import {
   Video,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ReportDialog } from "@/components/report-dialog";
 import {
   useListMessages,
   getListMessagesQueryKey,
@@ -22,7 +23,6 @@ import {
   useListConversations,
   getListConversationsQueryKey,
   useMarkConversationRead,
-  useReportConversation,
   useDeleteMessage,
   useUploadChatImage,
   useBlockProfile,
@@ -75,6 +75,7 @@ export default function Chat() {
   const [text, setText] = useState("");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [activeMsg, setActiveMsg] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -96,7 +97,6 @@ export default function Chat() {
 
   const sendMessage = useSendMessage();
   const markRead = useMarkConversationRead();
-  const reportConv = useReportConversation();
   const deleteMsg = useDeleteMessage();
   const uploadImage = useUploadChatImage();
   const blockUser = useBlockProfile();
@@ -287,16 +287,9 @@ export default function Chat() {
   };
 
   const handleReport = () => {
-    if (!conversationId) return;
+    if (!otherUser) return;
     setMenuOpen(false);
-    reportConv.mutate(
-      { id: conversationId, data: { reason: "Reportado desde el chat" } },
-      {
-        onSuccess: () =>
-          toast({ title: "Usuario reportado", description: "Gracias, lo revisaremos." }),
-        onError: () => toast({ title: "No se pudo reportar", variant: "destructive" }),
-      }
-    );
+    setReportOpen(true);
   };
 
   const handleBlock = () => {
@@ -622,6 +615,17 @@ export default function Chat() {
           <Send className="w-4 h-4" />
         </button>
       </div>
+      )}
+
+      {otherUser && (
+        <ReportDialog
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          targetUserId={otherUser.id}
+          username={otherUser.username}
+          targetType="message"
+          targetConversationId={conversationId ?? undefined}
+        />
       )}
     </div>
   );

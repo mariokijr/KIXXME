@@ -10,6 +10,8 @@ import {
   useDeletePhoto,
   useSetPhotoAsAvatar,
   useReorderPhotos,
+  useGetMyModeration,
+  getGetMyModerationQueryKey,
   ProfilePhoto,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,6 +39,7 @@ import {
   MessageCircle,
   MessageSquareWarning,
   Settings as SettingsIcon,
+  ShieldAlert,
 } from "lucide-react";
 import { SupportDialog } from "@/components/support-dialog";
 
@@ -51,6 +54,11 @@ export default function Profile() {
   const { data: profile, isLoading, error } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
+
+  const { data: moderation } = useGetMyModeration({
+    query: { enabled: !!session, queryKey: getGetMyModerationQueryKey() },
+  });
+  const isAdmin = !!moderation?.isAdmin;
 
   const updateProfile = useUpdateMyProfile();
   const uploadAvatar = useUploadAvatar();
@@ -325,6 +333,12 @@ export default function Profile() {
             </label>
           )}
         </div>
+        <p className="font-sans text-[11px] text-muted-foreground/80 mt-3 leading-relaxed">
+          Sube solo fotos tuyas y mantén la cara visible en la principal. No se
+          permiten desnudos explícitos, contenido sexual, menores de edad,
+          violencia ni datos de contacto. Las fotos que incumplan las normas se
+          eliminarán y pueden conllevar la suspensión de la cuenta.
+        </p>
       </div>
 
       <div className="mx-4 mb-4 border border-border/40 rounded-2xl p-5 space-y-5"
@@ -440,6 +454,29 @@ export default function Profile() {
           ¿Necesitas ayuda? supportkixxme@gmail.com
         </a>
       </div>
+
+      {isAdmin && (
+        <div className="mx-4 mb-6 border border-amber-500/30 rounded-2xl p-5 space-y-3"
+          style={{ background: "rgba(245,158,11,0.05)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <ShieldAlert className="w-4 h-4 text-amber-400" />
+            <h3 className="font-display text-lg tracking-widest text-foreground">Moderación</h3>
+          </div>
+          <p className="font-sans text-xs text-muted-foreground">
+            Revisa reportes, alertas automáticas y aplica sanciones.
+          </p>
+          <button
+            type="button"
+            onClick={() => setLocation("/admin")}
+            className="w-full h-11 rounded-xl border border-amber-500/40 flex items-center justify-center gap-2 font-sans text-sm font-medium text-amber-300 hover:bg-amber-500/10 transition-colors"
+            style={{ background: "rgba(245,158,11,0.08)" }}
+            data-testid="button-open-admin"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            Panel de moderación
+          </button>
+        </div>
+      )}
 
       <SupportDialog
         open={contactOpen}

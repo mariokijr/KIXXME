@@ -60,7 +60,9 @@ router.get("/account/status", async (req, res) => {
 
 /** Email a verification code to confirm a deactivation or deletion. */
 router.post("/account/verification/request", async (req, res) => {
-  const auth = await requireAuth(req, res);
+  // Self-service exit (deactivate / permanent delete) must stay reachable for
+  // suspended or banned users — they have a right to leave / erase their data.
+  const auth = await requireAuth(req, res, { allowModerated: true });
   if (!auth) return;
 
   const parsed = RequestAccountActionCodeBody.safeParse(req.body);
@@ -122,7 +124,9 @@ router.post("/account/verification/request", async (req, res) => {
 
 /** Confirm a deactivation or deletion with the emailed code. */
 router.post("/account/verification/confirm", async (req, res) => {
-  const auth = await requireAuth(req, res);
+  // Self-service exit (deactivate / permanent delete) must stay reachable for
+  // suspended or banned users — they have a right to leave / erase their data.
+  const auth = await requireAuth(req, res, { allowModerated: true });
   if (!auth) return;
 
   const parsed = ConfirmAccountActionBody.safeParse(req.body);

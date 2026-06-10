@@ -10,7 +10,7 @@ import {
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getBlockRelations } from "./blocks.js";
-import { getDeactivatedIds } from "./account.js";
+import { getUnavailableIds } from "./moderation.js";
 import { haversineKm } from "./geo.js";
 
 /**
@@ -395,9 +395,10 @@ async function blockedSet(me: string): Promise<Set<string>> {
   const { iBlocked, blockedMe } = await getBlockRelations(me);
   const all = new Set<string>(iBlocked);
   for (const id of blockedMe) all.add(id);
-  // Deactivated users are hidden everywhere, including the Live roulette.
-  const deactivated = await getDeactivatedIds();
-  for (const id of deactivated) all.add(id);
+  // Unavailable users (deactivated or moderated) are hidden everywhere,
+  // including the Live roulette.
+  const unavailable = await getUnavailableIds();
+  for (const id of unavailable) all.add(id);
   return all;
 }
 
