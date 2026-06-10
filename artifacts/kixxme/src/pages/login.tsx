@@ -137,6 +137,16 @@ export default function Login() {
           </Form>
         </div>
 
+        <p className="text-center -mt-3">
+          <Link
+            href="/forgot-password"
+            className="font-sans text-sm text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="link-forgot-password"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+
         <p className="text-center text-muted-foreground font-sans text-sm" data-testid="text-signup-prompt">
           ¿Sin perfil aún?{" "}
           <Link

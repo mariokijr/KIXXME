@@ -14,6 +14,8 @@ import BottomNav from "@/components/layout/bottom-nav";
 
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Profile from "@/pages/profile";
 import PublicProfile from "@/pages/public-profile";
 import Discover from "@/pages/discover";
@@ -154,6 +156,8 @@ function Router() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>

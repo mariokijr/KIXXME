@@ -154,6 +154,67 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request a password-reset email
+      description: >
+        Always responds 200 to avoid leaking whether an account exists. When the
+        email matches a user, a Spanish reset email with a time-limited link is
+        sent. The reset redirect target is derived server-side (never client-
+        supplied) to prevent open-redirect / phishing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForgotPasswordResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Set a new password using a recovery token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password updated; a fresh session is returned when auto sign-in succeeds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid or expired recovery link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /profiles/me:
     get:
       operationId: getMyProfile
@@ -2212,6 +2273,32 @@ components:
         password:
           type: string
       required: [email, password]
+
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    ForgotPasswordResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required: [ok]
+
+    ResetPasswordRequest:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: Recovery access token extracted from the reset link's URL hash
+        password:
+          type: string
+          minLength: 6
+      required: [accessToken, password]
 
     Profile:
       type: object

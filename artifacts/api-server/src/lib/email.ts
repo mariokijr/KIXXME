@@ -180,6 +180,32 @@ export function welcomeEmailHtml(appUrl?: string): string {
   });
 }
 
+// --- Password reset ---------------------------------------------------------
+
+export const PASSWORD_RESET_SUBJECT = "Restablece tu contraseña de KixxMe";
+
+export function passwordResetEmailHtml(resetUrl: string): string {
+  const body = paragraphs([
+    "Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de KixxMe.",
+    "Pulsa el botón para crear una nueva contraseña. Por seguridad, este enlace caduca en 1 hora.",
+    "Si no has solicitado este cambio, ignora este correo: tu contraseña seguirá intacta y nadie podrá acceder a tu cuenta.",
+    "Equipo KixxMe",
+  ]);
+  return renderEmail({
+    preheader: "Restablece tu contraseña de KixxMe.",
+    heading: "Restablece tu contraseña 🔑",
+    bodyHtml: body,
+    cta: { label: "Crear nueva contraseña", url: resetUrl },
+  });
+}
+
+export function passwordResetEmail(resetUrl: string): {
+  subject: string;
+  html: string;
+} {
+  return { subject: PASSWORD_RESET_SUBJECT, html: passwordResetEmailHtml(resetUrl) };
+}
+
 // --- Premium welcome (subscription) ----------------------------------------
 // One template per tier. The Stripe webhook picks the right one from the
 // purchased tier via `premiumWelcomeEmail`.

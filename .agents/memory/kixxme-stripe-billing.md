@@ -46,6 +46,18 @@ mapping. Entitlement itself lives in Supabase `profiles.plan` (`free`/`plus`/`go
   (`getUncachableStripeClient`); it must never reach the frontend. The webhook route is
   registered with `express.raw` BEFORE `express.json` so signature verification works.
 
+- **Changing a price amount = create-new-then-archive, never edit.** Stripe prices are
+  immutable (`unit_amount`/`currency`/`recurring` can't be patched). To re-price a tier the
+  seed must, IN THIS ORDER: (1) backfill `metadata.tier` on the OLD price, (2) create the new
+  price with `transfer_lookup_key:true` + `metadata:{tier}`, (3) archive the old (`active:false`).
+  **Why:** `tierFromSubscription()` resolves tier by `metadata.tier` FIRST, then `lookup_key`.
+  Transferring the lookup_key strips it from the old price, so an existing subscriber renewing on
+  the old (still-attached) price would lose its tier signal and get downgraded — unless the old
+  price already carries `metadata.tier`. Backfilling before the transfer closes that window.
+  Re-running the seed is idempotent: matching amount/currency/interval → no-op (+ metadata backfill).
+  Existing subscribers keep renewing at the OLD price/amount (standard Stripe); only new checkouts
+  hit the new amount.
+
 ## Connection credential reality (cost several iterations — the Stripe skill template is stale)
 
 - The Replit Stripe connection (`/api/v2/connection?...connector_names=stripe`) exposes the

@@ -207,6 +207,21 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  ok: boolean;
+}
+
+export interface ResetPasswordRequest {
+  /** Recovery access token extracted from the reset link's URL hash */
+  accessToken: string;
+  /** @minLength 6 */
+  password: string;
+}
+
 export interface Profile {
   id: string;
   username: string;

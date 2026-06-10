@@ -77,6 +77,46 @@ export const RefreshSessionResponse = zod.object({
 
 
 /**
+ * Always responds 200 to avoid leaking whether an account exists. When the email matches a user, a Spanish reset email with a time-limited link is sent. The reset redirect target is derived server-side (never client- supplied) to prevent open-redirect / phishing.
+
+ * @summary Request a password-reset email
+ */
+export const ForgotPasswordBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ForgotPasswordResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Set a new password using a recovery token
+ */
+export const resetPasswordBodyPasswordMin = 6;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "accessToken": zod.string().describe('Recovery access token extracted from the reset link\'s URL hash'),
+  "password": zod.string().min(resetPasswordBodyPasswordMin)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "username": zod.string()
+}),
+  "session": zod.union([zod.object({
+  "access_token": zod.string(),
+  "refresh_token": zod.string(),
+  "expires_at": zod.number()
+}),zod.null()])
+})
+
+
+/**
  * @summary Get the current user's profile
  */
 export const GetMyProfileResponse = zod.object({

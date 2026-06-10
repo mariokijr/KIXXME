@@ -15,6 +15,7 @@ interface AuthContextValue {
   login: (data: any) => Promise<void>;
   signup: (data: any) => Promise<void>;
   logout: () => void;
+  applySession: (res: { user: AuthUser; session: Session | null }) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -133,8 +134,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // Adopt a session minted outside the login/signup mutations (e.g. the
+  // password-reset flow returns a fresh session so the user lands logged in).
+  // If no session came back, the password change still succeeded — send the
+  // user to login to sign in manually.
+  const applySession = (res: { user: AuthUser; session: Session | null }) => {
+    if (res.session) {
+      persist(res.session, res.user);
+      setLocation("/discover");
+    } else {
+      setLocation("/login?reset=1");
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ session: state.session, user: state.user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ session: state.session, user: state.user, isLoading, login, signup, logout, applySession }}>
       {children}
     </AuthContext.Provider>
   );

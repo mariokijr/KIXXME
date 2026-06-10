@@ -21,10 +21,46 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Check,
+  Minus,
 } from "lucide-react";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 type Billing = "mensual" | "anual";
+
+// Free / Plus / Gold feature matrix. `true` => check, `false` => not included,
+// string => the specific limit/value for that tier.
+type CompareCell = boolean | string;
+const COMPARISON: { label: string; free: CompareCell; plus: CompareCell; gold: CompareCell }[] = [
+  { label: "Me gusta", free: "15 / 6 h", plus: "Ilimitados", gold: "Ilimitados" },
+  { label: "SuperLikes", free: "1 / día", plus: "5 / día", gold: "Ilimitados" },
+  { label: "Quién te da SuperLike", free: false, plus: true, gold: true },
+  { label: "Quién visitó tu perfil", free: false, plus: true, gold: true },
+  { label: "Chats", free: "Básicos", plus: "Ilimitados", gold: "Ilimitados" },
+  { label: "Filtros avanzados", free: false, plus: true, gold: true },
+  { label: "Perfil verificado", free: false, plus: true, gold: true },
+  { label: "Boost", free: false, plus: "Semanal", gold: "Diario" },
+  { label: "Modo incógnito", free: false, plus: false, gold: true },
+  { label: "KixxMe Live", free: false, plus: false, gold: true },
+  { label: "Soporte", free: "Estándar", plus: "Prioritario", gold: "VIP 24/7" },
+];
+
+function CompareValue({ value, gold }: { value: CompareCell; gold?: boolean }) {
+  if (value === true)
+    return (
+      <Check
+        className="w-4 h-4 mx-auto"
+        style={{ color: gold ? "rgb(250,204,21)" : "rgb(74,222,128)" }}
+      />
+    );
+  if (value === false)
+    return <Minus className="w-4 h-4 mx-auto text-muted-foreground/30" />;
+  return (
+    <span className="font-sans text-[11px] leading-tight text-foreground/80">
+      {value}
+    </span>
+  );
+}
 
 const PLUS_FEATURES = [
   { icon: Heart, text: "Likes ilimitados" },
@@ -144,16 +180,16 @@ export default function Premium() {
 
   const PRICING = {
     plus: {
+      monthly: "4,99",
+      yearMonthly: "2,50",
+      yearTotal: "29,99",
+      yearSavings: "29,89",
+    },
+    gold: {
       monthly: "9,99",
       yearMonthly: "5,00",
       yearTotal: "59,99",
       yearSavings: "59,89",
-    },
-    gold: {
-      monthly: "19,99",
-      yearMonthly: "10,00",
-      yearTotal: "119,99",
-      yearSavings: "119,89",
     },
   } as const;
 
@@ -175,8 +211,15 @@ export default function Premium() {
           Desbloquea todo KixxMe. Sin límites.
         </p>
 
+        <div className="relative inline-block mt-5">
         <div
-          className="inline-flex items-center gap-1 mt-5 p-1 rounded-xl border border-border/30"
+          className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 px-2.5 py-0.5 rounded-full text-[9px] font-display tracking-widest whitespace-nowrap"
+          style={{ background: "linear-gradient(135deg, hsl(142,70%,42%), hsl(160,72%,38%))", color: "white", boxShadow: "0 2px 10px rgba(34,197,94,0.35)" }}
+        >
+          MEJOR OFERTA · AHORRA 50%
+        </div>
+        <div
+          className="inline-flex items-center gap-1 p-1 rounded-xl border border-border/30"
           style={{ background: "rgba(13,11,26,0.8)" }}
         >
           {(["mensual", "anual"] as Billing[]).map((b) => (
@@ -201,6 +244,7 @@ export default function Premium() {
               )}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -349,6 +393,54 @@ export default function Premium() {
               {currentPlan === "gold" ? "Plan actual" : "Activar Gold"}
             </button>
           </div>
+        </div>
+
+        <div
+          className="rounded-2xl border border-border/30 overflow-hidden"
+          style={{ background: "rgba(13,11,26,0.6)" }}
+        >
+          <div className="px-5 py-4 border-b border-border/20">
+            <h3 className="font-display text-lg tracking-wide">Compara los planes</h3>
+          </div>
+          <table className="w-full table-fixed">
+            <thead>
+              <tr className="border-b border-border/20">
+                <th className="w-[40%] py-3 pl-5 pr-1 text-left font-sans text-[11px] font-normal uppercase tracking-wide text-muted-foreground">
+                  &nbsp;
+                </th>
+                <th className="py-3 px-1 text-center font-display text-sm tracking-wide text-muted-foreground">
+                  Free
+                </th>
+                <th className="py-3 px-1 text-center font-display text-sm tracking-wide text-primary">
+                  Plus
+                </th>
+                <th className="py-3 px-1 text-center font-display text-sm tracking-wide text-yellow-400">
+                  Gold
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map((row) => (
+                <tr key={row.label} className="border-b border-border/10 last:border-0">
+                  <td className="py-3 pl-5 pr-1 font-sans text-xs text-foreground/90">
+                    {row.label}
+                  </td>
+                  <td className="py-3 px-1 text-center align-middle">
+                    <CompareValue value={row.free} />
+                  </td>
+                  <td className="py-3 px-1 text-center align-middle">
+                    <CompareValue value={row.plus} />
+                  </td>
+                  <td
+                    className="py-3 px-1 text-center align-middle"
+                    style={{ background: "rgba(234,179,8,0.05)" }}
+                  >
+                    <CompareValue value={row.gold} gold />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div
