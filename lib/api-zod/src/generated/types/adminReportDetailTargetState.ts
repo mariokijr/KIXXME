@@ -13,4 +13,5 @@ export const AdminReportDetailTargetState = {
   active: 'active',
   suspended: 'suspended',
   banned: 'banned',
+  removed: 'removed',
 } as const;

@@ -696,6 +696,7 @@ export const MyModerationStatusState = {
   active: 'active',
   suspended: 'suspended',
   banned: 'banned',
+  removed: 'removed',
 } as const;
 
 export interface MyModerationStatus {
@@ -742,6 +743,7 @@ export const AdminReportDetailTargetState = {
   active: 'active',
   suspended: 'suspended',
   banned: 'banned',
+  removed: 'removed',
 } as const;
 
 export interface AdminReportDetail {
@@ -831,7 +833,68 @@ export interface AdminSummary {
   openFlags: number;
   suspended: number;
   banned: number;
+  removed: number;
   pendingVerifications: number;
+}
+
+export interface WarnUserRequest {
+  /** @maxLength 500 */
+  reason: string;
+}
+
+export interface RemoveUserRequest {
+  /** @maxLength 500 */
+  reason?: string;
+}
+
+export type AdminUserItemState = typeof AdminUserItemState[keyof typeof AdminUserItemState];
+
+
+export const AdminUserItemState = {
+  active: 'active',
+  suspended: 'suspended',
+  banned: 'banned',
+  removed: 'removed',
+} as const;
+
+export interface AdminUserItem {
+  id: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  age?: number | null;
+  city?: string | null;
+  plan: string;
+  isVerified: boolean;
+  lastActiveAt?: string | null;
+  createdAt?: string | null;
+  state: AdminUserItemState;
+  suspendedUntil?: string | null;
+}
+
+export interface AdminUserList {
+  users: AdminUserItem[];
+  total: number;
+}
+
+export interface ModerationActionItem {
+  id: string;
+  action: string;
+  reason?: string | null;
+  detail?: string | null;
+  durationDays?: number | null;
+  actedBy?: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserDetail {
+  user: AdminUserItem;
+  email?: string | null;
+  bio?: string | null;
+  role?: string | null;
+  lookingFor?: string | null;
+  reportCount: number;
+  photos: ProfilePhoto[];
+  history: ModerationActionItem[];
 }
 
 export type MyVerificationStatusStatus = typeof MyVerificationStatusStatus[keyof typeof MyVerificationStatusStatus];
@@ -1034,4 +1097,31 @@ offset?: number;
 export type ListAdminFlagsParams = {
 status?: string;
 };
+
+export type ListAdminUsersParams = {
+q?: string;
+plan?: ListAdminUsersPlan;
+status?: ListAdminUsersStatus;
+limit?: number;
+offset?: number;
+};
+
+export type ListAdminUsersPlan = typeof ListAdminUsersPlan[keyof typeof ListAdminUsersPlan];
+
+
+export const ListAdminUsersPlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export type ListAdminUsersStatus = typeof ListAdminUsersStatus[keyof typeof ListAdminUsersStatus];
+
+
+export const ListAdminUsersStatus = {
+  active: 'active',
+  suspended: 'suspended',
+  banned: 'banned',
+  removed: 'removed',
+} as const;
 

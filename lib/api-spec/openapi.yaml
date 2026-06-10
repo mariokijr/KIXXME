@@ -1813,6 +1813,181 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List / search all registered users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: plan
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [free, plus, gold]
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, suspended, banned, removed]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}:
+    get:
+      operationId: getAdminUser
+      tags: [admin]
+      summary: User detail with sanction history
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/warn:
+    post:
+      operationId: warnUser
+      tags: [admin]
+      summary: Issue a warning (recorded + emailed, no access change)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WarnUserRequest"
+      responses:
+        "200":
+          description: Warned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/remove:
+    post:
+      operationId: removeUser
+      tags: [admin]
+      summary: Remove a user account (reversible soft-delete)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveUserRequest"
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}/restore:
+    post:
+      operationId: restoreUser
+      tags: [admin]
+      summary: Restore a removed/suspended/banned account to active
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/photos/{photoId}:
     delete:
       operationId: adminRemovePhoto
@@ -2788,7 +2963,7 @@ components:
       properties:
         state:
           type: string
-          enum: [active, suspended, banned]
+          enum: [active, suspended, banned, removed]
         suspendedUntil:
           type: string
           nullable: true
@@ -2881,7 +3056,7 @@ components:
           nullable: true
         targetState:
           type: string
-          enum: [active, suspended, banned]
+          enum: [active, suspended, banned, removed]
         targetSuspendedUntil:
           type: string
           nullable: true
@@ -2989,9 +3164,132 @@ components:
           type: integer
         banned:
           type: integer
+        removed:
+          type: integer
         pendingVerifications:
           type: integer
-      required: [openReports, openFlags, suspended, banned, pendingVerifications]
+      required:
+        [
+          openReports,
+          openFlags,
+          suspended,
+          banned,
+          removed,
+          pendingVerifications,
+        ]
+
+    WarnUserRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+      required: [reason]
+
+    RemoveUserRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+
+    AdminUserItem:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        plan:
+          type: string
+        isVerified:
+          type: boolean
+        lastActiveAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+        state:
+          type: string
+          enum: [active, suspended, banned, removed]
+        suspendedUntil:
+          type: string
+          nullable: true
+      required: [id, plan, isVerified, state]
+
+    AdminUserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserItem"
+        total:
+          type: integer
+      required: [users, total]
+
+    ModerationActionItem:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        durationDays:
+          type: integer
+          nullable: true
+        actedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, action, createdAt]
+
+    AdminUserDetail:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/AdminUserItem"
+        email:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        lookingFor:
+          type: string
+          nullable: true
+        reportCount:
+          type: integer
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfilePhoto"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModerationActionItem"
+      required: [user, reportCount, photos, history]
 
     MyVerificationStatus:
       type: object

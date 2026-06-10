@@ -1,10 +1,10 @@
 import React from "react";
 import { useAuth } from "@/lib/auth";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { ShieldAlert, Ban } from "lucide-react";
+import { ShieldAlert, Ban, Trash2 } from "lucide-react";
 
 interface SuspendedScreenProps {
-  state: "suspended" | "banned";
+  state: "suspended" | "banned" | "removed";
   reason?: string | null;
   suspendedUntil?: string | null;
 }
@@ -35,6 +35,19 @@ export function SuspendedScreen({
 }: SuspendedScreenProps) {
   const { logout } = useAuth();
   const banned = state === "banned";
+  const removed = state === "removed";
+  const permanent = banned || removed;
+
+  const title = removed
+    ? "Cuenta eliminada"
+    : banned
+      ? "Cuenta bloqueada"
+      : "Cuenta suspendida";
+  const description = removed
+    ? "Tu cuenta ha sido eliminada por un administrador por incumplir las normas de la comunidad de KixxMe."
+    : banned
+      ? "Tu cuenta ha sido bloqueada de forma permanente por incumplir las normas de la comunidad de KixxMe."
+      : "Tu cuenta está temporalmente suspendida por incumplir las normas de la comunidad de KixxMe.";
 
   return (
     <div
@@ -48,10 +61,14 @@ export function SuspendedScreen({
 
       <div
         className={`flex h-16 w-16 items-center justify-center rounded-2xl ${
-          banned ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"
+          permanent
+            ? "bg-red-500/15 text-red-400"
+            : "bg-amber-500/15 text-amber-400"
         }`}
       >
-        {banned ? (
+        {removed ? (
+          <Trash2 className="h-8 w-8" />
+        ) : banned ? (
           <Ban className="h-8 w-8" />
         ) : (
           <ShieldAlert className="h-8 w-8" />
@@ -60,14 +77,10 @@ export function SuspendedScreen({
 
       <div className="space-y-2 max-w-sm">
         <h1 className="font-display text-3xl tracking-widest text-gradient-brand">
-          {banned ? "Cuenta bloqueada" : "Cuenta suspendida"}
+          {title}
         </h1>
-        <p className="font-sans text-sm text-muted-foreground">
-          {banned
-            ? "Tu cuenta ha sido bloqueada de forma permanente por incumplir las normas de la comunidad de KixxMe."
-            : "Tu cuenta está temporalmente suspendida por incumplir las normas de la comunidad de KixxMe."}
-        </p>
-        {!banned && suspendedUntil && (
+        <p className="font-sans text-sm text-muted-foreground">{description}</p>
+        {!permanent && suspendedUntil && (
           <p className="font-sans text-sm text-foreground">
             Podrás volver a acceder el{" "}
             <span className="font-semibold">{formatUntil(suspendedUntil)}</span>.

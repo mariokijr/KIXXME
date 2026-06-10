@@ -7,6 +7,7 @@ export * from "./account-status";
 export * from "./account-action-codes";
 export * from "./account-moderation";
 export * from "./account-flags";
+export * from "./moderation-actions";
 export * from "./like-actions";
 export * from "./verification-requests";
 export * from "./profile-visits";

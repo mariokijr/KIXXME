@@ -939,7 +939,7 @@ export const CreateReportBody = zod.object({
  * @summary Current user's moderation state (and admin flag)
  */
 export const GetMyModerationResponse = zod.object({
-  "state": zod.enum(['active', 'suspended', 'banned']),
+  "state": zod.enum(['active', 'suspended', 'banned', 'removed']),
   "suspendedUntil": zod.string().nullish(),
   "reason": zod.string().nullish(),
   "isAdmin": zod.boolean()
@@ -954,6 +954,7 @@ export const GetAdminSummaryResponse = zod.object({
   "openFlags": zod.number(),
   "suspended": zod.number(),
   "banned": zod.number(),
+  "removed": zod.number(),
   "pendingVerifications": zod.number()
 })
 
@@ -1051,7 +1052,7 @@ export const GetAdminReportResponse = zod.object({
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 }).nullish(),
-  "targetState": zod.enum(['active', 'suspended', 'banned']),
+  "targetState": zod.enum(['active', 'suspended', 'banned', 'removed']),
   "targetSuspendedUntil": zod.string().nullish(),
   "targetReportCount": zod.number(),
   "reportedMessage": zod.object({
@@ -1203,6 +1204,134 @@ export const LiftUserModerationParams = zod.object({
 })
 
 export const LiftUserModerationResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List / search all registered users
+ */
+export const ListAdminUsersQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).optional(),
+  "status": zod.enum(['active', 'suspended', 'banned', 'removed']).optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListAdminUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "plan": zod.string(),
+  "isVerified": zod.boolean(),
+  "lastActiveAt": zod.string().nullish(),
+  "createdAt": zod.string().nullish(),
+  "state": zod.enum(['active', 'suspended', 'banned', 'removed']),
+  "suspendedUntil": zod.string().nullish()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary User detail with sanction history
+ */
+export const GetAdminUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const GetAdminUserResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "plan": zod.string(),
+  "isVerified": zod.boolean(),
+  "lastActiveAt": zod.string().nullish(),
+  "createdAt": zod.string().nullish(),
+  "state": zod.enum(['active', 'suspended', 'banned', 'removed']),
+  "suspendedUntil": zod.string().nullish()
+}),
+  "email": zod.string().nullish(),
+  "bio": zod.string().nullish(),
+  "role": zod.string().nullish(),
+  "lookingFor": zod.string().nullish(),
+  "reportCount": zod.number(),
+  "photos": zod.array(zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "action": zod.string(),
+  "reason": zod.string().nullish(),
+  "detail": zod.string().nullish(),
+  "durationDays": zod.number().nullish(),
+  "actedBy": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Issue a warning (recorded + emailed, no access change)
+ */
+export const WarnUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const warnUserBodyReasonMax = 500;
+
+
+
+export const WarnUserBody = zod.object({
+  "reason": zod.string().max(warnUserBodyReasonMax)
+})
+
+export const WarnUserResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a user account (reversible soft-delete)
+ */
+export const RemoveUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const removeUserBodyReasonMax = 500;
+
+
+
+export const RemoveUserBody = zod.object({
+  "reason": zod.string().max(removeUserBodyReasonMax).optional()
+})
+
+export const RemoveUserResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Restore a removed/suspended/banned account to active
+ */
+export const RestoreUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const RestoreUserResponse = zod.object({
   "success": zod.boolean()
 })
 

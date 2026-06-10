@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MyModerationStatusState = typeof MyModerationStatusState[keyof typeof MyModerationStatusState];
+export type ListAdminUsersStatus = typeof ListAdminUsersStatus[keyof typeof ListAdminUsersStatus];
 
 
-export const MyModerationStatusState = {
+export const ListAdminUsersStatus = {
   active: 'active',
   suspended: 'suspended',
   banned: 'banned',

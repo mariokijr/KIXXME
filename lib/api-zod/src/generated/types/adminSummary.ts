@@ -11,5 +11,6 @@ export interface AdminSummary {
   openFlags: number;
   suspended: number;
   banned: number;
+  removed: number;
   pendingVerifications: number;
 }

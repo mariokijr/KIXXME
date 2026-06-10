@@ -2,7 +2,7 @@
 
 - [Orval react-query hooks](kixxme-orval-query-hooks.md) — passing a `query` options object to a generated hook requires an explicit `queryKey`; lists shown positionally must be frozen against focus refetch.
 - [Map discovery scope & visibility](kixxme-map-discovery-scope.md) — Descubrir order = stable passes base<completitud<verified<plan/Gold (plan scope-only); scope pre-filter before `.limit`; `visibility.ts` = single hidden-ids hook.
-- [Moderation, reporting & admin](kixxme-moderation-admin.md) — server `requireAdmin` is the real boundary (client gates UX-only); suspended/banned hidden via `getUnavailableIds()` at every surface; admin notifications are derived from open reports, not stored.
+- [Moderation, reporting & admin](kixxme-moderation-admin.md) — `requireAdmin` is the real boundary; moderated hidden via `getUnavailableIds()`; append-only sanction history; admin user-directory filters by id-set (not JS post-`.range()`) for correct paging.
 - [Verification & profile visitors](kixxme-verification-visitors.md) — identity selfie is PRIVATE (admin-only signed URL, purged on delete); verified badge = Supabase `is_verified` (write before Drizzle queue row); visitor identities Plus+Gold-gated.
 - [Supabase shared-client session pollution](kixxme-supabase-client-session-pollution.md) — never sign in/up/refresh/setSession on a service-role/data client; it demotes all `.from()` to that user's RLS. Use a dedicated anon auth client.
 - [Sound effects](kixxme-sound-effects.md) — interaction-gated, fail-silent one-shot cues; prime audio with volume=0 (not muted) for iOS unlock; one call site per event (like/superlike centralized, match suppresses them).

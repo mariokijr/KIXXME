@@ -1,10 +1,12 @@
-import { and, eq, gt, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import {
   db,
   accountModerationTable,
   accountFlagsTable,
+  moderationActionsTable,
   supportReportsTable,
   type AccountModeration,
+  type ModerationAction,
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { logger } from "./logger.js";
@@ -23,7 +25,7 @@ import { getDeactivatedIds, isDeactivated } from "./account.js";
  * should use.
  */
 
-export type ModerationState = "active" | "suspended" | "banned";
+export type ModerationState = "active" | "suspended" | "banned" | "removed";
 
 export interface ModerationStatus {
   state: ModerationState;
@@ -55,6 +57,9 @@ function applyExpiry(
   if (!row) return ACTIVE;
   if (row.state === "banned") {
     return { state: "banned", suspendedUntil: null, reason: row.reason ?? null };
+  }
+  if (row.state === "removed") {
+    return { state: "removed", suspendedUntil: null, reason: row.reason ?? null };
   }
   if (row.state === "suspended") {
     if (row.suspendedUntil && row.suspendedUntil.getTime() <= now.getTime()) {
@@ -93,6 +98,7 @@ export async function getModeratedIds(): Promise<Set<string>> {
     .where(
       or(
         eq(accountModerationTable.state, "banned"),
+        eq(accountModerationTable.state, "removed"),
         and(
           eq(accountModerationTable.state, "suspended"),
           or(
@@ -103,6 +109,32 @@ export async function getModeratedIds(): Promise<Set<string>> {
       ),
     );
   return new Set(rows.map((r) => r.userId));
+}
+
+/**
+ * User ids whose EFFECTIVE state matches one specific non-active state (timed
+ * suspensions auto-expire). Used by the admin directory's status filter so the
+ * filtered list + total stay correct across pagination (the set is small).
+ */
+export async function getUserIdsInState(
+  state: "suspended" | "banned" | "removed",
+): Promise<string[]> {
+  const now = new Date();
+  const cond =
+    state === "suspended"
+      ? and(
+          eq(accountModerationTable.state, "suspended"),
+          or(
+            isNull(accountModerationTable.suspendedUntil),
+            gt(accountModerationTable.suspendedUntil, now),
+          ),
+        )
+      : eq(accountModerationTable.state, state);
+  const rows = await db
+    .select({ userId: accountModerationTable.userId })
+    .from(accountModerationTable)
+    .where(cond);
+  return rows.map((r) => r.userId);
 }
 
 /**
@@ -126,6 +158,80 @@ export async function getUnavailableIds(): Promise<Set<string>> {
   const all = new Set<string>(deactivated);
   for (const id of moderated) all.add(id);
   return all;
+}
+
+// --- Sanction history (append-only audit log) ------------------------------
+
+export type ModerationActionKind =
+  | "warn"
+  | "suspend"
+  | "ban"
+  | "remove"
+  | "restore"
+  | "lift"
+  | "remove_photo";
+
+/**
+ * Append one row to the immutable sanction history. Best-effort: a history
+ * hiccup must never abort the moderation action itself (`account_moderation`
+ * is the current-state source of truth). Never throws.
+ */
+export async function recordModerationAction(
+  userId: string,
+  action: ModerationActionKind,
+  opts: {
+    actedBy: string;
+    reason?: string | null;
+    detail?: string | null;
+    durationDays?: number | null;
+  },
+): Promise<void> {
+  try {
+    await db.insert(moderationActionsTable).values({
+      userId,
+      action,
+      reason: opts.reason ?? null,
+      detail: opts.detail ?? null,
+      durationDays: opts.durationDays ?? null,
+      actedBy: opts.actedBy,
+    });
+  } catch (err) {
+    logger.warn(
+      {
+        err: err instanceof Error ? err.message : String(err),
+        userId,
+        action,
+      },
+      "recordModerationAction failed (non-fatal)",
+    );
+  }
+}
+
+/** Full sanction history for a user, newest first. */
+export async function listModerationHistory(
+  userId: string,
+): Promise<ModerationAction[]> {
+  return db
+    .select()
+    .from(moderationActionsTable)
+    .where(eq(moderationActionsTable.userId, userId))
+    .orderBy(desc(moderationActionsTable.createdAt));
+}
+
+/** Batch current moderation status (with lazy expiry) for many users. */
+export async function getModerationStatesForUsers(
+  userIds: string[],
+): Promise<Map<string, ModerationStatus>> {
+  const out = new Map<string, ModerationStatus>();
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return out;
+  const rows = await db
+    .select()
+    .from(accountModerationTable)
+    .where(inArray(accountModerationTable.userId, unique));
+  const now = new Date();
+  for (const row of rows) out.set(row.userId, applyExpiry(row, now));
+  return out;
 }
 
 // --- Admin actions ---------------------------------------------------------
@@ -162,6 +268,11 @@ export async function suspendUser(
     actedBy: opts.actedBy,
     updatedAt: now,
   });
+  await recordModerationAction(userId, "suspend", {
+    actedBy: opts.actedBy,
+    reason: opts.reason ?? null,
+    durationDays: opts.durationDays ?? null,
+  });
 }
 
 export async function banUser(
@@ -174,6 +285,33 @@ export async function banUser(
     reason: opts.reason ?? null,
     actedBy: opts.actedBy,
     updatedAt: new Date(),
+  });
+  await recordModerationAction(userId, "ban", {
+    actedBy: opts.actedBy,
+    reason: opts.reason ?? null,
+  });
+}
+
+/**
+ * Admin-initiated REVERSIBLE soft-delete. Sets the account to `removed` (hidden
+ * everywhere + blocked from the API like a ban) without touching any data, so
+ * `restoreUser` can bring it back. NOT a hard delete — GDPR erasure stays in
+ * `lib/account.ts deleteAccount` (self-service).
+ */
+export async function removeUser(
+  userId: string,
+  opts: { reason?: string | null; actedBy: string },
+): Promise<void> {
+  await upsertModeration(userId, {
+    state: "removed",
+    suspendedUntil: null,
+    reason: opts.reason ?? null,
+    actedBy: opts.actedBy,
+    updatedAt: new Date(),
+  });
+  await recordModerationAction(userId, "remove", {
+    actedBy: opts.actedBy,
+    reason: opts.reason ?? null,
   });
 }
 
@@ -188,6 +326,41 @@ export async function liftModeration(
     reason: null,
     actedBy,
     updatedAt: new Date(),
+  });
+  await recordModerationAction(userId, "lift", { actedBy });
+}
+
+/**
+ * Bring a `removed` (or suspended/banned) account back to active. Same effect
+ * as `liftModeration` but recorded as `restore` so the history distinguishes a
+ * reinstated deletion from a lifted suspension.
+ */
+export async function restoreUser(
+  userId: string,
+  actedBy: string,
+): Promise<void> {
+  await upsertModeration(userId, {
+    state: "active",
+    suspendedUntil: null,
+    reason: null,
+    actedBy,
+    updatedAt: new Date(),
+  });
+  await recordModerationAction(userId, "restore", { actedBy });
+}
+
+/**
+ * Issue a formal warning. Warnings are recorded in the history and emailed to
+ * the user, but DO NOT change account state (no access restriction) — the email
+ * is the user-facing notification.
+ */
+export async function warnUser(
+  userId: string,
+  opts: { reason: string; actedBy: string },
+): Promise<void> {
+  await recordModerationAction(userId, "warn", {
+    actedBy: opts.actedBy,
+    reason: opts.reason,
   });
 }
 

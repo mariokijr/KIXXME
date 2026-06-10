@@ -13,6 +13,7 @@ import {
   likeActionsTable,
   accountModerationTable,
   accountFlagsTable,
+  moderationActionsTable,
   type AccountStatus,
   type AccountActionPayload,
 } from "@workspace/db";
@@ -411,6 +412,9 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
   await db
     .delete(accountFlagsTable)
     .where(eq(accountFlagsTable.userId, userId));
+  await db
+    .delete(moderationActionsTable)
+    .where(eq(moderationActionsTable.userId, userId));
   // Verification: remove private selfies from storage + the request rows.
   await purgeUserVerification(userId, log);
 

@@ -14,15 +14,33 @@ import { isOnline } from "../lib/geo.js";
 import { removePhotoRow } from "../lib/photos.js";
 import {
   getModerationState,
+  getModerationStatesForUsers,
+  getModeratedIds,
+  getUserIdsInState,
+  listModerationHistory,
+  recordModerationAction,
   suspendUser,
   banUser,
   liftModeration,
+  removeUser,
+  restoreUser,
+  warnUser,
 } from "../lib/moderation.js";
+import {
+  notifyWarningByEmail,
+  notifySuspensionByEmail,
+  notifyBanByEmail,
+  notifyRemovalByEmail,
+  notifyRestoreByEmail,
+} from "../lib/moderation-notifications.js";
+import { getProfileDetailsForUsers } from "../lib/profile-details.js";
 import {
   ResolveAdminReportBody,
   ReviewAdminFlagBody,
   SuspendUserBody,
   BanUserBody,
+  WarnUserBody,
+  RemoveUserBody,
   ReviewAdminVerificationBody,
 } from "@workspace/api-zod";
 import {
@@ -123,7 +141,7 @@ router.get("/admin/summary", async (req, res) => {
   if (!auth) return;
 
   const now = new Date();
-  const [openReports, openFlags, suspended, banned, pendingVerifications] =
+  const [openReports, openFlags, suspended, banned, removed, pendingVerifications] =
     await Promise.all([
       db
         .select({ c: sql<number>`count(*)::int` })
@@ -154,6 +172,10 @@ router.get("/admin/summary", async (req, res) => {
         .select({ c: sql<number>`count(*)::int` })
         .from(accountModerationTable)
         .where(eq(accountModerationTable.state, "banned")),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(accountModerationTable)
+        .where(eq(accountModerationTable.state, "removed")),
       countPendingVerifications(),
     ]);
 
@@ -162,6 +184,7 @@ router.get("/admin/summary", async (req, res) => {
     openFlags: openFlags[0]?.c ?? 0,
     suspended: suspended[0]?.c ?? 0,
     banned: banned[0]?.c ?? 0,
+    removed: removed[0]?.c ?? 0,
     pendingVerifications,
   });
 });
@@ -481,19 +504,27 @@ router.post("/admin/reports/:id/resolve", async (req, res) => {
           .select("id, user_id, storage_path, is_avatar")
           .eq("id", report.targetPhotoId)
           .maybeSingle();
-        if (photo) await removePhotoRow(photo);
+        if (photo) {
+          await removePhotoRow(photo);
+          await recordModerationAction(photo.user_id as string, "remove_photo", {
+            actedBy: auth.userId,
+            reason: note ?? null,
+          });
+        }
       }
-    } else if (report.targetUserId) {
+    } else if (report.targetUserId && report.targetUserId !== auth.userId) {
       if (action === "suspend") {
         await suspendUser(report.targetUserId, {
           reason: note ?? null,
           actedBy: auth.userId,
         });
+        void notifySuspensionByEmail(report.targetUserId, note ?? null, null);
       } else if (action === "ban") {
         await banUser(report.targetUserId, {
           reason: note ?? null,
           actedBy: auth.userId,
         });
+        void notifyBanByEmail(report.targetUserId, note ?? null);
       }
     }
   }
@@ -570,6 +601,186 @@ router.post("/admin/flags/:id/review", async (req, res) => {
   res.json({ success: true });
 });
 
+// --- User directory (list + detail) ---------------------------------------
+
+interface AdminUserProfileRow {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  age: number | null;
+  city: string | null;
+  bio: string | null;
+  is_verified: boolean | null;
+  plan: string | null;
+  last_active_at: string | null;
+  created_at: string | null;
+}
+
+router.get("/admin/users", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  // PostgREST .or() uses ',' '(' ')' as its grammar; strip them from the search
+  // term so it can never break or inject into the filter expression.
+  const safeQ = q.replace(/[,()]/g, " ").trim();
+  const plan = typeof req.query.plan === "string" ? req.query.plan : undefined;
+  const status =
+    typeof req.query.status === "string" ? req.query.status : undefined;
+  const statusFilter =
+    status === "active" ||
+    status === "suspended" ||
+    status === "banned" ||
+    status === "removed"
+      ? status
+      : undefined;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  // Moderation state lives in Replit Postgres, not a Supabase column. Resolve
+  // the relevant id set up front and constrain the Supabase query with it, so
+  // both pagination and `total` stay correct (the moderated set is small).
+  let restrictIds: string[] | null = null; // only these ids
+  let excludeIds: string[] | null = null; // all but these ids
+  if (statusFilter && statusFilter !== "active") {
+    restrictIds = await getUserIdsInState(statusFilter);
+    if (restrictIds.length === 0) {
+      res.json({ users: [], total: 0 });
+      return;
+    }
+  } else if (statusFilter === "active") {
+    excludeIds = [...(await getModeratedIds())];
+  }
+
+  let query = supabase
+    .from("profiles")
+    .select(
+      "id, username, avatar_url, age, city, bio, is_verified, plan, last_active_at, created_at",
+      { count: "exact" },
+    );
+  if (safeQ) {
+    query = query.or(`username.ilike.%${safeQ}%,city.ilike.%${safeQ}%`);
+  }
+  if (plan === "free" || plan === "plus" || plan === "gold") {
+    query = query.eq("plan", plan);
+  }
+  if (restrictIds) query = query.in("id", restrictIds);
+  if (excludeIds && excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+  query = query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data, count, error } = await query;
+  if (error) {
+    req.log.error({ err: error.message }, "admin user list failed");
+    res.status(500).json({ error: "No se pudieron cargar los usuarios" });
+    return;
+  }
+
+  const rows = (data ?? []) as AdminUserProfileRow[];
+  const states = await getModerationStatesForUsers(rows.map((r) => r.id));
+
+  const users = rows.map((r) => {
+    const mod = states.get(r.id);
+    return {
+      id: r.id,
+      username: r.username,
+      avatarUrl: r.avatar_url,
+      age: r.age,
+      city: r.city,
+      plan: normalizePlan(r.plan),
+      isVerified: Boolean(r.is_verified),
+      lastActiveAt: r.last_active_at,
+      createdAt: r.created_at ?? null,
+      state: mod?.state ?? "active",
+      suspendedUntil: mod?.suspendedUntil
+        ? mod.suspendedUntil.toISOString()
+        : null,
+    };
+  });
+
+  res.json({ users, total: count ?? users.length });
+});
+
+router.get("/admin/users/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const userId = req.params.userId;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(
+      "id, username, avatar_url, age, city, bio, is_verified, plan, last_active_at, created_at",
+    )
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profile) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+  const p = profile as AdminUserProfileRow;
+
+  const [mod, history, details, photosRes, reportRows, userRes] =
+    await Promise.all([
+      getModerationState(userId),
+      listModerationHistory(userId),
+      getProfileDetailsForUsers([userId]),
+      supabase
+        .from("profile_photos")
+        .select("id, user_id, url, storage_path, is_avatar, position, created_at")
+        .eq("user_id", userId)
+        .order("position", { ascending: true }),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(supportReportsTable)
+        .where(
+          and(
+            eq(supportReportsTable.targetUserId, userId),
+            isNotNull(supportReportsTable.reportType),
+          ),
+        ),
+      supabase.auth.admin.getUserById(userId),
+    ]);
+
+  const detail = details.get(userId);
+
+  res.json({
+    user: {
+      id: p.id,
+      username: p.username,
+      avatarUrl: p.avatar_url,
+      age: p.age,
+      city: p.city,
+      plan: normalizePlan(p.plan),
+      isVerified: Boolean(p.is_verified),
+      lastActiveAt: p.last_active_at,
+      createdAt: p.created_at ?? null,
+      state: mod.state,
+      suspendedUntil: mod.suspendedUntil
+        ? mod.suspendedUntil.toISOString()
+        : null,
+    },
+    email: userRes.data?.user?.email ?? null,
+    bio: p.bio,
+    role: detail?.role ?? null,
+    lookingFor: detail?.looking_for ?? null,
+    reportCount: reportRows[0]?.c ?? 0,
+    photos: photosRes.data ?? [],
+    history: history.map((h) => ({
+      id: h.id,
+      action: h.action,
+      reason: h.reason,
+      detail: h.detail,
+      durationDays: h.durationDays,
+      actedBy: h.actedBy,
+      createdAt: h.createdAt.toISOString(),
+    })),
+  });
+});
+
 // --- User moderation actions ----------------------------------------------
 
 router.post("/admin/users/:userId/suspend", async (req, res) => {
@@ -586,11 +797,18 @@ router.post("/admin/users/:userId/suspend", async (req, res) => {
     return;
   }
 
+  const durationDays = parsed.data.durationDays ?? null;
+  const reason = parsed.data.reason ?? null;
   await suspendUser(req.params.userId, {
-    durationDays: parsed.data.durationDays ?? null,
-    reason: parsed.data.reason ?? null,
+    durationDays,
+    reason,
     actedBy: auth.userId,
   });
+  const until =
+    durationDays && durationDays > 0
+      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+      : null;
+  void notifySuspensionByEmail(req.params.userId, reason, until);
   res.json({ success: true });
 });
 
@@ -608,10 +826,60 @@ router.post("/admin/users/:userId/ban", async (req, res) => {
     return;
   }
 
-  await banUser(req.params.userId, {
-    reason: parsed.data.reason ?? null,
+  const reason = parsed.data.reason ?? null;
+  await banUser(req.params.userId, { reason, actedBy: auth.userId });
+  void notifyBanByEmail(req.params.userId, reason);
+  res.json({ success: true });
+});
+
+router.post("/admin/users/:userId/warn", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const parsed = WarnUserBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos no válidos" });
+    return;
+  }
+  if (req.params.userId === auth.userId) {
+    res.status(400).json({ error: "No puedes moderar tu propia cuenta" });
+    return;
+  }
+
+  await warnUser(req.params.userId, {
+    reason: parsed.data.reason,
     actedBy: auth.userId,
   });
+  void notifyWarningByEmail(req.params.userId, parsed.data.reason);
+  res.json({ success: true });
+});
+
+router.post("/admin/users/:userId/remove", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const parsed = RemoveUserBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos no válidos" });
+    return;
+  }
+  if (req.params.userId === auth.userId) {
+    res.status(400).json({ error: "No puedes moderar tu propia cuenta" });
+    return;
+  }
+
+  const reason = parsed.data.reason ?? null;
+  await removeUser(req.params.userId, { reason, actedBy: auth.userId });
+  void notifyRemovalByEmail(req.params.userId, reason);
+  res.json({ success: true });
+});
+
+router.post("/admin/users/:userId/restore", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  await restoreUser(req.params.userId, auth.userId);
+  void notifyRestoreByEmail(req.params.userId);
   res.json({ success: true });
 });
 
@@ -641,6 +909,9 @@ router.delete("/admin/photos/:photoId", async (req, res) => {
   }
 
   await removePhotoRow(photo);
+  await recordModerationAction(photo.user_id as string, "remove_photo", {
+    actedBy: auth.userId,
+  });
   res.json({ success: true });
 });
 

@@ -29,6 +29,8 @@ import type {
   AdminReportDetail,
   AdminReportList,
   AdminSummary,
+  AdminUserDetail,
+  AdminUserList,
   AdminVerificationList,
   AuthResponse,
   AvatarUploadRequest,
@@ -51,6 +53,7 @@ import type {
   LikeResponse,
   ListAdminFlagsParams,
   ListAdminReportsParams,
+  ListAdminUsersParams,
   ListProfilesParams,
   LiveCall,
   LiveCallEndRequest,
@@ -70,6 +73,7 @@ import type {
   PublicProfile,
   RefreshSession200,
   RefreshSessionBody,
+  RemoveUserRequest,
   ReorderPhotosRequest,
   RequestVerificationBody,
   ResetPasswordRequest,
@@ -87,7 +91,8 @@ import type {
   UpdateProfileRequest,
   UploadAvatar200,
   UploadChatImage201,
-  UploadPhotoRequest
+  UploadPhotoRequest,
+  WarnUserRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -4578,6 +4583,381 @@ export const useLiftUserModeration = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLiftUserModerationMutationOptions(options));
+    }
+
+export const getListAdminUsersUrl = (params?: ListAdminUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/users?${stringifiedParams}` : `/api/admin/users`
+}
+
+/**
+ * @summary List / search all registered users
+ */
+export const listAdminUsers = async (params?: ListAdminUsersParams, options?: RequestInit): Promise<AdminUserList> => {
+
+  return customFetch<AdminUserList>(getListAdminUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminUsersQueryKey = (params?: ListAdminUsersParams,) => {
+    return [
+    `/api/admin/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<ErrorResponse>>(params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({ signal }) => listAdminUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminUsers>>>
+export type ListAdminUsersQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List / search all registered users
+ */
+
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<ErrorResponse>>(
+ params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}`
+}
+
+/**
+ * @summary User detail with sanction history
+ */
+export const getAdminUser = async (userId: string, options?: RequestInit): Promise<AdminUserDetail> => {
+
+  return customFetch<AdminUserDetail>(getGetAdminUserUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminUserQueryKey = (userId: string,) => {
+    return [
+    `/api/admin/users/${userId}`
+    ] as const;
+    }
+
+
+export const getGetAdminUserQueryOptions = <TData = Awaited<ReturnType<typeof getAdminUser>>, TError = ErrorType<ErrorResponse>>(userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUser>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminUserQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminUser>>> = ({ signal }) => getAdminUser(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminUser>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminUserQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminUser>>>
+export type GetAdminUserQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary User detail with sanction history
+ */
+
+export function useGetAdminUser<TData = Awaited<ReturnType<typeof getAdminUser>>, TError = ErrorType<ErrorResponse>>(
+ userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUser>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminUserQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getWarnUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/warn`
+}
+
+/**
+ * @summary Issue a warning (recorded + emailed, no access change)
+ */
+export const warnUser = async (userId: string,
+    warnUserRequest: WarnUserRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getWarnUserUrl(userId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      warnUserRequest,)
+  }
+);}
+
+
+
+
+export const getWarnUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof warnUser>>, TError,{userId: string;data: BodyType<WarnUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof warnUser>>, TError,{userId: string;data: BodyType<WarnUserRequest>}, TContext> => {
+
+const mutationKey = ['warnUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof warnUser>>, {userId: string;data: BodyType<WarnUserRequest>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  warnUser(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type WarnUserMutationResult = NonNullable<Awaited<ReturnType<typeof warnUser>>>
+    export type WarnUserMutationBody = BodyType<WarnUserRequest>
+    export type WarnUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Issue a warning (recorded + emailed, no access change)
+ */
+export const useWarnUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof warnUser>>, TError,{userId: string;data: BodyType<WarnUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof warnUser>>,
+        TError,
+        {userId: string;data: BodyType<WarnUserRequest>},
+        TContext
+      > => {
+      return useMutation(getWarnUserMutationOptions(options));
+    }
+
+export const getRemoveUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/remove`
+}
+
+/**
+ * @summary Remove a user account (reversible soft-delete)
+ */
+export const removeUser = async (userId: string,
+    removeUserRequest?: RemoveUserRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getRemoveUserUrl(userId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      removeUserRequest,)
+  }
+);}
+
+
+
+
+export const getRemoveUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{userId: string;data?: BodyType<RemoveUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{userId: string;data?: BodyType<RemoveUserRequest>}, TContext> => {
+
+const mutationKey = ['removeUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeUser>>, {userId: string;data?: BodyType<RemoveUserRequest>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  removeUser(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveUserMutationResult = NonNullable<Awaited<ReturnType<typeof removeUser>>>
+    export type RemoveUserMutationBody = BodyType<RemoveUserRequest> | undefined
+    export type RemoveUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a user account (reversible soft-delete)
+ */
+export const useRemoveUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{userId: string;data?: BodyType<RemoveUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeUser>>,
+        TError,
+        {userId: string;data?: BodyType<RemoveUserRequest>},
+        TContext
+      > => {
+      return useMutation(getRemoveUserMutationOptions(options));
+    }
+
+export const getRestoreUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/restore`
+}
+
+/**
+ * @summary Restore a removed/suspended/banned account to active
+ */
+export const restoreUser = async (userId: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getRestoreUserUrl(userId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRestoreUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreUser>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['restoreUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreUser>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  restoreUser(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreUserMutationResult = NonNullable<Awaited<ReturnType<typeof restoreUser>>>
+
+    export type RestoreUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Restore a removed/suspended/banned account to active
+ */
+export const useRestoreUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof restoreUser>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getRestoreUserMutationOptions(options));
     }
 
 export const getAdminRemovePhotoUrl = (photoId: string,) => {

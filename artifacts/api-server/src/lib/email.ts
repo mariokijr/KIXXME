@@ -525,3 +525,134 @@ export function accountDeletedEmail(): { subject: string; html: string } {
     }),
   };
 }
+
+// --- Moderation actions (admin-initiated) ----------------------------------
+// Sent by the moderation panel when an admin warns, suspends, bans, removes,
+// or restores an account. The optional `reason` is the admin's note; it is the
+// only user-facing surface for a warning (warnings change no account state).
+
+/** A highlighted "motivo" block, shown only when the admin gave a reason. */
+function reasonBlock(reason: string | null | undefined): string {
+  if (!reason || !reason.trim()) return "";
+  return `<div style="margin:4px 0 14px 0;padding:14px 16px;border:1px solid ${BORDER};border-left:3px solid #f3b14b;border-radius:12px;background:#0d0a1c;color:#d9d3ee;white-space:pre-wrap;"><span style="color:#6f6790;">Motivo:</span> ${escapeHtml(
+    reason.trim(),
+  )}</div>`;
+}
+
+export const MODERATION_WARNING_SUBJECT = "\u26A0\uFE0F Aviso de KixxMe";
+
+export function moderationWarningEmailHtml(
+  reason: string | null,
+  appUrl?: string,
+): string {
+  const body = [
+    paragraphs([
+      "<strong style=\"color:#f4f1fb;\">Has recibido un aviso del equipo de moderaci\u00F3n de KixxMe.</strong>",
+      "Hemos detectado actividad que puede incumplir nuestras normas de la comunidad.",
+    ]),
+    reasonBlock(reason),
+    paragraphs([
+      "Tu cuenta sigue activa. Te pedimos que revises las normas para evitar futuras sanciones, que pueden incluir la suspensi\u00F3n o el cierre de tu cuenta.",
+      "Equipo KixxMe",
+    ]),
+  ].join("\n            ");
+  return renderEmail({
+    preheader: "Has recibido un aviso del equipo de moderaci\u00F3n de KixxMe.",
+    heading: "\u26A0\uFE0F Aviso de moderaci\u00F3n",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Revisar las normas", url: appUrl } : undefined,
+  });
+}
+
+export const MODERATION_SUSPENDED_SUBJECT =
+  "Tu cuenta de KixxMe ha sido suspendida";
+
+export function moderationSuspendedEmailHtml(
+  reason: string | null,
+  until: Date | null,
+): string {
+  const when = until
+    ? `Tu cuenta estar\u00E1 suspendida hasta el <strong style="color:#f4f1fb;">${escapeHtml(
+        formatDateEs(until),
+      )}</strong>. Despu\u00E9s podr\u00E1s volver a iniciar sesi\u00F3n con normalidad.`
+    : "Tu cuenta queda suspendida hasta nuevo aviso del equipo de moderaci\u00F3n.";
+  const body = [
+    paragraphs([
+      "<strong style=\"color:#f4f1fb;\">Tu cuenta de KixxMe ha sido suspendida temporalmente.</strong>",
+      "Mientras dure la suspensi\u00F3n no podr\u00E1s acceder a la app ni aparecer para otras personas.",
+    ]),
+    reasonBlock(reason),
+    paragraphs([
+      when,
+      "Si crees que se trata de un error, responde a este correo.",
+      "Equipo KixxMe",
+    ]),
+  ].join("\n            ");
+  return renderEmail({
+    preheader: "Tu cuenta de KixxMe ha sido suspendida temporalmente.",
+    heading: "Cuenta suspendida",
+    bodyHtml: body,
+  });
+}
+
+export const MODERATION_BANNED_SUBJECT =
+  "Tu cuenta de KixxMe ha sido suspendida permanentemente";
+
+export function moderationBannedEmailHtml(reason: string | null): string {
+  const body = [
+    paragraphs([
+      "<strong style=\"color:#f4f1fb;\">Tu cuenta de KixxMe ha sido suspendida de forma permanente.</strong>",
+      "Tras revisar tu actividad, hemos cerrado el acceso a tu cuenta por incumplir nuestras normas de la comunidad.",
+    ]),
+    reasonBlock(reason),
+    paragraphs([
+      "Si crees que se trata de un error, puedes responder a este correo para solicitar una revisi\u00F3n.",
+      "Equipo KixxMe",
+    ]),
+  ].join("\n            ");
+  return renderEmail({
+    preheader: "Tu cuenta de KixxMe ha sido suspendida permanentemente.",
+    heading: "Cuenta suspendida permanentemente",
+    bodyHtml: body,
+  });
+}
+
+export const MODERATION_REMOVED_SUBJECT =
+  "Tu cuenta de KixxMe ha sido eliminada";
+
+export function moderationRemovedEmailHtml(reason: string | null): string {
+  const body = [
+    paragraphs([
+      "<strong style=\"color:#f4f1fb;\">Un administrador ha eliminado tu cuenta de KixxMe.</strong>",
+      "Ya no puedes acceder a la app ni aparecer para otras personas.",
+    ]),
+    reasonBlock(reason),
+    paragraphs([
+      "Si crees que se trata de un error, responde a este correo para solicitar una revisi\u00F3n.",
+      "Equipo KixxMe",
+    ]),
+  ].join("\n            ");
+  return renderEmail({
+    preheader: "Un administrador ha eliminado tu cuenta de KixxMe.",
+    heading: "Cuenta eliminada",
+    bodyHtml: body,
+  });
+}
+
+export const MODERATION_RESTORED_SUBJECT =
+  "Tu cuenta de KixxMe ha sido restaurada";
+
+export function moderationRestoredEmailHtml(appUrl?: string): string {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">\u00A1Buenas noticias! Tu cuenta de KixxMe vuelve a estar activa.</strong>",
+    "Ya puedes iniciar sesi\u00F3n y volver a conectar con gente cerca de ti.",
+    "Te esperamos de vuelta \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return renderEmail({
+    preheader: "Tu cuenta de KixxMe vuelve a estar activa.",
+    heading: "Cuenta restaurada \u{1F389}",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Volver a KixxMe", url: appUrl } : undefined,
+  });
+}

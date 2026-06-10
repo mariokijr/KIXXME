@@ -19,9 +19,18 @@ import {
   useListAdminVerifications,
   getListAdminVerificationsQueryKey,
   useReviewAdminVerification,
+  useListAdminUsers,
+  getListAdminUsersQueryKey,
+  useGetAdminUser,
+  getGetAdminUserQueryKey,
+  useWarnUser,
+  useRemoveUser,
+  useRestoreUser,
   type AdminReport,
   type AdminFlag,
   type AdminVerificationItem,
+  type AdminUserItem,
+  type ListAdminUsersParams,
   type Message,
   type ProfilePhoto,
   type PublicProfile,
@@ -52,6 +61,9 @@ import {
   ShieldOff,
   BadgeCheck,
   User as UserIcon,
+  Users,
+  RotateCcw,
+  Mail,
 } from "lucide-react";
 
 const REPORTS_KEY = "/api/admin/reports";
@@ -102,9 +114,9 @@ function errMsg(err: any, fallback: string): string {
 export default function AdminPage() {
   const { session } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<"reports" | "flags" | "verifications">(
-    "reports",
-  );
+  const [tab, setTab] = useState<
+    "reports" | "flags" | "verifications" | "users"
+  >("reports");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   const { data: summary } = useGetAdminSummary({
@@ -165,16 +177,22 @@ export default function AdminPage() {
           value={summary?.pendingVerifications ?? 0}
           tone="purple"
         />
+        <SummaryCard
+          icon={<Trash2 className="w-4 h-4" />}
+          label="Eliminados"
+          value={summary?.removed ?? 0}
+          tone="red"
+        />
       </div>
 
       <div className="px-4 pt-5">
-        <div className="flex gap-2 p-1 rounded-xl border border-border/40"
+        <div className="flex gap-2 p-1 rounded-xl border border-border/40 overflow-x-auto no-scrollbar"
           style={{ background: "rgba(255,255,255,0.03)" }}>
-          {(["reports", "flags", "verifications"] as const).map((t) => (
+          {(["reports", "flags", "verifications", "users"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 h-10 rounded-lg font-sans text-sm font-medium transition-colors ${
+              className={`flex-1 min-w-[84px] h-10 px-2 rounded-lg font-sans text-sm font-medium whitespace-nowrap transition-colors ${
                 tab === t
                   ? "text-white"
                   : "text-muted-foreground hover:text-foreground"
@@ -190,7 +208,9 @@ export default function AdminPage() {
                 ? "Reportes"
                 : t === "flags"
                   ? "Alertas"
-                  : "Verificaciones"}
+                  : t === "verifications"
+                    ? "Verif."
+                    : "Usuarios"}
             </button>
           ))}
         </div>
@@ -200,8 +220,10 @@ export default function AdminPage() {
         <ReportsTab onSelect={setSelectedReportId} />
       ) : tab === "flags" ? (
         <FlagsTab />
-      ) : (
+      ) : tab === "verifications" ? (
         <VerificationsTab />
+      ) : (
+        <UsersTab />
       )}
 
       <ReportDetailDialog
@@ -1381,6 +1403,633 @@ function VerificationRow({
         </ActionButton>
       </div>
     </div>
+  );
+}
+
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  plus: "Plus",
+  gold: "Gold",
+};
+
+const STATE_LABELS: Record<string, string> = {
+  active: "Activo",
+  suspended: "Suspendido",
+  banned: "Baneado",
+  removed: "Eliminado",
+};
+
+const STATE_TONES: Record<string, string> = {
+  active: "border-green-500/40 bg-green-500/10 text-green-300",
+  suspended: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+  banned: "border-red-500/40 bg-red-500/10 text-red-300",
+  removed: "border-red-500/40 bg-red-500/10 text-red-300",
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  warn: "Aviso",
+  suspend: "Suspensión",
+  ban: "Baneo",
+  remove: "Eliminación",
+  restore: "Restauración",
+  lift: "Sanción levantada",
+  remove_photo: "Foto eliminada",
+};
+
+function UsersTab() {
+  const { session } = useAuth();
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [plan, setPlan] = useState<"" | "free" | "plus" | "gold">("");
+  const [statusFilter, setStatusFilter] = useState<
+    "" | "active" | "suspended" | "banned" | "removed"
+  >("");
+  const [page, setPage] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const id = setTimeout(() => setDebounced(search.trim()), 350);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [debounced, plan, statusFilter]);
+
+  const PAGE_SIZE = 30;
+  const params: ListAdminUsersParams = {
+    ...(debounced ? { q: debounced } : {}),
+    ...(plan ? { plan } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  };
+
+  const { data, isLoading, isFetching } = useListAdminUsers(params, {
+    query: {
+      enabled: !!session,
+      queryKey: getListAdminUsersQueryKey(params),
+      placeholderData: (prev) => prev,
+    },
+  });
+
+  const users = data?.users ?? [];
+  const total = data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const canPrev = page > 0;
+  const canNext = (page + 1) * PAGE_SIZE < total;
+
+  return (
+    <div className="px-4 pt-4 space-y-4">
+      <div className="relative">
+        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por usuario o ciudad…"
+          className="pl-9 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+          data-testid="input-admin-user-search"
+        />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        <Chip active={plan === ""} onClick={() => setPlan("")} testId="chip-plan-all">
+          Todos
+        </Chip>
+        {(["free", "plus", "gold"] as const).map((p) => (
+          <Chip
+            key={p}
+            active={plan === p}
+            onClick={() => setPlan(p)}
+            testId={`chip-plan-${p}`}
+          >
+            {PLAN_LABELS[p]}
+          </Chip>
+        ))}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        <Chip
+          active={statusFilter === ""}
+          onClick={() => setStatusFilter("")}
+          testId="chip-status-all"
+        >
+          Todos
+        </Chip>
+        {(["active", "suspended", "banned", "removed"] as const).map((s) => (
+          <Chip
+            key={s}
+            active={statusFilter === s}
+            onClick={() => setStatusFilter(s)}
+            testId={`chip-status-${s}`}
+          >
+            {STATE_LABELS[s]}
+          </Chip>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      ) : users.length === 0 ? (
+        <EmptyState
+          icon={<Users className="w-7 h-7" />}
+          title="Sin usuarios"
+          subtitle="No hay usuarios que coincidan con la búsqueda."
+        />
+      ) : (
+        <div className="space-y-2">
+          {users.map((u) => (
+            <UserRow
+              key={u.id}
+              user={u}
+              onClick={() => setSelectedUserId(u.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={!canPrev || isFetching}
+            className="h-10 px-4 rounded-xl border border-border/50 font-sans text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 flex items-center gap-2"
+            data-testid="button-users-prev"
+          >
+            Anterior
+          </button>
+          <span className="font-sans text-xs text-muted-foreground inline-flex items-center gap-2">
+            {isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            Página {page + 1} de {pageCount}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!canNext || isFetching}
+            className="h-10 px-4 rounded-xl border border-border/50 font-sans text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 flex items-center gap-2"
+            data-testid="button-users-next"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      <UserDetailDialog
+        userId={selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+      />
+    </div>
+  );
+}
+
+function UserRow({
+  user,
+  onClick,
+}: {
+  user: AdminUserItem;
+  onClick: () => void;
+}) {
+  const meta = [user.age != null ? `${user.age} años` : null, user.city ?? null]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full rounded-2xl border border-border/40 p-3 flex items-center gap-3 text-left hover:border-primary/40 transition-colors"
+      style={{ background: "rgba(13,11,26,0.7)" }}
+      data-testid={`user-row-${user.id}`}
+    >
+      <div className="w-11 h-11 rounded-xl overflow-hidden border border-border/40 bg-card flex items-center justify-center flex-shrink-0">
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <UserIcon className="w-5 h-5 text-muted-foreground" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <p className="font-sans text-sm text-foreground truncate">
+            {user.username ?? user.id}
+          </p>
+          {user.isVerified && (
+            <BadgeCheck className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+          )}
+        </div>
+        {meta && (
+          <p className="font-sans text-xs text-muted-foreground truncate">
+            {meta}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-sans border border-primary/40 bg-primary/10 text-primary uppercase tracking-wider">
+          {PLAN_LABELS[user.plan] ?? user.plan}
+        </span>
+        {user.state !== "active" && (
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-sans border uppercase tracking-wider ${
+              STATE_TONES[user.state] ?? STATE_TONES.active
+            }`}
+          >
+            {STATE_LABELS[user.state] ?? user.state}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function UserDetailDialog({
+  userId,
+  onClose,
+}: {
+  userId: string | null;
+  onClose: () => void;
+}) {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useGetAdminUser(userId ?? "", {
+    query: {
+      enabled: !!session && !!userId,
+      queryKey: getGetAdminUserQueryKey(userId ?? ""),
+    },
+  });
+
+  const warn = useWarnUser();
+  const suspend = useSuspendUser();
+  const ban = useBanUser();
+  const remove = useRemoveUser();
+  const restore = useRestoreUser();
+
+  const [reason, setReason] = useState("");
+
+  React.useEffect(() => {
+    setReason("");
+  }, [userId]);
+
+  const busy =
+    warn.isPending ||
+    suspend.isPending ||
+    ban.isPending ||
+    remove.isPending ||
+    restore.isPending;
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    qc.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+    if (userId) {
+      qc.invalidateQueries({ queryKey: getGetAdminUserQueryKey(userId) });
+    }
+  };
+
+  const onError = (title: string) => (err: any) =>
+    toast({
+      title,
+      description: errMsg(err, "Inténtalo de nuevo."),
+      variant: "destructive",
+    });
+
+  const onWarn = () => {
+    if (!userId) return;
+    const r = reason.trim();
+    if (!r) {
+      toast({
+        title: "Escribe un motivo",
+        description: "El aviso requiere un motivo para el usuario.",
+        variant: "destructive",
+      });
+      return;
+    }
+    warn.mutate(
+      { userId, data: { reason: r } },
+      {
+        onSuccess: () => {
+          toast({ title: "Aviso enviado" });
+          invalidate();
+          setReason("");
+        },
+        onError: onError("No se pudo avisar"),
+      },
+    );
+  };
+
+  const onSuspend = (durationDays: number) => {
+    if (!userId) return;
+    suspend.mutate(
+      { userId, data: { durationDays, reason: reason.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario suspendido" });
+          invalidate();
+        },
+        onError: onError("No se pudo suspender"),
+      },
+    );
+  };
+
+  const onBan = () => {
+    if (!userId) return;
+    ban.mutate(
+      { userId, data: { reason: reason.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario baneado" });
+          invalidate();
+        },
+        onError: onError("No se pudo banear"),
+      },
+    );
+  };
+
+  const onRemove = () => {
+    if (!userId) return;
+    remove.mutate(
+      { userId, data: { reason: reason.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario eliminado" });
+          invalidate();
+        },
+        onError: onError("No se pudo eliminar"),
+      },
+    );
+  };
+
+  const onRestore = () => {
+    if (!userId) return;
+    restore.mutate(
+      { userId },
+      {
+        onSuccess: () => {
+          toast({ title: "Usuario restaurado" });
+          invalidate();
+        },
+        onError: onError("No se pudo restaurar"),
+      },
+    );
+  };
+
+  const user = data?.user;
+  const state = user?.state ?? "active";
+  const meta = [
+    user?.age != null ? `${user.age} años` : null,
+    user?.city ?? null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const photos = data?.photos ?? [];
+  const history = data?.history ?? [];
+
+  return (
+    <Dialog open={!!userId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="border-border/50 bg-card/95 backdrop-blur-xl sm:max-w-lg max-h-[88vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl tracking-widest text-gradient-brand flex items-center gap-2">
+            <UserIcon className="w-5 h-5" />
+            Usuario
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading || !data || !user ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-xl overflow-hidden border border-border/40 bg-card flex items-center justify-center flex-shrink-0">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="w-6 h-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-display text-lg tracking-wide text-foreground truncate">
+                    {user.username ?? user.id}
+                  </p>
+                  {user.isVerified && (
+                    <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  )}
+                </div>
+                {meta && (
+                  <p className="font-sans text-xs text-muted-foreground truncate">
+                    {meta}
+                  </p>
+                )}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-sans border border-primary/40 bg-primary/10 text-primary uppercase tracking-wider">
+                    {PLAN_LABELS[user.plan] ?? user.plan}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-sans border uppercase tracking-wider ${
+                      STATE_TONES[state] ?? STATE_TONES.active
+                    }`}
+                  >
+                    {STATE_LABELS[state] ?? state}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="rounded-xl border border-border/40 p-3 space-y-1.5"
+              style={{ background: "rgba(255,255,255,0.02)" }}
+            >
+              {data.email && (
+                <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
+                  <Mail className="w-3.5 h-3.5" />
+                  <span className="truncate">{data.email}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
+                <Flag className="w-3.5 h-3.5" />
+                <span>{data.reportCount} reporte(s) recibido(s)</span>
+              </div>
+              {state === "suspended" && user.suspendedUntil && (
+                <div className="flex items-center gap-2 text-xs font-sans text-amber-300">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Hasta {fmtDate(user.suspendedUntil)}</span>
+                </div>
+              )}
+            </div>
+
+            {(data.role || data.lookingFor) && (
+              <div className="flex flex-wrap gap-2">
+                {data.role && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-sans border border-border/50 bg-input/20 text-foreground">
+                    {data.role}
+                  </span>
+                )}
+                {data.lookingFor && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-sans border border-border/50 bg-input/20 text-foreground">
+                    {data.lookingFor}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {data.bio && (
+              <p className="font-sans text-sm text-muted-foreground">
+                {data.bio}
+              </p>
+            )}
+
+            {photos.length > 0 && (
+              <div>
+                <p className="font-sans text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Fotos del perfil
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {photos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="relative rounded-lg overflow-hidden border border-border/30"
+                      style={{ aspectRatio: "1" }}
+                    >
+                      <img
+                        src={p.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="font-sans text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                Acción de moderación
+              </p>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Motivo (obligatorio para el aviso, opcional para el resto)…"
+                className="rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[60px] resize-none bg-input/40 text-sm"
+                data-testid="input-user-reason"
+              />
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {state !== "active" && (
+                  <ActionButton
+                    onClick={onRestore}
+                    disabled={busy}
+                    tone="green"
+                    icon={<RotateCcw className="w-4 h-4" />}
+                    testId="button-user-restore"
+                  >
+                    Restaurar
+                  </ActionButton>
+                )}
+                <ActionButton
+                  onClick={onWarn}
+                  disabled={busy}
+                  tone="amber"
+                  icon={<AlertTriangle className="w-4 h-4" />}
+                  testId="button-user-warn"
+                >
+                  Enviar aviso
+                </ActionButton>
+                {state === "active" && (
+                  <>
+                    <ActionButton
+                      onClick={() => onSuspend(7)}
+                      disabled={busy}
+                      tone="amber"
+                      icon={<Clock className="w-4 h-4" />}
+                      testId="button-user-suspend-7"
+                    >
+                      Suspender 7d
+                    </ActionButton>
+                    <ActionButton
+                      onClick={() => onSuspend(30)}
+                      disabled={busy}
+                      tone="amber"
+                      icon={<Clock className="w-4 h-4" />}
+                      testId="button-user-suspend-30"
+                    >
+                      Suspender 30d
+                    </ActionButton>
+                  </>
+                )}
+                {state !== "banned" && state !== "removed" && (
+                  <ActionButton
+                    onClick={onBan}
+                    disabled={busy}
+                    tone="red"
+                    icon={<Ban className="w-4 h-4" />}
+                    testId="button-user-ban"
+                  >
+                    Banear
+                  </ActionButton>
+                )}
+                {state !== "removed" && (
+                  <ActionButton
+                    onClick={onRemove}
+                    disabled={busy}
+                    tone="red"
+                    icon={<Trash2 className="w-4 h-4" />}
+                    testId="button-user-remove"
+                  >
+                    Eliminar
+                  </ActionButton>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="font-sans text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+                Historial de sanciones
+              </p>
+              {history.length === 0 ? (
+                <p className="font-sans text-xs text-muted-foreground/70">
+                  Sin sanciones registradas.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((h) => (
+                    <div
+                      key={h.id}
+                      className="rounded-xl border border-border/40 p-3"
+                      style={{ background: "rgba(255,255,255,0.02)" }}
+                      data-testid={`history-item-${h.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-sans text-xs font-medium text-foreground">
+                          {ACTION_LABELS[h.action] ?? h.action}
+                          {h.durationDays ? ` · ${h.durationDays}d` : ""}
+                        </span>
+                        <span className="font-sans text-[11px] text-muted-foreground">
+                          {fmtDate(h.createdAt)}
+                        </span>
+                      </div>
+                      {h.reason && (
+                        <p className="font-sans text-xs text-muted-foreground mt-1">
+                          {h.reason}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

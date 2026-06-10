@@ -50,11 +50,14 @@ export async function requireAuth(
   if (!opts?.allowModerated) {
     const mod = await getModerationState(userId);
     if (mod.state !== "active") {
+      const error =
+        mod.state === "banned"
+          ? "Tu cuenta ha sido suspendida de forma permanente por incumplir las normas de la comunidad."
+          : mod.state === "removed"
+            ? "Tu cuenta ha sido eliminada por un administrador."
+            : "Tu cuenta está temporalmente suspendida.";
       res.status(403).json({
-        error:
-          mod.state === "banned"
-            ? "Tu cuenta ha sido suspendida de forma permanente por incumplir las normas de la comunidad."
-            : "Tu cuenta está temporalmente suspendida.",
+        error,
         code: mod.state,
         until: mod.suspendedUntil ? mod.suspendedUntil.toISOString() : null,
       });
