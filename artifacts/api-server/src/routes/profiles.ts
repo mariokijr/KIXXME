@@ -9,6 +9,8 @@ import {
   removeBlock,
 } from "../lib/blocks.js";
 import { getDeactivatedIds, isDeactivated } from "../lib/account.js";
+import { recordLike } from "../lib/likes.js";
+import { LikeProfileBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -312,6 +314,13 @@ router.post("/profiles/:id/like", async (req, res) => {
     return;
   }
 
+  const parsed = LikeProfileBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Solicitud inválida" });
+    return;
+  }
+  const kind = parsed.data.kind ?? "like";
+
   if (await isBlockedBetween(auth.userId, id)) {
     res.status(403).json({ error: "No puedes dar me gusta a este usuario" });
     return;
@@ -322,20 +331,27 @@ router.post("/profiles/:id/like", async (req, res) => {
     return;
   }
 
-  const { error } = await supabase
-    .from("likes")
-    .upsert(
-      { liker_id: auth.userId, liked_id: id },
-      { onConflict: "liker_id,liked_id", ignoreDuplicates: true },
-    );
+  const result = await recordLike(auth.userId, id, kind);
 
-  if (error) {
-    req.log.error({ error: error.message }, "like POST: error");
-    res.status(400).json({ error: error.message });
+  if (!result.ok) {
+    if (result.reason === "limit") {
+      const message =
+        result.kind === "superlike"
+          ? "Has usado todos tus SuperLikes. Consigue más con KixxMe Plus o Gold."
+          : "Has alcanzado tu límite de likes. Vuelve más tarde o desbloquea KixxMe Plus para likes ilimitados.";
+      res.status(429).json({ error: message });
+      return;
+    }
+    req.log.error({ error: result.message }, "like POST: error");
+    res.status(400).json({ error: result.message });
     return;
   }
 
-  res.status(201).json({ success: true });
+  res.status(201).json({
+    matched: result.matched,
+    is_super: result.isSuper,
+    quota: result.quota,
+  });
 });
 
 router.delete("/profiles/:id/like", async (req, res) => {

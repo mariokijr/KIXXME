@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Loader2, Share2, Users, Heart, BadgeCheck } from "lucide-react";
+import { MapPin, Loader2, Share2, Users, Heart, Star, BadgeCheck } from "lucide-react";
 import {
   useListProfiles,
   getListProfilesQueryKey,
   useCreateOrGetConversation,
-  useLikeProfile,
   useUnlikeProfile,
   PublicProfile,
   type ListProfilesSort,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
+import { useLikeActions } from "@/lib/like-actions";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
 type ViewType = "todos" | "cerca" | "online" | "con-foto";
@@ -77,7 +77,7 @@ export default function Discover() {
   } = useListProfiles({ sort: VIEW_SORT[view] });
 
   const createConv = useCreateOrGetConversation();
-  const likeMut = useLikeProfile();
+  const likeActions = useLikeActions();
   const unlikeMut = useUnlikeProfile();
 
   const filtered = profiles.filter((u) => {
@@ -95,20 +95,19 @@ export default function Discover() {
     );
   };
 
+  const invalidateProfiles = () =>
+    qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+
   const handleToggleLike = (user: PublicProfile) => {
-    const onSettled = () =>
-      qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
     if (user.liked_by_me) {
-      unlikeMut.mutate({ id: user.id }, { onSettled });
+      unlikeMut.mutate({ id: user.id }, { onSettled: invalidateProfiles });
     } else {
-      likeMut.mutate(
-        { id: user.id },
-        {
-          onSuccess: () => toast({ title: `Te gusta ${user.username ?? "este perfil"} ❤️` }),
-          onSettled,
-        }
-      );
+      likeActions.like(user, { onSettled: invalidateProfiles });
     }
+  };
+
+  const handleSuperLike = (user: PublicProfile) => {
+    likeActions.superLike(user, { onSettled: invalidateProfiles });
   };
 
   const handleShare = async () => {
@@ -227,6 +226,8 @@ export default function Discover() {
               grad={gradFor(user.id)}
               onMessage={() => handleMessage(user.id)}
               onToggleLike={() => handleToggleLike(user)}
+              onSuperLike={() => handleSuperLike(user)}
+              superLikePending={likeActions.isPending}
             />
           ))}
         </div>
@@ -279,11 +280,15 @@ export function UserCard({
   grad,
   onMessage,
   onToggleLike,
+  onSuperLike,
+  superLikePending,
 }: {
   user: PublicProfile;
   grad: string;
   onMessage: () => void;
   onToggleLike: () => void;
+  onSuperLike: () => void;
+  superLikePending?: boolean;
 }) {
   const distance = formatDistance(user.distance_km);
 
@@ -329,6 +334,21 @@ export function UserCard({
           />
         </div>
       )}
+
+      <button
+        onClick={onSuperLike}
+        disabled={superLikePending}
+        className="absolute bottom-[6.5rem] right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/25 backdrop-blur-sm transition-transform active:scale-90 disabled:opacity-50"
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
+          boxShadow: "0 0 12px rgba(56,189,248,0.45)",
+        }}
+        aria-label="SuperLike"
+        data-testid="button-superlike"
+      >
+        <Star className="w-5 h-5 text-white" fill="white" />
+      </button>
 
       <button
         onClick={onToggleLike}

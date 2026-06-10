@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Star,
+  Heart,
   MessageCircle,
   Eye,
   SlidersHorizontal,
@@ -26,8 +27,10 @@ import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 type Billing = "mensual" | "anual";
 
 const PLUS_FEATURES = [
+  { icon: Heart, text: "Likes ilimitados" },
+  { icon: Star, text: "5 SuperLikes al día" },
+  { icon: Eye, text: "Descubre quién te da SuperLike" },
   { icon: MessageCircle, text: "Chats ilimitados" },
-  { icon: Eye, text: "Ve quién visita tu perfil" },
   { icon: SlidersHorizontal, text: "Filtros avanzados" },
   { icon: Zap, text: "1 boost semanal" },
   { icon: Shield, text: "Perfil verificado" },
@@ -35,6 +38,7 @@ const PLUS_FEATURES = [
 
 const GOLD_FEATURES = [
   { icon: Crown, text: "Todo lo de Plus" },
+  { icon: Star, text: "SuperLikes ilimitados" },
   { icon: EyeOff, text: "Modo incógnito" },
   { icon: Zap, text: "Boost diario prioritario" },
   { icon: Eye, text: "Visitas en detalle" },

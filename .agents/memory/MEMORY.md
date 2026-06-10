@@ -1,1 +1,1 @@
-- [KixxMe account lifecycle](kixxme-account-lifecycle.md) — deactivation/deletion: enforcement parity with blocks (union getDeactivatedIds everywhere), auth user deleted LAST in cross-DB deletion, hashed verification-code model.
+- [KixxMe Likes/SuperLikes/Matches](kixxme-likes.md) — append-only `like_actions` (never prune), derived quotas, compensating refund across PG↔Supabase, server-enforced free-viewer redaction.

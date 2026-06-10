@@ -4,7 +4,6 @@ import {
   getGetProfileQueryKey,
   useListProfilePhotos,
   getListProfilePhotosQueryKey,
-  useLikeProfile,
   useUnlikeProfile,
   useCreateOrGetConversation,
   useBlockProfile,
@@ -21,6 +20,7 @@ import {
   User,
   Calendar,
   Heart,
+  Star,
   MessageCircle,
   BadgeCheck,
   Ban,
@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { SupportDialog } from "@/components/support-dialog";
 import { formatDistance } from "./discover";
+import { useLikeActions } from "@/lib/like-actions";
 
 export default function PublicProfile() {
   const params = useParams();
@@ -47,26 +48,39 @@ export default function PublicProfile() {
     query: { enabled: !!id, queryKey: getListProfilePhotosQueryKey(id) },
   });
 
-  const likeProfile = useLikeProfile();
+  const likeActions = useLikeActions();
   const unlikeProfile = useUnlikeProfile();
   const createConv = useCreateOrGetConversation();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
 
+  const invalidateProfile = () =>
+    qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id) });
+
   const handleToggleLike = () => {
     if (!profile) return;
-    const mutation = profile.liked_by_me ? unlikeProfile : likeProfile;
+    if (profile.liked_by_me) {
+      qc.setQueryData(getGetProfileQueryKey(id), {
+        ...profile,
+        liked_by_me: false,
+      });
+      unlikeProfile.mutate({ id }, { onSettled: invalidateProfile });
+    } else {
+      qc.setQueryData(getGetProfileQueryKey(id), {
+        ...profile,
+        liked_by_me: true,
+      });
+      likeActions.like(profile, { onSettled: invalidateProfile });
+    }
+  };
+
+  const handleSuperLike = () => {
+    if (!profile) return;
     qc.setQueryData(getGetProfileQueryKey(id), {
       ...profile,
-      liked_by_me: !profile.liked_by_me,
+      liked_by_me: true,
     });
-    mutation.mutate(
-      { id },
-      {
-        onSettled: () =>
-          qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id) }),
-      }
-    );
+    likeActions.superLike(profile, { onSettled: invalidateProfile });
   };
 
   const handleMessage = () => {
@@ -308,6 +322,19 @@ export default function PublicProfile() {
               fill: profile.liked_by_me ? "hsl(330,85%,60%)" : "transparent",
             }}
           />
+        </button>
+        <button
+          onClick={handleSuperLike}
+          disabled={profile.blocked_by_me || likeActions.isPending}
+          className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl border border-white/15 transition-all disabled:opacity-40 active:scale-95"
+          style={{
+            background: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
+            boxShadow: "0 0 20px rgba(56,189,248,0.35)",
+          }}
+          data-testid="button-superlike"
+          title="SuperLike"
+        >
+          <Star className="w-6 h-6 text-white" fill="white" />
         </button>
         {profile.blocked_by_me ? (
           <button

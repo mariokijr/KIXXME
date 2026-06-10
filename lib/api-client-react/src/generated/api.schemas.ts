@@ -82,6 +82,48 @@ export interface LikeNotification {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
+  is_super: boolean;
+  revealed: boolean;
+}
+
+export interface QuotaState {
+  remaining: number;
+  limit: number;
+  unlimited: boolean;
+  rechargeAt: string | null;
+}
+
+export type LikeQuotaPlan = typeof LikeQuotaPlan[keyof typeof LikeQuotaPlan];
+
+
+export const LikeQuotaPlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export interface LikeQuota {
+  plan: LikeQuotaPlan;
+  likes: QuotaState;
+  superlikes: QuotaState;
+}
+
+export type LikeRequestKind = typeof LikeRequestKind[keyof typeof LikeRequestKind];
+
+
+export const LikeRequestKind = {
+  like: 'like',
+  superlike: 'superlike',
+} as const;
+
+export interface LikeRequest {
+  kind?: LikeRequestKind;
+}
+
+export interface LikeResponse {
+  matched: boolean;
+  is_super: boolean;
+  quota: LikeQuota;
 }
 
 export interface MatchNotification {

@@ -1,19 +1,40 @@
 import { Router } from "express";
+import { createHash } from "node:crypto";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { getBlockRelations } from "../lib/blocks.js";
 import { getDeactivatedIds } from "../lib/account.js";
+import { getPlan } from "../lib/entitlement.js";
+import { getSuperLikerIds } from "../lib/likes.js";
 
 const router = Router();
 
 /**
+ * Opaque, stable id for an unrevealed SuperLiker. Used only as a React key so a
+ * free viewer never receives the real liker id (which would defeat the paywall
+ * by letting them fetch the profile directly). Stable across polls per pair.
+ */
+function opaqueId(likerId: string, likedId: string): string {
+  return createHash("sha256")
+    .update(`${likerId}:${likedId}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/**
  * Aggregated in-app notification state for the current user:
  * - unread message count (across visible conversations)
- * - recent likes received (people who liked me)
+ * - recent likes received (people who liked me), flagged is_super / revealed
  * - matches (mutual likes), with the moment the match was completed
  *
  * Block enforcement: users on either side of a block are excluded, matching
  * every other surface that exposes another user.
+ *
+ * SuperLike privacy: a received SuperLike is fully redacted (opaque id, null
+ * username/avatar) for FREE viewers — they learn one arrived but not from whom —
+ * UNLESS it is already mutual, in which case identity is known via the match
+ * anyway. Plus/Gold viewers always see the sender. Each liker appears exactly
+ * once, so a redacted SuperLike can never leak alongside a named regular like.
  */
 router.get("/notifications/summary", async (req, res) => {
   const auth = await requireAuth(req, res);
@@ -51,14 +72,27 @@ router.get("/notifications/summary", async (req, res) => {
     myLikes.set(r.liked_id as string, r.created_at as string);
   }
 
-  const receivedVisible = (received ?? []).filter(
-    (r) => !isBlocked(r.liker_id as string),
-  );
+  // One entry per liker (likes are unique per pair, but dedupe defensively,
+  // keeping the newest since `received` is ordered desc).
+  const seenLiker = new Set<string>();
+  const receivedVisible: { liker_id: string; created_at: string }[] = [];
+  for (const r of received ?? []) {
+    const liker = r.liker_id as string;
+    if (isBlocked(liker) || seenLiker.has(liker)) continue;
+    seenLiker.add(liker);
+    receivedVisible.push({ liker_id: liker, created_at: r.created_at as string });
+  }
+
+  const userIds = receivedVisible.map((r) => r.liker_id);
+
+  // Viewer tier + which of these received likes are currently SuperLikes.
+  const [viewerPlan, superLikerIds] = await Promise.all([
+    getPlan(me),
+    getSuperLikerIds(me, userIds),
+  ]);
+  const canReveal = viewerPlan !== "free";
 
   // Hydrate the profiles involved in one query.
-  const userIds = Array.from(
-    new Set(receivedVisible.map((r) => r.liker_id as string)),
-  );
   const profileMap = new Map<
     string,
     { username: string | null; avatar_url: string | null }
@@ -77,26 +111,44 @@ router.get("/notifications/summary", async (req, res) => {
   }
 
   const likes = receivedVisible.map((r) => {
-    const info = profileMap.get(r.liker_id as string);
+    const liker = r.liker_id;
+    const isSuper = superLikerIds.has(liker);
+    const isMatch = myLikes.has(liker);
+    // Regular likes are always shown. A SuperLike is hidden from free viewers
+    // unless it's already mutual (identity then known via the match).
+    const revealed = !isSuper || canReveal || isMatch;
+    if (revealed) {
+      const info = profileMap.get(liker);
+      return {
+        user_id: liker,
+        username: info?.username ?? null,
+        avatar_url: info?.avatar_url ?? null,
+        created_at: r.created_at,
+        is_super: isSuper,
+        revealed: true,
+      };
+    }
     return {
-      user_id: r.liker_id as string,
-      username: info?.username ?? null,
-      avatar_url: info?.avatar_url ?? null,
-      created_at: r.created_at as string,
+      user_id: opaqueId(liker, me),
+      username: null,
+      avatar_url: null,
+      created_at: r.created_at,
+      is_super: true,
+      revealed: false,
     };
   });
 
   // A match is a like received from someone I also liked. The match is
   // "completed" at the later of the two like timestamps.
   const matches = receivedVisible
-    .filter((r) => myLikes.has(r.liker_id as string))
+    .filter((r) => myLikes.has(r.liker_id))
     .map((r) => {
-      const theirAt = r.created_at as string;
-      const myAt = myLikes.get(r.liker_id as string) as string;
+      const theirAt = r.created_at;
+      const myAt = myLikes.get(r.liker_id) as string;
       const matchedAt = Date.parse(theirAt) >= Date.parse(myAt) ? theirAt : myAt;
-      const info = profileMap.get(r.liker_id as string);
+      const info = profileMap.get(r.liker_id);
       return {
-        user_id: r.liker_id as string,
+        user_id: r.liker_id,
         username: info?.username ?? null,
         avatar_url: info?.avatar_url ?? null,
         matched_at: matchedAt,

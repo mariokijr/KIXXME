@@ -34,6 +34,9 @@ import type {
   DeletePhoto200,
   ErrorResponse,
   HealthStatus,
+  LikeQuota,
+  LikeRequest,
+  LikeResponse,
   ListProfilesParams,
   LiveCall,
   LiveCallEndRequest,
@@ -1778,16 +1781,18 @@ export const getLikeProfileUrl = (id: string,) => {
 }
 
 /**
- * @summary Like a profile
+ * @summary Like or SuperLike a profile
  */
-export const likeProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+export const likeProfile = async (id: string,
+    likeRequest?: LikeRequest, options?: RequestInit): Promise<LikeResponse> => {
 
-  return customFetch<SuccessResponse>(getLikeProfileUrl(id),
+  return customFetch<LikeResponse>(getLikeProfileUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      likeRequest,)
   }
 );}
 
@@ -1795,8 +1800,8 @@ export const likeProfile = async (id: string, options?: RequestInit): Promise<Su
 
 
 export const getLikeProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string;data?: BodyType<LikeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string;data?: BodyType<LikeRequest>}, TContext> => {
 
 const mutationKey = ['likeProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1808,10 +1813,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeProfile>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeProfile>>, {id: string;data?: BodyType<LikeRequest>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  likeProfile(id,requestOptions)
+          return  likeProfile(id,data,requestOptions)
         }
 
 
@@ -1822,18 +1827,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type LikeProfileMutationResult = NonNullable<Awaited<ReturnType<typeof likeProfile>>>
-
+    export type LikeProfileMutationBody = BodyType<LikeRequest> | undefined
     export type LikeProfileMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Like a profile
+ * @summary Like or SuperLike a profile
  */
 export const useLikeProfile = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeProfile>>, TError,{id: string;data?: BodyType<LikeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof likeProfile>>,
         TError,
-        {id: string},
+        {id: string;data?: BodyType<LikeRequest>},
         TContext
       > => {
       return useMutation(getLikeProfileMutationOptions(options));
@@ -1908,6 +1913,83 @@ export const useUnlikeProfile = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUnlikeProfileMutationOptions(options));
     }
+
+export const getGetLikeQuotaUrl = () => {
+
+
+
+
+  return `/api/likes/quota`
+}
+
+/**
+ * @summary Current like & SuperLike allowances for the authenticated user
+ */
+export const getLikeQuota = async ( options?: RequestInit): Promise<LikeQuota> => {
+
+  return customFetch<LikeQuota>(getGetLikeQuotaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLikeQuotaQueryKey = () => {
+    return [
+    `/api/likes/quota`
+    ] as const;
+    }
+
+
+export const getGetLikeQuotaQueryOptions = <TData = Awaited<ReturnType<typeof getLikeQuota>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLikeQuota>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLikeQuotaQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLikeQuota>>> = ({ signal }) => getLikeQuota({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLikeQuota>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLikeQuotaQueryResult = NonNullable<Awaited<ReturnType<typeof getLikeQuota>>>
+export type GetLikeQuotaQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current like & SuperLike allowances for the authenticated user
+ */
+
+export function useGetLikeQuota<TData = Awaited<ReturnType<typeof getLikeQuota>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLikeQuota>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLikeQuotaQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getBlockProfileUrl = (id: string,) => {
 

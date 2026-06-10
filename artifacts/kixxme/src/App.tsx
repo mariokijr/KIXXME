@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { NotificationsProvider } from "@/lib/notifications";
+import { MatchCelebrationProvider } from "@/lib/match-celebration";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import BottomNav from "@/components/layout/bottom-nav";
@@ -144,8 +145,10 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
             <NotificationsProvider>
-              <LocationSync />
-              <Router />
+              <MatchCelebrationProvider>
+                <LocationSync />
+                <Router />
+              </MatchCelebrationProvider>
             </NotificationsProvider>
           </AuthProvider>
         </WouterRouter>

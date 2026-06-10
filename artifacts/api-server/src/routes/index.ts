@@ -10,6 +10,7 @@ import supportRouter from "./support.js";
 import notificationsRouter from "./notifications.js";
 import liveRouter from "./live.js";
 import accountRouter from "./account.js";
+import likesRouter from "./likes.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(supportRouter);
 router.use(notificationsRouter);
 router.use(liveRouter);
 router.use(accountRouter);
+router.use(likesRouter);
 
 export default router;

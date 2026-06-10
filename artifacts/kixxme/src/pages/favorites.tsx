@@ -6,12 +6,12 @@ import {
   useListMyLikes,
   getListMyLikesQueryKey,
   useCreateOrGetConversation,
-  useLikeProfile,
   useUnlikeProfile,
   PublicProfile,
 } from "@workspace/api-client-react";
 import { UserCard, gradFor } from "./discover";
 import { useNotifications } from "@/lib/notifications";
+import { useLikeActions } from "@/lib/like-actions";
 
 export default function Favorites() {
   const [, setLocation] = useLocation();
@@ -30,7 +30,7 @@ export default function Favorites() {
   } = useListMyLikes({ query: { queryKey: getListMyLikesQueryKey() } });
 
   const createConv = useCreateOrGetConversation();
-  const likeMut = useLikeProfile();
+  const likeActions = useLikeActions();
   const unlikeMut = useUnlikeProfile();
 
   const handleMessage = (userId: string) => {
@@ -40,14 +40,19 @@ export default function Favorites() {
     );
   };
 
+  const invalidateLikes = () =>
+    qc.invalidateQueries({ queryKey: getListMyLikesQueryKey() });
+
   const handleToggleLike = (user: PublicProfile) => {
-    const onSettled = () =>
-      qc.invalidateQueries({ queryKey: getListMyLikesQueryKey() });
     if (user.liked_by_me) {
-      unlikeMut.mutate({ id: user.id }, { onSettled });
+      unlikeMut.mutate({ id: user.id }, { onSettled: invalidateLikes });
     } else {
-      likeMut.mutate({ id: user.id }, { onSettled });
+      likeActions.like(user, { onSettled: invalidateLikes });
     }
+  };
+
+  const handleSuperLike = (user: PublicProfile) => {
+    likeActions.superLike(user, { onSettled: invalidateLikes });
   };
 
   const isEmpty = !isLoading && (isError || likes.length === 0);
@@ -119,6 +124,8 @@ export default function Favorites() {
               grad={gradFor(user.id)}
               onMessage={() => handleMessage(user.id)}
               onToggleLike={() => handleToggleLike(user)}
+              onSuperLike={() => handleSuperLike(user)}
+              superLikePending={likeActions.isPending}
             />
           ))}
         </div>

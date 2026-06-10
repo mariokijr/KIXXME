@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react";
 import { useAuth } from "./auth";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 interface NotificationsValue {
   totalUnread: number;
@@ -60,7 +61,7 @@ function newestTs(items: Array<{ ts: string }>): number {
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const { session, user } = useAuth();
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // --- New messages -------------------------------------------------------
   const { data: conversations = [] } = useListConversations({
@@ -212,6 +213,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           Date.parse(l.created_at) > toastLikeRef.current &&
           !freshMatchUserIds.has(l.user_id)
       );
+      const freshSupers = freshLikes.filter((l) => l.is_super);
+      const freshRegular = freshLikes.filter((l) => !l.is_super);
 
       if (freshMatches.length > 0) {
         const m = freshMatches[0];
@@ -222,12 +225,35 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             : "Tienes un nuevo match",
         });
       }
-      if (freshLikes.length > 0) {
+      if (freshSupers.length > 0) {
+        const s = freshSupers[0];
+        if (s.revealed && s.username) {
+          toast({
+            title: "⭐ ¡SuperLike recibido!",
+            description: `A ${s.username} le encantas`,
+          });
+        } else {
+          // Free viewers learn a SuperLike arrived but not from whom.
+          toast({
+            title: "⭐ ¡Alguien te ha dado un SuperLike!",
+            description: "Hazte Premium para ver quién ha sido",
+            action: (
+              <ToastAction
+                altText="Ver planes Premium"
+                onClick={() => setLocation("/premium")}
+              >
+                Ver quién
+              </ToastAction>
+            ),
+          });
+        }
+      }
+      if (freshRegular.length > 0) {
         toast({
           title: "💜 A alguien le gustas",
           description:
-            freshLikes.length > 1
-              ? `Tienes ${freshLikes.length} nuevos me gusta`
+            freshRegular.length > 1
+              ? `Tienes ${freshRegular.length} nuevos me gusta`
               : "Tienes un nuevo me gusta",
         });
       }

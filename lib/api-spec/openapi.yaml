@@ -659,7 +659,7 @@ paths:
     post:
       operationId: likeProfile
       tags: [profiles]
-      summary: Like a profile
+      summary: Like or SuperLike a profile
       security:
         - bearerAuth: []
       parameters:
@@ -668,15 +668,27 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LikeRequest"
       responses:
         "201":
           description: Liked
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                $ref: "#/components/schemas/LikeResponse"
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Like or SuperLike limit reached
           content:
             application/json:
               schema:
@@ -700,6 +712,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
+
+  /likes/quota:
+    get:
+      operationId: getLikeQuota
+      tags: [likes]
+      summary: Current like & SuperLike allowances for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Quota
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeQuota"
 
   /profiles/{id}/block:
     post:
@@ -1402,7 +1429,55 @@ components:
           nullable: true
         created_at:
           type: string
-      required: [user_id, username, avatar_url, created_at]
+        is_super:
+          type: boolean
+        revealed:
+          type: boolean
+      required: [user_id, username, avatar_url, created_at, is_super, revealed]
+
+    QuotaState:
+      type: object
+      properties:
+        remaining:
+          type: integer
+        limit:
+          type: integer
+        unlimited:
+          type: boolean
+        rechargeAt:
+          type: string
+          nullable: true
+      required: [remaining, limit, unlimited, rechargeAt]
+
+    LikeQuota:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [free, plus, gold]
+        likes:
+          $ref: "#/components/schemas/QuotaState"
+        superlikes:
+          $ref: "#/components/schemas/QuotaState"
+      required: [plan, likes, superlikes]
+
+    LikeRequest:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [like, superlike]
+
+    LikeResponse:
+      type: object
+      properties:
+        matched:
+          type: boolean
+        is_super:
+          type: boolean
+        quota:
+          $ref: "#/components/schemas/LikeQuota"
+      required: [matched, is_super, quota]
 
     MatchNotification:
       type: object

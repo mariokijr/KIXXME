@@ -10,6 +10,7 @@ import {
   videoCallsTable,
   billingCustomersTable,
   supportReportsTable,
+  likeActionsTable,
   type AccountStatus,
   type AccountActionPayload,
 } from "@workspace/db";
@@ -385,6 +386,14 @@ export async function deleteAccount(userId: string, log: Logger): Promise<void> 
       or(
         eq(supportReportsTable.reporterId, userId),
         eq(supportReportsTable.targetUserId, userId),
+      ),
+    );
+  await db
+    .delete(likeActionsTable)
+    .where(
+      or(
+        eq(likeActionsTable.likerId, userId),
+        eq(likeActionsTable.likedId, userId),
       ),
     );
   await db

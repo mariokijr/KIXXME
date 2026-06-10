@@ -27,6 +27,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 - API server (Express): `artifacts/api-server/` — routes in `src/routes/` (`profiles.ts`, `conversations.ts`), helpers in `src/lib/` (`supabase.ts`, `auth.ts`, `blocks.ts`, `geo.ts`).
 - API contract (source of truth): `lib/api-spec/openapi.yaml` → Orval-generated hooks + Zod via `pnpm --filter @workspace/api-spec run codegen`.
 - Repo-owned DB schema (Drizzle): `lib/db/src/schema/` (e.g. `blocks.ts`, `billing-customers.ts`), exported from `lib/db/src/index.ts`.
+- Likes/SuperLikes/Matches: append-only Drizzle `like_actions` (`lib/db/src/schema/like-actions.ts`); quota/match/redaction logic in `artifacts/api-server/src/lib/likes.ts`; routes via POST `/profiles/:id/like` + GET `/likes/quota` and notifications redaction in `src/lib/notifications.ts`; frontend `src/lib/like-actions.tsx` (`useLikeActions` hook) + `src/lib/match-celebration.tsx` (overlay), SuperLike buttons in `pages/discover.tsx`/`favorites.tsx`/`public-profile.tsx`, received-SuperLike toasts in `src/lib/notifications.tsx`. See `.agents/memory/kixxme-likes.md`.
 - Billing/Stripe: `artifacts/api-server/src/lib/stripe.ts` (client) + `billing.ts` (checkout + webhook entitlement), route in `src/routes/stripe.ts`, raw webhook wired in `src/app.ts`; seed in `scripts/src/seed-stripe-products.ts`; frontend in `artifacts/kixxme/src/pages/premium.tsx`.
 - Support: repo-owned `support_reports` table (`lib/db/src/schema/support-reports.ts`); API `src/routes/support.ts` (POST `/support/reports`, saves + notifies); frontend `artifacts/kixxme/src/components/support-dialog.tsx` + `pages/support.tsx` (Soporte page), entry points in `profile.tsx` / `public-profile.tsx`.
 - Email: `artifacts/api-server/src/lib/email.ts` (neon/fire HTML templates + provider-agnostic `sendEmail`) over `gmail.ts` (Gmail-connector transport). See `.agents/memory/kixxme-transactional-email.md`.
@@ -46,7 +47,7 @@ A Spanish-language gay social/dating app: users build a profile, discover nearby
 
 - Email/password auth (Supabase) with profile creation (bio, photos, location).
 - Discover nearby users as a list and on a map, sorted/filtered by distance and online status.
-- Like profiles and view a favorites list.
+- Like and SuperLike profiles, and view a favorites list. Free users get 15 likes/6h + 1 SuperLike/24h (Plus/Gold higher/unlimited); hitting a limit shows a Spanish message + Premium upsell. A mutual like is a Match ("🎉 ¡Es un Match!") that opens chat. Free users are told when they receive a SuperLike but not by whom; Plus/Gold see the sender.
 - One-to-one realtime chat with text and image messages, read receipts, and unread counts.
 - Block / unblock users: blocking hides each user from the other across discovery, favorites, likes, and chat, and prevents new contact in either direction.
 - Premium subscriptions (Stripe Checkout): Plus and Gold tiers, monthly or yearly (EUR), with the active plan reflected on the premium page.

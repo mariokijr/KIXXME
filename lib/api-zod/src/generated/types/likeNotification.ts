@@ -11,4 +11,6 @@ export interface LikeNotification {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
+  is_super: boolean;
+  revealed: boolean;
 }

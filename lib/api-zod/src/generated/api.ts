@@ -441,10 +441,14 @@ export const ListProfilePhotosResponse = zod.array(ListProfilePhotosResponseItem
 
 
 /**
- * @summary Like a profile
+ * @summary Like or SuperLike a profile
  */
 export const LikeProfileParams = zod.object({
   "id": zod.coerce.string()
+})
+
+export const LikeProfileBody = zod.object({
+  "kind": zod.enum(['like', 'superlike']).optional()
 })
 
 
@@ -457,6 +461,26 @@ export const UnlikeProfileParams = zod.object({
 
 export const UnlikeProfileResponse = zod.object({
   "success": zod.boolean()
+})
+
+
+/**
+ * @summary Current like & SuperLike allowances for the authenticated user
+ */
+export const GetLikeQuotaResponse = zod.object({
+  "plan": zod.enum(['free', 'plus', 'gold']),
+  "likes": zod.object({
+  "remaining": zod.number(),
+  "limit": zod.number(),
+  "unlimited": zod.boolean(),
+  "rechargeAt": zod.string().nullable()
+}),
+  "superlikes": zod.object({
+  "remaining": zod.number(),
+  "limit": zod.number(),
+  "unlimited": zod.boolean(),
+  "rechargeAt": zod.string().nullable()
+})
 })
 
 
@@ -557,7 +581,9 @@ export const GetNotificationsSummaryResponse = zod.object({
   "user_id": zod.string(),
   "username": zod.string().nullable(),
   "avatar_url": zod.string().nullable(),
-  "created_at": zod.string()
+  "created_at": zod.string(),
+  "is_super": zod.boolean(),
+  "revealed": zod.boolean()
 })),
   "matches": zod.array(zod.object({
   "user_id": zod.string(),
