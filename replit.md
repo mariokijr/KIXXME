@@ -76,6 +76,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 ## Gotchas
 
 - The API server has **no hot reload** — restart the `artifacts/api-server: API Server` workflow after backend edits. The web app uses Vite HMR.
+- **Never call `signUp`/`signInWithPassword`/`refreshSession`/`setSession` on the shared service-role `supabase` client (or `supabaseAuth`)** — those attach the user's session to the singleton and demote every later `.from()` query to that user's RLS context process-wide (phantom "new row violates row-level security policy" errors + 0-row reads, only *after* a login). Use the dedicated `supabaseUserAuth` anon client. See `.agents/memory/kixxme-supabase-client-session-pollution.md`.
 - Two separate databases (see Architecture decisions). You cannot `CREATE`/`ALTER TABLE` on Supabase from this repo; new repo-owned tables go in the Replit Postgres (`DATABASE_URL`) via Drizzle.
 - After editing `lib/api-spec/openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen`. After editing a `lib/*` package, run `pnpm run typecheck:libs` before leaf typechecks.
 - Chat image uploads are base64 in the request body; very large images can hit the Express body size limit (`PayloadTooLargeError`).

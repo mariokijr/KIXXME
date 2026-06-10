@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { supabase } from "../lib/supabase.js";
+import { supabase, supabaseUserAuth } from "../lib/supabase.js";
 import { reactivateOnLogin } from "../lib/account.js";
 import {
   sendEmail,
@@ -59,7 +59,7 @@ router.post("/auth/signup", async (req, res) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabaseUserAuth.auth.signUp({
     email,
     password,
     options: {
@@ -108,7 +108,7 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseUserAuth.auth.signInWithPassword({
     email,
     password,
   });
@@ -167,7 +167,9 @@ router.post("/auth/refresh", async (req, res) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.refreshSession({ refresh_token });
+  const { data, error } = await supabaseUserAuth.auth.refreshSession({
+    refresh_token,
+  });
   if (error) {
     res.status(401).json({ error: error.message });
     return;
@@ -313,7 +315,7 @@ router.post("/auth/reset-password", async (req, res) => {
   const email = user.email;
   if (email) {
     const { data: signInData, error: signInErr } =
-      await supabase.auth.signInWithPassword({ email, password });
+      await supabaseUserAuth.auth.signInWithPassword({ email, password });
     if (!signInErr && signInData.session) {
       res.json({
         user: {
