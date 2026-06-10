@@ -689,6 +689,99 @@ export interface AdminSummary {
   openFlags: number;
   suspended: number;
   banned: number;
+  pendingVerifications: number;
+}
+
+export type MyVerificationStatusStatus = typeof MyVerificationStatusStatus[keyof typeof MyVerificationStatusStatus];
+
+
+export const MyVerificationStatusStatus = {
+  none: 'none',
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * The current user's verification standing. `is_verified` is the Supabase source of truth for the badge; `status` derives the request-flow state.
+ */
+export interface MyVerificationStatus {
+  status: MyVerificationStatusStatus;
+  is_verified: boolean;
+  requested_at: string | null;
+  reviewed_at: string | null;
+  note: string | null;
+}
+
+export type VisitorProfilePlan = typeof VisitorProfilePlan[keyof typeof VisitorProfilePlan];
+
+
+export const VisitorProfilePlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export interface VisitorProfile {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  age: number | null;
+  city: string | null;
+  is_verified: boolean;
+  plan: VisitorProfilePlan;
+  visited_at: string;
+}
+
+/**
+ * "Who viewed my profile". Everyone sees the deduped visitor `count`; `visitors` identities are populated only for Plus/Gold (`can_see_visitors`), empty otherwise.
+ */
+export interface MyVisitorsResponse {
+  count: number;
+  can_see_visitors: boolean;
+  visitors: VisitorProfile[];
+}
+
+export type AdminVerificationItemPlan = typeof AdminVerificationItemPlan[keyof typeof AdminVerificationItemPlan];
+
+
+export const AdminVerificationItemPlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export interface AdminVerificationItem {
+  id: string;
+  userId: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  age?: number | null;
+  city?: string | null;
+  bio?: string | null;
+  plan: AdminVerificationItemPlan;
+  is_verified: boolean;
+  photos: ProfilePhoto[];
+  createdAt: string;
+}
+
+export interface AdminVerificationList {
+  verifications: AdminVerificationItem[];
+  total: number;
+}
+
+export type ReviewVerificationRequestDecision = typeof ReviewVerificationRequestDecision[keyof typeof ReviewVerificationRequestDecision];
+
+
+export const ReviewVerificationRequestDecision = {
+  approve: 'approve',
+  reject: 'reject',
+} as const;
+
+export interface ReviewVerificationRequest {
+  decision: ReviewVerificationRequestDecision;
+  /** @maxLength 2000 */
+  note?: string;
 }
 
 export type Logout200 = {

@@ -16,8 +16,12 @@ import {
   useBanUser,
   useLiftUserModeration,
   useAdminRemovePhoto,
+  useListAdminVerifications,
+  getListAdminVerificationsQueryKey,
+  useReviewAdminVerification,
   type AdminReport,
   type AdminFlag,
+  type AdminVerificationItem,
   type Message,
   type ProfilePhoto,
   type PublicProfile,
@@ -46,6 +50,7 @@ import {
   Search,
   ShieldCheck,
   ShieldOff,
+  BadgeCheck,
   User as UserIcon,
 } from "lucide-react";
 
@@ -97,7 +102,9 @@ function errMsg(err: any, fallback: string): string {
 export default function AdminPage() {
   const { session } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<"reports" | "flags">("reports");
+  const [tab, setTab] = useState<"reports" | "flags" | "verifications">(
+    "reports",
+  );
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   const { data: summary } = useGetAdminSummary({
@@ -152,12 +159,18 @@ export default function AdminPage() {
           value={summary?.banned ?? 0}
           tone="red"
         />
+        <SummaryCard
+          icon={<BadgeCheck className="w-4 h-4" />}
+          label="Verificaciones"
+          value={summary?.pendingVerifications ?? 0}
+          tone="purple"
+        />
       </div>
 
       <div className="px-4 pt-5">
         <div className="flex gap-2 p-1 rounded-xl border border-border/40"
           style={{ background: "rgba(255,255,255,0.03)" }}>
-          {(["reports", "flags"] as const).map((t) => (
+          {(["reports", "flags", "verifications"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -173,7 +186,11 @@ export default function AdminPage() {
               }
               data-testid={`tab-admin-${t}`}
             >
-              {t === "reports" ? "Reportes" : "Alertas"}
+              {t === "reports"
+                ? "Reportes"
+                : t === "flags"
+                  ? "Alertas"
+                  : "Verificaciones"}
             </button>
           ))}
         </div>
@@ -181,8 +198,10 @@ export default function AdminPage() {
 
       {tab === "reports" ? (
         <ReportsTab onSelect={setSelectedReportId} />
-      ) : (
+      ) : tab === "flags" ? (
         <FlagsTab />
+      ) : (
+        <VerificationsTab />
       )}
 
       <ReportDetailDialog
@@ -1140,6 +1159,193 @@ function FlagRow({
           </ActionButton>
         </div>
       )}
+    </div>
+  );
+}
+
+function VerificationsTab() {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useListAdminVerifications({
+    query: {
+      enabled: !!session,
+      queryKey: getListAdminVerificationsQueryKey(),
+    },
+  });
+  const review = useReviewAdminVerification();
+
+  const items = data?.verifications ?? [];
+
+  const handleReview = (
+    id: string,
+    decision: "approve" | "reject",
+    note?: string,
+  ) => {
+    review.mutate(
+      { id, data: { decision, ...(note ? { note } : {}) } },
+      {
+        onSuccess: () => {
+          toast({
+            title:
+              decision === "approve"
+                ? "Perfil verificado"
+                : "Solicitud rechazada",
+          });
+          qc.invalidateQueries({
+            queryKey: getListAdminVerificationsQueryKey(),
+          });
+          qc.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+        },
+        onError: (err: any) =>
+          toast({
+            title: "No se pudo actualizar",
+            description: errMsg(err, "Inténtalo de nuevo."),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  return (
+    <div className="px-4 pt-4 space-y-4">
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={<BadgeCheck className="w-7 h-7" />}
+          title="Sin solicitudes"
+          subtitle="No hay solicitudes de verificación pendientes."
+        />
+      ) : (
+        <div className="space-y-3">
+          {items.map((v) => (
+            <VerificationRow
+              key={v.id}
+              item={v}
+              busy={review.isPending}
+              onReview={(decision, note) => handleReview(v.id, decision, note)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VerificationRow({
+  item,
+  busy,
+  onReview,
+}: {
+  item: AdminVerificationItem;
+  busy: boolean;
+  onReview: (decision: "approve" | "reject", note?: string) => void;
+}) {
+  const [note, setNote] = useState("");
+  const photos = item.photos ?? [];
+  const meta = [
+    item.age != null ? `${item.age} años` : null,
+    item.city ?? null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div
+      className="rounded-2xl border border-border/40 p-4"
+      style={{ background: "rgba(13,11,26,0.7)" }}
+      data-testid={`verification-row-${item.id}`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-sans border border-primary/40 bg-primary/10 text-primary uppercase tracking-wider">
+          {item.plan}
+        </span>
+        <span className="font-sans text-[11px] text-muted-foreground">
+          {fmtDate(item.createdAt)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl overflow-hidden border border-border/40 bg-card flex items-center justify-center flex-shrink-0">
+          {item.avatar_url ? (
+            <img
+              src={item.avatar_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <UserIcon className="w-5 h-5 text-muted-foreground" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-sans text-sm text-foreground truncate">
+              {item.username ?? item.userId}
+            </p>
+            {item.is_verified && (
+              <BadgeCheck className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+            )}
+          </div>
+          {meta && (
+            <p className="font-sans text-xs text-muted-foreground truncate">
+              {meta}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {item.bio && (
+        <p className="font-sans text-xs text-muted-foreground mt-2 line-clamp-3">
+          {item.bio}
+        </p>
+      )}
+
+      {photos.length > 0 && (
+        <div className="grid grid-cols-4 gap-2 mt-3">
+          {photos.map((p) => (
+            <div
+              key={p.id}
+              className="relative rounded-lg overflow-hidden border border-border/30"
+              style={{ aspectRatio: "1" }}
+            >
+              <img src={p.url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Nota (opcional, visible para el usuario si rechazas)…"
+        className="mt-3 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[60px] resize-none bg-input/40 text-sm"
+        data-testid={`input-verification-note-${item.id}`}
+      />
+
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <ActionButton
+          onClick={() => onReview("approve", note.trim() || undefined)}
+          disabled={busy}
+          tone="green"
+          icon={<ShieldCheck className="w-4 h-4" />}
+          testId={`button-verification-approve-${item.id}`}
+        >
+          Aprobar
+        </ActionButton>
+        <ActionButton
+          onClick={() => onReview("reject", note.trim() || undefined)}
+          disabled={busy}
+          tone="red"
+          icon={<ShieldOff className="w-4 h-4" />}
+          testId={`button-verification-reject-${item.id}`}
+        >
+          Rechazar
+        </ActionButton>
+      </div>
     </div>
   );
 }

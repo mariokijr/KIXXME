@@ -30,6 +30,7 @@ const PLUS_FEATURES = [
   { icon: Heart, text: "Likes ilimitados" },
   { icon: Star, text: "5 SuperLikes al día" },
   { icon: Eye, text: "Descubre quién te da SuperLike" },
+  { icon: Eye, text: "Quién visitó tu perfil" },
   { icon: MessageCircle, text: "Chats ilimitados" },
   { icon: SlidersHorizontal, text: "Filtros avanzados" },
   { icon: Zap, text: "1 boost semanal" },

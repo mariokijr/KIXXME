@@ -1735,6 +1735,139 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /me/verification:
+    get:
+      operationId: getMyVerification
+      tags: [profiles]
+      summary: Current user's profile-verification status
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyVerificationStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: requestVerification
+      tags: [profiles]
+      summary: Request profile verification (manual admin review)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Updated verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyVerificationStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already verified or a request is already pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/visitors:
+    get:
+      operationId: getMyVisitors
+      tags: [profiles]
+      summary: Who viewed my profile (identities for Plus/Gold, count for free)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Visitors summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyVisitorsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/verifications:
+    get:
+      operationId: listAdminVerifications
+      tags: [admin]
+      summary: Pending verification requests (Gold-priority ordered)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Pending verification requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVerificationList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/verifications/{id}/review:
+    post:
+      operationId: reviewAdminVerification
+      tags: [admin]
+      summary: Approve or reject a verification request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewVerificationRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Request is not pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2623,4 +2756,128 @@ components:
           type: integer
         banned:
           type: integer
-      required: [openReports, openFlags, suspended, banned]
+        pendingVerifications:
+          type: integer
+      required: [openReports, openFlags, suspended, banned, pendingVerifications]
+
+    MyVerificationStatus:
+      type: object
+      description: >-
+        The current user's verification standing. `is_verified` is the Supabase
+        source of truth for the badge; `status` derives the request-flow state.
+      properties:
+        status:
+          type: string
+          enum: [none, pending, approved, rejected]
+        is_verified:
+          type: boolean
+        requested_at:
+          type: string
+          nullable: true
+        reviewed_at:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+      required: [status, is_verified, requested_at, reviewed_at, note]
+
+    VisitorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        is_verified:
+          type: boolean
+        plan:
+          type: string
+          enum: [free, plus, gold]
+        visited_at:
+          type: string
+      required: [id, username, avatar_url, age, city, is_verified, plan, visited_at]
+
+    MyVisitorsResponse:
+      type: object
+      description: >-
+        "Who viewed my profile". Everyone sees the deduped visitor `count`;
+        `visitors` identities are populated only for Plus/Gold
+        (`can_see_visitors`), empty otherwise.
+      properties:
+        count:
+          type: integer
+        can_see_visitors:
+          type: boolean
+        visitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisitorProfile"
+      required: [count, can_see_visitors, visitors]
+
+    AdminVerificationItem:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        plan:
+          type: string
+          enum: [free, plus, gold]
+        is_verified:
+          type: boolean
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfilePhoto"
+        createdAt:
+          type: string
+      required: [id, userId, plan, is_verified, photos, createdAt]
+
+    AdminVerificationList:
+      type: object
+      properties:
+        verifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminVerificationItem"
+        total:
+          type: integer
+      required: [verifications, total]
+
+    ReviewVerificationRequest:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approve, reject]
+        note:
+          type: string
+          maxLength: 2000
+      required: [decision]

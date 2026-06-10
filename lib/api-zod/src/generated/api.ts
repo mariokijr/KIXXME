@@ -852,7 +852,8 @@ export const GetAdminSummaryResponse = zod.object({
   "openReports": zod.number(),
   "openFlags": zod.number(),
   "suspended": zod.number(),
-  "banned": zod.number()
+  "banned": zod.number(),
+  "pendingVerifications": zod.number()
 })
 
 
@@ -1109,6 +1110,99 @@ export const AdminRemovePhotoParams = zod.object({
 })
 
 export const AdminRemovePhotoResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Current user's profile-verification status
+ */
+export const GetMyVerificationResponse = zod.object({
+  "status": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "is_verified": zod.boolean(),
+  "requested_at": zod.string().nullable(),
+  "reviewed_at": zod.string().nullable(),
+  "note": zod.string().nullable()
+}).describe('The current user\'s verification standing. `is_verified` is the Supabase source of truth for the badge; `status` derives the request-flow state.')
+
+
+/**
+ * @summary Request profile verification (manual admin review)
+ */
+export const RequestVerificationResponse = zod.object({
+  "status": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "is_verified": zod.boolean(),
+  "requested_at": zod.string().nullable(),
+  "reviewed_at": zod.string().nullable(),
+  "note": zod.string().nullable()
+}).describe('The current user\'s verification standing. `is_verified` is the Supabase source of truth for the badge; `status` derives the request-flow state.')
+
+
+/**
+ * @summary Who viewed my profile (identities for Plus/Gold, count for free)
+ */
+export const GetMyVisitorsResponse = zod.object({
+  "count": zod.number(),
+  "can_see_visitors": zod.boolean(),
+  "visitors": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullable(),
+  "avatar_url": zod.string().nullable(),
+  "age": zod.number().nullable(),
+  "city": zod.string().nullable(),
+  "is_verified": zod.boolean(),
+  "plan": zod.enum(['free', 'plus', 'gold']),
+  "visited_at": zod.string()
+}))
+}).describe('\"Who viewed my profile\". Everyone sees the deduped visitor `count`; `visitors` identities are populated only for Plus\/Gold (`can_see_visitors`), empty otherwise.')
+
+
+/**
+ * @summary Pending verification requests (Gold-priority ordered)
+ */
+export const ListAdminVerificationsResponse = zod.object({
+  "verifications": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "username": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "bio": zod.string().nullish(),
+  "plan": zod.enum(['free', 'plus', 'gold']),
+  "is_verified": zod.boolean(),
+  "photos": zod.array(zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})),
+  "createdAt": zod.string()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Approve or reject a verification request
+ */
+export const ReviewAdminVerificationParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const reviewAdminVerificationBodyNoteMax = 2000;
+
+
+
+export const ReviewAdminVerificationBody = zod.object({
+  "decision": zod.enum(['approve', 'reject']),
+  "note": zod.string().max(reviewAdminVerificationBodyNoteMax).optional()
+})
+
+export const ReviewAdminVerificationResponse = zod.object({
   "success": zod.boolean()
 })
 

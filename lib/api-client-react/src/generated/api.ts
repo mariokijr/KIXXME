@@ -29,6 +29,7 @@ import type {
   AdminReportDetail,
   AdminReportList,
   AdminSummary,
+  AdminVerificationList,
   AuthResponse,
   AvatarUploadRequest,
   BanUserRequest,
@@ -58,6 +59,8 @@ import type {
   Logout200,
   Message,
   MyModerationStatus,
+  MyVerificationStatus,
+  MyVisitorsResponse,
   NotificationsSummary,
   Profile,
   ProfilePhoto,
@@ -67,6 +70,7 @@ import type {
   ReorderPhotosRequest,
   ResolveReportRequest,
   ReviewFlagRequest,
+  ReviewVerificationRequest,
   SendMessageRequest,
   SetPhotoAsAvatar200,
   SignUpRequest,
@@ -4347,5 +4351,378 @@ export const useAdminRemovePhoto = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminRemovePhotoMutationOptions(options));
+    }
+
+export const getGetMyVerificationUrl = () => {
+
+
+
+
+  return `/api/me/verification`
+}
+
+/**
+ * @summary Current user's profile-verification status
+ */
+export const getMyVerification = async ( options?: RequestInit): Promise<MyVerificationStatus> => {
+
+  return customFetch<MyVerificationStatus>(getGetMyVerificationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyVerificationQueryKey = () => {
+    return [
+    `/api/me/verification`
+    ] as const;
+    }
+
+
+export const getGetMyVerificationQueryOptions = <TData = Awaited<ReturnType<typeof getMyVerification>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyVerificationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyVerification>>> = ({ signal }) => getMyVerification({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyVerification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyVerificationQueryResult = NonNullable<Awaited<ReturnType<typeof getMyVerification>>>
+export type GetMyVerificationQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current user's profile-verification status
+ */
+
+export function useGetMyVerification<TData = Awaited<ReturnType<typeof getMyVerification>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyVerificationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRequestVerificationUrl = () => {
+
+
+
+
+  return `/api/me/verification`
+}
+
+/**
+ * @summary Request profile verification (manual admin review)
+ */
+export const requestVerification = async ( options?: RequestInit): Promise<MyVerificationStatus> => {
+
+  return customFetch<MyVerificationStatus>(getRequestVerificationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRequestVerificationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext> => {
+
+const mutationKey = ['requestVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestVerification>>, void> = () => {
+
+
+          return  requestVerification(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestVerification>>>
+
+    export type RequestVerificationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Request profile verification (manual admin review)
+ */
+export const useRequestVerification = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestVerification>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRequestVerificationMutationOptions(options));
+    }
+
+export const getGetMyVisitorsUrl = () => {
+
+
+
+
+  return `/api/me/visitors`
+}
+
+/**
+ * @summary Who viewed my profile (identities for Plus/Gold, count for free)
+ */
+export const getMyVisitors = async ( options?: RequestInit): Promise<MyVisitorsResponse> => {
+
+  return customFetch<MyVisitorsResponse>(getGetMyVisitorsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyVisitorsQueryKey = () => {
+    return [
+    `/api/me/visitors`
+    ] as const;
+    }
+
+
+export const getGetMyVisitorsQueryOptions = <TData = Awaited<ReturnType<typeof getMyVisitors>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyVisitors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyVisitorsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyVisitors>>> = ({ signal }) => getMyVisitors({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyVisitors>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyVisitorsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyVisitors>>>
+export type GetMyVisitorsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Who viewed my profile (identities for Plus/Gold, count for free)
+ */
+
+export function useGetMyVisitors<TData = Awaited<ReturnType<typeof getMyVisitors>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyVisitors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyVisitorsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListAdminVerificationsUrl = () => {
+
+
+
+
+  return `/api/admin/verifications`
+}
+
+/**
+ * @summary Pending verification requests (Gold-priority ordered)
+ */
+export const listAdminVerifications = async ( options?: RequestInit): Promise<AdminVerificationList> => {
+
+  return customFetch<AdminVerificationList>(getListAdminVerificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminVerificationsQueryKey = () => {
+    return [
+    `/api/admin/verifications`
+    ] as const;
+    }
+
+
+export const getListAdminVerificationsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVerifications>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVerificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVerifications>>> = ({ signal }) => listAdminVerifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminVerifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminVerificationsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminVerifications>>>
+export type ListAdminVerificationsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Pending verification requests (Gold-priority ordered)
+ */
+
+export function useListAdminVerifications<TData = Awaited<ReturnType<typeof listAdminVerifications>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminVerificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getReviewAdminVerificationUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/verifications/${id}/review`
+}
+
+/**
+ * @summary Approve or reject a verification request
+ */
+export const reviewAdminVerification = async (id: string,
+    reviewVerificationRequest: ReviewVerificationRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getReviewAdminVerificationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewVerificationRequest,)
+  }
+);}
+
+
+
+
+export const getReviewAdminVerificationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminVerification>>, TError,{id: string;data: BodyType<ReviewVerificationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAdminVerification>>, TError,{id: string;data: BodyType<ReviewVerificationRequest>}, TContext> => {
+
+const mutationKey = ['reviewAdminVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAdminVerification>>, {id: string;data: BodyType<ReviewVerificationRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewAdminVerification(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAdminVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAdminVerification>>>
+    export type ReviewAdminVerificationMutationBody = BodyType<ReviewVerificationRequest>
+    export type ReviewAdminVerificationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Approve or reject a verification request
+ */
+export const useReviewAdminVerification = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminVerification>>, TError,{id: string;data: BodyType<ReviewVerificationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAdminVerification>>,
+        TError,
+        {id: string;data: BodyType<ReviewVerificationRequest>},
+        TContext
+      > => {
+      return useMutation(getReviewAdminVerificationMutationOptions(options));
     }
 

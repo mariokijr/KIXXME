@@ -23,7 +23,13 @@ import {
   ReviewAdminFlagBody,
   SuspendUserBody,
   BanUserBody,
+  ReviewAdminVerificationBody,
 } from "@workspace/api-zod";
+import {
+  countPendingVerifications,
+  listPendingVerificationRows,
+  reviewVerification,
+} from "../lib/verification.js";
 
 const router = Router();
 
@@ -116,44 +122,155 @@ router.get("/admin/summary", async (req, res) => {
   if (!auth) return;
 
   const now = new Date();
-  const [openReports, openFlags, suspended, banned] = await Promise.all([
-    db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(supportReportsTable)
-      .where(
-        and(
-          isNotNull(supportReportsTable.reportType),
-          eq(supportReportsTable.status, "open"),
-        ),
-      ),
-    db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(accountFlagsTable)
-      .where(eq(accountFlagsTable.status, "open")),
-    db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(accountModerationTable)
-      .where(
-        and(
-          eq(accountModerationTable.state, "suspended"),
-          or(
-            isNull(accountModerationTable.suspendedUntil),
-            gt(accountModerationTable.suspendedUntil, now),
+  const [openReports, openFlags, suspended, banned, pendingVerifications] =
+    await Promise.all([
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(supportReportsTable)
+        .where(
+          and(
+            isNotNull(supportReportsTable.reportType),
+            eq(supportReportsTable.status, "open"),
           ),
         ),
-      ),
-    db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(accountModerationTable)
-      .where(eq(accountModerationTable.state, "banned")),
-  ]);
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(accountFlagsTable)
+        .where(eq(accountFlagsTable.status, "open")),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(accountModerationTable)
+        .where(
+          and(
+            eq(accountModerationTable.state, "suspended"),
+            or(
+              isNull(accountModerationTable.suspendedUntil),
+              gt(accountModerationTable.suspendedUntil, now),
+            ),
+          ),
+        ),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(accountModerationTable)
+        .where(eq(accountModerationTable.state, "banned")),
+      countPendingVerifications(),
+    ]);
 
   res.json({
     openReports: openReports[0]?.c ?? 0,
     openFlags: openFlags[0]?.c ?? 0,
     suspended: suspended[0]?.c ?? 0,
     banned: banned[0]?.c ?? 0,
+    pendingVerifications,
   });
+});
+
+// --- Verification queue ----------------------------------------------------
+
+const PLAN_RANK: Record<"free" | "plus" | "gold", number> = {
+  gold: 2,
+  plus: 1,
+  free: 0,
+};
+
+interface VerificationProfileRow {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  age: number | null;
+  city: string | null;
+  bio: string | null;
+  is_verified: boolean | null;
+  plan: string | null;
+}
+
+router.get("/admin/verifications", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const rows = await listPendingVerificationRows();
+  const ids = rows.map((r) => r.userId);
+
+  const profileMap = new Map<string, VerificationProfileRow>();
+  const photosMap = new Map<string, unknown[]>();
+  if (ids.length > 0) {
+    const [{ data: profiles }, { data: photos }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, username, avatar_url, age, city, bio, is_verified, plan")
+        .in("id", ids),
+      supabase
+        .from("profile_photos")
+        .select("*")
+        .in("user_id", ids)
+        .order("position", { ascending: true }),
+    ]);
+    for (const p of (profiles ?? []) as VerificationProfileRow[]) {
+      profileMap.set(p.id, p);
+    }
+    for (const ph of photos ?? []) {
+      const userId = (ph as { user_id: string }).user_id;
+      const list = photosMap.get(userId) ?? [];
+      list.push(ph);
+      photosMap.set(userId, list);
+    }
+  }
+
+  const verifications = rows.map((r) => {
+    const p = profileMap.get(r.userId);
+    return {
+      id: r.id,
+      userId: r.userId,
+      username: p?.username ?? null,
+      avatar_url: p?.avatar_url ?? null,
+      age: p?.age ?? null,
+      city: p?.city ?? null,
+      bio: p?.bio ?? null,
+      plan: normalizePlan(p?.plan ?? null),
+      is_verified: Boolean(p?.is_verified),
+      photos: photosMap.get(r.userId) ?? [],
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+
+  // Paid tiers first, then oldest pending requests first (longest waiting).
+  verifications.sort((a, b) => {
+    const rank = PLAN_RANK[b.plan] - PLAN_RANK[a.plan];
+    if (rank !== 0) return rank;
+    return (
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  });
+
+  res.json({ verifications, total: verifications.length });
+});
+
+router.post("/admin/verifications/:id/review", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const parsed = ReviewAdminVerificationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos no válidos" });
+    return;
+  }
+  const { decision, note } = parsed.data;
+
+  const result = await reviewVerification(
+    req.params.id,
+    decision,
+    auth.userId,
+    note ?? null,
+  );
+  if (result === "not_found") {
+    res.status(404).json({ error: "Solicitud no encontrada" });
+    return;
+  }
+  if (result === "not_pending") {
+    res.status(409).json({ error: "La solicitud ya fue revisada" });
+    return;
+  }
+  res.json({ success: true });
 });
 
 // --- Reports list ----------------------------------------------------------

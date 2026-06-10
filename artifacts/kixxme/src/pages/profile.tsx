@@ -42,6 +42,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { SupportDialog } from "@/components/support-dialog";
+import { VerificationCard } from "@/components/verification-card";
+import { VisitorsCard } from "@/components/visitors-card";
 
 export default function Profile() {
   const { session } = useAuth();
@@ -412,6 +414,13 @@ export default function Profile() {
           {updateProfile.isPending ? "Guardando..." : isOnboarding ? "Completar perfil →" : "Guardar cambios"}
         </Button>
       </div>
+
+      {!isOnboarding && (
+        <>
+          <VerificationCard />
+          <VisitorsCard />
+        </>
+      )}
 
       <div className="mx-4 mb-6 border border-border/40 rounded-2xl p-5 space-y-3"
         style={{ background: "rgba(255,255,255,0.02)" }}>

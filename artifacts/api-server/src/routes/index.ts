@@ -12,6 +12,7 @@ import liveRouter from "./live.js";
 import accountRouter from "./account.js";
 import likesRouter from "./likes.js";
 import reportsRouter from "./reports.js";
+import verificationRouter from "./verification.js";
 import adminRouter from "./admin.js";
 
 const router: IRouter = Router();
@@ -29,6 +30,7 @@ router.use(liveRouter);
 router.use(accountRouter);
 router.use(likesRouter);
 router.use(reportsRouter);
+router.use(verificationRouter);
 router.use(adminRouter);
 
 export default router;

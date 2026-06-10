@@ -8,3 +8,5 @@ export * from "./account-action-codes";
 export * from "./account-moderation";
 export * from "./account-flags";
 export * from "./like-actions";
+export * from "./verification-requests";
+export * from "./profile-visits";

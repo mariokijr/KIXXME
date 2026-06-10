@@ -17,6 +17,12 @@ import {
 import { isUnavailable } from "../lib/moderation.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike } from "../lib/likes.js";
+import { getPlan } from "../lib/entitlement.js";
+import {
+  recordProfileVisit,
+  countVisitors,
+  listVisitors,
+} from "../lib/visits.js";
 import { LikeProfileBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -576,7 +582,71 @@ router.get("/profiles/:id", async (req, res) => {
     blockedSet = (await getBlockRelations(viewer.userId)).iBlocked;
   }
 
+  // Record the visit for "who viewed my profile". Fire-and-forget, throttled,
+  // and skipped when either user has blocked the other.
+  if (viewer && viewer.userId !== id) {
+    void (async () => {
+      if (!(await isBlockedBetween(viewer.userId, id))) {
+        await recordProfileVisit(viewer.userId, id);
+      }
+    })();
+  }
+
   res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet));
+});
+
+/**
+ * "Who viewed my profile". Everyone gets the deduped `count` (excluding blocked
+ * / deactivated / moderated viewers); visitor identities are revealed only to
+ * Plus and Gold (`can_see_visitors`). Free users get an empty list + the upsell.
+ */
+router.get("/me/visitors", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const [{ hidden }, plan] = await Promise.all([
+    getVisibilityContext(auth.userId),
+    getPlan(auth.userId),
+  ]);
+  const canSee = plan !== "free";
+  const count = await countVisitors(auth.userId, hidden);
+
+  if (!canSee) {
+    res.json({ count, can_see_visitors: false, visitors: [] });
+    return;
+  }
+
+  const rows = await listVisitors(auth.userId, hidden, 50);
+  const ids = rows.map((r) => r.viewerId);
+  const profileMap = new Map<string, ProfileRow>();
+  if (ids.length > 0) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url, age, city, is_verified, plan")
+      .in("id", ids);
+    for (const p of (data ?? []) as ProfileRow[]) {
+      profileMap.set(p.id, p);
+    }
+  }
+
+  const visitors = rows
+    .map((r) => {
+      const p = profileMap.get(r.viewerId);
+      if (!p) return null;
+      return {
+        id: p.id,
+        username: p.username ?? null,
+        avatar_url: p.avatar_url ?? null,
+        age: p.age ?? null,
+        city: p.city ?? null,
+        is_verified: Boolean(p.is_verified),
+        plan: normalizePlan(p.plan),
+        visited_at: r.lastVisitedAt.toISOString(),
+      };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+
+  res.json({ count, can_see_visitors: true, visitors });
 });
 
 router.post("/profiles/me/avatar", async (req, res) => {
