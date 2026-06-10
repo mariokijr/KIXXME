@@ -34,6 +34,7 @@ import {
   isValidRole,
   isValidLookingFor,
 } from "../lib/profile-details.js";
+import { getPhotoCountsForUsers } from "../lib/photos.js";
 import { LikeProfileBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -71,6 +72,20 @@ function normalizePlan(plan: string | null): PublicPlan {
 
 /** Priority-visibility ranking for the world map (gold first, then plus). */
 const PLAN_RANK: Record<PublicPlan, number> = { gold: 2, plus: 1, free: 0 };
+
+/**
+ * "Completitud" score used as a Descubrir priority signal. Every profile that
+ * reaches this point already passes calidad mínima, so this rewards going
+ * *beyond* the minimum: a fuller photo gallery and a richer bio. Higher = more
+ * complete. Used to surface more-complete profiles first (under verified).
+ */
+function completenessScore(bio: string | null, photoCount: number): number {
+  let score = Math.min(photoCount, 4); // 0..4 gallery richness
+  const bioLen = bio?.trim().length ?? 0;
+  if (bioLen >= 80) score += 2;
+  else if (bioLen >= 30) score += 1;
+  return score;
+}
 
 const MAP_SCOPES = [
   "nearby",
@@ -209,6 +224,18 @@ router.get("/profiles", async (req, res) => {
     );
   });
 
+  // Completitud score per surviving candidate (gallery size + bio richness),
+  // used as a Descubrir priority below the verified badge. One batched photo
+  // count over the final candidate set — no N+1.
+  const photoCounts = await getPhotoCountsForUsers(rows.map((r) => r.id));
+  const completeness = new Map<string, number>();
+  for (const row of rows) {
+    completeness.set(
+      row.id,
+      completenessScore(row.bio, photoCounts.get(row.id) ?? 0),
+    );
+  }
+
   const profiles = rows.map((row) =>
     toPublic(row, me ?? null, likedSet, iBlocked),
   );
@@ -224,9 +251,17 @@ router.get("/profiles", async (req, res) => {
   }
   // recent: rows already arrive ordered by last_active_at desc from the DB.
 
-  // Gold priority visibility: on the world map (scope present), surface Gold —
-  // then Plus — profiles first. Array.sort is stable, so the sort chosen above
-  // is preserved as the secondary order.
+  // Descubrir priority layering. Array.sort is stable, so each pass preserves
+  // the prior order as its tie-breaker; the LAST sort applied is the strongest
+  // key. Order of strength (weakest → strongest): base sort (above) < completitud
+  // < verified < plan/Gold (map only). Net result on the grid: verified profiles
+  // first, then more-complete profiles, then the chosen base sort; on the map the
+  // paid Gold/Plus priority still wins overall, with verified/completitud as
+  // secondaries.
+  profiles.sort(
+    (a, b) => (completeness.get(b.id) ?? 0) - (completeness.get(a.id) ?? 0),
+  );
+  profiles.sort((a, b) => Number(b.is_verified) - Number(a.is_verified));
   if (scope) {
     profiles.sort((a, b) => PLAN_RANK[b.plan] - PLAN_RANK[a.plan]);
   }

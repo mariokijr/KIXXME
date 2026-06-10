@@ -20,12 +20,23 @@ over-approximation; the JS refine tightens it.
 lat/lng; handlers must short-circuit to `[]` (list) / `{registered:0, online:0}` (stats),
 never 500. Country/worldwide scopes do not need viewer coords.
 
-## Gold-priority sort is scope-only and stability-dependent
-Gold users are floated to the top of `GET /profiles` results **only when a `scope` is
-present**, applied as a secondary pass after the distance/online sort and relying on
-`Array.sort` stability to preserve the chosen order within each tier.
-**Why:** the grid "Descubrir" page calls `useListProfiles()` *without* scope, so its existing
-ordering must stay untouched; only the map opts into priority visibility.
+## Descubrir priority is layered stable-sort passes (weakest→strongest)
+`GET /profiles` builds final order by applying `Array.sort` passes weakest→strongest, so the
+**last pass wins**: base sort (recent/distance/online) < `completitud` < `is_verified` <
+plan/Gold. Net: grid = verified-first → more-complete → base; map = Gold/Plus on top with
+verified/completitud as secondaries.
+**Why:** relies on `Array.sort` stability (ES2019+, Node 24 guaranteed) to preserve the prior
+key within each tier. Verified-as-primary mirrors the existing Gold-priority pattern.
+**How to apply:** to add a new priority key, insert a stable pass at the right strength rung
+(earlier = weaker). The plan/Gold pass is **scope-only** (map); the grid (no scope) intentionally
+does NOT float paid plans — it floats verified then completitud instead.
+- **Gold/plan priority is scope-only** (the map opts in via `scope`); applied as the strongest pass.
+- **`completitud`** = 0–6: `min(photoCount,4)` (batched `getPhotoCountsForUsers`, no N+1) + bio tiers
+  (≥80→+2, ≥30→+1). Every candidate already passes calidad mínima, so it rewards exceeding the floor.
+- **Sample-local, not global:** priority orders only the most-recent-active ≤200 candidate window, so a
+  long-inactive verified profile can fall out of the sample entirely (same caveat as scope filtering).
+- NOTE (was stale): the grid Descubrir ordering is **no longer "untouched"** — verified+completitud
+  priority was added to it in Fase 1 Block 3.
 
 ## Centralized visibility (hidden ids)
 `artifacts/api-server/src/lib/visibility.ts` is the single source for "who must this viewer

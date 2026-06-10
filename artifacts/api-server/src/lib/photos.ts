@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { logger } from "./logger.js";
 
 /**
  * Shared photo-removal core used by BOTH the self-service photo delete
@@ -15,6 +16,32 @@ export interface RemovablePhoto {
   user_id: string;
   storage_path: string;
   is_avatar: boolean;
+}
+
+/**
+ * Batch photo-count lookup for many users at once (e.g. the Descubrir candidate
+ * set), used to rank "more complete" profiles higher. Returns a Map keyed by
+ * user_id; users with no photo rows are simply absent (treat as 0).
+ */
+export async function getPhotoCountsForUsers(
+  userIds: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (userIds.length === 0) return map;
+  const { data, error } = await supabase
+    .from("profile_photos")
+    .select("user_id")
+    .in("user_id", userIds);
+  if (error) {
+    // Degrade gracefully (everyone scores 0 for gallery richness) but don't
+    // swallow the failure silently — the completitud signal half-disappears.
+    logger.warn({ error: error.message }, "getPhotoCountsForUsers: query error");
+    return map;
+  }
+  for (const row of (data ?? []) as { user_id: string }[]) {
+    map.set(row.user_id, (map.get(row.user_id) ?? 0) + 1);
+  }
+  return map;
 }
 
 export async function removePhotoRow(photo: RemovablePhoto): Promise<void> {
