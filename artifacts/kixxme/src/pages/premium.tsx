@@ -32,7 +32,7 @@ type Billing = "mensual" | "anual";
 // string => the specific limit/value for that tier.
 type CompareCell = boolean | string;
 const COMPARISON: { label: string; free: CompareCell; plus: CompareCell; gold: CompareCell }[] = [
-  { label: "Me gusta", free: "15 / 6 h", plus: "Ilimitados", gold: "Ilimitados" },
+  { label: "Me gusta", free: "10 / 6 h", plus: "Ilimitados", gold: "Ilimitados" },
   { label: "SuperLikes", free: "1 / día", plus: "5 / día", gold: "Ilimitados" },
   { label: "Quién te da SuperLike", free: false, plus: true, gold: true },
   { label: "Quién visitó tu perfil", free: false, plus: true, gold: true },

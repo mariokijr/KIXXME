@@ -1,0 +1,133 @@
+Quiero revisar y mejorar varias cosas importantes de KixxMe:
+
+1. ADMIN
+
+La cuenta supportkixxme@gmail.com sigue viendo Premium y no aparece claramente el panel de administración.
+
+Comprobar:
+
+* Que el frontend reciba isAdmin=true.
+* Que exista un acceso visible a Administración/Moderación.
+* Que el acceso no dependa de tener Premium.
+* Que supportkixxme@gmail.com vea las herramientas de moderación correctamente.
+
+⸻
+
+2. SONIDOS
+
+No me gustan los sonidos actuales.
+
+Quiero sonidos más divertidos, modernos y con personalidad:
+
+* Like → pop/boop agradable y gracioso.
+* Pass → swish ligero.
+* SuperLike → más llamativo.
+* Match → sonido de celebración divertido.
+* KixxMe Live / videollamada → tono moderno tipo llamada social.
+
+Los sonidos deben:
+
+* Funcionar en móvil.
+* No bloquear la interfaz.
+* No sonar en bucle.
+* Tener fallback silencioso si el navegador bloquea audio.
+
+⸻
+
+3. PERFIL – ROL / PREFERENCIA
+
+Añadir en onboarding y edición de perfil:
+
+Rol / Preferencia:
+
+* Activo
+* Pasivo
+* Versátil
+* Heterocurioso
+* Flexible
+* Prefiero no decirlo
+
+Mostrar este dato en los perfiles públicos.
+
+⸻
+
+4. PERFIL – QUÉ BUSCAS
+
+Añadir otro campo:
+
+Qué buscas:
+
+* Amistad
+* Chat
+* Citas
+* Relación seria
+* Encuentros
+* Lo que surja
+
+Mostrarlo también en el perfil público.
+
+⸻
+
+5. LÍMITES DE LIKES Y SUPERLIKES (MONETIZACIÓN)
+
+Ahora mismo parece que los likes y SuperLikes no se descuentan correctamente.
+
+Quiero:
+
+Usuarios gratuitos:
+
+* 10 likes máximos.
+* 1 SuperLike máximo.
+
+Cuando lleguen a cero:
+
+* Bloquear la acción.
+* Mostrar modal para comprar Premium.
+* Explicar ventajas Premium.
+
+Recarga automática:
+
+* Después de unas horas se recargan.
+* Gestionado desde backend.
+* No debe poder saltarse cambiando dispositivo o recargando.
+
+Comprobar:
+
+* Que cada like descuente 1.
+* Que cada SuperLike descuente 1.
+* Que el contador visible se actualice.
+* Que Premium tenga límites superiores o ilimitados según el plan.
+
+⸻
+
+6. MENSAJE DE BIENVENIDA AL REGISTRARSE
+
+Nada más terminar el registro, quiero mostrar una pantalla/modal de bienvenida.
+
+Texto orientativo:
+
+“¡Bienvenido a KixxMe! 🎉
+
+Esperamos que disfrutes de la experiencia.
+
+Respeta siempre a los demás usuarios, sé educado y ayuda a crear una comunidad agradable para todos.
+
+Diviértete, conoce gente nueva y disfruta de KixxMe.”
+
+Quiero que:
+
+* Se vea una sola vez después del registro.
+* Tenga diseño bonito acorde al estilo de la app.
+* Se pueda cerrar fácilmente.
+* Funcione tanto en móvil como en web.
+
+⸻
+
+Verificar que todo:
+
+* Guarda correctamente en Supabase.
+* No rompe el onboarding.
+* No rompe los perfiles existentes.
+* Funciona en móvil.
+* Compila sin errores.
+* Queda probado con usuarios reales.

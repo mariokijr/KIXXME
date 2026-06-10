@@ -222,6 +222,36 @@ export interface ResetPasswordRequest {
   password: string;
 }
 
+/**
+ * Rol/Preferencia (single-select).
+ */
+export type ProfileRole = typeof ProfileRole[keyof typeof ProfileRole] | null;
+
+
+export const ProfileRole = {
+  activo: 'activo',
+  pasivo: 'pasivo',
+  versatil: 'versatil',
+  heterocurioso: 'heterocurioso',
+  flexible: 'flexible',
+  no_decir: 'no_decir',
+} as const;
+
+/**
+ * Qué buscas (single-select).
+ */
+export type ProfileLookingFor = typeof ProfileLookingFor[keyof typeof ProfileLookingFor] | null;
+
+
+export const ProfileLookingFor = {
+  amistad: 'amistad',
+  chat: 'chat',
+  citas: 'citas',
+  relacion: 'relacion',
+  encuentros: 'encuentros',
+  lo_que_surja: 'lo_que_surja',
+} as const;
+
 export interface Profile {
   id: string;
   username: string;
@@ -236,6 +266,10 @@ export interface Profile {
   last_active_at?: string | null;
   plan?: string | null;
   is_verified?: boolean;
+  /** Rol/Preferencia (single-select). */
+  role?: ProfileRole;
+  /** Qué buscas (single-select). */
+  looking_for?: ProfileLookingFor;
   created_at?: string;
   updated_at?: string;
 }
@@ -250,6 +284,36 @@ export const PublicProfilePlan = {
   free: 'free',
   plus: 'plus',
   gold: 'gold',
+} as const;
+
+/**
+ * Rol/Preferencia (single-select).
+ */
+export type PublicProfileRole = typeof PublicProfileRole[keyof typeof PublicProfileRole] | null;
+
+
+export const PublicProfileRole = {
+  activo: 'activo',
+  pasivo: 'pasivo',
+  versatil: 'versatil',
+  heterocurioso: 'heterocurioso',
+  flexible: 'flexible',
+  no_decir: 'no_decir',
+} as const;
+
+/**
+ * Qué buscas (single-select).
+ */
+export type PublicProfileLookingFor = typeof PublicProfileLookingFor[keyof typeof PublicProfileLookingFor] | null;
+
+
+export const PublicProfileLookingFor = {
+  amistad: 'amistad',
+  chat: 'chat',
+  citas: 'citas',
+  relacion: 'relacion',
+  encuentros: 'encuentros',
+  lo_que_surja: 'lo_que_surja',
 } as const;
 
 export interface PublicProfile {
@@ -268,6 +332,10 @@ export interface PublicProfile {
   blocked_by_me?: boolean;
   /** Entitlement tier, used for the Gold priority badge. */
   plan?: PublicProfilePlan;
+  /** Rol/Preferencia (single-select). */
+  role?: PublicProfileRole;
+  /** Qué buscas (single-select). */
+  looking_for?: PublicProfileLookingFor;
   created_at?: string;
 }
 
@@ -278,6 +346,30 @@ export interface DiscoveryStats {
   online: number;
 }
 
+export type UpdateProfileRequestRole = typeof UpdateProfileRequestRole[keyof typeof UpdateProfileRequestRole];
+
+
+export const UpdateProfileRequestRole = {
+  activo: 'activo',
+  pasivo: 'pasivo',
+  versatil: 'versatil',
+  heterocurioso: 'heterocurioso',
+  flexible: 'flexible',
+  no_decir: 'no_decir',
+} as const;
+
+export type UpdateProfileRequestLookingFor = typeof UpdateProfileRequestLookingFor[keyof typeof UpdateProfileRequestLookingFor];
+
+
+export const UpdateProfileRequestLookingFor = {
+  amistad: 'amistad',
+  chat: 'chat',
+  citas: 'citas',
+  relacion: 'relacion',
+  encuentros: 'encuentros',
+  lo_que_surja: 'lo_que_surja',
+} as const;
+
 export interface UpdateProfileRequest {
   username?: string;
   bio?: string;
@@ -286,6 +378,8 @@ export interface UpdateProfileRequest {
   gender?: string;
   location?: string;
   avatar_url?: string;
+  role?: UpdateProfileRequestRole;
+  looking_for?: UpdateProfileRequestLookingFor;
 }
 
 export interface AvatarUploadRequest {

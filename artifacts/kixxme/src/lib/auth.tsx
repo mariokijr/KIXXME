@@ -122,6 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (data: any) => {
     const res = await signupMut.mutateAsync({ data });
+    // Flag a one-time welcome modal for this brand-new account. Survives the
+    // queryClient.clear() below and the email-confirmation login round-trip,
+    // and is keyed per user so it never shows for pre-existing accounts.
+    if (res.user?.id) {
+      try {
+        localStorage.setItem(`kixxme:welcome-pending:${res.user.id}`, "1");
+      } catch {
+        // ignore storage errors
+      }
+    }
     if (res.session) {
       persist(res.session, res.user);
       queryClient.clear();

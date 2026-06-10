@@ -1,0 +1,32 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "TY8k_VSsjYfUKJ6lS07xD"
+uri = "file://attached_assets/generated_audio/like.mp3"
+type = "audio"
+title = "kixxme like cue"
+
+[[outputs]]
+id = "t3a1fT3TaQ3RPB0RxvPCY"
+uri = "file://attached_assets/generated_audio/pass.mp3"
+type = "audio"
+title = "kixxme pass cue"
+
+[[outputs]]
+id = "G2u6wyXIFwBxdASiHBTh0"
+uri = "file://attached_assets/generated_audio/superlike.mp3"
+type = "audio"
+title = "kixxme superlike cue"
+
+[[outputs]]
+id = "P_hOJyXvabpG8aMnQ7qsG"
+uri = "file://attached_assets/generated_audio/match.mp3"
+type = "audio"
+title = "kixxme match cue"
+
+[[outputs]]
+id = "AkBeHhcvP1PHJ9kNG9WD2"
+uri = "file://attached_assets/generated_audio/live.mp3"
+type = "audio"
+title = "kixxme live cue"

@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateProfileRequestLookingFor } from './updateProfileRequestLookingFor';
+import type { UpdateProfileRequestRole } from './updateProfileRequestRole';
 
 export interface UpdateProfileRequest {
   username?: string;
@@ -14,4 +16,6 @@ export interface UpdateProfileRequest {
   gender?: string;
   location?: string;
   avatar_url?: string;
+  role?: UpdateProfileRequestRole;
+  looking_for?: UpdateProfileRequestLookingFor;
 }

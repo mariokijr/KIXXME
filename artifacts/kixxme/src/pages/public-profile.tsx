@@ -32,6 +32,24 @@ import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
 import { useLikeActions } from "@/lib/like-actions";
 
+const ROLE_LABELS: Record<string, string> = {
+  activo: "Activo",
+  pasivo: "Pasivo",
+  versatil: "Versátil",
+  heterocurioso: "Heterocurioso",
+  flexible: "Flexible",
+  no_decir: "Prefiero no decirlo",
+};
+
+const LOOKING_FOR_LABELS: Record<string, string> = {
+  amistad: "Amistad",
+  chat: "Chat",
+  citas: "Citas",
+  relacion: "Relación seria",
+  encuentros: "Encuentros",
+  lo_que_surja: "Lo que surja",
+};
+
 export default function PublicProfile() {
   const params = useParams();
   const id = params.id as string;
@@ -302,6 +320,20 @@ export default function PublicProfile() {
               style={{ background: "rgba(236,72,153,0.08)", color: "hsl(330,85%,65%)" }}>
               <MapPin className="w-3.5 h-3.5" />
               {profile.city}{profile.location && `, ${profile.location}`}
+            </span>
+          )}
+          {profile.role && ROLE_LABELS[profile.role] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-primary/30 text-primary"
+              style={{ background: "rgba(168,85,247,0.08)" }} data-testid="badge-role">
+              <User className="w-3.5 h-3.5" />
+              {ROLE_LABELS[profile.role]}
+            </span>
+          )}
+          {profile.looking_for && LOOKING_FOR_LABELS[profile.looking_for] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-accent/30"
+              style={{ background: "rgba(236,72,153,0.08)", color: "hsl(330,85%,65%)" }} data-testid="badge-looking-for">
+              <Heart className="w-3.5 h-3.5" />
+              {LOOKING_FOR_LABELS[profile.looking_for]}
             </span>
           )}
         </div>

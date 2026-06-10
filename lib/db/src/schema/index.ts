@@ -12,3 +12,4 @@ export * from "./verification-requests";
 export * from "./profile-visits";
 export * from "./reward-credits";
 export * from "./user-streaks";
+export * from "./profile-details";

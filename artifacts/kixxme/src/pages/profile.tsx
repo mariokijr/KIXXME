@@ -79,6 +79,8 @@ export default function Profile() {
   const [city, setCity] = useState("");
   const [gender, setGender] = useState("");
   const [location, setLocation2] = useState("");
+  const [role, setRole] = useState<RoleValue | "">("");
+  const [lookingFor, setLookingFor] = useState<LookingForValue | "">("");
 
   const initRef = useRef<string | null>(null);
   const wasOnboardingRef = useRef(false);
@@ -93,6 +95,8 @@ export default function Profile() {
       setCity(profile.city || "");
       setGender(profile.gender || "");
       setLocation2(profile.location || "");
+      setRole((profile.role ?? "") as RoleValue | "");
+      setLookingFor((profile.looking_for ?? "") as LookingForValue | "");
     }
   }, [profile]);
 
@@ -103,13 +107,15 @@ export default function Profile() {
       age !== (profile.age != null ? String(profile.age) : "") ||
       city !== (profile.city || "") ||
       gender !== (profile.gender || "") ||
-      location !== (profile.location || ""));
+      location !== (profile.location || "") ||
+      role !== ((profile.role ?? "") as string) ||
+      lookingFor !== ((profile.looking_for ?? "") as string));
 
   const isOnboarding = wasOnboardingRef.current;
 
   const handleSave = () => {
     updateProfile.mutate(
-      { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined } },
+      { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined, role: role || undefined, looking_for: lookingFor || undefined } },
       {
         onSuccess: (data) => {
           queryClient.setQueryData(getGetMyProfileQueryKey(), data);
@@ -300,6 +306,29 @@ export default function Profile() {
         )}
       </div>
 
+      {isAdmin && (
+        <div className="mx-4 mb-4 border border-amber-500/40 rounded-2xl p-5 space-y-3"
+          style={{ background: "rgba(245,158,11,0.07)", boxShadow: "0 0 24px rgba(245,158,11,0.12)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <ShieldAlert className="w-4 h-4 text-amber-400" />
+            <h3 className="font-display text-lg tracking-widest text-foreground">Moderación</h3>
+          </div>
+          <p className="font-sans text-xs text-muted-foreground">
+            Tienes acceso de administrador. Revisa reportes, alertas automáticas y aplica sanciones.
+          </p>
+          <button
+            type="button"
+            onClick={() => setLocation("/admin")}
+            className="w-full h-11 rounded-xl border border-amber-500/40 flex items-center justify-center gap-2 font-sans text-sm font-medium text-amber-300 hover:bg-amber-500/10 transition-colors"
+            style={{ background: "rgba(245,158,11,0.08)" }}
+            data-testid="button-open-admin"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            Panel de moderación
+          </button>
+        </div>
+      )}
+
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg tracking-wide text-foreground/80">Mis fotos</h2>
@@ -381,6 +410,24 @@ export default function Profile() {
               className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
               placeholder="España" data-testid="input-edit-location" />
           </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <SelectField
+            label="Rol/Preferencia"
+            value={role}
+            onChange={(v) => setRole(v as RoleValue | "")}
+            options={ROLE_OPTIONS}
+            placeholder="Selecciona"
+            testId="select-edit-role"
+          />
+          <SelectField
+            label="Qué buscas"
+            value={lookingFor}
+            onChange={(v) => setLookingFor(v as LookingForValue | "")}
+            options={LOOKING_FOR_OPTIONS}
+            placeholder="Selecciona"
+            testId="select-edit-looking-for"
+          />
         </div>
         <div className="pt-1">
           <button
@@ -468,28 +515,6 @@ export default function Profile() {
         </a>
       </div>
 
-      {isAdmin && (
-        <div className="mx-4 mb-6 border border-amber-500/30 rounded-2xl p-5 space-y-3"
-          style={{ background: "rgba(245,158,11,0.05)" }}>
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
-            <h3 className="font-display text-lg tracking-widest text-foreground">Moderación</h3>
-          </div>
-          <p className="font-sans text-xs text-muted-foreground">
-            Revisa reportes, alertas automáticas y aplica sanciones.
-          </p>
-          <button
-            type="button"
-            onClick={() => setLocation("/admin")}
-            className="w-full h-11 rounded-xl border border-amber-500/40 flex items-center justify-center gap-2 font-sans text-sm font-medium text-amber-300 hover:bg-amber-500/10 transition-colors"
-            style={{ background: "rgba(245,158,11,0.08)" }}
-            data-testid="button-open-admin"
-          >
-            <ShieldAlert className="w-4 h-4" />
-            Panel de moderación
-          </button>
-        </div>
-      )}
 
       <SupportDialog
         open={contactOpen}
@@ -579,6 +604,76 @@ function PhotoSlot({
         </button>
       </div>
     </div>
+  );
+}
+
+type RoleValue =
+  | "activo"
+  | "pasivo"
+  | "versatil"
+  | "heterocurioso"
+  | "flexible"
+  | "no_decir";
+type LookingForValue =
+  | "amistad"
+  | "chat"
+  | "citas"
+  | "relacion"
+  | "encuentros"
+  | "lo_que_surja";
+
+const ROLE_OPTIONS: { value: RoleValue; label: string }[] = [
+  { value: "activo", label: "Activo" },
+  { value: "pasivo", label: "Pasivo" },
+  { value: "versatil", label: "Versátil" },
+  { value: "heterocurioso", label: "Heterocurioso" },
+  { value: "flexible", label: "Flexible" },
+  { value: "no_decir", label: "Prefiero no decirlo" },
+];
+
+const LOOKING_FOR_OPTIONS: { value: LookingForValue; label: string }[] = [
+  { value: "amistad", label: "Amistad" },
+  { value: "chat", label: "Chat" },
+  { value: "citas", label: "Citas" },
+  { value: "relacion", label: "Relación seria" },
+  { value: "encuentros", label: "Encuentros" },
+  { value: "lo_que_surja", label: "Lo que surja" },
+];
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  testId,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  testId?: string;
+}) {
+  return (
+    <Field label={label}>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-11 w-full rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary focus-visible:outline-none font-sans bg-input/40 text-sm px-3 pr-9 appearance-none text-foreground"
+          data-testid={testId}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+      </div>
+    </Field>
   );
 }
 

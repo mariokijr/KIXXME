@@ -23,6 +23,12 @@ import {
   countVisitors,
   listVisitors,
 } from "../lib/visits.js";
+import {
+  getProfileDetails,
+  upsertProfileDetails,
+  isValidRole,
+  isValidLookingFor,
+} from "../lib/profile-details.js";
 import { LikeProfileBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -289,26 +295,39 @@ router.get("/profiles/me", async (req, res) => {
       return;
     }
 
-    res.json(created);
+    res.json({ ...created, role: null, looking_for: null });
     return;
   }
 
-  res.json(data);
+  const details = await getProfileDetails(auth.userId);
+  res.json({ ...data, ...details });
 });
 
 router.put("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  const { username, bio, age, city, gender, location, avatar_url } = req.body as {
-    username?: string;
-    bio?: string;
-    age?: number;
-    city?: string;
-    gender?: string;
-    location?: string;
-    avatar_url?: string;
-  };
+  const { username, bio, age, city, gender, location, avatar_url, role, looking_for } =
+    req.body as {
+      username?: string;
+      bio?: string;
+      age?: number;
+      city?: string;
+      gender?: string;
+      location?: string;
+      avatar_url?: string;
+      role?: string;
+      looking_for?: string;
+    };
+
+  if (role !== undefined && !isValidRole(role)) {
+    res.status(400).json({ error: "invalid role" });
+    return;
+  }
+  if (looking_for !== undefined && !isValidLookingFor(looking_for)) {
+    res.status(400).json({ error: "invalid looking_for" });
+    return;
+  }
 
   const record: Record<string, unknown> = {
     id: auth.userId,
@@ -334,7 +353,24 @@ router.put("/profiles/me", async (req, res) => {
     return;
   }
 
-  res.json(data);
+  // Repo-owned extra fields (Replit Postgres). Only the provided ones are
+  // written (omitted keys are left untouched); on failure surface a 500 so the
+  // client can retry rather than silently dropping the edit.
+  if (role !== undefined || looking_for !== undefined) {
+    try {
+      await upsertProfileDetails(auth.userId, { role, lookingFor: looking_for });
+    } catch (e) {
+      req.log.error(
+        { error: e instanceof Error ? e.message : String(e) },
+        "profiles/me PUT: profile_details upsert error",
+      );
+      res.status(500).json({ error: "Could not save profile details" });
+      return;
+    }
+  }
+
+  const details = await getProfileDetails(auth.userId);
+  res.json({ ...data, ...details });
 });
 
 router.put("/profiles/me/location", async (req, res) => {
@@ -592,7 +628,11 @@ router.get("/profiles/:id", async (req, res) => {
     })();
   }
 
-  res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet));
+  const details = await getProfileDetails(id);
+  res.json({
+    ...toPublic(data as ProfileRow, me, likedSet, blockedSet),
+    ...details,
+  });
 });
 
 /**

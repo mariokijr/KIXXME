@@ -31,7 +31,7 @@ interface WindowLimit {
 
 /** Regular likes: free is capped, paid tiers are unlimited. */
 const LIKE_LIMITS: Record<Plan, WindowLimit | null> = {
-  free: { max: 15, windowHours: 6 },
+  free: { max: 10, windowHours: 6 },
   plus: null,
   gold: null,
 };
@@ -106,7 +106,11 @@ async function windowUsage(
         gt(likeActionsTable.createdAt, windowStart(windowHours)),
       ),
     );
-  return { count: row?.count ?? 0, oldest: row?.oldest ?? null };
+  // `min(createdAt)` comes back from node-postgres as a STRING (not a Date)
+  // even though the sql<> generic claims `Date`. Normalize to a real Date so
+  // downstream `.getTime()` math in buildQuota cannot throw.
+  const oldest = row?.oldest ? new Date(row.oldest) : null;
+  return { count: row?.count ?? 0, oldest };
 }
 
 function buildQuota(

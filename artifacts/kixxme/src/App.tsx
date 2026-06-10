@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { NotificationsProvider } from "@/lib/notifications";
 import { MatchCelebrationProvider } from "@/lib/match-celebration";
+import { LimitUpsellProvider } from "@/lib/limit-upsell";
+import { WelcomeModal } from "@/components/welcome-modal";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { ModerationGate } from "@/components/moderation-gate";
@@ -182,10 +184,13 @@ function App() {
           <AuthProvider>
             <NotificationsProvider>
               <MatchCelebrationProvider>
-                <LocationSync />
-                <ModerationGate>
-                  <Router />
-                </ModerationGate>
+                <LimitUpsellProvider>
+                  <LocationSync />
+                  <ModerationGate>
+                    <WelcomeModal />
+                    <Router />
+                  </ModerationGate>
+                </LimitUpsellProvider>
               </MatchCelebrationProvider>
             </NotificationsProvider>
           </AuthProvider>

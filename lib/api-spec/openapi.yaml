@@ -2339,6 +2339,16 @@ components:
           nullable: true
         is_verified:
           type: boolean
+        role:
+          type: string
+          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+          nullable: true
+          description: Rol/Preferencia (single-select).
+        looking_for:
+          type: string
+          enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
+          nullable: true
+          description: "Qué buscas (single-select)."
         created_at:
           type: string
         updated_at:
@@ -2386,6 +2396,16 @@ components:
           enum: [free, plus, gold]
           nullable: true
           description: Entitlement tier, used for the Gold priority badge.
+        role:
+          type: string
+          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+          nullable: true
+          description: Rol/Preferencia (single-select).
+        looking_for:
+          type: string
+          enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
+          nullable: true
+          description: "Qué buscas (single-select)."
         created_at:
           type: string
       required: [id, username]
@@ -2418,6 +2438,12 @@ components:
           type: string
         avatar_url:
           type: string
+        role:
+          type: string
+          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+        looking_for:
+          type: string
+          enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
 
     AvatarUploadRequest:
       type: object

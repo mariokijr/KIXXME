@@ -133,6 +133,8 @@ export const GetMyProfileResponse = zod.object({
   "last_active_at": zod.string().nullish(),
   "plan": zod.string().nullish(),
   "is_verified": zod.boolean().optional(),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -148,7 +150,9 @@ export const UpdateMyProfileBody = zod.object({
   "city": zod.string().optional(),
   "gender": zod.string().optional(),
   "location": zod.string().optional(),
-  "avatar_url": zod.string().optional()
+  "avatar_url": zod.string().optional(),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).optional(),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).optional()
 })
 
 export const UpdateMyProfileResponse = zod.object({
@@ -165,6 +169,8 @@ export const UpdateMyProfileResponse = zod.object({
   "last_active_at": zod.string().nullish(),
   "plan": zod.string().nullish(),
   "is_verified": zod.boolean().optional(),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -192,6 +198,8 @@ export const GetProfileResponse = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 })
 
@@ -233,6 +241,8 @@ export const ListProfilesResponseItem = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
@@ -323,6 +333,8 @@ export const ListConversationsResponseItem = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -357,6 +369,8 @@ export const CreateOrGetConversationResponse = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -435,6 +449,8 @@ export const UpdateMyLocationResponse = zod.object({
   "last_active_at": zod.string().nullish(),
   "plan": zod.string().nullish(),
   "is_verified": zod.boolean().optional(),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -458,6 +474,8 @@ export const ListMyLikesResponseItem = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 })
 export const ListMyLikesResponse = zod.array(ListMyLikesResponseItem)
@@ -1006,6 +1024,8 @@ export const GetAdminReportResponse = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 }).nullish(),
   "target": zod.object({
@@ -1023,6 +1043,8 @@ export const GetAdminReportResponse = zod.object({
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "created_at": zod.string().optional()
 }).nullish(),
   "targetState": zod.enum(['active', 'suspended', 'banned']),

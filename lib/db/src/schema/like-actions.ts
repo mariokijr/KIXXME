@@ -5,7 +5,7 @@ import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
  * (DATABASE_URL), NOT Supabase. The like row itself lives in the Supabase
  * `likes` table (the source of truth for whether a like exists); this table
  * records WHO did WHAT and WHEN so we can:
- *   - rate-limit free users (rolling-window counts: 15 regular likes / 6h),
+ *   - rate-limit free users (rolling-window counts: 10 regular likes / 6h),
  *   - meter SuperLikes (free 1 / 24h, plus 5 / 24h, gold unlimited),
  *   - mark a like as a SuperLike (the latest action for a (liker, liked) pair).
  *

@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicProfileLookingFor } from './publicProfileLookingFor';
 import type { PublicProfilePlan } from './publicProfilePlan';
+import type { PublicProfileRole } from './publicProfileRole';
 
 export interface PublicProfile {
   id: string;
@@ -23,5 +25,9 @@ export interface PublicProfile {
   blocked_by_me?: boolean;
   /** Entitlement tier, used for the Gold priority badge. */
   plan?: PublicProfilePlan;
+  /** Rol/Preferencia (single-select). */
+  role?: PublicProfileRole;
+  /** Qué buscas (single-select). */
+  looking_for?: PublicProfileLookingFor;
   created_at?: string;
 }

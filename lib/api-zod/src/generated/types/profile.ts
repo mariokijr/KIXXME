@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProfileLookingFor } from './profileLookingFor';
+import type { ProfileRole } from './profileRole';
 
 export interface Profile {
   id: string;
@@ -20,6 +22,10 @@ export interface Profile {
   last_active_at?: string | null;
   plan?: string | null;
   is_verified?: boolean;
+  /** Rol/Preferencia (single-select). */
+  role?: ProfileRole;
+  /** Qué buscas (single-select). */
+  looking_for?: ProfileLookingFor;
   created_at?: string;
   updated_at?: string;
 }
