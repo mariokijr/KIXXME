@@ -1,14 +1,21 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth, optionalAuth } from "../lib/auth.js";
-import { distanceKm, isOnline } from "../lib/geo.js";
+import {
+  distanceKm,
+  isOnline,
+  scopeBoxFor,
+  withinMapScope,
+  type MapScope,
+} from "../lib/geo.js";
 import {
   getBlockRelations,
   isBlockedBetween,
   addBlock,
   removeBlock,
 } from "../lib/blocks.js";
-import { getDeactivatedIds, isDeactivated } from "../lib/account.js";
+import { isDeactivated } from "../lib/account.js";
+import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike } from "../lib/likes.js";
 import { LikeProfileBody } from "@workspace/api-zod";
 
@@ -33,6 +40,32 @@ type ProfileRow = {
   is_verified: boolean | null;
   plan: string | null;
 };
+
+type PublicPlan = "free" | "plus" | "gold";
+
+/** Mirror of entitlement normalization: anything but a known paid tier is free. */
+function normalizePlan(plan: string | null): PublicPlan {
+  if (plan === "gold" || plan === "plus") return plan;
+  return "free";
+}
+
+/** Priority-visibility ranking for the world map (gold first, then plus). */
+const PLAN_RANK: Record<PublicPlan, number> = { gold: 2, plus: 1, free: 0 };
+
+const MAP_SCOPES = [
+  "nearby",
+  "province",
+  "spain",
+  "europe",
+  "worldwide",
+] as const;
+
+function parseScope(value: unknown): MapScope | null {
+  return typeof value === "string" &&
+    (MAP_SCOPES as readonly string[]).includes(value)
+    ? (value as MapScope)
+    : null;
+}
 
 function toPublic(
   row: ProfileRow,
@@ -60,6 +93,7 @@ function toPublic(
     is_verified: Boolean(row.is_verified),
     liked_by_me: likedSet.has(row.id),
     blocked_by_me: blockedSet.has(row.id),
+    plan: normalizePlan(row.plan),
   };
 }
 
@@ -76,6 +110,7 @@ router.get("/profiles", async (req, res) => {
   if (!auth) return;
 
   const sort = (req.query.sort as string) ?? "recent";
+  const scope = parseScope(req.query.scope);
 
   const { data: me } = await supabase
     .from("profiles")
@@ -83,15 +118,33 @@ router.get("/profiles", async (req, res) => {
     .eq("id", auth.userId)
     .maybeSingle();
 
-  const likedSet = await getLikedSet(auth.userId);
-  const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
-  const deactivated = await getDeactivatedIds();
+  // Resolve the scope's DB-side bounding box. A radius scope (nearby/province)
+  // with no viewer coordinates yields an empty list rather than a 500.
+  const box = scope ? scopeBoxFor(scope, me ?? null) : null;
+  if (box === "empty") {
+    res.json([]);
+    return;
+  }
 
-  const { data, error } = await supabase
+  const likedSet = await getLikedSet(auth.userId);
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+
+  // Push the bounding box into the query BEFORE limiting, so we don't merely
+  // sample the most-recent 200 rows and then drop everything out of scope.
+  let query = supabase
     .from("profiles")
     .select(PUBLIC_COLUMNS)
     .neq("id", auth.userId)
-    .not("username", "is", null)
+    .not("username", "is", null);
+  if (box) {
+    query = query
+      .gte("latitude", box.latMin)
+      .lte("latitude", box.latMax)
+      .gte("longitude", box.lngMin)
+      .lte("longitude", box.lngMax);
+  }
+
+  const { data, error } = await query
     .order("last_active_at", { ascending: false, nullsFirst: false })
     .limit(200);
 
@@ -101,14 +154,18 @@ router.get("/profiles", async (req, res) => {
     return;
   }
 
-  let profiles = (data as ProfileRow[])
-    .filter(
-      (row) =>
-        !iBlocked.has(row.id) &&
-        !blockedMe.has(row.id) &&
-        !deactivated.has(row.id),
-    )
-    .map((row) => toPublic(row, me ?? null, likedSet, iBlocked));
+  let rows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
+
+  // Precise refinement for radius scopes (the box is an over-approximation).
+  if (scope) {
+    rows = rows.filter((row) =>
+      withinMapScope(me ?? null, row.latitude, row.longitude, scope),
+    );
+  }
+
+  const profiles = rows.map((row) =>
+    toPublic(row, me ?? null, likedSet, iBlocked),
+  );
 
   if (sort === "distance") {
     profiles.sort((a, b) => {
@@ -121,7 +178,80 @@ router.get("/profiles", async (req, res) => {
   }
   // recent: rows already arrive ordered by last_active_at desc from the DB.
 
+  // Gold priority visibility: on the world map (scope present), surface Gold —
+  // then Plus — profiles first. Array.sort is stable, so the sort chosen above
+  // is preserved as the secondary order.
+  if (scope) {
+    profiles.sort((a, b) => PLAN_RANK[b.plan] - PLAN_RANK[a.plan]);
+  }
+
   res.json(profiles);
+});
+
+// NOTE: must be registered BEFORE `GET /profiles/:id` or "stats" is captured
+// as an `:id` param.
+router.get("/profiles/stats", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const scope = parseScope(req.query.scope);
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("latitude, longitude")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  const box = scope ? scopeBoxFor(scope, me ?? null) : null;
+  if (box === "empty") {
+    res.json({ registered: 0, online: 0 });
+    return;
+  }
+
+  const hidden = await getHiddenIds(auth.userId);
+
+  let query = supabase
+    .from("profiles")
+    .select("id, latitude, longitude, last_active_at")
+    .neq("id", auth.userId)
+    .not("username", "is", null);
+  if (box) {
+    query = query
+      .gte("latitude", box.latMin)
+      .lte("latitude", box.latMax)
+      .gte("longitude", box.lngMin)
+      .lte("longitude", box.lngMax);
+  }
+
+  // Counts are computed in JS because the hiding rules are viewer-relative
+  // (block sets + deactivations) and radius scopes need haversine, so a
+  // Supabase head:true count cannot be correct. Capped for early-stage scale.
+  const { data, error } = await query.limit(5000);
+
+  if (error) {
+    req.log.error({ error: error.message }, "profiles/stats: error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  type StatRow = {
+    id: string;
+    latitude: number | null;
+    longitude: number | null;
+    last_active_at: string | null;
+  };
+
+  let rows = (data as StatRow[]).filter((row) => !hidden.has(row.id));
+  if (scope) {
+    rows = rows.filter((row) =>
+      withinMapScope(me ?? null, row.latitude, row.longitude, scope),
+    );
+  }
+
+  const registered = rows.length;
+  const online = rows.filter((row) => isOnline(row.last_active_at)).length;
+
+  res.json({ registered, online });
 });
 
 router.get("/profiles/me", async (req, res) => {
@@ -268,16 +398,10 @@ router.get("/profiles/me/likes", async (req, res) => {
   }
 
   const likedSet = new Set(ids);
-  const { iBlocked, blockedMe } = await getBlockRelations(auth.userId);
-  const deactivated = await getDeactivatedIds();
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
   res.json(
     (data as ProfileRow[])
-      .filter(
-        (row) =>
-          !iBlocked.has(row.id) &&
-          !blockedMe.has(row.id) &&
-          !deactivated.has(row.id),
-      )
+      .filter((row) => !hidden.has(row.id))
       .map((row) => toPublic(row, me ?? null, likedSet, iBlocked)),
   );
 });

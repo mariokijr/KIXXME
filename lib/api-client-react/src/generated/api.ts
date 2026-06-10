@@ -32,7 +32,9 @@ import type {
   Conversation,
   CreateOrGetConversationBody,
   DeletePhoto200,
+  DiscoveryStats,
   ErrorResponse,
+  GetDiscoveryStatsParams,
   HealthStatus,
   LikeQuota,
   LikeRequest,
@@ -807,6 +809,92 @@ export function useListProfiles<TData = Awaited<ReturnType<typeof listProfiles>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListProfilesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDiscoveryStatsUrl = (params?: GetDiscoveryStatsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profiles/stats?${stringifiedParams}` : `/api/profiles/stats`
+}
+
+/**
+ * Counts of registered and currently-online users within the given scope, excluding the viewer and any blocked/deactivated users.
+
+ * @summary Community stats for the world map (registered + online counts)
+ */
+export const getDiscoveryStats = async (params?: GetDiscoveryStatsParams, options?: RequestInit): Promise<DiscoveryStats> => {
+
+  return customFetch<DiscoveryStats>(getGetDiscoveryStatsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDiscoveryStatsQueryKey = (params?: GetDiscoveryStatsParams,) => {
+    return [
+    `/api/profiles/stats`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDiscoveryStatsQueryOptions = <TData = Awaited<ReturnType<typeof getDiscoveryStats>>, TError = ErrorType<ErrorResponse>>(params?: GetDiscoveryStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiscoveryStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDiscoveryStatsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiscoveryStats>>> = ({ signal }) => getDiscoveryStats(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDiscoveryStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDiscoveryStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getDiscoveryStats>>>
+export type GetDiscoveryStatsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Community stats for the world map (registered + online counts)
+ */
+
+export function useGetDiscoveryStats<TData = Awaited<ReturnType<typeof getDiscoveryStats>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetDiscoveryStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiscoveryStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDiscoveryStatsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

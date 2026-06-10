@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicProfilePlan } from './publicProfilePlan';
 
 export interface PublicProfile {
   id: string;
@@ -20,5 +21,7 @@ export interface PublicProfile {
   is_verified?: boolean;
   liked_by_me?: boolean;
   blocked_by_me?: boolean;
+  /** Entitlement tier, used for the Gold priority badge. */
+  plan?: PublicProfilePlan;
   created_at?: string;
 }

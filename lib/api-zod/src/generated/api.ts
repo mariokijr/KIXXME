@@ -151,6 +151,7 @@ export const GetProfileResponse = zod.object({
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "created_at": zod.string().optional()
 })
 
@@ -173,7 +174,8 @@ export const UploadAvatarResponse = zod.object({
  * @summary List public profiles for discovery (excludes current user)
  */
 export const ListProfilesQueryParams = zod.object({
-  "sort": zod.enum(['recent', 'distance', 'online']).optional()
+  "sort": zod.enum(['recent', 'distance', 'online']).optional(),
+  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional().describe('Geographic scope filter for the world map. nearby\/province are relative to the viewer\'s location (return an empty list when the viewer has no coordinates); spain\/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).\n')
 })
 
 export const ListProfilesResponseItem = zod.object({
@@ -190,9 +192,25 @@ export const ListProfilesResponseItem = zod.object({
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "created_at": zod.string().optional()
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
+
+
+/**
+ * Counts of registered and currently-online users within the given scope, excluding the viewer and any blocked/deactivated users.
+
+ * @summary Community stats for the world map (registered + online counts)
+ */
+export const GetDiscoveryStatsQueryParams = zod.object({
+  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional()
+})
+
+export const GetDiscoveryStatsResponse = zod.object({
+  "registered": zod.number().describe('Registered users in scope (excludes viewer + hidden users).'),
+  "online": zod.number().describe('Users in scope active within the online window.')
+})
 
 
 /**
@@ -264,6 +282,7 @@ export const ListConversationsResponseItem = zod.object({
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -297,6 +316,7 @@ export const CreateOrGetConversationResponse = zod.object({
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -397,6 +417,7 @@ export const ListMyLikesResponseItem = zod.object({
   "is_verified": zod.boolean().optional(),
   "liked_by_me": zod.boolean().optional(),
   "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "created_at": zod.string().optional()
 })
 export const ListMyLikesResponse = zod.array(ListMyLikesResponseItem)

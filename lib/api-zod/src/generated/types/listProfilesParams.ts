@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListProfilesScope } from './listProfilesScope';
 import type { ListProfilesSort } from './listProfilesSort';
 
 export type ListProfilesParams = {
 sort?: ListProfilesSort;
+/**
+ * Geographic scope filter for the world map. nearby/province are relative to the viewer's location (return an empty list when the viewer has no coordinates); spain/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).
+
+ */
+scope?: ListProfilesScope;
 };

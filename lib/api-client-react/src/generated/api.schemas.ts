@@ -186,6 +186,18 @@ export interface Profile {
   updated_at?: string;
 }
 
+/**
+ * Entitlement tier, used for the Gold priority badge.
+ */
+export type PublicProfilePlan = typeof PublicProfilePlan[keyof typeof PublicProfilePlan] | null;
+
+
+export const PublicProfilePlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
 export interface PublicProfile {
   id: string;
   username: string;
@@ -200,7 +212,16 @@ export interface PublicProfile {
   is_verified?: boolean;
   liked_by_me?: boolean;
   blocked_by_me?: boolean;
+  /** Entitlement tier, used for the Gold priority badge. */
+  plan?: PublicProfilePlan;
   created_at?: string;
+}
+
+export interface DiscoveryStats {
+  /** Registered users in scope (excludes viewer + hidden users). */
+  registered: number;
+  /** Users in scope active within the online window. */
+  online: number;
 }
 
 export interface UpdateProfileRequest {
@@ -499,6 +520,11 @@ export type UploadAvatar200 = {
 
 export type ListProfilesParams = {
 sort?: ListProfilesSort;
+/**
+ * Geographic scope filter for the world map. nearby/province are relative to the viewer's location (return an empty list when the viewer has no coordinates); spain/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).
+
+ */
+scope?: ListProfilesScope;
 };
 
 export type ListProfilesSort = typeof ListProfilesSort[keyof typeof ListProfilesSort];
@@ -508,6 +534,32 @@ export const ListProfilesSort = {
   recent: 'recent',
   distance: 'distance',
   online: 'online',
+} as const;
+
+export type ListProfilesScope = typeof ListProfilesScope[keyof typeof ListProfilesScope];
+
+
+export const ListProfilesScope = {
+  nearby: 'nearby',
+  province: 'province',
+  spain: 'spain',
+  europe: 'europe',
+  worldwide: 'worldwide',
+} as const;
+
+export type GetDiscoveryStatsParams = {
+scope?: GetDiscoveryStatsScope;
+};
+
+export type GetDiscoveryStatsScope = typeof GetDiscoveryStatsScope[keyof typeof GetDiscoveryStatsScope];
+
+
+export const GetDiscoveryStatsScope = {
+  nearby: 'nearby',
+  province: 'province',
+  spain: 'spain',
+  europe: 'europe',
+  worldwide: 'worldwide',
 } as const;
 
 export type DeletePhoto200 = {
