@@ -421,6 +421,8 @@ export const ListMessagesResponseItem = zod.object({
   "sender_id": zod.string(),
   "content": zod.string().nullish(),
   "image_url": zod.string().nullish(),
+  "audio_url": zod.string().nullish(),
+  "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
   "deleted_at": zod.string().nullish()
@@ -435,9 +437,15 @@ export const SendMessageParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const sendMessageBodyAudioDurationMax = 60;
+
+
+
 export const SendMessageBody = zod.object({
   "content": zod.string().optional(),
-  "image_url": zod.string().optional()
+  "image_url": zod.string().optional(),
+  "audio_url": zod.string().optional(),
+  "audio_duration": zod.number().min(1).max(sendMessageBodyAudioDurationMax).optional()
 })
 
 
@@ -449,6 +457,20 @@ export const UploadChatImageParams = zod.object({
 })
 
 export const UploadChatImageBody = zod.object({
+  "base64": zod.string(),
+  "mime_type": zod.string(),
+  "filename": zod.string()
+})
+
+
+/**
+ * @summary Upload a voice note to send in a conversation
+ */
+export const UploadChatAudioParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UploadChatAudioBody = zod.object({
   "base64": zod.string(),
   "mime_type": zod.string(),
   "filename": zod.string()
@@ -799,7 +821,10 @@ export const GetSupportTicketResponse = zod.object({
   "ticketId": zod.string(),
   "senderId": zod.string(),
   "senderRole": zod.enum(['user', 'admin']),
-  "body": zod.string(),
+  "body": zod.string().nullable(),
+  "imageUrl": zod.string().nullish(),
+  "audioUrl": zod.string().nullish(),
+  "audioDuration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "createdAt": zod.string()
 }))
 })
@@ -814,10 +839,29 @@ export const SendSupportMessageParams = zod.object({
 
 export const sendSupportMessageBodyBodyMax = 5000;
 
+export const sendSupportMessageBodyAudioDurationMax = 60;
+
 
 
 export const SendSupportMessageBody = zod.object({
-  "body": zod.string().min(1).max(sendSupportMessageBodyBodyMax)
+  "body": zod.string().max(sendSupportMessageBodyBodyMax).optional(),
+  "imageUrl": zod.string().optional(),
+  "audioUrl": zod.string().optional(),
+  "audioDuration": zod.number().min(1).max(sendSupportMessageBodyAudioDurationMax).optional()
+}).describe('At least one of body, imageUrl, or audioUrl must be present.')
+
+
+/**
+ * @summary Upload a photo or voice note for a support ticket message
+ */
+export const UploadSupportAttachmentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UploadSupportAttachmentBody = zod.object({
+  "base64": zod.string(),
+  "mime_type": zod.string(),
+  "filename": zod.string()
 })
 
 
@@ -1298,6 +1342,8 @@ export const GetAdminReportResponse = zod.object({
   "sender_id": zod.string(),
   "content": zod.string().nullish(),
   "image_url": zod.string().nullish(),
+  "audio_url": zod.string().nullish(),
+  "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
   "deleted_at": zod.string().nullish()
@@ -1308,6 +1354,8 @@ export const GetAdminReportResponse = zod.object({
   "sender_id": zod.string(),
   "content": zod.string().nullish(),
   "image_url": zod.string().nullish(),
+  "audio_url": zod.string().nullish(),
+  "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
   "deleted_at": zod.string().nullish()
@@ -1652,7 +1700,10 @@ export const SetAdminTicketStatusResponse = zod.object({
   "ticketId": zod.string(),
   "senderId": zod.string(),
   "senderRole": zod.enum(['user', 'admin']),
-  "body": zod.string(),
+  "body": zod.string().nullable(),
+  "imageUrl": zod.string().nullish(),
+  "audioUrl": zod.string().nullish(),
+  "audioDuration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "createdAt": zod.string()
 }))
 })

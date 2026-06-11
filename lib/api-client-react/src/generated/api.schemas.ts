@@ -137,7 +137,11 @@ export interface SupportTicketMessage {
   ticketId: string;
   senderId: string;
   senderRole: SupportTicketMessageSenderRole;
-  body: string;
+  body: string | null;
+  imageUrl?: string | null;
+  audioUrl?: string | null;
+  /** Voice-note length in seconds (1–60) */
+  audioDuration?: number | null;
   createdAt: string;
 }
 
@@ -169,12 +173,19 @@ export interface OpenSupportTicketRequest {
   message: string;
 }
 
+/**
+ * At least one of body, imageUrl, or audioUrl must be present.
+ */
 export interface SupportMessageRequest {
+  /** @maxLength 5000 */
+  body?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   /**
-     * @minLength 1
-     * @maxLength 5000
+     * @minimum 1
+     * @maximum 60
      */
-  body: string;
+  audioDuration?: number;
 }
 
 export interface AdminCreateTicketRequest {
@@ -564,6 +575,9 @@ export interface Message {
   sender_id: string;
   content?: string | null;
   image_url?: string | null;
+  audio_url?: string | null;
+  /** Voice-note length in seconds (1–60) */
+  audio_duration?: number | null;
   created_at: string;
   read_at?: string | null;
   deleted_at?: string | null;
@@ -581,6 +595,12 @@ export interface ReorderPhotosRequest {
 export interface SendMessageRequest {
   content?: string;
   image_url?: string;
+  audio_url?: string;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  audio_duration?: number;
 }
 
 /**
@@ -1313,6 +1333,14 @@ export type CreateOrGetConversationBody = {
 
 export type UploadChatImage201 = {
   image_url: string;
+};
+
+export type UploadChatAudio201 = {
+  audio_url: string;
+};
+
+export type UploadSupportAttachment201 = {
+  url: string;
 };
 
 export type ListAdminReportsParams = {

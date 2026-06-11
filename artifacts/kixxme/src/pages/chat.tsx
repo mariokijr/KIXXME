@@ -13,9 +13,14 @@ import {
   Check,
   CheckCheck,
   Video,
+  X,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ReportDialog } from "@/components/report-dialog";
+import { VoiceRecorder, type RecordedAudio } from "@/components/voice-recorder";
+import { AudioBubble } from "@/components/audio-bubble";
+import { ImageLightbox } from "@/components/image-lightbox";
+import { downscaleImage, blobToBase64, audioExt } from "@/lib/chat-media";
 import {
   useListMessages,
   getListMessagesQueryKey,
@@ -25,6 +30,7 @@ import {
   useMarkConversationRead,
   useDeleteMessage,
   useUploadChatImage,
+  useUploadChatAudio,
   useBlockProfile,
   useUnblockProfile,
   useGetMyProfile,
@@ -53,18 +59,6 @@ function mergeMessages(local: Message[], incoming: Message[]): Message[] {
   );
 }
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1] ?? "");
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function Chat() {
   const { id: conversationId } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -78,6 +72,13 @@ export default function Chat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [activeMsg, setActiveMsg] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<{
+    base64: string;
+    dataUrl: string;
+  } | null>(null);
+  const [preparingImage, setPreparingImage] = useState(false);
+  const [recorderActive, setRecorderActive] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitScrollRef = useRef(false);
@@ -103,6 +104,7 @@ export default function Chat() {
   const markRead = useMarkConversationRead();
   const deleteMsg = useDeleteMessage();
   const uploadImage = useUploadChatImage();
+  const uploadAudio = useUploadChatAudio();
   const blockUser = useBlockProfile();
   const unblockUser = useUnblockProfile();
   const createLiveCall = useCreateLiveCall();
@@ -252,15 +254,29 @@ export default function Chat() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !conversationId) return;
-    if (file.size > 8 * 1024 * 1024) {
-      toast({ title: "La imagen es demasiado grande (máx. 8 MB)", variant: "destructive" });
-      return;
-    }
+    setPreparingImage(true);
     try {
-      const base64 = await fileToBase64(file);
+      const { base64, dataUrl } = await downscaleImage(file);
+      setPendingImage({ base64, dataUrl });
+    } catch (err: any) {
+      toast({
+        title: "No se pudo usar esa foto",
+        description: err?.message ?? "Inténtalo con otra imagen.",
+        variant: "destructive",
+      });
+    } finally {
+      setPreparingImage(false);
+    }
+  };
+
+  const handleSendImage = async () => {
+    if (!pendingImage || !conversationId) return;
+    const img = pendingImage;
+    setPendingImage(null);
+    try {
       const { image_url } = await uploadImage.mutateAsync({
         id: conversationId,
-        data: { base64, mime_type: file.type, filename: file.name },
+        data: { base64: img.base64, mime_type: "image/jpeg", filename: "foto.jpg" },
       });
       const real = await sendMessage.mutateAsync({
         id: conversationId,
@@ -269,7 +285,31 @@ export default function Chat() {
       setLocalMessages((prev) => mergeMessages(prev, [real]));
       qc.invalidateQueries({ queryKey: getListConversationsQueryKey() });
     } catch {
+      setPendingImage(img);
       toast({ title: "No se pudo enviar la foto", variant: "destructive" });
+    }
+  };
+
+  const handleSendAudio = async (rec: RecordedAudio) => {
+    if (!conversationId) return;
+    try {
+      const base64 = await blobToBase64(rec.blob);
+      const { audio_url } = await uploadAudio.mutateAsync({
+        id: conversationId,
+        data: {
+          base64,
+          mime_type: rec.mime,
+          filename: `nota-de-voz.${audioExt(rec.mime)}`,
+        },
+      });
+      const real = await sendMessage.mutateAsync({
+        id: conversationId,
+        data: { audio_url, audio_duration: rec.duration },
+      });
+      setLocalMessages((prev) => mergeMessages(prev, [real]));
+      qc.invalidateQueries({ queryKey: getListConversationsQueryKey() });
+    } catch {
+      toast({ title: "No se pudo enviar la nota de voz", variant: "destructive" });
     }
   };
 
@@ -501,15 +541,8 @@ export default function Chat() {
             return (
               <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div className="max-w-[78%] flex flex-col items-stretch">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isMine && !isDeleted && !isOptimistic) {
-                        setActiveMsg(activeMsg === msg.id ? null : msg.id);
-                      }
-                    }}
-                    className="text-left rounded-2xl overflow-hidden"
+                  <div
+                    className="rounded-2xl overflow-hidden"
                     style={
                       isDeleted
                         ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -530,24 +563,44 @@ export default function Chat() {
                         Mensaje eliminado
                       </p>
                     ) : msg.image_url ? (
-                      <div className="p-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightboxSrc(msg.image_url ?? null);
+                        }}
+                        className="block p-1"
+                      >
                         <img
                           src={msg.image_url}
                           alt="Foto"
-                          className="rounded-xl max-h-64 w-auto object-cover"
+                          className="rounded-xl max-h-64 w-auto object-cover cursor-zoom-in"
                           loading="lazy"
                         />
-                      </div>
+                      </button>
+                    ) : msg.audio_url ? (
+                      <AudioBubble
+                        src={msg.audio_url}
+                        duration={msg.audio_duration}
+                        mine={isMine}
+                      />
                     ) : (
                       <p className="px-4 py-2.5 font-sans text-sm text-white leading-snug break-words whitespace-pre-wrap">
                         {msg.content}
                       </p>
                     )}
                     {!isDeleted && (
-                      <div
-                        className={`flex items-center gap-1 px-3 pb-1.5 ${
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isMine && !isOptimistic) {
+                            setActiveMsg(activeMsg === msg.id ? null : msg.id);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-1 px-3 pb-1.5 ${
                           isMine ? "justify-end" : "justify-start"
-                        } ${msg.image_url ? "pt-0.5" : ""}`}
+                        } ${msg.image_url || msg.audio_url ? "pt-0.5" : ""}`}
                       >
                         <span
                           className={`font-sans text-[10px] ${
@@ -563,9 +616,9 @@ export default function Chat() {
                           ) : (
                             <Check className="w-3 h-3 text-white/50" />
                           ))}
-                      </div>
+                      </button>
                     )}
-                  </button>
+                  </div>
 
                   {isMine && activeMsg === msg.id && !isDeleted && (
                     <button
@@ -614,7 +667,7 @@ export default function Chat() {
         </div>
       ) : (
       <div
-        className="flex-shrink-0 px-4 py-3 border-t border-border/30 flex items-end gap-2"
+        className="flex-shrink-0 px-4 py-3 border-t border-border/30 flex flex-col gap-2"
         style={{
           background: "rgba(8,7,18,0.92)",
           backdropFilter: "blur(20px)",
@@ -628,36 +681,94 @@ export default function Chat() {
           className="hidden"
           onChange={handleImageSelected}
         />
-        <button
-          onClick={handlePickImage}
-          disabled={uploadImage.isPending || sendMessage.isPending}
-          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-        >
-          {uploadImage.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <ImageIcon className="w-4 h-4" />
+
+        {pendingImage && (
+          <div
+            className="flex items-center gap-3 rounded-xl p-2 border border-border/40"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+          >
+            <img
+              src={pendingImage.dataUrl}
+              alt="Vista previa"
+              className="w-14 h-14 rounded-lg object-cover border border-border/40"
+            />
+            <span className="flex-1 font-sans text-sm text-muted-foreground">
+              Foto lista para enviar
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingImage(null)}
+              disabled={uploadImage.isPending}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-white/5 disabled:opacity-50"
+              aria-label="Descartar foto"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleSendImage}
+              disabled={uploadImage.isPending || sendMessage.isPending}
+              data-testid="button-send-image"
+              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-white text-sm font-sans disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              {uploadImage.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Enviar
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          {!recorderActive && (
+            <button
+              onClick={handlePickImage}
+              disabled={uploadImage.isPending || sendMessage.isPending || preparingImage}
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              {preparingImage ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ImageIcon className="w-4 h-4" />
+              )}
+            </button>
           )}
-        </button>
-        <textarea
-          ref={inputRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Escribe un mensaje..."
-          rows={1}
-          className="flex-1 resize-none rounded-xl px-4 py-2.5 font-sans text-sm text-foreground placeholder:text-muted-foreground border border-border/60 focus:outline-none focus:border-primary/60 bg-input/40 min-h-[40px] max-h-[120px]"
-          style={{ lineHeight: "1.4" }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!text.trim()}
-          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl text-white transition-all disabled:opacity-40 border-0"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-        >
-          <Send className="w-4 h-4" />
-        </button>
+          {!recorderActive && (
+            <textarea
+              ref={inputRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Escribe un mensaje..."
+              rows={1}
+              className="flex-1 resize-none rounded-xl px-4 py-2.5 font-sans text-sm text-foreground placeholder:text-muted-foreground border border-border/60 focus:outline-none focus:border-primary/60 bg-input/40 min-h-[40px] max-h-[120px]"
+              style={{ lineHeight: "1.4" }}
+            />
+          )}
+          {text.trim() && !recorderActive ? (
+            <button
+              onClick={handleSend}
+              disabled={!text.trim()}
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl text-white transition-all disabled:opacity-40 border-0"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          ) : (
+            <VoiceRecorder
+              onSend={handleSendAudio}
+              onActiveChange={setRecorderActive}
+              onError={(message) =>
+                toast({ title: message, variant: "destructive" })
+              }
+              sending={uploadAudio.isPending || sendMessage.isPending}
+            />
+          )}
+        </div>
       </div>
       )}
 
@@ -671,6 +782,8 @@ export default function Chat() {
           targetConversationId={conversationId ?? undefined}
         />
       )}
+
+      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

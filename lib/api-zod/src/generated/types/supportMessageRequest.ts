@@ -6,10 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * At least one of body, imageUrl, or audioUrl must be present.
+ */
 export interface SupportMessageRequest {
+  /** @maxLength 5000 */
+  body?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   /**
-     * @minLength 1
-     * @maxLength 5000
+     * @minimum 1
+     * @maximum 60
      */
-  body: string;
+  audioDuration?: number;
 }

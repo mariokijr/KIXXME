@@ -30,7 +30,6 @@ import {
   getListAdminTicketsQueryKey,
   useGetSupportTicket,
   getGetSupportTicketQueryKey,
-  useSendSupportMessage,
   useAdminCreateTicket,
   useSetAdminTicketStatus,
   getListSupportTicketsQueryKey,
@@ -60,6 +59,11 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  SupportComposer,
+  SupportMessageBubble,
+} from "@/components/support-chat";
+import { ImageLightbox } from "@/components/image-lightbox";
 import {
   ArrowLeft,
   ShieldAlert,
@@ -2347,7 +2351,7 @@ function AdminTicketThread({
   const { session } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [reply, setReply] = useState("");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useGetSupportTicket(ticketId ?? "", {
@@ -2358,15 +2362,10 @@ function AdminTicketThread({
     },
   });
 
-  const sendMessage = useSendSupportMessage();
   const setStatus = useSetAdminTicketStatus();
 
   const ticket = data?.ticket;
   const messages = data?.messages ?? [];
-
-  React.useEffect(() => {
-    setReply("");
-  }, [ticketId]);
 
   React.useEffect(() => {
     const el = scrollRef.current;
@@ -2392,27 +2391,6 @@ function AdminTicketThread({
     }
   };
 
-  const submitReply = () => {
-    if (!ticketId) return;
-    const body = reply.trim();
-    if (body.length < 1) return;
-    sendMessage.mutate(
-      { id: ticketId, data: { body } },
-      {
-        onSuccess: () => {
-          setReply("");
-          invalidate();
-        },
-        onError: (err: any) =>
-          toast({
-            title: "No se pudo enviar",
-            description: errMsg(err, "Inténtalo de nuevo."),
-            variant: "destructive",
-          }),
-      },
-    );
-  };
-
   const changeStatus = (next: SetTicketStatusRequestStatus) => {
     if (!ticketId) return;
     setStatus.mutate(
@@ -2432,7 +2410,7 @@ function AdminTicketThread({
     );
   };
 
-  const busy = sendMessage.isPending || setStatus.isPending;
+  const busy = setStatus.isPending;
 
   return (
     <Dialog open={!!ticketId} onOpenChange={(o) => !o && onClose()}>
@@ -2467,38 +2445,13 @@ function AdminTicketThread({
             messages.map((m) => {
               const mine = m.senderRole === "admin";
               return (
-                <div
+                <SupportMessageBubble
                   key={m.id}
-                  className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                >
-                  <div className="max-w-[80%]">
-                    <div
-                      className={`px-3 py-2 rounded-2xl font-sans text-sm whitespace-pre-wrap break-words ${
-                        mine
-                          ? "text-white rounded-br-sm"
-                          : "text-foreground rounded-bl-sm border border-border/40"
-                      }`}
-                      style={
-                        mine
-                          ? {
-                              background:
-                                "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                            }
-                          : { background: "rgba(255,255,255,0.04)" }
-                      }
-                    >
-                      {m.body}
-                    </div>
-                    <p
-                      className={`font-sans text-[10px] text-muted-foreground mt-1 px-1 ${
-                        mine ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {mine ? "Soporte · " : ""}
-                      {fmtDate(m.createdAt)}
-                    </p>
-                  </div>
-                </div>
+                  message={m}
+                  mine={mine}
+                  footLabel={`${mine ? "Soporte · " : ""}${fmtDate(m.createdAt)}`}
+                  onImageClick={setLightboxSrc}
+                />
               );
             })
           )}
@@ -2540,35 +2493,17 @@ function AdminTicketThread({
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-border/40 flex items-end gap-2">
-          <Textarea
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            maxLength={5000}
-            rows={1}
-            placeholder="Escribe una respuesta…"
-            className="resize-none min-h-[44px] max-h-32"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submitReply();
-              }
-            }}
-            data-testid="input-admin-ticket-reply"
-          />
-          <button
-            type="button"
-            onClick={submitReply}
-            disabled={busy || reply.trim().length < 1}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl text-white disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-            }}
-            data-testid="button-admin-send-reply"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </div>
+        {ticketId && (
+          <div className="px-4 py-3 border-t border-border/40">
+            <SupportComposer
+              ticketId={ticketId}
+              onSent={invalidate}
+              placeholder="Escribe una respuesta…"
+            />
+          </div>
+        )}
+
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       </DialogContent>
     </Dialog>
   );

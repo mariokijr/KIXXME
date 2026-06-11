@@ -8,6 +8,12 @@ import {
   getUnavailableIds,
   detectSpamFromMessage,
 } from "../lib/moderation.js";
+import {
+  decodeMedia,
+  uploadChatObject,
+  chatMediaPath,
+  clampAudioDuration,
+} from "../lib/chat-media.js";
 
 const router = Router();
 
@@ -86,7 +92,7 @@ router.get("/conversations", async (req, res) => {
 
       const { data: last } = await supabase
         .from("messages")
-        .select("content, image_url, created_at, deleted_at")
+        .select("content, image_url, audio_url, created_at, deleted_at")
         .eq("conversation_id", conv.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -95,8 +101,9 @@ router.get("/conversations", async (req, res) => {
       let lastMessage: string | null = null;
       if (last) {
         if (last.deleted_at) lastMessage = "Mensaje eliminado";
+        else if (last.content) lastMessage = last.content;
         else if (last.image_url) lastMessage = "📷 Foto";
-        else lastMessage = last.content;
+        else if (last.audio_url) lastMessage = "🎤 Nota de voz";
       }
 
       return {
@@ -220,11 +227,16 @@ router.post("/conversations/:id/messages", async (req, res) => {
   if (!auth) return;
 
   const { id } = req.params;
-  const { content, image_url } = req.body as { content?: string; image_url?: string };
+  const { content, image_url, audio_url, audio_duration } = req.body as {
+    content?: string;
+    image_url?: string;
+    audio_url?: string;
+    audio_duration?: number;
+  };
 
   const trimmed = content?.trim() ?? "";
-  if (!trimmed && !image_url) {
-    res.status(400).json({ error: "content or image_url is required" });
+  if (!trimmed && !image_url && !audio_url) {
+    res.status(400).json({ error: "content, image_url or audio_url is required" });
     return;
   }
 
@@ -249,8 +261,13 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .insert({
       conversation_id: id,
       sender_id: auth.userId,
-      content: trimmed || null,
+      // `messages.content` is NOT NULL in Supabase; media-only messages carry
+      // an empty string (the media lives in image_url/audio_url and always
+      // takes render precedence over text, so an empty content never shows).
+      content: trimmed || "",
       image_url: image_url ?? null,
+      audio_url: audio_url ?? null,
+      audio_duration: audio_url ? clampAudioDuration(audio_duration) : null,
     })
     .select()
     .single();
@@ -294,32 +311,87 @@ router.post("/conversations/:id/images", async (req, res) => {
     return;
   }
 
-  const { base64, mime_type, filename } = req.body as {
+  const { base64, mime_type } = req.body as {
     base64?: string;
     mime_type?: string;
-    filename?: string;
   };
 
-  if (!base64 || !mime_type || !filename) {
-    res.status(400).json({ error: "base64, mime_type, and filename are required" });
+  if (!base64 || !mime_type) {
+    res.status(400).json({ error: "base64 and mime_type are required" });
     return;
   }
 
-  const buffer = Buffer.from(base64, "base64");
-  const storagePath = `${auth.userId}/chat/${id}/${Date.now()}_${filename}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(storagePath, buffer, { contentType: mime_type, upsert: false });
-
-  if (uploadError) {
-    req.log.error({ error: uploadError.message }, "chat image upload: error");
-    res.status(400).json({ error: uploadError.message });
+  const decoded = decodeMedia(base64, mime_type, "image");
+  if (!decoded.ok) {
+    res.status(400).json({ error: decoded.error });
     return;
   }
 
-  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
-  res.status(201).json({ image_url: urlData.publicUrl });
+  try {
+    const url = await uploadChatObject(
+      chatMediaPath(auth.userId, id, decoded.value),
+      decoded.value,
+    );
+    res.status(201).json({ image_url: url });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "chat image upload: error",
+    );
+    res.status(400).json({ error: "No se pudo subir la imagen" });
+  }
+});
+
+router.post("/conversations/:id/audio", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  const conv = await isParticipant(id, auth.userId);
+  if (!conv) {
+    res.status(403).json({ error: "Not authorized" });
+    return;
+  }
+
+  const otherId = conv.user1_id === auth.userId ? conv.user2_id : conv.user1_id;
+  if (await isBlockedBetween(auth.userId, otherId)) {
+    res.status(403).json({ error: "No puedes enviar contenido a este usuario" });
+    return;
+  }
+  if (await isUnavailable(otherId)) {
+    res.status(404).json({ error: "Perfil no disponible" });
+    return;
+  }
+
+  const { base64, mime_type } = req.body as {
+    base64?: string;
+    mime_type?: string;
+  };
+
+  if (!base64 || !mime_type) {
+    res.status(400).json({ error: "base64 and mime_type are required" });
+    return;
+  }
+
+  const decoded = decodeMedia(base64, mime_type, "audio");
+  if (!decoded.ok) {
+    res.status(400).json({ error: decoded.error });
+    return;
+  }
+
+  try {
+    const url = await uploadChatObject(
+      chatMediaPath(auth.userId, id, decoded.value),
+      decoded.value,
+    );
+    res.status(201).json({ audio_url: url });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "chat audio upload: error",
+    );
+    res.status(400).json({ error: "No se pudo subir la nota de voz" });
+  }
 });
 
 router.post("/conversations/:id/read", async (req, res) => {

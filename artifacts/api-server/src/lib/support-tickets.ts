@@ -19,6 +19,7 @@ import {
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { hasGold } from "./entitlement.js";
+import { clampAudioDuration } from "./chat-media.js";
 
 /**
  * Priority support chat — all ticket transitions live here so routes never
@@ -82,8 +83,20 @@ export interface MessageView {
   ticketId: string;
   senderId: string;
   senderRole: SupportActorRole;
-  body: string;
+  // Nullable: an attachment-only message (photo or voice note) has no body.
+  body: string | null;
+  imageUrl: string | null;
+  audioUrl: string | null;
+  audioDuration: number | null;
   createdAt: string;
+}
+
+/** Attachment payload accepted alongside (or instead of) a text body. */
+export interface MessageAttachments {
+  body?: string | null;
+  imageUrl?: string | null;
+  audioUrl?: string | null;
+  audioDuration?: number | null;
 }
 
 export interface TicketDetail {
@@ -116,6 +129,9 @@ function mapMessage(m: SupportTicketMessageRow): MessageView {
     senderId: m.senderId,
     senderRole: m.senderRole,
     body: m.body,
+    imageUrl: m.imageUrl,
+    audioUrl: m.audioUrl,
+    audioDuration: m.audioDuration,
     createdAt: m.createdAt.toISOString(),
   };
 }
@@ -148,12 +164,24 @@ function mapTicket(
   return base;
 }
 
-function previewOf(body: string): string {
-  const flat = body.replace(/\s+/g, " ").trim();
-  return flat.length > PREVIEW_LEN ? `${flat.slice(0, PREVIEW_LEN)}…` : flat;
+/**
+ * One-line preview for a message: the trimmed text body, or an emoji label for
+ * an attachment-only message (photo / voice note). Used by the ticket list, the
+ * detail header, and the outbound email notifications.
+ */
+function previewOf(m: {
+  body: string | null;
+  imageUrl: string | null;
+  audioUrl: string | null;
+}): string {
+  const text = m.body?.replace(/\s+/g, " ").trim() ?? "";
+  if (text) return text.length > PREVIEW_LEN ? `${text.slice(0, PREVIEW_LEN)}…` : text;
+  if (m.imageUrl) return "📷 Foto";
+  if (m.audioUrl) return "🎤 Nota de voz";
+  return "";
 }
 
-/** Latest message body per ticket, in one query (no N+1). */
+/** Latest message preview per ticket, in one query (no N+1). */
 async function loadPreviews(ticketIds: string[]): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (ticketIds.length === 0) return map;
@@ -161,6 +189,8 @@ async function loadPreviews(ticketIds: string[]): Promise<Map<string, string>> {
     .selectDistinctOn([supportTicketMessagesTable.ticketId], {
       ticketId: supportTicketMessagesTable.ticketId,
       body: supportTicketMessagesTable.body,
+      imageUrl: supportTicketMessagesTable.imageUrl,
+      audioUrl: supportTicketMessagesTable.audioUrl,
     })
     .from(supportTicketMessagesTable)
     .where(inArray(supportTicketMessagesTable.ticketId, ticketIds))
@@ -168,7 +198,7 @@ async function loadPreviews(ticketIds: string[]): Promise<Map<string, string>> {
       supportTicketMessagesTable.ticketId,
       desc(supportTicketMessagesTable.createdAt),
     );
-  for (const r of rows) map.set(r.ticketId, previewOf(r.body));
+  for (const r of rows) map.set(r.ticketId, previewOf(r));
   return map;
 }
 
@@ -408,7 +438,7 @@ export async function getTicketDetail(
   const fresh = (await loadTicketRow(ticketId)) ?? row;
   const messages = await loadMessages(ticketId);
   const preview = messages.length
-    ? previewOf(messages[messages.length - 1]!.body)
+    ? previewOf(messages[messages.length - 1]!)
     : null;
   const owner =
     viewer === "admin"
@@ -470,12 +500,17 @@ export async function postMessage(
   ticketId: string,
   senderId: string,
   isAdmin: boolean,
-  body: string,
+  input: MessageAttachments,
 ): Promise<TicketDetail | null> {
   const row = await authorizeTicket(ticketId, senderId, isAdmin);
   if (!row) return null;
   const senderRole: SupportActorRole =
     row.userId === senderId ? "user" : "admin";
+
+  const body = input.body?.trim() || null;
+  const imageUrl = input.imageUrl ?? null;
+  const audioUrl = input.audioUrl ?? null;
+  const audioDuration = audioUrl ? clampAudioDuration(input.audioDuration) : null;
 
   const now = new Date();
   const nextStatus: SupportTicketStatus =
@@ -491,6 +526,9 @@ export async function postMessage(
       senderId,
       senderRole,
       body,
+      imageUrl,
+      audioUrl,
+      audioDuration,
     });
     await tx
       .update(supportTicketsTable)

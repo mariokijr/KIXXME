@@ -14,10 +14,14 @@ import {
 } from "lucide-react";
 import { SupportDialog } from "@/components/support-dialog";
 import {
+  SupportComposer,
+  SupportMessageBubble,
+} from "@/components/support-chat";
+import { ImageLightbox } from "@/components/image-lightbox";
+import {
   useListSupportTickets,
   useGetSupportTicket,
   useOpenSupportTicket,
-  useSendSupportMessage,
   useGetMyProfile,
   getListSupportTicketsQueryKey,
   getGetSupportTicketQueryKey,
@@ -554,10 +558,9 @@ function TicketThread({
   ticketId: string;
   onBack: () => void;
 }) {
-  const { toast } = useToast();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
-  const [reply, setReply] = useState("");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useGetSupportTicket(ticketId, {
@@ -566,7 +569,6 @@ function TicketThread({
       refetchInterval: 5000,
     },
   });
-  const sendMessage = useSendSupportMessage();
 
   const ticket = data?.ticket;
   const messages = useMemo(() => data?.messages ?? [], [data?.messages]);
@@ -588,44 +590,15 @@ function TicketThread({
   // `false` locks the composer into a "Hazte Gold" upsell.
   const locked = ticket?.canReply === false;
 
-  const submit = () => {
-    const body = reply.trim();
-    if (body.length < 1) return;
-    sendMessage.mutate(
-      { id: ticketId, data: { body } },
-      {
-        onSuccess: () => {
-          setReply("");
-          qc.invalidateQueries({
-            queryKey: getGetSupportTicketQueryKey(ticketId),
-          });
-          qc.invalidateQueries({ queryKey: getListSupportTicketsQueryKey() });
-        },
-        onError: (error) => {
-          const status = (error as { status?: number } | null)?.status;
-          const code = (error as { data?: { code?: string } } | null)?.data
-            ?.code;
-          if (status === 402 || code === "gold_required") {
-            // Entitlement lapsed between loads — surface the Gold upsell and
-            // refresh so the composer locks on the next render.
-            toast({
-              title: "Necesitas KixxMe Gold",
-              description:
-                "Hazte Gold para enviar mensajes al soporte prioritario.",
-              variant: "destructive",
-            });
-            qc.invalidateQueries({
-              queryKey: getGetSupportTicketQueryKey(ticketId),
-            });
-            return;
-          }
-          toast({
-            title: "No se pudo enviar el mensaje",
-            variant: "destructive",
-          });
-        },
-      },
-    );
+  const handleSent = () => {
+    qc.invalidateQueries({ queryKey: getGetSupportTicketQueryKey(ticketId) });
+    qc.invalidateQueries({ queryKey: getListSupportTicketsQueryKey() });
+  };
+
+  const handleGoldRequired = () => {
+    // Entitlement lapsed between loads — refresh so the composer locks into the
+    // "Hazte Gold" upsell on the next render.
+    qc.invalidateQueries({ queryKey: getGetSupportTicketQueryKey(ticketId) });
   };
 
   return (
@@ -665,47 +638,16 @@ function TicketThread({
             Cargando conversación…
           </p>
         ) : (
-          messages.map((m) => {
-            const mine = m.senderRole === "user";
-            return (
-              <div
-                key={m.id}
-                className={`flex ${mine ? "justify-end" : "justify-start"}`}
-              >
-                <div className="max-w-[80%]">
-                  {!mine && (
-                    <p className="font-sans text-[10px] uppercase tracking-wider text-amber-400 mb-1 px-1">
-                      Soporte KixxMe
-                    </p>
-                  )}
-                  <div
-                    className={`px-3 py-2 rounded-2xl font-sans text-sm whitespace-pre-wrap break-words ${
-                      mine
-                        ? "text-white rounded-br-sm"
-                        : "text-foreground rounded-bl-sm border border-border/40"
-                    }`}
-                    style={
-                      mine
-                        ? {
-                            background:
-                              "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                          }
-                        : { background: "rgba(255,255,255,0.04)" }
-                    }
-                  >
-                    {m.body}
-                  </div>
-                  <p
-                    className={`font-sans text-[10px] text-muted-foreground mt-1 px-1 ${
-                      mine ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {timeAgo(m.createdAt)}
-                  </p>
-                </div>
-              </div>
-            );
-          })
+          messages.map((m) => (
+            <SupportMessageBubble
+              key={m.id}
+              message={m}
+              mine={m.senderRole === "user"}
+              topLabel="Soporte KixxMe"
+              footLabel={timeAgo(m.createdAt)}
+              onImageClick={setLightboxSrc}
+            />
+          ))
         )}
       </div>
 
@@ -737,77 +679,26 @@ function TicketThread({
             Hazte Gold
           </button>
         </div>
-      ) : isClosed ? (
-        <div className="px-4 py-3 border-t border-border/40 flex-shrink-0">
-          <p className="font-sans text-xs text-muted-foreground text-center">
-            Este ticket está cerrado. Si escribes un mensaje, se reabrirá.
-          </p>
-          <div className="flex items-end gap-2 mt-2">
-            <ReplyBox
-              value={reply}
-              onChange={setReply}
-              onSubmit={submit}
-              pending={sendMessage.isPending}
-            />
-          </div>
-        </div>
       ) : (
         <div
-          className="px-4 py-3 border-t border-border/40 flex items-end gap-2 flex-shrink-0"
+          className="px-4 py-3 border-t border-border/40 flex-shrink-0"
           style={{ background: "rgba(13,11,26,0.9)" }}
         >
-          <ReplyBox
-            value={reply}
-            onChange={setReply}
-            onSubmit={submit}
-            pending={sendMessage.isPending}
+          {isClosed && (
+            <p className="font-sans text-xs text-muted-foreground text-center mb-2">
+              Este ticket está cerrado. Si escribes un mensaje, se reabrirá.
+            </p>
+          )}
+          <SupportComposer
+            ticketId={ticketId}
+            onSent={handleSent}
+            onGoldRequired={handleGoldRequired}
           />
         </div>
       )}
+
+      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }
 
-function ReplyBox({
-  value,
-  onChange,
-  onSubmit,
-  pending,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  pending: boolean;
-}) {
-  return (
-    <>
-      <Textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={5000}
-        rows={1}
-        placeholder="Escribe un mensaje…"
-        className="resize-none min-h-[44px] max-h-32"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            onSubmit();
-          }
-        }}
-        data-testid="input-ticket-reply"
-      />
-      <button
-        type="button"
-        onClick={onSubmit}
-        disabled={pending || value.trim().length < 1}
-        className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl text-white disabled:opacity-50"
-        style={{
-          background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-        }}
-        data-testid="button-send-reply"
-      >
-        <Send className="w-5 h-5" />
-      </button>
-    </>
-  );
-}

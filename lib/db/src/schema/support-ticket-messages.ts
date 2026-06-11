@@ -1,4 +1,11 @@
-import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { supportTicketsTable, type SupportActorRole } from "./support-tickets";
 
 /**
@@ -11,6 +18,11 @@ import { supportTicketsTable, type SupportActorRole } from "./support-tickets";
  *
  * `senderRole` is derived server-side at insert time (owner → "user",
  * admin-and-not-owner → "admin") and never trusted from the client.
+ *
+ * A message carries at least one of `body` / `imageUrl` / `audioUrl` (enforced
+ * in app code, not SQL). Attachment URLs point at the public `support-media`
+ * Supabase bucket; `audioDuration` is the voice-note length in seconds (1–60),
+ * stored for display because webm/opus blobs report Infinity for their duration.
  */
 export const supportTicketMessagesTable = pgTable(
   "support_ticket_messages",
@@ -23,7 +35,11 @@ export const supportTicketMessagesTable = pgTable(
     senderId: uuid("sender_id").notNull(),
     // user | admin — derived server-side, never from the client.
     senderRole: text("sender_role").$type<SupportActorRole>().notNull(),
-    body: text("body").notNull(),
+    // Nullable: an attachment-only message (photo or voice note) has no body.
+    body: text("body"),
+    imageUrl: text("image_url"),
+    audioUrl: text("audio_url"),
+    audioDuration: integer("audio_duration"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

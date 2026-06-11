@@ -98,8 +98,11 @@ app.post(
   },
 );
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// 15 MB: a base64-encoded payload is ~33% larger than its bytes, so an 8 MB
+// chat photo arrives as ≈10.7 MB of JSON — a 10 MB cap would 413 it before any
+// route validation runs. Per-route decoded-size caps stay the real limits.
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 app.use("/api", router);
 

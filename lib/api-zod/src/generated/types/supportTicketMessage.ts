@@ -12,6 +12,10 @@ export interface SupportTicketMessage {
   ticketId: string;
   senderId: string;
   senderRole: SupportTicketMessageSenderRole;
-  body: string;
+  body: string | null;
+  imageUrl?: string | null;
+  audioUrl?: string | null;
+  /** Voice-note length in seconds (1–60) */
+  audioDuration?: number | null;
   createdAt: string;
 }

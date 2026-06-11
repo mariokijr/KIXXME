@@ -9,4 +9,10 @@
 export interface SendMessageRequest {
   content?: string;
   image_url?: string;
+  audio_url?: string;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  audio_duration?: number;
 }

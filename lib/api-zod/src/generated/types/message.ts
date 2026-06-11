@@ -12,6 +12,9 @@ export interface Message {
   sender_id: string;
   content?: string | null;
   image_url?: string | null;
+  audio_url?: string | null;
+  /** Voice-note length in seconds (1–60) */
+  audio_duration?: number | null;
   created_at: string;
   read_at?: string | null;
   deleted_at?: string | null;

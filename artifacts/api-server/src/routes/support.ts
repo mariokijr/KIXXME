@@ -20,6 +20,11 @@ import {
   notifySupportReplyByEmail,
   notifySupportNewMessageByEmail,
 } from "../lib/support-notifications.js";
+import {
+  decodeMedia,
+  uploadSupportObject,
+  supportMediaPath,
+} from "../lib/chat-media.js";
 
 const router = Router();
 
@@ -292,12 +297,25 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
     res.status(404).json({ error: "Ticket no encontrado" });
     return;
   }
-  const { body } = (req.body ?? {}) as { body?: unknown };
-  if (typeof body !== "string" || body.trim().length === 0) {
+  const { body, imageUrl, audioUrl, audioDuration } = (req.body ?? {}) as {
+    body?: unknown;
+    imageUrl?: unknown;
+    audioUrl?: unknown;
+    audioDuration?: unknown;
+  };
+
+  const text = typeof body === "string" ? body.trim() : "";
+  const image =
+    typeof imageUrl === "string" && imageUrl.length > 0 ? imageUrl : null;
+  const audio =
+    typeof audioUrl === "string" && audioUrl.length > 0 ? audioUrl : null;
+
+  // At least one of body / image / audio must be present.
+  if (!text && !image && !audio) {
     res.status(400).json({ error: "El mensaje es obligatorio" });
     return;
   }
-  if (body.length > MAX_BODY) {
+  if (text.length > MAX_BODY) {
     res.status(400).json({ error: "El mensaje es demasiado largo" });
     return;
   }
@@ -330,7 +348,12 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
   }
 
   try {
-    const detail = await postMessage(id, auth.userId, isAdmin, body.trim());
+    const detail = await postMessage(id, auth.userId, isAdmin, {
+      body: text || null,
+      imageUrl: image,
+      audioUrl: audio,
+      audioDuration: typeof audioDuration === "number" ? audioDuration : null,
+    });
     if (!detail) {
       res.status(404).json({ error: "Ticket no encontrado" });
       return;
@@ -340,11 +363,13 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
       // fire-and-forget; user-facing copy carries no sensitive info.
       void notifySupportReplyByEmail(detail.ticket.userId);
     } else if (!isAdmin) {
-      // The user wrote in their own ticket → nudge the support inbox.
+      // The user wrote in their own ticket → nudge the support inbox. For an
+      // attachment-only message use an emoji label as the preview line.
+      const preview = text || (image ? "📷 Foto" : "🎤 Nota de voz");
       void notifySupportNewMessageByEmail(
         auth.userId,
         detail.ticket.subject,
-        body.trim(),
+        preview,
         false,
       );
     }
@@ -355,6 +380,70 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
       "support ticket: failed to post message",
     );
     res.status(500).json({ error: "No se pudo enviar el mensaje" });
+  }
+});
+
+// Upload a photo or voice note for a support-ticket message. Returns a public
+// URL the client then attaches to POST /support/tickets/:id/messages. Runs the
+// SAME authorization + Gold gate as posting a message, so a non-participant or a
+// non-Gold owner of a premium ticket can never dump files into storage.
+router.post("/support/tickets/:id/attachments", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+
+  const isAdmin = isAdminEmail(auth.email);
+  const gate = await getTicketGate(id);
+  if (!gate) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const isOwner = gate.userId === auth.userId;
+  if (!isOwner && !isAdmin) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const isPremiumTicket =
+    gate.kind === "official" || gate.openedByRole === "user";
+  if (isOwner && !isAdmin && isPremiumTicket && !(await hasGold(auth.userId))) {
+    res.status(402).json({
+      error: "El chat de soporte prioritario es exclusivo de KixxMe Gold",
+      code: "gold_required",
+    });
+    return;
+  }
+
+  const { base64, mime_type } = req.body as {
+    base64?: string;
+    mime_type?: string;
+  };
+  if (!base64 || !mime_type) {
+    res.status(400).json({ error: "base64 and mime_type are required" });
+    return;
+  }
+
+  const decoded = decodeMedia(base64, mime_type);
+  if (!decoded.ok) {
+    res.status(400).json({ error: decoded.error });
+    return;
+  }
+
+  try {
+    const url = await uploadSupportObject(
+      supportMediaPath(auth.userId, id, decoded.value),
+      decoded.value,
+    );
+    res.status(201).json({ url });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support attachment upload: error",
+    );
+    res.status(400).json({ error: "No se pudo subir el archivo" });
   }
 });
 

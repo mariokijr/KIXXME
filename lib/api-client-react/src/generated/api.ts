@@ -100,8 +100,10 @@ import type {
   SuspendUserRequest,
   UpdateProfileRequest,
   UploadAvatar200,
+  UploadChatAudio201,
   UploadChatImage201,
   UploadPhotoRequest,
+  UploadSupportAttachment201,
   WarnUserRequest
 } from './api.schemas';
 
@@ -1816,6 +1818,78 @@ export const useUploadChatImage = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUploadChatImageMutationOptions(options));
     }
 
+export const getUploadChatAudioUrl = (id: string,) => {
+
+
+
+
+  return `/api/conversations/${id}/audio`
+}
+
+/**
+ * @summary Upload a voice note to send in a conversation
+ */
+export const uploadChatAudio = async (id: string,
+    avatarUploadRequest: AvatarUploadRequest, options?: RequestInit): Promise<UploadChatAudio201> => {
+
+  return customFetch<UploadChatAudio201>(getUploadChatAudioUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      avatarUploadRequest,)
+  }
+);}
+
+
+
+
+export const getUploadChatAudioMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatAudio>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadChatAudio>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext> => {
+
+const mutationKey = ['uploadChatAudio'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadChatAudio>>, {id: string;data: BodyType<AvatarUploadRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  uploadChatAudio(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadChatAudioMutationResult = NonNullable<Awaited<ReturnType<typeof uploadChatAudio>>>
+    export type UploadChatAudioMutationBody = BodyType<AvatarUploadRequest>
+    export type UploadChatAudioMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Upload a voice note to send in a conversation
+ */
+export const useUploadChatAudio = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatAudio>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadChatAudio>>,
+        TError,
+        {id: string;data: BodyType<AvatarUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getUploadChatAudioMutationOptions(options));
+    }
+
 export const getUpdateMyLocationUrl = () => {
 
 
@@ -3272,6 +3346,78 @@ export const useSendSupportMessage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getSendSupportMessageMutationOptions(options));
+    }
+
+export const getUploadSupportAttachmentUrl = (id: string,) => {
+
+
+
+
+  return `/api/support/tickets/${id}/attachments`
+}
+
+/**
+ * @summary Upload a photo or voice note for a support ticket message
+ */
+export const uploadSupportAttachment = async (id: string,
+    avatarUploadRequest: AvatarUploadRequest, options?: RequestInit): Promise<UploadSupportAttachment201> => {
+
+  return customFetch<UploadSupportAttachment201>(getUploadSupportAttachmentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      avatarUploadRequest,)
+  }
+);}
+
+
+
+
+export const getUploadSupportAttachmentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSupportAttachment>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadSupportAttachment>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext> => {
+
+const mutationKey = ['uploadSupportAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadSupportAttachment>>, {id: string;data: BodyType<AvatarUploadRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  uploadSupportAttachment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadSupportAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSupportAttachment>>>
+    export type UploadSupportAttachmentMutationBody = BodyType<AvatarUploadRequest>
+    export type UploadSupportAttachmentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Upload a photo or voice note for a support ticket message
+ */
+export const useUploadSupportAttachment = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSupportAttachment>>, TError,{id: string;data: BodyType<AvatarUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadSupportAttachment>>,
+        TError,
+        {id: string;data: BodyType<AvatarUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getUploadSupportAttachmentMutationOptions(options));
     }
 
 export const getGetOfficialSupportTicketUrl = () => {
