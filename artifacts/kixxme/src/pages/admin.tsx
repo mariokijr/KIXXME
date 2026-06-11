@@ -77,6 +77,7 @@ import {
   Users,
   RotateCcw,
   Mail,
+  Calendar,
   LifeBuoy,
   Send,
   Plus,
@@ -1883,6 +1884,12 @@ function UserDetailDialog({
                 <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
                   <Mail className="w-3.5 h-3.5" />
                   <span className="truncate">{data.email}</span>
+                </div>
+              )}
+              {user.createdAt && (
+                <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Registrado el {fmtDate(user.createdAt)}</span>
                 </div>
               )}
               <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
