@@ -1,0 +1,135 @@
+Perfecto. Quiero revisar varias cosas importantes antes de dar por cerrado el sistema de soporte, mensajes, emails y login.
+
+Primero, hay un fallo importante con Google Login:
+
+* Cuando intento registrarme o iniciar sesión con Google desde la pantalla inicial, aparece un error y no deja continuar.
+* Revisa la integración completa de Google Login.
+* Comprueba que el proveedor esté correctamente configurado.
+* Comprueba las URLs de redirección.
+* Comprueba el flujo completo de registro e inicio de sesión.
+* Quiero una prueba real de extremo a extremo para verificar que funciona correctamente.
+
+Además, hay otro fallo importante con los enlaces de los emails:
+
+* Cuando KixxMe envía un correo y pulso el botón/enlace para abrir la web o la app, no abre correctamente.
+* Aparece una pantalla de error de Replit que dice: “Run this app to see the results here”.
+* Quiero que revises todos los enlaces que se envían por email.
+* Los botones de los emails deben abrir correctamente KixxMe.
+* No deben llevar a una URL rota, preview incorrecto o enlace interno de Replit que no funcione.
+* Cuando la app esté publicada, deben apuntar al dominio correcto.
+* Mientras esté en desarrollo, deben apuntar al enlace correcto que funcione.
+* Revisa especialmente los emails de soporte, recuperación de contraseña, verificación, reportes y notificaciones.
+
+También quiero comprobar el soporte premium Gold:
+
+1. El usuario Gold puede escribir al soporte.
+2. supportkixxme@gmail.com ve el mensaje iniciando sesión en la app.
+3. supportkixxme@gmail.com puede responder.
+4. El usuario Gold ve la respuesta dentro de Mensajes.
+5. Al usuario le llega un email avisando de que soporte respondió.
+6. A supportkixxme@gmail.com le llega un email cuando un usuario escribe al soporte.
+7. Si el usuario deja de ser Gold, mantiene el historial pero no puede enviar nuevos mensajes.
+
+Quiero confirmar que funciona todo de extremo a extremo.
+
+Además, quiero revisar que:
+
+* La conversación de Soporte KixxMe siga apareciendo fijada arriba para los usuarios Gold.
+* El sistema de mensajes no tenga retrasos.
+* Las notificaciones funcionen correctamente.
+* Los emails tengan un diseño profesional con branding KixxMe y un botón para volver a la aplicación.
+* Los enlaces de los emails funcionen correctamente en móvil.
+
+También quiero añadir una mejora importante al sistema de mensajería:
+
+Envío de fotos
+
+Quiero que los usuarios puedan enviar fotos dentro de los chats.
+
+Tanto:
+
+* Usuario ↔ Usuario cuando hagan match.
+* Usuario Gold ↔ Soporte KixxMe.
+
+Necesito:
+
+* Botón para adjuntar imagen.
+* Vista previa antes de enviar.
+* Poder abrir la foto a pantalla completa.
+* Poder ampliar la imagen.
+* Moderación y límites de tamaño para evitar abusos.
+
+Envío de audios
+
+También quiero que los usuarios puedan enviarse notas de voz.
+
+Tanto:
+
+* Usuario ↔ Usuario.
+* Usuario Gold ↔ Soporte KixxMe.
+
+Necesito:
+
+* Botón para grabar audio.
+* Reproducir audio dentro del chat.
+* Mostrar duración.
+* Poder pausar y reanudar.
+* Diseño moderno similar a WhatsApp, Telegram o Instagram.
+
+Correos electrónicos
+
+Quiero mejorar completamente la imagen de marca en los correos.
+
+Actualmente los correos llegan demasiado básicos.
+
+Quiero que todos los emails enviados por KixxMe tengan:
+
+* El logo oficial de KixxMe.
+* La letra “K” de la marca como imagen principal.
+* Cabecera profesional.
+* Diseño moderno y premium.
+* Colores corporativos de KixxMe.
+* Pie de email profesional.
+
+Además quiero que la imagen de perfil del remitente sea la K de KixxMe siempre que sea posible.
+
+Quiero que cualquier correo de:
+
+* Registro.
+* Recuperación de contraseña.
+* Soporte.
+* Verificación.
+* Reportes.
+* Advertencias.
+* Suspensiones.
+* Gold.
+* Notificaciones.
+
+Mantenga la misma identidad visual de marca.
+
+Ejemplo:
+
+💜 KixxMe
+Logo K visible
+Diseño profesional
+Botón principal destacado
+Enlaces legales al final
+
+Quiero que cuando alguien reciba un correo identifique inmediatamente que proviene de KixxMe y que transmita confianza y profesionalidad.
+
+Importante
+
+Quiero que fotos, audios, soporte y correos queden integrados en el sistema real, no como funciones separadas.
+
+Además quiero pruebas reales para verificar:
+
+* Usuario envía foto → el otro usuario la recibe.
+* Usuario envía audio → el otro usuario lo recibe.
+* Usuario Gold envía foto al soporte → soporte la recibe.
+* Usuario Gold envía audio al soporte → soporte lo recibe.
+* Soporte responde con foto o audio → el usuario lo recibe correctamente.
+* Los correos mantienen la identidad visual de KixxMe.
+* Los enlaces de los correos abren correctamente la app/web.
+* El login con Google funciona correctamente de extremo a extremo.
+
+Por favor, revisa todo esto y realiza pruebas reales antes de darlo por terminado.
