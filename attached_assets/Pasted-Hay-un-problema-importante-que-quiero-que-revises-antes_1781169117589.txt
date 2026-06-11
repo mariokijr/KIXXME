@@ -1,0 +1,43 @@
+Hay un problema importante que quiero que revises antes de seguir con el despliegue.
+
+He iniciado sesión en dos móviles distintos con las dos cuentas que tienen acceso Gold de testing:
+
+* mariokimbm2003@gmail.com
+* saraolivaz20@gmail.com
+
+Las dos pueden entrar en Live correctamente, pero cuando ambas buscan videollamada al mismo tiempo no llegan a emparejarse.
+
+Por favor, revisa qué está ocurriendo porque debería producirse el match automáticamente entre ellas y no está sucediendo.
+
+Quiero que investigues específicamente:
+
+* Si ambas cuentas están entrando realmente en la cola de matchmaking.
+* Si el backend está recibiendo las solicitudes de búsqueda de ambas cuentas.
+* Si existe algún filtro que impida emparejar usuarios de testing.
+* Si hay errores en los logs relacionados con Live, matchmaking o WebSocket.
+* Si el estado Gold de testing está siendo reconocido correctamente durante el emparejamiento.
+* Si el algoritmo de matching está descartando a alguno de los dos usuarios.
+* Si las colas están funcionando correctamente en producción.
+* Si el countdown/reveal se está generando o si el match nunca llega a crearse.
+
+Antes de continuar con más cambios quiero un diagnóstico exacto del motivo por el que dos usuarios Gold buscando al mismo tiempo no consiguen emparejarse.
+
+Respecto a APP_BASE_URL:
+
+Prefiero esperar a tener el dominio kixxme.com adjuntado antes de fijarlo.
+
+No quiero poner APP_BASE_URL ahora con un valor provisional para evitar que los enlaces de emails, reset password, Stripe o Supabase apunten a un dominio incorrecto.
+
+De momento deja APP_BASE_URL sin definir y que siga usando el fallback actual.
+
+Después de resolver el problema del matchmaking, seguimos con:
+
+1. Publicar la app.
+2. Probar KixxMe Live con las dos cuentas Gold de testing.
+3. Verificar vídeo, audio, cambio de cámara, colgar, bloquear y reportar.
+4. Adjuntar kixxme.com al deployment.
+5. Añadir kixxme.com en Supabase Redirect URLs.
+6. Configurar APP_BASE_URL=https://kixxme.com.
+7. Repetir pruebas completas en el dominio final.
+
+No configures APP_BASE_URL hasta que el dominio esté conectado y funcionando.
