@@ -524,6 +524,12 @@ export interface UploadPhotoRequest {
   set_as_avatar?: boolean;
 }
 
+export interface ReplacePhotoRequest {
+  base64: string;
+  mime_type: string;
+  filename: string;
+}
+
 export interface ProfilePhoto {
   id: string;
   user_id: string;

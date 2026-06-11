@@ -3,13 +3,11 @@ import {
   useGetMyProfile,
   getGetMyProfileQueryKey,
   useUpdateMyProfile,
-  useUploadAvatar,
   useListMyPhotos,
-  getListMyPhotosQueryKey,
   useUploadPhoto,
+  useReplacePhoto,
   useDeletePhoto,
   useSetPhotoAsAvatar,
-  useReorderPhotos,
   useGetMyModeration,
   getGetMyModerationQueryKey,
   ProfilePhoto,
@@ -33,7 +31,6 @@ import {
   Loader2,
   BadgeCheck,
   Navigation,
-  ChevronUp,
   ChevronDown,
   LifeBuoy,
   MessageCircle,
@@ -65,12 +62,11 @@ export default function Profile() {
   const isAdmin = !!moderation?.isAdmin;
 
   const updateProfile = useUpdateMyProfile();
-  const uploadAvatar = useUploadAvatar();
   const { data: photos = [], refetch: refetchPhotos } = useListMyPhotos();
   const uploadPhoto = useUploadPhoto();
+  const replacePhoto = useReplacePhoto();
   const deletePhoto = useDeletePhoto();
   const setAvatarPhoto = useSetPhotoAsAvatar();
-  const reorderPhotos = useReorderPhotos();
   const geo = useGeolocation();
 
   const [username, setUsername] = useState("");
@@ -162,25 +158,9 @@ export default function Profile() {
     );
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const b64 = (ev.target?.result as string).split(",")[1];
-      uploadAvatar.mutate(
-        { data: { base64: b64, mime_type: file.type, filename: file.name } },
-        {
-          onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); toast({ title: "¡Foto actualizada!" }); },
-          onError: (err: any) => { toast({ title: "Error subiendo foto", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
-        }
-      );
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -196,7 +176,29 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
+  const handleReplacePhoto = (photoId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const b64 = (ev.target?.result as string).split(",")[1];
+      replacePhoto.mutate(
+        { photoId, data: { base64: b64, mime_type: file.type, filename: file.name } },
+        {
+          onSuccess: () => { refetchPhotos(); queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); toast({ title: "¡Foto actualizada!" }); },
+          onError: (err: any) => { toast({ title: "Error cambiando foto", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDeletePhoto = (photoId: string) => {
+    if (photos.length <= 1) {
+      toast({ title: "Debes mantener al menos una foto en tu perfil.", variant: "destructive" });
+      return;
+    }
     deletePhoto.mutate(
       { photoId },
       {
@@ -212,24 +214,6 @@ export default function Profile() {
       {
         onSuccess: () => { refetchPhotos(); queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() }); toast({ title: "¡Foto de perfil actualizada!" }); },
         onError: (err: any) => { toast({ title: "Error", description: err?.data?.error ?? err?.message, variant: "destructive" }); },
-      }
-    );
-  };
-
-  const handleReorder = (index: number, dir: -1 | 1) => {
-    const target = index + dir;
-    if (target < 0 || target >= photos.length) return;
-    const next = [...photos];
-    [next[index], next[target]] = [next[target], next[index]];
-    queryClient.setQueryData(getListMyPhotosQueryKey(), next);
-    reorderPhotos.mutate(
-      { data: { photo_ids: next.map((p) => p.id) } },
-      {
-        onError: (err: any) => {
-          refetchPhotos();
-          toast({ title: "No se pudo reordenar", description: err?.data?.error ?? err?.message, variant: "destructive" });
-        },
-        onSuccess: () => refetchPhotos(),
       }
     );
   };
@@ -268,7 +252,15 @@ export default function Profile() {
     );
   }
 
-  const canAddMore = photos.length < 4;
+  const ordered = [...photos].sort((a, b) => {
+    if (a.is_avatar && !b.is_avatar) return -1;
+    if (!a.is_avatar && b.is_avatar) return 1;
+    return (a.position ?? 0) - (b.position ?? 0);
+  });
+  const slots: (ProfilePhoto | null)[] = Array.from(
+    { length: 4 },
+    (_, i) => ordered[i] ?? null,
+  );
 
   return (
     <div>
@@ -304,7 +296,7 @@ export default function Profile() {
       )}
 
       <div className="px-4 pt-6 pb-4 flex flex-col items-center gap-3">
-        <div className="relative group" data-testid="avatar-container">
+        <div className="relative" data-testid="avatar-container">
           <Avatar className="w-28 h-28 border-2 border-primary/40 rounded-2xl"
             style={{ boxShadow: "0 0 30px rgba(168,85,247,0.25)" }}>
             {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
@@ -312,15 +304,6 @@ export default function Profile() {
               {profile.username?.slice(0, 2) || "KX"}
             </AvatarFallback>
           </Avatar>
-          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
-            <Camera className="w-8 h-8 text-white" />
-            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} data-testid="input-avatar-upload" />
-          </label>
-          {uploadAvatar.isPending && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-2xl">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            </div>
-          )}
         </div>
         {profile.is_verified ? (
           <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium text-sky-400 border border-sky-500/30"
@@ -363,37 +346,22 @@ export default function Profile() {
           <h2 className="font-display text-lg tracking-wide text-foreground/80">Mis fotos</h2>
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {photos.map((photo: ProfilePhoto, index: number) => (
+        <div className="grid grid-cols-2 gap-3">
+          {slots.map((photo, index) => (
             <PhotoSlot
-              key={photo.id}
+              key={photo?.id ?? `empty-${index}`}
               photo={photo}
-              index={index}
-              total={photos.length}
-              onDelete={() => handleDeletePhoto(photo.id)}
-              onSetAvatar={() => handleSetAvatar(photo.id)}
-              onMoveUp={() => handleReorder(index, -1)}
-              onMoveDown={() => handleReorder(index, 1)}
+              isMain={index === 0}
+              uploading={uploadPhoto.isPending}
+              replacing={replacePhoto.isPending}
               isDeleting={deletePhoto.isPending}
               isSettingAvatar={setAvatarPhoto.isPending}
+              onAdd={handleAddPhoto}
+              onReplace={(e) => photo && handleReplacePhoto(photo.id, e)}
+              onDelete={() => photo && handleDeletePhoto(photo.id)}
+              onSetAvatar={() => photo && handleSetAvatar(photo.id)}
             />
           ))}
-          {canAddMore && (
-            <label
-              className="relative rounded-xl overflow-hidden border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
-              style={{ aspectRatio: "1", background: "rgba(13,11,26,0.6)" }}
-            >
-              {uploadPhoto.isPending ? (
-                <Loader2 className="w-6 h-6 text-primary animate-spin" />
-              ) : (
-                <>
-                  <Plus className="w-6 h-6 text-muted-foreground" />
-                  <span className="font-sans text-[10px] text-muted-foreground mt-1">Añadir</span>
-                </>
-              )}
-              <input type="file" className="hidden" accept="image/*" onChange={handleAddPhoto} disabled={uploadPhoto.isPending} />
-            </label>
-          )}
         </div>
         <p className="font-sans text-[11px] text-muted-foreground/80 mt-3 leading-relaxed">
           Sube solo fotos tuyas y mantén la cara visible en la principal. No se
@@ -573,63 +541,99 @@ export default function Profile() {
 
 function PhotoSlot({
   photo,
-  index,
-  total,
-  onDelete,
-  onSetAvatar,
-  onMoveUp,
-  onMoveDown,
+  isMain,
+  uploading,
+  replacing,
   isDeleting,
   isSettingAvatar,
+  onAdd,
+  onReplace,
+  onDelete,
+  onSetAvatar,
 }: {
-  photo: ProfilePhoto;
-  index: number;
-  total: number;
-  onDelete: () => void;
-  onSetAvatar: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  photo: ProfilePhoto | null;
+  isMain: boolean;
+  uploading: boolean;
+  replacing: boolean;
   isDeleting: boolean;
   isSettingAvatar: boolean;
+  onAdd: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onReplace: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDelete: () => void;
+  onSetAvatar: () => void;
 }) {
+  // Empty slot — invite the user to add a photo here.
+  if (!photo) {
+    return (
+      <label
+        className="relative rounded-xl overflow-hidden border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+        style={{ aspectRatio: "1", background: "rgba(13,11,26,0.6)" }}
+        data-testid={isMain ? "slot-add-main" : "slot-add-photo"}
+      >
+        {uploading ? (
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        ) : (
+          <>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1.5"
+              style={{ background: "rgba(168,85,247,0.12)" }}>
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-sans text-[11px] text-muted-foreground text-center px-2">
+              {isMain ? "Añadir foto principal" : "Añadir foto"}
+            </span>
+          </>
+        )}
+        <input type="file" className="hidden" accept="image/*" onChange={onAdd} disabled={uploading} />
+      </label>
+    );
+  }
+
+  // Filled slot — show the photo plus per-photo actions.
+  const busy = replacing || isDeleting || isSettingAvatar;
   return (
-    <div className="relative rounded-xl overflow-hidden group border border-border/30"
-      style={{ aspectRatio: "1" }}>
+    <div
+      className="relative rounded-xl overflow-hidden border border-border/30"
+      style={{ aspectRatio: "1" }}
+      data-testid={isMain ? "photo-slot-main" : "photo-slot-extra"}
+    >
       <img src={photo.url} alt="" className="w-full h-full object-cover" />
+
       {photo.is_avatar && (
-        <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white"
           style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}>
-          <Star className="w-2.5 h-2.5 text-white" />
+          <Star className="w-2.5 h-2.5" fill="white" />
+          Principal
         </div>
       )}
-      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onMoveUp} disabled={index === 0}
-          className="w-6 h-6 flex items-center justify-center rounded-md text-white disabled:opacity-30"
-          style={{ background: "rgba(13,11,26,0.85)" }}
-          title="Mover antes">
-          <ChevronUp className="w-3.5 h-3.5" />
-        </button>
-        <button onClick={onMoveDown} disabled={index === total - 1}
-          className="w-6 h-6 flex items-center justify-center rounded-md text-white disabled:opacity-30"
-          style={{ background: "rgba(13,11,26,0.85)" }}
-          title="Mover después">
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="absolute inset-x-0 bottom-0 p-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+
+      {busy && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 p-2 flex items-center justify-center gap-2"
+        style={{ background: "linear-gradient(to top, rgba(8,7,18,0.92), transparent)" }}>
         {!photo.is_avatar && (
           <button onClick={onSetAvatar} disabled={isSettingAvatar}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-white"
-            style={{ background: "rgba(168,85,247,0.8)" }}
-            title="Usar como perfil">
-            <Star className="w-3.5 h-3.5" />
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-white disabled:opacity-50"
+            style={{ background: "rgba(168,85,247,0.85)" }}
+            title="Elegir como principal" data-testid="button-set-main">
+            <Star className="w-4 h-4" />
           </button>
         )}
+        <label
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-white cursor-pointer"
+          style={{ background: "rgba(255,255,255,0.16)" }}
+          title="Cambiar foto" data-testid="button-replace-photo">
+          <Camera className="w-4 h-4" />
+          <input type="file" className="hidden" accept="image/*" onChange={onReplace} disabled={replacing} />
+        </label>
         <button onClick={onDelete} disabled={isDeleting}
-          className="w-7 h-7 flex items-center justify-center rounded-lg text-white"
-          style={{ background: "rgba(239,68,68,0.8)" }}
-          title="Eliminar">
-          <Trash2 className="w-3.5 h-3.5" />
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-white disabled:opacity-50"
+          style={{ background: "rgba(239,68,68,0.85)" }}
+          title="Eliminar foto" data-testid="button-delete-photo">
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>

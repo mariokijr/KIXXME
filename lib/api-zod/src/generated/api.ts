@@ -294,6 +294,30 @@ export const UploadPhotoBody = zod.object({
 
 
 /**
+ * @summary Replace a profile photo's image in place
+ */
+export const ReplacePhotoParams = zod.object({
+  "photoId": zod.coerce.string()
+})
+
+export const ReplacePhotoBody = zod.object({
+  "base64": zod.string(),
+  "mime_type": zod.string(),
+  "filename": zod.string()
+})
+
+export const ReplacePhotoResponse = zod.object({
+  "id": zod.string(),
+  "user_id": zod.string(),
+  "url": zod.string(),
+  "storage_path": zod.string(),
+  "is_avatar": zod.boolean(),
+  "position": zod.number(),
+  "created_at": zod.string().optional()
+})
+
+
+/**
  * @summary Delete a profile photo
  */
 export const DeletePhotoParams = zod.object({

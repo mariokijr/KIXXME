@@ -109,6 +109,7 @@ export * from './refreshSession200';
 export * from './refreshSessionBody';
 export * from './removeUserRequest';
 export * from './reorderPhotosRequest';
+export * from './replacePhotoRequest';
 export * from './requestVerificationBody';
 export * from './requestVerificationBodySelfieMimeType';
 export * from './resetPasswordRequest';

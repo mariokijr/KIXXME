@@ -174,7 +174,7 @@ router.delete("/profiles/me/photos/:photoId", async (req, res) => {
 
   if ((count ?? 0) <= 1) {
     res.status(400).json({
-      error: "No puedes eliminar tu única foto. Sube otra antes de borrar esta.",
+      error: "Debes mantener al menos una foto en tu perfil.",
     });
     return;
   }
@@ -215,6 +215,92 @@ router.patch("/profiles/me/photos/:photoId/avatar", async (req, res) => {
     .eq("id", auth.userId);
 
   res.json({ success: true });
+});
+
+// Replace an existing photo's image in place (the "Cambiar" action). Keeps the
+// row's position + is_avatar flag so the slot layout is stable and the
+// MAX_PHOTOS cap / "last photo" rules are never tripped by a swap. Uploads the
+// new object FIRST, then repoints the row, then removes the old object — so a
+// mid-way failure never destroys the existing image.
+router.put("/profiles/me/photos/:photoId", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { photoId } = req.params;
+  const { base64, mime_type, filename } = req.body as {
+    base64?: string;
+    mime_type?: string;
+    filename?: string;
+  };
+
+  if (!base64 || !mime_type || !filename) {
+    res.status(400).json({ error: "base64, mime_type, and filename are required" });
+    return;
+  }
+
+  const { data: photo, error: fetchError } = await supabase
+    .from("profile_photos")
+    .select("*")
+    .eq("id", photoId)
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+
+  if (fetchError || !photo) {
+    res.status(404).json({ error: "Photo not found" });
+    return;
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+  const newPath = `${auth.userId}/photos/${Date.now()}_${filename}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(newPath, buffer, { contentType: mime_type, upsert: false });
+
+  if (uploadError) {
+    req.log.error({ error: uploadError.message }, "photos PUT: storage upload error");
+    res.status(400).json({ error: uploadError.message });
+    return;
+  }
+
+  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(newPath);
+  const newUrl = urlData.publicUrl;
+
+  const { data: updated, error: updateError } = await supabase
+    .from("profile_photos")
+    .update({ url: newUrl, storage_path: newPath })
+    .eq("id", photoId)
+    .eq("user_id", auth.userId)
+    .select()
+    .single();
+
+  if (updateError || !updated) {
+    // Roll back the just-uploaded object so we never orphan storage.
+    await supabase.storage.from("avatars").remove([newPath]);
+    req.log.error({ error: updateError?.message }, "photos PUT: row update error");
+    res.status(400).json({ error: updateError?.message ?? "No se pudo actualizar la foto" });
+    return;
+  }
+
+  // Keep profiles.avatar_url in sync when the replaced photo is the main one —
+  // do this BEFORE removing the old object so the public avatar never briefly
+  // points at a just-deleted file.
+  if (photo.is_avatar) {
+    const { error: avatarError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: newUrl, updated_at: new Date().toISOString() })
+      .eq("id", auth.userId);
+    if (avatarError) {
+      req.log.error({ error: avatarError.message }, "photos PUT: avatar_url sync error");
+    }
+  }
+
+  // Remove the previous storage object (best-effort).
+  if (photo.storage_path && photo.storage_path !== newPath) {
+    await supabase.storage.from("avatars").remove([photo.storage_path]);
+  }
+
+  res.json(updated);
 });
 
 export default router;

@@ -451,6 +451,49 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /profiles/me/photos/{photoId}:
+    put:
+      operationId: replacePhoto
+      tags: [profiles]
+      summary: Replace a profile photo's image in place
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplacePhotoRequest"
+      responses:
+        "200":
+          description: Replaced photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhoto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deletePhoto
       tags: [profiles]
@@ -3062,6 +3105,17 @@ components:
           type: string
         set_as_avatar:
           type: boolean
+      required: [base64, mime_type, filename]
+
+    ReplacePhotoRequest:
+      type: object
+      properties:
+        base64:
+          type: string
+        mime_type:
+          type: string
+        filename:
+          type: string
       required: [base64, mime_type, filename]
 
     ProfilePhoto:

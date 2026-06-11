@@ -78,6 +78,7 @@ import type {
   RefreshSessionBody,
   RemoveUserRequest,
   ReorderPhotosRequest,
+  ReplacePhotoRequest,
   RequestVerificationBody,
   ResetPasswordRequest,
   ResolveReportRequest,
@@ -1230,6 +1231,78 @@ export const useUploadPhoto = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUploadPhotoMutationOptions(options));
+    }
+
+export const getReplacePhotoUrl = (photoId: string,) => {
+
+
+
+
+  return `/api/profiles/me/photos/${photoId}`
+}
+
+/**
+ * @summary Replace a profile photo's image in place
+ */
+export const replacePhoto = async (photoId: string,
+    replacePhotoRequest: ReplacePhotoRequest, options?: RequestInit): Promise<ProfilePhoto> => {
+
+  return customFetch<ProfilePhoto>(getReplacePhotoUrl(photoId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      replacePhotoRequest,)
+  }
+);}
+
+
+
+
+export const getReplacePhotoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replacePhoto>>, TError,{photoId: string;data: BodyType<ReplacePhotoRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replacePhoto>>, TError,{photoId: string;data: BodyType<ReplacePhotoRequest>}, TContext> => {
+
+const mutationKey = ['replacePhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replacePhoto>>, {photoId: string;data: BodyType<ReplacePhotoRequest>}> = (props) => {
+          const {photoId,data} = props ?? {};
+
+          return  replacePhoto(photoId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplacePhotoMutationResult = NonNullable<Awaited<ReturnType<typeof replacePhoto>>>
+    export type ReplacePhotoMutationBody = BodyType<ReplacePhotoRequest>
+    export type ReplacePhotoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Replace a profile photo's image in place
+ */
+export const useReplacePhoto = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replacePhoto>>, TError,{photoId: string;data: BodyType<ReplacePhotoRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replacePhoto>>,
+        TError,
+        {photoId: string;data: BodyType<ReplacePhotoRequest>},
+        TContext
+      > => {
+      return useMutation(getReplacePhotoMutationOptions(options));
     }
 
 export const getDeletePhotoUrl = (photoId: string,) => {
