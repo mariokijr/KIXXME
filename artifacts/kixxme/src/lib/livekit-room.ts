@@ -6,6 +6,7 @@ import {
   ConnectionState,
   type RemoteTrack,
   type LocalTrackPublication,
+  type LocalVideoTrack,
 } from "livekit-client";
 
 /**
@@ -53,6 +54,10 @@ export interface LiveKitCall {
   attachLocalVideo: (el: HTMLVideoElement | null) => void;
   /** Resume audio after an autoplay block; call from a user gesture. */
   resumeAudio: () => void;
+  /** True when more than one camera exists (mobile front/back switch). */
+  canSwitchCamera: boolean;
+  /** Flip between the front and back camera. */
+  switchCamera: () => void;
 }
 
 interface Params {
@@ -83,6 +88,7 @@ export function useLiveKitCall({
   const [status, setStatus] = useState<LiveKitStatus>("idle");
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const [mediaError, setMediaError] = useState(false);
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
 
   // Room + element/track refs shared by the connect effect and the ref callbacks.
   const roomRef = useRef<Room | null>(null);
@@ -92,6 +98,7 @@ export function useLiveKitCall({
   const localTrackRef = useRef<Track | null>(null);
   const remoteVideoTrackRef = useRef<RemoteTrack | null>(null);
   const remoteAudioTrackRef = useRef<RemoteTrack | null>(null);
+  const facingModeRef = useRef<"user" | "environment">("user");
 
   // --- Latch credentials once per call -------------------------------------
   useEffect(() => {
@@ -125,6 +132,37 @@ export function useLiveKitCall({
 
   const resumeAudio = useCallback(() => {
     roomRef.current?.startAudio().catch(() => {});
+  }, []);
+
+  // Detect whether a second camera exists (front/back on mobile) so the UI can
+  // show the flip control only when it would actually do something.
+  const detectCameras = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter((d) => d.kind === "videoinput");
+      setCanSwitchCamera(cams.length > 1);
+    } catch {
+      setCanSwitchCamera(false);
+    }
+  }, []);
+
+  // Flip the published camera between front ("user") and back ("environment")
+  // by restarting the existing local video track in place — no re-publish, so
+  // the remote side sees a seamless source swap.
+  const switchCamera = useCallback(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+    const track = pub?.track as LocalVideoTrack | undefined;
+    if (!track) return;
+    const next = facingModeRef.current === "user" ? "environment" : "user";
+    track
+      .restartTrack({ facingMode: next })
+      .then(() => {
+        facingModeRef.current = next;
+        if (localElRef.current) track.attach(localElRef.current);
+      })
+      .catch(() => {});
   }, []);
 
   // --- Connect (only when the latch changes) -------------------------------
@@ -225,13 +263,14 @@ export function useLiveKitCall({
     const room = roomRef.current;
     if (!room || status !== "connected") return;
     room.localParticipant
-      .setCameraEnabled(camOn)
+      .setCameraEnabled(camOn, { facingMode: facingModeRef.current })
       .then((pub) => {
         if (pub?.track && localElRef.current) pub.track.attach(localElRef.current);
         setMediaError(false);
+        if (camOn) void detectCameras();
       })
       .catch(() => setMediaError(true));
-  }, [camOn, status]);
+  }, [camOn, status, detectCameras]);
 
   useEffect(() => {
     const room = roomRef.current;
@@ -249,5 +288,7 @@ export function useLiveKitCall({
     attachRemoteVideo,
     attachLocalVideo,
     resumeAudio,
+    canSwitchCamera,
+    switchCamera,
   };
 }

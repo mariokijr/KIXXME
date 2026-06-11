@@ -29,6 +29,7 @@ import {
   Mic,
   MicOff,
   PhoneOff,
+  SwitchCamera,
   Crown,
   Flag,
   Ban,
@@ -1126,6 +1127,11 @@ function InCall({
           <CtrlButton onClick={onToggleCam} active={camOn} testId="button-toggle-cam">
             {camOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </CtrlButton>
+          {live.canSwitchCamera && camOn && (
+            <CtrlButton onClick={live.switchCamera} testId="button-switch-camera">
+              <SwitchCamera className="w-5 h-5" />
+            </CtrlButton>
+          )}
           <button
             onClick={onEnd}
             disabled={ending}
