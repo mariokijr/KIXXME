@@ -29,6 +29,15 @@ open-redirect allowlist and unions the `APP_BASE_URL` host with `REPLIT_DOMAINS`
   `artifacts/kixxme/vite.config.ts` bakes them into the client bundle via
   `define` (public anon values). They must be present in the deployment build env.
 
+## www → apex redirect (the web is served STATIC in prod)
+
+`artifacts/kixxme` deploys with `serve = "static"` (no Node server at `/`), so a
+host-based 301 `www`→apex **cannot** be an Express/app middleware. Choose one:
+link **both** `kixxme.com` + `www.kixxme.com` in the Replit domain panel (both
+serve the app w/ SSL), OR do a registrar-level URL forward (301) of `www` to
+`https://kixxme.com` and link only the apex in Replit. The API (`/api`) is the
+only artifact that runs a real Node process in prod.
+
 ## What does NOT need changing
 
 - Stripe: checkout return URLs are validated dynamically (now allow the custom
