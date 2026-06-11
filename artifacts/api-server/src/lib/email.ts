@@ -114,11 +114,27 @@ function escapeHtml(value: string): string {
 }
 
 const BG = "#0a0814";
-const CARD = "#120d22";
-const BORDER = "#241a3d";
+const CARD = "#130e24";
+const BORDER = "#2a1f47";
 const TEXT = "#f4f1fb";
 const MUTED = "#a89fc4";
-const GRADIENT = "linear-gradient(135deg,#a855f7 0%,#ec4899 55%,#f97316 100%)";
+const FOOTER = "#6f6790";
+const LINK = "#f24da0";
+// Brand gradient — the neon purple→magenta→pink of the KixxMe "K + pin" mark.
+const GRADIENT = "linear-gradient(135deg,#a64df0 0%,#e84db8 52%,#f43f7e 100%)";
+// Solid fallback for clients (e.g. Outlook) that drop gradient backgrounds on
+// buttons, so the CTA is never invisible (white text on no background).
+const BRAND_SOLID = "#e0489f";
+
+/**
+ * Public URL of the KixxMe brand badge (the neon "K + pin" app icon), used as
+ * the email header logo. Resolves against `appBaseUrl()`; when no public base
+ * URL is configured the layout falls back to the text wordmark only.
+ */
+function emailLogoUrl(): string | undefined {
+  const base = appBaseUrl();
+  return base ? `${base}/icons/icon-192.png` : undefined;
+}
 
 interface EmailLayoutOptions {
   preheader: string;
@@ -129,18 +145,41 @@ interface EmailLayoutOptions {
 
 function renderEmail(opts: EmailLayoutOptions): string {
   const { preheader, heading, bodyHtml, cta } = opts;
+  const base = appBaseUrl();
+  const logoUrl = emailLogoUrl();
+  const year = new Date().getFullYear();
+
+  const header = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" width="60" height="60" alt="KixxMe"
+                 style="display:block;width:60px;height:60px;border-radius:16px;border:1px solid ${BORDER};" />`
+    : "";
+
   const ctaHtml = cta
     ? `
               <tr>
-                <td style="padding:8px 0 4px 0;">
+                <td align="center" style="padding:10px 0 4px 0;">
                   <a href="${escapeHtml(cta.url)}" target="_blank"
-                     style="display:inline-block;padding:14px 32px;border-radius:999px;
-                            background:${GRADIENT};color:#ffffff;font-weight:700;
-                            font-size:15px;text-decoration:none;letter-spacing:0.3px;">
+                     style="display:inline-block;padding:15px 38px;border-radius:999px;
+                            background:${BRAND_SOLID};background:${GRADIENT};
+                            color:#ffffff;font-weight:700;font-size:15px;
+                            text-decoration:none;letter-spacing:0.3px;
+                            box-shadow:0 8px 24px rgba(232,77,184,0.35);">
                     ${escapeHtml(cta.label)}
                   </a>
                 </td>
               </tr>`
+    : "";
+
+  // Legal/help links resolve against the public base URL; omitted when unknown
+  // so the email never carries a broken link.
+  const legalNav = base
+    ? `<div style="margin:0 0 12px 0;">
+              <a href="${base}/legal/privacidad" style="color:${FOOTER};text-decoration:none;">Privacidad</a>
+              &nbsp;&middot;&nbsp;
+              <a href="${base}/legal/terminos" style="color:${FOOTER};text-decoration:none;">T&eacute;rminos</a>
+              &nbsp;&middot;&nbsp;
+              <a href="${base}/support" style="color:${FOOTER};text-decoration:none;">Centro de ayuda</a>
+            </div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -159,22 +198,24 @@ function renderEmail(opts: EmailLayoutOptions): string {
     <td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:520px;background:${CARD};border:1px solid ${BORDER};
-                    border-radius:20px;overflow:hidden;
+                    border-radius:22px;overflow:hidden;
                     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
         <tr>
-          <td style="height:4px;background:${GRADIENT};font-size:0;line-height:0;">&nbsp;</td>
+          <td style="height:5px;background:${BRAND_SOLID};background:${GRADIENT};font-size:0;line-height:0;">&nbsp;</td>
         </tr>
         <tr>
-          <td style="padding:36px 36px 8px 36px;" align="center">
-            <div style="font-size:30px;font-weight:800;letter-spacing:1px;color:${TEXT};">
-              KIXX<span style="background:${GRADIENT};-webkit-background-clip:text;
-                              background-clip:text;color:#ec4899;">ME</span>
-              <span style="font-size:26px;">&#128293;</span>
+          <td style="padding:34px 36px 6px 36px;" align="center">
+            ${header}
+            <div style="margin-top:14px;font-size:26px;font-weight:800;letter-spacing:1.5px;color:${TEXT};">
+              KIXX<span style="color:${LINK};">ME</span>
+            </div>
+            <div style="margin-top:5px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${FOOTER};">
+              Conexiones que encienden
             </div>
           </td>
         </tr>
         <tr>
-          <td style="padding:18px 36px 0 36px;">
+          <td style="padding:22px 36px 0 36px;">
             <h1 style="margin:0 0 8px 0;font-size:22px;line-height:1.3;color:${TEXT};font-weight:800;">
               ${escapeHtml(heading)}
             </h1>
@@ -186,17 +227,23 @@ function renderEmail(opts: EmailLayoutOptions): string {
           </td>
         </tr>
         <tr>
-          <td style="padding:8px 36px 36px 36px;">
-            <table role="presentation" cellpadding="0" cellspacing="0">
+          <td style="padding:8px 36px 34px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               ${ctaHtml}
             </table>
           </td>
         </tr>
         <tr>
-          <td style="padding:20px 36px;border-top:1px solid ${BORDER};color:#6f6790;font-size:12px;line-height:1.6;">
-            ¿Necesitas ayuda? Escríbenos a
-            <a href="mailto:${SUPPORT_EMAIL}" style="color:#ec4899;text-decoration:none;">${SUPPORT_EMAIL}</a>.<br />
-            KixxMe · Conexiones que encienden.
+          <td style="padding:22px 36px 30px 36px;border-top:1px solid ${BORDER};color:${FOOTER};font-size:12px;line-height:1.7;" align="center">
+            ${legalNav}
+            <div style="margin-bottom:10px;">
+              &iquest;Necesitas ayuda? Escr&iacute;benos a
+              <a href="mailto:${SUPPORT_EMAIL}" style="color:${LINK};text-decoration:none;">${SUPPORT_EMAIL}</a>.
+            </div>
+            <div style="color:#5b5478;">
+              &copy; ${year} KixxMe &middot; Conexiones que encienden.<br />
+              Recibes este correo porque tienes una cuenta en KixxMe. Solo para mayores de 18 a&ntilde;os.
+            </div>
           </td>
         </tr>
       </table>
