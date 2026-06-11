@@ -158,7 +158,7 @@ check, or a LiveKit env issue at mint), `useLiveKitCall` never activates → tha
 user posts NO `liveDiag` lines at all. **Absence of one side's diag is itself
 evidence:** check that user's `GET /live/state` DTO for a null `mediaToken` and
 the partner's server snapshot (it will show only one participant). Don't read
-"no logs from Sara" as "diagnostics broken".
+"no logs from one participant" as "diagnostics broken".
 
 ## Where the real-device evidence lives: dev preview, NOT a deployment
 This repl has **no production deployment and no production Neon DB** (`executeSql

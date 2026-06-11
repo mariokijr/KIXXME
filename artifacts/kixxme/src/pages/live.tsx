@@ -355,11 +355,38 @@ function Header() {
   );
 }
 
+function GoldBadge({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 ${className}`}
+      style={{
+        borderColor: "rgba(234,179,8,0.4)",
+        background:
+          "linear-gradient(135deg, rgba(234,179,8,0.16), rgba(245,158,11,0.07))",
+      }}
+      data-testid="badge-gold-exclusive"
+    >
+      <span className="text-sm">💎</span>
+      <span className="font-sans text-xs font-semibold tracking-wide text-yellow-300">
+        Acceso exclusivo para miembros Gold
+      </span>
+    </div>
+  );
+}
+
+const GOLD_BENEFITS: { emoji: string; text: string }[] = [
+  { emoji: "🎥", text: "Videollamadas en directo ilimitadas" },
+  { emoji: "💬", text: "Llamadas privadas y conexiones más intensas" },
+  { emoji: "👑", text: "Prioridad y mayor visibilidad en el mapa" },
+  { emoji: "💖", text: "Likes y SuperLikes ilimitados" },
+  { emoji: "🛡️", text: "Soporte prioritario" },
+];
+
 function Paywall({ onUpgrade }: { onUpgrade: () => void }) {
   return (
-    <div className="min-h-full flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-full flex flex-col items-center px-6 pt-12 pb-10 text-center">
       <div
-        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5"
         style={{
           background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))",
           boxShadow: "0 0 50px rgba(234,179,8,0.4)",
@@ -373,22 +400,40 @@ function Paywall({ onUpgrade }: { onUpgrade: () => void }) {
           KIXXME LIVE
         </h1>
       </div>
-      <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-sm mb-8">
-        KixxMe Live es exclusivo para miembros Gold. Desbloquea videollamadas
-        aleatorias, llamadas privadas y conexiones más intensas dentro de
-        KixxMe.
+      <GoldBadge className="mb-5" />
+      <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-sm mb-7">
+        Conecta cara a cara al instante con videollamadas en directo. Hazte Gold
+        y desbloquea la experiencia más intensa de KixxMe.
       </p>
+      <div
+        className="w-full max-w-sm rounded-2xl border p-5 mb-7 text-left space-y-3.5"
+        style={{
+          borderColor: "rgba(234,179,8,0.25)",
+          background:
+            "linear-gradient(135deg, rgba(234,179,8,0.08), rgba(168,85,247,0.05))",
+        }}
+      >
+        {GOLD_BENEFITS.map((b) => (
+          <div key={b.text} className="flex items-center gap-3">
+            <span className="text-lg shrink-0">{b.emoji}</span>
+            <span className="font-sans text-sm text-foreground">{b.text}</span>
+          </div>
+        ))}
+      </div>
       <button
         onClick={onUpgrade}
-        className="w-full max-w-sm py-4 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+        className="w-full max-w-sm h-16 rounded-2xl font-display text-2xl tracking-widest text-white border-0 transition-transform hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center gap-2"
         style={{
           background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))",
-          boxShadow: "0 8px 30px rgba(234,179,8,0.3)",
+          boxShadow: "0 8px 30px rgba(234,179,8,0.35)",
         }}
         data-testid="button-upgrade-gold"
       >
         👑 Hazte Gold
       </button>
+      <p className="font-sans text-xs text-muted-foreground mt-4 max-w-sm">
+        Mejora tu cuenta y empieza a conectar en directo hoy mismo.
+      </p>
     </div>
   );
 }
@@ -598,6 +643,9 @@ function Idle({
   return (
     <div className="min-h-full pb-10">
       <Header />
+      <div className="flex justify-center mt-2 mb-4">
+        <GoldBadge />
+      </div>
       <div className="px-6 text-center mb-7">
         <h2 className="font-display text-[22px] leading-tight tracking-tight text-foreground normal-case mb-3">
           💜 Personas reales esperando conectar
