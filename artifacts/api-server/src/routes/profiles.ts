@@ -33,6 +33,8 @@ import {
   upsertProfileDetails,
   isValidRole,
   isValidLookingFor,
+  getTutorialCompletedAt,
+  markTutorialCompleted,
 } from "../lib/profile-details.js";
 import { getPhotoCountsForUsers } from "../lib/photos.js";
 import { LikeProfileBody } from "@workspace/api-zod";
@@ -364,12 +366,20 @@ router.get("/profiles/me", async (req, res) => {
       return;
     }
 
-    res.json({ ...created, role: null, looking_for: null });
+    res.json({
+      ...created,
+      role: null,
+      looking_for: null,
+      tutorial_completed: false,
+    });
     return;
   }
 
-  const details = await getProfileDetails(auth.userId);
-  res.json({ ...data, ...details });
+  const [details, tutorialCompletedAt] = await Promise.all([
+    getProfileDetails(auth.userId),
+    getTutorialCompletedAt(auth.userId),
+  ]);
+  res.json({ ...data, ...details, tutorial_completed: tutorialCompletedAt != null });
 });
 
 router.put("/profiles/me", async (req, res) => {
@@ -447,8 +457,36 @@ router.put("/profiles/me", async (req, res) => {
     }
   }
 
+  const [details, tutorialCompletedAt] = await Promise.all([
+    getProfileDetails(auth.userId),
+    getTutorialCompletedAt(auth.userId),
+  ]);
+  res.json({ ...data, ...details, tutorial_completed: tutorialCompletedAt != null });
+});
+
+// Mark the mandatory onboarding tutorial as completed (idempotent set-once).
+// Returns the full owner profile so the client can prime its cache and move on
+// to the mandatory-profile step without an extra round trip.
+router.post("/profiles/me/tutorial", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  await markTutorialCompleted(auth.userId);
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  if (error) {
+    req.log.error({ error: error.message }, "profiles/me/tutorial: query error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
   const details = await getProfileDetails(auth.userId);
-  res.json({ ...data, ...details });
+  res.json({ ...(data ?? { id: auth.userId }), ...details, tutorial_completed: true });
 });
 
 router.put("/profiles/me/location", async (req, res) => {

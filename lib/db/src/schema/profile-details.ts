@@ -19,6 +19,10 @@ export const profileDetailsTable = pgTable("profile_details", {
   role: text("role"),
   // Qué buscas: amistad | chat | citas | relacion | encuentros | lo_que_surja
   lookingFor: text("looking_for"),
+  // When the user finished the mandatory animated onboarding tutorial. NULL until
+  // completed; set once (never re-shown). Lives here (not Supabase) because the
+  // Supabase `profiles` schema is NOT DDL-modifiable from this repo.
+  tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

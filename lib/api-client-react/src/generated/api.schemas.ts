@@ -415,6 +415,9 @@ export interface Profile {
   role?: ProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: ProfileLookingFor;
+  /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
+   */
+  tutorial_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 }

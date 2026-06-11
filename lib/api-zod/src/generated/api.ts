@@ -135,6 +135,7 @@ export const GetMyProfileResponse = zod.object({
   "is_verified": zod.boolean().optional(),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -175,6 +176,32 @@ export const UpdateMyProfileResponse = zod.object({
   "is_verified": zod.boolean().optional(),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "created_at": zod.string().optional(),
+  "updated_at": zod.string().optional()
+})
+
+
+/**
+ * @summary Mark the mandatory onboarding tutorial as completed (idempotent)
+ */
+export const CompleteTutorialResponse = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "last_active_at": zod.string().nullish(),
+  "plan": zod.string().nullish(),
+  "is_verified": zod.boolean().optional(),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -501,6 +528,7 @@ export const UpdateMyLocationResponse = zod.object({
   "is_verified": zod.boolean().optional(),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })

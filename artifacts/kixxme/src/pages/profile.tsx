@@ -24,20 +24,24 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import {
   Share2,
-  Camera,
-  Plus,
-  Trash2,
-  Star,
   Loader2,
   BadgeCheck,
   Navigation,
-  ChevronDown,
   LifeBuoy,
   MessageCircle,
   MessageSquareWarning,
   Settings as SettingsIcon,
   ShieldAlert,
 } from "lucide-react";
+import { PhotoSlot } from "@/components/photo-slot";
+import { Field, SelectField } from "@/components/profile-fields";
+import {
+  type RoleValue,
+  type LookingForValue,
+  ROLE_OPTIONS,
+  LOOKING_FOR_OPTIONS,
+  computeMandatoryProfile,
+} from "@/lib/profile-form";
 import { SupportDialog } from "@/components/support-dialog";
 import { VerificationCard } from "@/components/verification-card";
 import { VisitorsCard } from "@/components/visitors-card";
@@ -113,16 +117,17 @@ export default function Profile() {
     // Calidad mínima: onboarding can't finish until the profile has a main photo
     // and the fields required to appear in Descubrir.
     if (isOnboarding) {
-      const hasMainPhoto = !!profile?.avatar_url || photos.length > 0;
-      const missing: string[] = [];
-      if (!hasMainPhoto) missing.push("una foto principal");
-      if (!username.trim()) missing.push("nombre de usuario");
-      if (bio.trim().length < 10) missing.push("una biografía (mín. 10 caracteres)");
-      if (age === "") missing.push("tu edad");
-      if (!city.trim()) missing.push("tu ciudad");
-      if (!role) missing.push("rol/preferencia");
-      if (!lookingFor) missing.push("qué buscas");
-      if (missing.length > 0) {
+      const { complete, missing } = computeMandatoryProfile({
+        username,
+        bio,
+        age: age !== "" ? Number(age) : null,
+        city,
+        role: role || null,
+        looking_for: lookingFor || null,
+        avatar_url: profile?.avatar_url,
+        photoCount: photos.length,
+      });
+      if (!complete) {
         toast({
           title: "Completa tu perfil para continuar",
           description: `Falta: ${missing.join(", ")}.`,
@@ -535,186 +540,6 @@ export default function Profile() {
         successTitle="Reporte enviado"
         successDescription="Gracias. Lo revisaremos lo antes posible."
       />
-    </div>
-  );
-}
-
-function PhotoSlot({
-  photo,
-  isMain,
-  uploading,
-  replacing,
-  isDeleting,
-  isSettingAvatar,
-  onAdd,
-  onReplace,
-  onDelete,
-  onSetAvatar,
-}: {
-  photo: ProfilePhoto | null;
-  isMain: boolean;
-  uploading: boolean;
-  replacing: boolean;
-  isDeleting: boolean;
-  isSettingAvatar: boolean;
-  onAdd: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onReplace: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onDelete: () => void;
-  onSetAvatar: () => void;
-}) {
-  // Empty slot — invite the user to add a photo here.
-  if (!photo) {
-    return (
-      <label
-        className="relative rounded-xl overflow-hidden border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-        style={{ aspectRatio: "1", background: "rgba(13,11,26,0.6)" }}
-        data-testid={isMain ? "slot-add-main" : "slot-add-photo"}
-      >
-        {uploading ? (
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-        ) : (
-          <>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1.5"
-              style={{ background: "rgba(168,85,247,0.12)" }}>
-              <Plus className="w-5 h-5 text-primary" />
-            </div>
-            <span className="font-sans text-[11px] text-muted-foreground text-center px-2">
-              {isMain ? "Añadir foto principal" : "Añadir foto"}
-            </span>
-          </>
-        )}
-        <input type="file" className="hidden" accept="image/*" onChange={onAdd} disabled={uploading} />
-      </label>
-    );
-  }
-
-  // Filled slot — show the photo plus per-photo actions.
-  const busy = replacing || isDeleting || isSettingAvatar;
-  return (
-    <div
-      className="relative rounded-xl overflow-hidden border border-border/30"
-      style={{ aspectRatio: "1" }}
-      data-testid={isMain ? "photo-slot-main" : "photo-slot-extra"}
-    >
-      <img src={photo.url} alt="" className="w-full h-full object-cover" />
-
-      {photo.is_avatar && (
-        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}>
-          <Star className="w-2.5 h-2.5" fill="white" />
-          Principal
-        </div>
-      )}
-
-      {busy && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-        </div>
-      )}
-
-      <div className="absolute inset-x-0 bottom-0 p-2 flex items-center justify-center gap-2"
-        style={{ background: "linear-gradient(to top, rgba(8,7,18,0.92), transparent)" }}>
-        {!photo.is_avatar && (
-          <button onClick={onSetAvatar} disabled={isSettingAvatar}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-white disabled:opacity-50"
-            style={{ background: "rgba(168,85,247,0.85)" }}
-            title="Elegir como principal" data-testid="button-set-main">
-            <Star className="w-4 h-4" />
-          </button>
-        )}
-        <label
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-white cursor-pointer"
-          style={{ background: "rgba(255,255,255,0.16)" }}
-          title="Cambiar foto" data-testid="button-replace-photo">
-          <Camera className="w-4 h-4" />
-          <input type="file" className="hidden" accept="image/*" onChange={onReplace} disabled={replacing} />
-        </label>
-        <button onClick={onDelete} disabled={isDeleting}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-white disabled:opacity-50"
-          style={{ background: "rgba(239,68,68,0.85)" }}
-          title="Eliminar foto" data-testid="button-delete-photo">
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-type RoleValue =
-  | "activo"
-  | "pasivo"
-  | "versatil"
-  | "heterocurioso"
-  | "flexible"
-  | "no_decir";
-type LookingForValue =
-  | "amistad"
-  | "chat"
-  | "citas"
-  | "relacion"
-  | "encuentros"
-  | "lo_que_surja";
-
-const ROLE_OPTIONS: { value: RoleValue; label: string }[] = [
-  { value: "activo", label: "Activo" },
-  { value: "pasivo", label: "Pasivo" },
-  { value: "versatil", label: "Versátil" },
-  { value: "heterocurioso", label: "Heterocurioso" },
-  { value: "flexible", label: "Flexible" },
-  { value: "no_decir", label: "Prefiero no decirlo" },
-];
-
-const LOOKING_FOR_OPTIONS: { value: LookingForValue; label: string }[] = [
-  { value: "amistad", label: "Amistad" },
-  { value: "chat", label: "Chat" },
-  { value: "citas", label: "Citas" },
-  { value: "relacion", label: "Relación seria" },
-  { value: "encuentros", label: "Encuentros" },
-  { value: "lo_que_surja", label: "Lo que surja" },
-];
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-  placeholder,
-  testId,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  placeholder: string;
-  testId?: string;
-}) {
-  return (
-    <Field label={label}>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-11 w-full rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary focus-visible:outline-none font-sans bg-input/40 text-sm px-3 pr-9 appearance-none text-foreground"
-          data-testid={testId}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
-      </div>
-    </Field>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="font-display text-base tracking-widest text-muted-foreground">{label}</label>
-      {children}
     </div>
   );
 }

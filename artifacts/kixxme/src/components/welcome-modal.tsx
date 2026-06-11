@@ -11,6 +11,19 @@ export function welcomeKey(userId: string) {
 }
 
 /**
+ * Clear the pending welcome flag for a user. Used by the onboarding tutorial,
+ * which supersedes the welcome modal — once the mandatory tour runs we never want
+ * the standalone welcome popping up later.
+ */
+export function clearWelcomePending(userId: string) {
+  try {
+    localStorage.removeItem(welcomeKey(userId));
+  } catch {
+    // localStorage unavailable — nothing to clear.
+  }
+}
+
+/**
  * Mounted once near the app root. After a successful registration the signup
  * flow writes `kixxme:welcome-pending:<userId>` to localStorage; this modal
  * shows once for that user and clears the flag on dismiss, so it never appears

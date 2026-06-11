@@ -1,5 +1,5 @@
 import { db, profileDetailsTable } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 /**
  * Extra profile attributes that don't exist on the Supabase `profiles` table
@@ -102,4 +102,40 @@ export async function upsertProfileDetails(
       lookingFor: values.lookingFor ?? null,
     })
     .onConflictDoUpdate({ target: profileDetailsTable.userId, set });
+}
+
+/**
+ * Whether the user has finished the mandatory onboarding tutorial. Kept as a
+ * dedicated accessor (not folded into getProfileDetails) because that helper's
+ * shape is spread verbatim into the public profile responses — the tutorial flag
+ * is private and must never leak there.
+ */
+export async function getTutorialCompletedAt(
+  userId: string,
+): Promise<Date | null> {
+  const [row] = await db
+    .select({ tutorialCompletedAt: profileDetailsTable.tutorialCompletedAt })
+    .from(profileDetailsTable)
+    .where(eq(profileDetailsTable.userId, userId))
+    .limit(1);
+  return row?.tutorialCompletedAt ?? null;
+}
+
+/**
+ * Mark the tutorial as completed exactly once. Idempotent: a repeat call keeps
+ * the original timestamp (COALESCE), so re-entry never resets it. Returns the
+ * effective completion time.
+ */
+export async function markTutorialCompleted(userId: string): Promise<Date> {
+  const [row] = await db
+    .insert(profileDetailsTable)
+    .values({ userId, tutorialCompletedAt: new Date() })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: {
+        tutorialCompletedAt: sql`coalesce(${profileDetailsTable.tutorialCompletedAt}, now())`,
+      },
+    })
+    .returning({ tutorialCompletedAt: profileDetailsTable.tutorialCompletedAt });
+  return row?.tutorialCompletedAt ?? new Date();
 }

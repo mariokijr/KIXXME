@@ -771,6 +771,76 @@ export const useUpdateMyProfile = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUpdateMyProfileMutationOptions(options));
     }
 
+export const getCompleteTutorialUrl = () => {
+
+
+
+
+  return `/api/profiles/me/tutorial`
+}
+
+/**
+ * @summary Mark the mandatory onboarding tutorial as completed (idempotent)
+ */
+export const completeTutorial = async ( options?: RequestInit): Promise<Profile> => {
+
+  return customFetch<Profile>(getCompleteTutorialUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCompleteTutorialMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeTutorial>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeTutorial>>, TError,void, TContext> => {
+
+const mutationKey = ['completeTutorial'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeTutorial>>, void> = () => {
+
+
+          return  completeTutorial(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteTutorialMutationResult = NonNullable<Awaited<ReturnType<typeof completeTutorial>>>
+
+    export type CompleteTutorialMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark the mandatory onboarding tutorial as completed (idempotent)
+ */
+export const useCompleteTutorial = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeTutorial>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeTutorial>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCompleteTutorialMutationOptions(options));
+    }
+
 export const getGetProfileUrl = (id: string,) => {
 
 

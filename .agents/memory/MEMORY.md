@@ -15,3 +15,4 @@
 - [Profile photos (4 fixed slots)](kixxme-profile-photos.md) — `profile_photos` is the single source of truth; `profiles.avatar_url` mirrors the main photo and must never get a second writer (dual-write desync dropped users from Descubrir).
 - [Support tickets (Gold priority chat)](kixxme-support-tickets.md) — Gold gate (402) on open + premium-ticket sends; lapsed Gold read-only via server `canReply`; senderRole derived; transitions in one tx; GET detail marks read.
 - [Chat media (photos + voice notes)](kixxme-chat-media.md) — Supabase `messages.content` is NOT NULL; media-only rows store `content:""` (not null) since we don't own Supabase DDL; support side keeps `body` nullable.
+- [Mandatory onboarding gate](kixxme-onboarding-gate.md) — gate must FAIL OPEN; `tutorial_completed` stays out of PublicProfile; `computeMandatoryProfile` is the one completeness rule; legacy back-fill fires once via ref before mutate (server COALESCE set-once).
