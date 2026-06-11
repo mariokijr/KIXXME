@@ -1170,6 +1170,25 @@ function InCall({
               </div>
             </div>
 
+            {/* Connection failure notice (token/credentials/network — the room
+                never connected, so no remote media can ever arrive). Prominent
+                so a media-plane misconfiguration is never a silent black screen. */}
+            {live.status === "error" && (
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-4 rounded-2xl max-w-[88%] text-center"
+                style={{ background: "rgba(127,29,29,0.92)" }}
+                data-testid="text-connection-error"
+              >
+                <span className="font-display text-sm text-white block tracking-wide">
+                  No se pudo conectar a la sala de vídeo
+                </span>
+                <span className="font-sans text-[11px] text-white/85 block mt-1">
+                  Revisa tu conexión e inténtalo de nuevo. Si persiste, es un
+                  problema de configuración del servicio de vídeo.
+                </span>
+              </div>
+            )}
+
             {/* Permission / publish error notice */}
             {live.mediaError && (
               <div
