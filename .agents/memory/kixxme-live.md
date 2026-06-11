@@ -160,6 +160,21 @@ evidence:** check that user's `GET /live/state` DTO for a null `mediaToken` and
 the partner's server snapshot (it will show only one participant). Don't read
 "no logs from Sara" as "diagnostics broken".
 
+## Where the real-device evidence lives: dev preview, NOT a deployment
+This repl has **no production deployment and no production Neon DB** (`executeSql
+environment:"production"` → "does not have a production Neon database"; and
+`fetch_deployment_logs` → "No deployment logs found"). Yet the two Gold test
+phones' **real** `blocks`/`video_calls` rows are visible from the agent's
+*development* `executeSql`. Conclusion: **the phones test on the public dev
+preview URL** (`*.replit.dev` / `$REPLIT_DEV_DOMAIN`), which hits the dev API +
+dev Replit Postgres — the same DB the agent can read/write and the same workflow
+whose code is live. **So real-device diagnostics (incl. `live.diag`) land in the
+DEV workflow logs (`refresh_all_logs`), never `fetch_deployment_logs`; and a DB
+fix like removing a block applies immediately to the phones' next test.** Don't
+chase a "published domain" for evidence until the app is actually published; the
+`mediaError`-on-preview caveat below is about the *agent's own* in-browser iframe
+(no `allow=camera`), not the user's phone on the dev URL.
+
 ## Sequential getUserMedia fallback keeps AUDIO alive when the camera dies
 **Why:** a blocked/dead camera must not take the whole call down — audio is the
 floor of a usable call.
@@ -198,14 +213,24 @@ transitions (accept/decline/cancel/end) re-select the row `FOR UPDATE` and asser
 the caller is a participant (IDOR guard) plus a status-machine guard. Dual-accept
 is race-safe: the second accept sees the first's timestamp and flips to `active`.
 
-## Match prerequisites: null age is a hard blocker; no coords ⇒ worldwide fallback
-Two non-obvious reasons a Gold pair "searches forever and never matches" even
+## Match prerequisites: a block (either direction) is the #1 silent "won't match"
+Three non-obvious reasons a Gold pair "searches forever and never matches" even
 though both enqueue (POST /live/queue → 200) and poll cleanly with **no errors**:
+- **A block in EITHER direction permanently excludes the pair.** `runMatch` calls
+  `blockedSet(me)` = `iBlocked ∪ blockedMe ∪ getUnavailableIds()` and skips any
+  candidate in it. So if A ever tapped "Bloquear" on B (in-call block button, or
+  from chat/profile), A and B can NEVER random-match again until the block is
+  removed — by design (blocking hides users everywhere incl. Live). This is the
+  FIRST thing to check when a *previously-matching* pair suddenly stops: query
+  `blocks` for both `(blocker,blocked)` orders. A real incident: a test pair
+  matched 4× in a day, then stopped — cause was a block row created seconds after
+  the last call, NOT any code change. The block button is always behind an
+  explicit tap; report does NOT auto-block.
 - **`age == null` ⇒ never matches anyone.** `ageMutual` returns false if *either*
   side's `userAge` is null, so an incomplete profile (Live does NOT gate on
-  profile completeness, only Gold) can sit in queue indefinitely. The fallback
-  below does NOT fix this — the UI must warn (see `getLiveProfileFlags`/idle
-  banner) and the user must set an age.
+  profile completeness, only Gold) can sit in queue indefinitely. The scope
+  fallback below does NOT fix this — the UI must warn (see `getLiveProfileFlags`/
+  idle banner) and the user must set an age.
 - **No coordinates + a location scope ⇒ never matches.** Default UI scope is
   "nearby", which needs both sides' coords; "spain"/"europe" need the target's
   coords; "city" needs a city. `effectiveScope` (applied in `loadSnapshot`)
@@ -213,9 +238,19 @@ though both enqueue (POST /live/queue → 200) and poll cleanly with **no errors
   satisfy it, so the *stored* queue scope + `video_calls.filters` are already
   effective — both match directions and skip/heartbeat/requeue see it, and it's
   idempotent (self-heals legacy rows).
-**Why:** the failure is silent (200s, no logs); the cause is profile data, not the
-matcher. Always check `age`/`latitude`/`longitude` on the Supabase `profiles`
-rows before suspecting the matchmaking code.
+**Why:** the failure is silent (200s, no logs); the cause is data (a block, a
+null age, or missing coords), not the matcher. Before suspecting matchmaking
+code, check the `blocks` table (both directions) and `age`/`latitude`/`longitude`
+on the Supabase `profiles` rows.
+
+## Repro recipe: drive a real 2-account match from the shell (no phones)
+Confirmed working. Mint a Bearer per account (admin `generate_link` magiclink →
+`verify` → `access_token`, see "E2E-testing authed endpoints" below), then hit
+`localhost:80/api/live/state` + `POST /api/live/queue {scope,ageMin,ageMax}` for
+both — the 2nd queue call returns the ringing call when they match. Clear
+`live_queue` and any `ringing`/`active` `video_calls` first for a clean run. This
+isolates matcher-vs-data instantly: if both stay `searching`, inspect `blocks`,
+`age`, coords (above) — the matcher itself is rarely the culprit.
 
 ## E2E-testing authed endpoints without a password
 To drive real `requireAuth` HTTP flows for a specific user (e.g. force a Live
