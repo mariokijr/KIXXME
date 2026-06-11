@@ -678,6 +678,14 @@ export const LiveStateQueueStatus = {
   searching: 'searching',
 } as const;
 
+export interface LiveProfileFlags {
+  /** Whether the user has an age set (required to be matched). */
+  hasAge: boolean;
+  /** Whether the user has coordinates. When false, location-based scopes (nearby/spain/europe) fall back to worldwide.
+   */
+  hasLocation: boolean;
+}
+
 export interface LiveState {
   /** Current user's plan (free | plus | gold) */
   plan: string;
@@ -685,6 +693,9 @@ export interface LiveState {
   canAccess: boolean;
   queueStatus: LiveStateQueueStatus;
   call?: LiveCall | null;
+  /** Searcher's profile-readiness flags (present when Gold and not in a call). Used to warn about a missing age (can't be matched) or a missing location (location scopes fall back to worldwide).
+   */
+  profile?: LiveProfileFlags | null;
 }
 
 export interface SuccessResponse {

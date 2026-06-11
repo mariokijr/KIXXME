@@ -3315,7 +3315,28 @@ components:
           oneOf:
             - $ref: "#/components/schemas/LiveCall"
             - type: "null"
+        profile:
+          oneOf:
+            - $ref: "#/components/schemas/LiveProfileFlags"
+            - type: "null"
+          description: >
+            Searcher's profile-readiness flags (present when Gold and not in a
+            call). Used to warn about a missing age (can't be matched) or a
+            missing location (location scopes fall back to worldwide).
       required: [plan, canAccess, queueStatus]
+
+    LiveProfileFlags:
+      type: object
+      properties:
+        hasAge:
+          type: boolean
+          description: Whether the user has an age set (required to be matched).
+        hasLocation:
+          type: boolean
+          description: >
+            Whether the user has coordinates. When false, location-based scopes
+            (nearby/spain/europe) fall back to worldwide.
+      required: [hasAge, hasLocation]
 
     SuccessResponse:
       type: object

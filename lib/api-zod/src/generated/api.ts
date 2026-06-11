@@ -863,7 +863,11 @@ export const JoinLiveQueueResponse = zod.object({
   "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
   "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
   "createdAt": zod.string().optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "profile": zod.union([zod.object({
+  "hasAge": zod.boolean().describe('Whether the user has an age set (required to be matched).'),
+  "hasLocation": zod.boolean().describe('Whether the user has coordinates. When false, location-based scopes (nearby\/spain\/europe) fall back to worldwide.\n')
+}),zod.null()]).optional().describe('Searcher\'s profile-readiness flags (present when Gold and not in a call). Used to warn about a missing age (can\'t be matched) or a missing location (location scopes fall back to worldwide).\n')
 })
 
 
@@ -900,7 +904,11 @@ export const GetLiveStateResponse = zod.object({
   "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
   "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
   "createdAt": zod.string().optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "profile": zod.union([zod.object({
+  "hasAge": zod.boolean().describe('Whether the user has an age set (required to be matched).'),
+  "hasLocation": zod.boolean().describe('Whether the user has coordinates. When false, location-based scopes (nearby\/spain\/europe) fall back to worldwide.\n')
+}),zod.null()]).optional().describe('Searcher\'s profile-readiness flags (present when Gold and not in a call). Used to warn about a missing age (can\'t be matched) or a missing location (location scopes fall back to worldwide).\n')
 })
 
 

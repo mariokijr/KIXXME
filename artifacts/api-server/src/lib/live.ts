@@ -172,6 +172,29 @@ function scopeMatches(viewer: Geo, target: Geo, scope: LiveScope): boolean {
   }
 }
 
+/**
+ * Downgrade a scope to "worldwide" when the searcher lacks the data that scope
+ * needs to ever match: coordinates for nearby/spain/europe, or a city for the
+ * city scope. Without this a user who never granted location would enqueue with
+ * (say) "nearby" and sit in the queue forever, because scopeMatches can never
+ * be satisfied without coordinates. The UI separately warns the user (see
+ * getLiveProfileFlags) so the fallback is never silent.
+ */
+function effectiveScope(
+  scope: LiveScope,
+  geo: Geo,
+): LiveScope {
+  const noCoords = geo.lat == null || geo.lng == null;
+  if (
+    noCoords &&
+    (scope === "nearby" || scope === "spain" || scope === "europe")
+  ) {
+    return "worldwide";
+  }
+  if (scope === "city" && !geo.city) return "worldwide";
+  return scope;
+}
+
 /** Both users must fall inside each other's requested age range. */
 function ageMutual(
   a: { userAge: number | null; ageMin: number; ageMax: number },
@@ -197,20 +220,47 @@ async function loadSnapshot(
     .select("age, latitude, longitude, city")
     .eq("id", userId)
     .maybeSingle();
+  const lat = (data?.latitude as number | null) ?? null;
+  const lng = (data?.longitude as number | null) ?? null;
+  const city = (data?.city as string | null) ?? null;
   return {
     userId,
-    scope: filters.scope,
+    // Fall back to worldwide when the chosen scope can't be satisfied with this
+    // user's data (no coordinates / no city). See effectiveScope.
+    scope: effectiveScope(filters.scope, { lat, lng, city }),
     ageMin: filters.ageMin,
     ageMax: filters.ageMax,
     userAge: (data?.age as number | null) ?? null,
-    lat: (data?.latitude as number | null) ?? null,
-    lng: (data?.longitude as number | null) ?? null,
-    city: (data?.city as string | null) ?? null,
+    lat,
+    lng,
+    city,
     // Fresh load = fresh session: streak resets and no excluded partner. Callers
     // that need to preserve a streak (skip/heartbeat) override these.
     skipCount: 0,
     lastSkippedPartnerId: null,
   };
+}
+
+/**
+ * Profile-readiness flags for the Live idle screen. `hasAge` is a hard match
+ * requirement (ageMutual rejects any pair where either side has no age), so the
+ * UI must nudge the user to set it; `hasLocation` only affects scope (false →
+ * location scopes fall back to worldwide). Cheap single indexed read; the route
+ * only calls this on the idle screen (Gold, not searching, not in a call), so it
+ * never runs on the search-poll hot path.
+ */
+export async function getLiveProfileFlags(
+  userId: string,
+): Promise<{ hasAge: boolean; hasLocation: boolean }> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("age, latitude, longitude")
+    .eq("id", userId)
+    .maybeSingle();
+  const age = (data?.age as number | null) ?? null;
+  const lat = (data?.latitude as number | null) ?? null;
+  const lng = (data?.longitude as number | null) ?? null;
+  return { hasAge: age != null, hasLocation: lat != null && lng != null };
 }
 
 async function loadParticipant(userId: string): Promise<LiveCallParticipantDTO> {

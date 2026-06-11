@@ -79,6 +79,7 @@ export * from './liveCallRequest';
 export * from './liveCallRole';
 export * from './liveCallStatus';
 export * from './liveCallType';
+export * from './liveProfileFlags';
 export * from './liveQueueRequest';
 export * from './liveQueueRequestScope';
 export * from './liveState';

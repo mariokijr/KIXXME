@@ -35,18 +35,27 @@ router.get("/live/state", async (req, res) => {
 
   let call = await live.getActiveCall(me);
   let queueStatus: "idle" | "searching" = "idle";
+  let profile: { hasAge: boolean; hasLocation: boolean } | null = null;
 
   // Only re-attempt a match when there is no live call and the user is Gold.
   if (!call && canAccess) {
     const result = await live.heartbeatAndMatch(me);
     if (result?.call) call = result.call;
     else if (result?.searching) queueStatus = "searching";
+    // Surface profile-readiness so the idle screen can warn about a missing age
+    // (can't be matched) or missing location (scope falls back to worldwide).
+    // Only the idle screen renders this banner, so skip the extra read while
+    // actively searching or once a call materialized — keeps the poll lean.
+    if (queueStatus === "idle" && !call) {
+      profile = await live.getLiveProfileFlags(me);
+    }
   }
 
   res.json({
     plan,
     canAccess,
     queueStatus,
+    profile,
     call: call ? await live.serializeCall(call, me) : null,
   });
 });

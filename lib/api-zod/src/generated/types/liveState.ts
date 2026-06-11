@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LiveCall } from './liveCall';
+import type { LiveProfileFlags } from './liveProfileFlags';
 import type { LiveStateQueueStatus } from './liveStateQueueStatus';
 
 export interface LiveState {
@@ -15,4 +16,7 @@ export interface LiveState {
   canAccess: boolean;
   queueStatus: LiveStateQueueStatus;
   call?: LiveCall | null;
+  /** Searcher's profile-readiness flags (present when Gold and not in a call). Used to warn about a missing age (can't be matched) or a missing location (location scopes fall back to worldwide).
+   */
+  profile?: LiveProfileFlags | null;
 }

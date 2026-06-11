@@ -100,6 +100,34 @@ transitions (accept/decline/cancel/end) re-select the row `FOR UPDATE` and asser
 the caller is a participant (IDOR guard) plus a status-machine guard. Dual-accept
 is race-safe: the second accept sees the first's timestamp and flips to `active`.
 
+## Match prerequisites: null age is a hard blocker; no coords ⇒ worldwide fallback
+Two non-obvious reasons a Gold pair "searches forever and never matches" even
+though both enqueue (POST /live/queue → 200) and poll cleanly with **no errors**:
+- **`age == null` ⇒ never matches anyone.** `ageMutual` returns false if *either*
+  side's `userAge` is null, so an incomplete profile (Live does NOT gate on
+  profile completeness, only Gold) can sit in queue indefinitely. The fallback
+  below does NOT fix this — the UI must warn (see `getLiveProfileFlags`/idle
+  banner) and the user must set an age.
+- **No coordinates + a location scope ⇒ never matches.** Default UI scope is
+  "nearby", which needs both sides' coords; "spain"/"europe" need the target's
+  coords; "city" needs a city. `effectiveScope` (applied in `loadSnapshot`)
+  downgrades the searcher's scope to "worldwide" when their own data can't
+  satisfy it, so the *stored* queue scope + `video_calls.filters` are already
+  effective — both match directions and skip/heartbeat/requeue see it, and it's
+  idempotent (self-heals legacy rows).
+**Why:** the failure is silent (200s, no logs); the cause is profile data, not the
+matcher. Always check `age`/`latitude`/`longitude` on the Supabase `profiles`
+rows before suspecting the matchmaking code.
+
+## E2E-testing authed endpoints without a password
+To drive real `requireAuth` HTTP flows for a specific user (e.g. force a Live
+match between two accounts), mint a genuine Supabase access token server-side:
+admin `POST /auth/v1/admin/generate_link {type:"magiclink",email}` → take
+`hashed_token` → `POST /auth/v1/verify {type:"magiclink",token_hash}` returns
+`{access_token}`. Non-destructive (no password change). Use it as a Bearer
+against `http://localhost:80/api/...` (shared proxy). Lets you prove the whole
+chain (queue → match → both accept → `active` → both get LiveKit `mediaToken`).
+
 ## Entitlement gating
 `lib/entitlement.ts getPlan/hasGold` reads Supabase `profiles.plan` (the billing
 source of truth — see kixxme-stripe-billing.md). Random matching is Gold-only;

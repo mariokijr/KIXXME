@@ -39,6 +39,8 @@ import {
   Minus,
   Plus,
   Clock,
+  MapPin,
+  AlertTriangle,
 } from "lucide-react";
 
 const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
@@ -303,6 +305,8 @@ export default function Live() {
       setAgeMax={setAgeMax}
       onSearch={startSearch}
       searching={joinQueue.isPending}
+      profile={data.profile ?? null}
+      onCompleteProfile={() => setLocation("/profile")}
     />
   );
 }
@@ -445,6 +449,8 @@ function Idle({
   setAgeMax,
   onSearch,
   searching,
+  profile,
+  onCompleteProfile,
 }: {
   scope: LiveQueueRequestScope;
   setScope: (s: LiveQueueRequestScope) => void;
@@ -454,13 +460,61 @@ function Idle({
   setAgeMax: (n: number) => void;
   onSearch: () => void;
   searching: boolean;
+  profile: LiveState["profile"];
+  onCompleteProfile: () => void;
 }) {
+  const missingAge = profile != null && !profile.hasAge;
+  const missingLocation = profile != null && !profile.hasLocation;
   return (
     <div className="min-h-full pb-6">
       <Header />
       <p className="text-center font-sans text-sm text-muted-foreground px-6 mb-6">
         Conecta cara a cara con chicos al instante.
       </p>
+
+      {(missingAge || missingLocation) && (
+        <div className="px-4 mb-5 space-y-3">
+          {missingAge && (
+            <button
+              onClick={onCompleteProfile}
+              className="w-full flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors hover:bg-amber-500/10"
+              style={{
+                borderColor: "rgba(245,158,11,0.4)",
+                background: "rgba(245,158,11,0.08)",
+              }}
+              data-testid="warning-missing-age"
+            >
+              <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0 text-amber-400" />
+              <span className="font-sans text-sm text-amber-100/90">
+                <span className="font-semibold">Añade tu edad para emparejar.</span>{" "}
+                Sin la edad en tu perfil no podemos cruzarte con nadie. Toca aquí
+                para completarla.
+              </span>
+            </button>
+          )}
+          {missingLocation && (
+            <div
+              className="w-full flex items-start gap-3 rounded-2xl border p-4"
+              style={{
+                borderColor: "hsl(240 10% 20% / 0.5)",
+                background: "rgba(255,255,255,0.03)",
+              }}
+              data-testid="warning-missing-location"
+            >
+              <MapPin className="w-5 h-5 mt-0.5 shrink-0 text-primary" />
+              <span className="font-sans text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  Sin ubicación activada.
+                </span>{" "}
+                Buscaremos en{" "}
+                <span className="text-foreground">«Todo el mundo»</span> aunque
+                elijas otro filtro de zona. Activa la ubicación en tu perfil para
+                buscar por cercanía.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="px-4 mb-5">
         <ComingSoonBanner />
