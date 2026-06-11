@@ -1,0 +1,65 @@
+Ya he probado KixxMe Live en dos móviles reales.
+
+El emparejamiento ya funciona y la llamada se acepta, pero hay dos problemas importantes:
+
+1. No se ve a la otra persona.
+2. No se escucha a la otra persona.
+
+Es decir:
+
+* El match se crea.
+* El reveal/countdown funciona.
+* La llamada se acepta.
+* Pero el vídeo remoto no aparece.
+* El audio remoto no se escucha.
+
+Quiero que depures ahora el plano de medios de LiveKit, no el matchmaking.
+
+Revisa específicamente:
+
+* Si ambos usuarios están conectando realmente a la misma sala LiveKit.
+* Si ambos están publicando correctamente su cámara.
+* Si ambos están publicando correctamente su micrófono.
+* Si el otro usuario recibe las tracks remotas.
+* Si se están suscribiendo las tracks remotas.
+* Si el token tiene permisos correctos para publicar y suscribirse.
+* Si el mediaUrl es correcto.
+* Si hay errores de permisos de cámara/micrófono en Safari/iPhone.
+* Si el navegador está bloqueando autoplay de audio.
+* Si el audio remoto necesita un gesto del usuario para reproducirse.
+* Si el componente frontend está montando correctamente el vídeo remoto.
+* Si el vídeo remoto está llegando pero oculto por CSS.
+* Si el vídeo local está ocupando el espacio del remoto por error.
+
+También quiero cambiar la estética de la llamada:
+
+* El vídeo de la otra persona debe verse grande, ocupando casi toda la pantalla.
+* Mi cámara debe verse pequeña en una esquina, estilo videollamada real.
+* Ahora la cámara se ve demasiado pequeña y la experiencia no parece premium.
+* Quiero una interfaz más parecida a FaceTime/Tinder Live:
+    * Vídeo remoto grande.
+    * Mi vista pequeña flotante.
+    * Controles abajo.
+    * Botones grandes y claros.
+    * Diseño oscuro/neón premium.
+    * Nombre, edad y ciudad visibles de forma elegante.
+    * Indicador de conexión.
+    * Contador de duración de llamada.
+
+Haz una prueba real con las dos cuentas Gold de testing hasta que se vea y se oiga correctamente:
+
+* mariokimbm2003@gmail.com
+* saraolivaz20@gmail.com
+
+No quiero que se dé por terminado hasta que:
+
+* Ambos móviles vean vídeo remoto.
+* Ambos móviles escuchen audio remoto.
+* Funcione activar/desactivar cámara.
+* Funcione activar/desactivar micrófono.
+* Funcione cambiar cámara frontal/trasera.
+* Funcione colgar.
+* Funcione reportar.
+* Funcione bloquear.
+
+Si el problema está en permisos, autoplay, tracks, CSS o token LiveKit, quiero que lo localices exactamente y lo soluciones.

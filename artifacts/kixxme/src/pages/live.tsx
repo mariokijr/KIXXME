@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   useGetLiveState,
@@ -41,6 +41,7 @@ import {
   Clock,
   MapPin,
   AlertTriangle,
+  Volume2,
 } from "lucide-react";
 
 const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
@@ -967,13 +968,25 @@ function CtrlButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="w-12 h-12 rounded-full flex items-center justify-center transition-colors disabled:opacity-60"
+      className="w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 backdrop-blur-md border"
       style={
         danger
-          ? { background: "hsl(0,75%,55%)", color: "white" }
+          ? {
+              background: "hsl(0,75%,55%)",
+              color: "white",
+              borderColor: "transparent",
+            }
           : active
-            ? { background: "rgba(255,255,255,0.12)", color: "white" }
-            : { background: "rgba(255,255,255,0.04)", color: "hsl(240,10%,60%)" }
+            ? {
+                background: "rgba(255,255,255,0.16)",
+                color: "white",
+                borderColor: "rgba(255,255,255,0.18)",
+              }
+            : {
+                background: "rgba(255,255,255,0.05)",
+                color: "hsl(240,10%,62%)",
+                borderColor: "rgba(255,255,255,0.06)",
+              }
       }
     >
       {children}
@@ -1005,18 +1018,53 @@ function InCall({
   live: LiveKitCall;
 }) {
   const name = partnerName(call);
+  const subtitle = [
+    call.partner.age ? `${call.partner.age}` : null,
+    call.partner.city || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  // Status pill copy for the real-video path.
-  const statusLabel =
-    live.status === "connecting"
-      ? "Conectando vídeo…"
+  // Call-duration timer: starts when the media connection reports "connected",
+  // resets per call.
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number | null>(null);
+  useEffect(() => {
+    startRef.current = null;
+    setElapsed(0);
+  }, [call.id]);
+  useEffect(() => {
+    if (live.status !== "connected") return;
+    if (startRef.current == null) startRef.current = Date.now();
+    const t = setInterval(() => {
+      if (startRef.current != null) {
+        setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [live.status, call.id]);
+  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(
+    elapsed % 60,
+  ).padStart(2, "0")}`;
+
+  // Connection indicator (dot colour + label).
+  const conn =
+    live.status === "error"
+      ? { label: "Sin conexión", color: "hsl(0 75% 58%)", pulse: false }
       : live.status === "reconnecting"
-        ? "Reconectando…"
-        : live.status === "error"
-          ? "No se pudo conectar el vídeo"
-          : !live.hasRemoteVideo
-            ? `Esperando el vídeo de ${name}…`
-            : null;
+        ? { label: "Reconectando…", color: "hsl(38 95% 55%)", pulse: true }
+        : live.status === "connecting"
+          ? { label: "Conectando…", color: "hsl(38 95% 55%)", pulse: true }
+          : live.hasRemoteVideo
+            ? { label: "Conectado", color: "hsl(145 70% 48%)", pulse: false }
+            : { label: "Esperando vídeo…", color: "hsl(38 95% 55%)", pulse: true };
+
+  // Tapping any control is a user gesture — opportunistically unlock audio that
+  // iOS blocked from autoplaying.
+  const withAudioUnlock = (fn: () => void) => () => {
+    live.resumeAudio();
+    fn();
+  };
 
   return (
     <div className="min-h-full flex flex-col">
@@ -1031,18 +1079,34 @@ function InCall({
       >
         {live.active ? (
           <>
-            {/* Remote video fills the surface; invisible until a track arrives. */}
+            {/* Remote video fills the screen. Muted because remote AUDIO plays
+                through a dedicated <audio> element (see useLiveKitCall); muting
+                the video element guarantees iOS autoplays the picture. */}
             <video
               ref={live.attachRemoteVideo}
               autoPlay
               playsInline
+              muted
               className="absolute inset-0 w-full h-full object-cover"
-              style={{ opacity: live.hasRemoteVideo ? 1 : 0 }}
+              style={{
+                opacity: live.hasRemoteVideo ? 1 : 0,
+                transition: "opacity 300ms ease",
+              }}
               data-testid="video-remote"
             />
+
+            {/* Top scrim so the overlaid name/status stays legible over video. */}
+            <div
+              className="absolute inset-x-0 top-0 h-44 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
+              }}
+            />
+
             {/* Avatar fallback while the remote video isn't flowing yet. */}
             {!live.hasRemoteVideo && (
-              <div className="relative flex flex-col items-center">
+              <div className="relative flex flex-col items-center px-8 text-center">
                 <Avatar className="w-28 h-28 rounded-full border-2 border-primary/40 mb-4 opacity-90">
                   {call.partner.avatar_url && (
                     <AvatarImage
@@ -1057,41 +1121,60 @@ function InCall({
                 <h2 className="font-display text-2xl tracking-wide text-foreground">
                   {name}
                 </h2>
-              </div>
-            )}
-
-            {/* Name overlay once remote video is showing */}
-            {live.hasRemoteVideo && (
-              <div
-                className="absolute bottom-16 left-4 px-3 py-1.5 rounded-xl"
-                style={{ background: "rgba(0,0,0,0.45)" }}
-              >
-                <span className="font-display text-lg text-white">{name}</span>
-              </div>
-            )}
-
-            {/* Connection status pill */}
-            {statusLabel && (
-              <div
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full flex items-center gap-2"
-                style={{ background: "rgba(0,0,0,0.5)" }}
-                data-testid="text-live-status"
-              >
-                {(live.status === "connecting" ||
-                  live.status === "reconnecting") && (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                {subtitle && (
+                  <p className="font-sans text-sm text-muted-foreground mt-1">
+                    {subtitle}
+                  </p>
                 )}
-                <span className="font-sans text-[11px] text-white/90">
-                  {statusLabel}
-                </span>
               </div>
             )}
+
+            {/* Top-left: name + age · city + connection/duration, elegant. */}
+            <div className="absolute top-5 left-4 right-36 pointer-events-none">
+              <h2
+                className="font-display text-2xl tracking-wide text-white truncate"
+                style={{ textShadow: "0 1px 12px rgba(0,0,0,0.65)" }}
+                data-testid="text-partner-name"
+              >
+                {name}
+              </h2>
+              {subtitle && (
+                <p
+                  className="font-sans text-sm text-white/85 mt-0.5 truncate"
+                  style={{ textShadow: "0 1px 10px rgba(0,0,0,0.65)" }}
+                >
+                  {subtitle}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`w-2 h-2 rounded-full ${conn.pulse ? "animate-pulse" : ""}`}
+                  style={{ background: conn.color }}
+                />
+                <span
+                  className="font-sans text-xs text-white/90"
+                  style={{ textShadow: "0 1px 8px rgba(0,0,0,0.7)" }}
+                  data-testid="text-live-status"
+                >
+                  {conn.label}
+                </span>
+                {live.status === "connected" && (
+                  <span
+                    className="font-sans text-xs text-white/70 tabular-nums"
+                    style={{ textShadow: "0 1px 8px rgba(0,0,0,0.7)" }}
+                    data-testid="text-call-duration"
+                  >
+                    · {mmss}
+                  </span>
+                )}
+              </div>
+            </div>
 
             {/* Permission / publish error notice */}
             {live.mediaError && (
               <div
-                className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full max-w-[90%]"
-                style={{ background: "rgba(127,29,29,0.85)" }}
+                className="absolute top-28 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full max-w-[88%]"
+                style={{ background: "rgba(127,29,29,0.9)" }}
                 data-testid="text-media-error"
               >
                 <span className="font-sans text-[11px] text-white text-center block">
@@ -1100,10 +1183,34 @@ function InCall({
               </div>
             )}
 
-            {/* Self preview */}
+            {/* Audio autoplay unlock prompt (iOS blocks audio until a gesture). */}
+            {live.needsAudioGesture && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  live.resumeAudio();
+                }}
+                data-testid="button-enable-audio"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-5 py-3 rounded-full text-white font-display tracking-wide animate-pulse"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(326 90% 52%), hsl(266 85% 58%))",
+                  boxShadow: "0 8px 28px rgba(236,72,153,0.45)",
+                }}
+              >
+                <Volume2 className="w-5 h-5" />
+                Toca para activar el sonido
+              </button>
+            )}
+
+            {/* Self preview — floating card, mirrored like a selfie. */}
             <div
-              className="absolute top-4 right-4 w-20 h-28 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center"
-              style={{ background: "rgba(0,0,0,0.6)" }}
+              className="absolute top-5 right-4 w-28 h-40 rounded-2xl overflow-hidden flex items-center justify-center border"
+              style={{
+                background: "rgba(0,0,0,0.65)",
+                borderColor: "rgba(236,72,153,0.35)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+              }}
             >
               <video
                 ref={live.attachLocalVideo}
@@ -1111,12 +1218,15 @@ function InCall({
                 playsInline
                 muted
                 className="w-full h-full object-cover"
-                style={{ opacity: camOn ? 1 : 0 }}
+                style={{ opacity: camOn ? 1 : 0, transform: "scaleX(-1)" }}
                 data-testid="video-local"
               />
               {!camOn && (
-                <VideoOff className="absolute w-5 h-5 text-muted-foreground" />
+                <VideoOff className="absolute w-6 h-6 text-muted-foreground" />
               )}
+              <span className="absolute bottom-1 inset-x-0 text-center font-sans text-[10px] text-white/70">
+                Tú
+              </span>
             </div>
           </>
         ) : (
@@ -1168,42 +1278,53 @@ function InCall({
 
       {/* Controls */}
       <div
-        className="flex-shrink-0 px-6 py-6 border-t border-border/20"
-        style={{ background: "rgba(8,7,18,0.95)" }}
+        className="flex-shrink-0 px-5 pt-4 pb-6 border-t border-white/5"
+        style={{ background: "rgba(8,7,18,0.96)" }}
       >
-        <p className="text-center font-sans text-[11px] text-muted-foreground mb-3">
+        <p className="text-center font-sans text-[11px] text-muted-foreground mb-4">
           Sé respetuoso. Puedes reportar o bloquear si algo te incomoda.
         </p>
-        <div className="flex items-center justify-center gap-3">
-          <CtrlButton onClick={onToggleMic} active={micOn} testId="button-toggle-mic">
-            {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <CtrlButton
+            onClick={withAudioUnlock(onToggleMic)}
+            active={micOn}
+            testId="button-toggle-mic"
+          >
+            {micOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
           </CtrlButton>
-          <CtrlButton onClick={onToggleCam} active={camOn} testId="button-toggle-cam">
-            {camOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          <CtrlButton
+            onClick={withAudioUnlock(onToggleCam)}
+            active={camOn}
+            testId="button-toggle-cam"
+          >
+            {camOn ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
           </CtrlButton>
           {live.canSwitchCamera && camOn && (
             <CtrlButton onClick={live.switchCamera} testId="button-switch-camera">
-              <SwitchCamera className="w-5 h-5" />
+              <SwitchCamera className="w-6 h-6" />
             </CtrlButton>
           )}
           <button
             onClick={onEnd}
             disabled={ending}
             data-testid="button-end-call"
-            className="w-16 h-12 rounded-full flex items-center justify-center text-white disabled:opacity-60"
-            style={{ background: "hsl(0,75%,55%)" }}
+            className="w-[68px] h-14 rounded-full flex items-center justify-center text-white disabled:opacity-60 active:scale-95 transition-all"
+            style={{
+              background: "hsl(0,75%,55%)",
+              boxShadow: "0 8px 24px rgba(220,38,38,0.45)",
+            }}
           >
             {ending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              <PhoneOff className="w-6 h-6" />
+              <PhoneOff className="w-7 h-7" />
             )}
           </button>
           <CtrlButton onClick={onReport} testId="button-report-call">
-            <Flag className="w-5 h-5" />
+            <Flag className="w-6 h-6" />
           </CtrlButton>
           <CtrlButton onClick={onBlock} testId="button-block-call">
-            <Ban className="w-5 h-5" />
+            <Ban className="w-6 h-6" />
           </CtrlButton>
         </div>
       </div>

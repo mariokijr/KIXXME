@@ -13,8 +13,7 @@ import {
  * KixxMe Live media-plane hook (LiveKit client).
  *
  * Connects to a call's LiveKit room and exposes everything the custom in-call
- * UI needs to render real video. Designed around three rules learned while
- * planning Phase 2:
+ * UI needs to render real video + audio. Hard-won rules baked in here:
  *
  * 1. LATCH credentials per call.id. The server mints a FRESH room-scoped token
  *    on every `GET /live/state` poll (~2s) and returns null the moment a plan
@@ -26,7 +25,26 @@ import {
  * 2. The connect effect depends ONLY on the latch and reads cam/mic via refs,
  *    so toggling the camera/mic never reconnects the room.
  *
- * 3. Graceful degradation: no credentials (LiveKit unconfigured / not Gold /
+ * 3. SINGLE getUserMedia. iOS Safari drops the first captured track when the
+ *    camera and microphone are requested in two separate getUserMedia calls,
+ *    which silently kills the published mic (and sometimes the camera). We
+ *    acquire BOTH at once via `enableCameraAndMicrophone()` on connect, then
+ *    reconcile with the user's toggle intent. Per-toggle effects only act on
+ *    *subsequent* changes (guarded by `mediaReady` + applied refs) so they
+ *    never trigger a second simultaneous acquisition.
+ *
+ * 4. NO adaptiveStream / dynacast. For a 1:1 fullscreen call adaptiveStream can
+ *    pause the remote track when it can't measure the <video> as "visible",
+ *    which shows up as a connected-but-blank remote view. Plain receive is
+ *    more reliable here.
+ *
+ * 5. Audio autoplay needs a gesture on iOS. Remote audio plays through a hidden
+ *    <audio> element, but Safari blocks autoplay until the user interacts. We
+ *    surface `needsAudioGesture` (from `room.canPlaybackAudio` +
+ *    `AudioPlaybackStatusChanged`) so the UI can show a clear "tap to enable
+ *    sound" prompt; `resumeAudio()` calls `room.startAudio()` from that gesture.
+ *
+ * 6. Graceful degradation: no credentials (LiveKit unconfigured / not Gold /
  *    call not active) → `active` is false and the caller shows its placeholder.
  *    A blocked camera (e.g. the Replit preview iframe has no
  *    `allow="camera;microphone"`, or a real permission denial) sets
@@ -48,6 +66,8 @@ export interface LiveKitCall {
   hasRemoteVideo: boolean;
   /** Local camera/mic could not be published (permissions / iframe sandbox). */
   mediaError: boolean;
+  /** Remote audio is being received but the browser blocked autoplay. */
+  needsAudioGesture: boolean;
   /** Ref callback for the full-screen remote <video>. */
   attachRemoteVideo: (el: HTMLVideoElement | null) => void;
   /** Ref callback for the corner self-preview <video>. */
@@ -88,7 +108,11 @@ export function useLiveKitCall({
   const [status, setStatus] = useState<LiveKitStatus>("idle");
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const [mediaError, setMediaError] = useState(false);
+  const [needsAudioGesture, setNeedsAudioGesture] = useState(false);
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
+  // Flipped true once the connect flow has acquired local media; gates the
+  // per-toggle effects so they never fire a second concurrent getUserMedia.
+  const [mediaReady, setMediaReady] = useState(false);
 
   // Room + element/track refs shared by the connect effect and the ref callbacks.
   const roomRef = useRef<Room | null>(null);
@@ -99,6 +123,16 @@ export function useLiveKitCall({
   const remoteVideoTrackRef = useRef<RemoteTrack | null>(null);
   const remoteAudioTrackRef = useRef<RemoteTrack | null>(null);
   const facingModeRef = useRef<"user" | "environment">("user");
+
+  // Latest toggle intent, read by the connect flow without re-subscribing.
+  const camOnRef = useRef(camOn);
+  const micOnRef = useRef(micOn);
+  camOnRef.current = camOn;
+  micOnRef.current = micOn;
+  // The last cam/mic state we actually applied, so a toggle effect can skip the
+  // initial run (already handled by the connect flow's acquisition).
+  const appliedCamRef = useRef<boolean | null>(null);
+  const appliedMicRef = useRef<boolean | null>(null);
 
   // --- Latch credentials once per call -------------------------------------
   useEffect(() => {
@@ -131,7 +165,12 @@ export function useLiveKitCall({
   }, []);
 
   const resumeAudio = useCallback(() => {
-    roomRef.current?.startAudio().catch(() => {});
+    const room = roomRef.current;
+    if (!room) return;
+    room
+      .startAudio()
+      .then(() => setNeedsAudioGesture(false))
+      .catch(() => {});
   }, []);
 
   // Detect whether a second camera exists (front/back on mobile) so the UI can
@@ -173,11 +212,17 @@ export function useLiveKitCall({
     }
 
     let cancelled = false;
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    // Plain receive: no adaptiveStream/dynacast (see rule #4) so the remote
+    // track is never paused for a "not visible" fullscreen <video>.
+    const room = new Room();
     roomRef.current = room;
     setStatus("connecting");
     setHasRemoteVideo(false);
     setMediaError(false);
+    setMediaReady(false);
+    setNeedsAudioGesture(false);
+    appliedCamRef.current = null;
+    appliedMicRef.current = null;
 
     // Hidden element so remote audio plays without affecting layout.
     const audioEl = document.createElement("audio");
@@ -195,6 +240,8 @@ export function useLiveKitCall({
       } else if (track.kind === Track.Kind.Audio) {
         remoteAudioTrackRef.current = track;
         if (audioElRef.current) track.attach(audioElRef.current);
+        // Surface the autoplay-block prompt the moment audio arrives blocked.
+        setNeedsAudioGesture(!room.canPlaybackAudio);
       }
     };
     const onTrackUnsubscribed = (track: RemoteTrack) => {
@@ -219,12 +266,16 @@ export function useLiveKitCall({
       else if (s === ConnectionState.Reconnecting) setStatus("reconnecting");
       else if (s === ConnectionState.Connecting) setStatus("connecting");
     };
+    const onAudioStatus = () => {
+      if (!cancelled) setNeedsAudioGesture(!room.canPlaybackAudio);
+    };
 
     room
       .on(RoomEvent.TrackSubscribed, onTrackSubscribed)
       .on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
       .on(RoomEvent.LocalTrackPublished, onLocalPublished)
-      .on(RoomEvent.ConnectionStateChanged, onState);
+      .on(RoomEvent.ConnectionStateChanged, onState)
+      .on(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus);
 
     void (async () => {
       try {
@@ -234,6 +285,49 @@ export function useLiveKitCall({
           return;
         }
         setStatus("connected");
+
+        // Acquire camera + mic in a SINGLE getUserMedia (rule #3).
+        let acquired = true;
+        try {
+          await room.localParticipant.enableCameraAndMicrophone();
+        } catch {
+          acquired = false;
+          if (!cancelled) setMediaError(true);
+        }
+        if (cancelled) {
+          await room.disconnect();
+          return;
+        }
+
+        // Reconcile with the user's current intent (they may have toggled cam/
+        // mic off during the pre-call countdown). No-ops when already correct,
+        // so this never fires a second simultaneous acquisition. Skipped when
+        // acquisition failed (e.g. permission denied) so we don't fire a
+        // redundant second getUserMedia attempt — a later toggle can retry.
+        if (acquired) {
+          try {
+            await room.localParticipant.setCameraEnabled(camOnRef.current, {
+              facingMode: facingModeRef.current,
+            });
+            await room.localParticipant.setMicrophoneEnabled(micOnRef.current);
+            const camPub = room.localParticipant.getTrackPublication(
+              Track.Source.Camera,
+            );
+            if (camPub?.track && localElRef.current) {
+              camPub.track.attach(localElRef.current);
+            }
+          } catch {
+            if (!cancelled) setMediaError(true);
+          }
+        }
+
+        appliedCamRef.current = camOnRef.current;
+        appliedMicRef.current = micOnRef.current;
+        void detectCameras();
+        if (!cancelled) {
+          setNeedsAudioGesture(!room.canPlaybackAudio);
+          setMediaReady(true);
+        }
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -245,7 +339,8 @@ export function useLiveKitCall({
         .off(RoomEvent.TrackSubscribed, onTrackSubscribed)
         .off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
         .off(RoomEvent.LocalTrackPublished, onLocalPublished)
-        .off(RoomEvent.ConnectionStateChanged, onState);
+        .off(RoomEvent.ConnectionStateChanged, onState)
+        .off(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus);
       remoteVideoTrackRef.current = null;
       remoteAudioTrackRef.current = null;
       localTrackRef.current = null;
@@ -255,13 +350,18 @@ export function useLiveKitCall({
       audioElRef.current = null;
       setStatus("idle");
       setHasRemoteVideo(false);
+      setMediaReady(false);
+      setNeedsAudioGesture(false);
     };
-  }, [media]);
+  }, [media, detectCameras]);
 
-  // --- Publish camera / mic per the toggles (once connected) ---------------
+  // --- Per-toggle camera publish (only AFTER the initial acquisition) ------
   useEffect(() => {
     const room = roomRef.current;
-    if (!room || status !== "connected") return;
+    if (!room || !mediaReady) return;
+    // The connect flow already applied the initial state; skip that no-op run.
+    if (appliedCamRef.current === camOn) return;
+    appliedCamRef.current = camOn;
     room.localParticipant
       .setCameraEnabled(camOn, { facingMode: facingModeRef.current })
       .then((pub) => {
@@ -270,21 +370,25 @@ export function useLiveKitCall({
         if (camOn) void detectCameras();
       })
       .catch(() => setMediaError(true));
-  }, [camOn, status, detectCameras]);
+  }, [camOn, mediaReady, detectCameras]);
 
+  // --- Per-toggle microphone publish --------------------------------------
   useEffect(() => {
     const room = roomRef.current;
-    if (!room || status !== "connected") return;
+    if (!room || !mediaReady) return;
+    if (appliedMicRef.current === micOn) return;
+    appliedMicRef.current = micOn;
     room.localParticipant
       .setMicrophoneEnabled(micOn)
       .catch(() => setMediaError(true));
-  }, [micOn, status]);
+  }, [micOn, mediaReady]);
 
   return {
     active: !!media,
     status,
     hasRemoteVideo,
     mediaError,
+    needsAudioGesture,
     attachRemoteVideo,
     attachLocalVideo,
     resumeAudio,

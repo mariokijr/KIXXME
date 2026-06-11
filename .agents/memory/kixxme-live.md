@@ -72,14 +72,47 @@ Frontend `src/lib/livekit-room.ts` `useLiveKitCall({callId,token,url,camOn,micOn
   `{callId,token,url}`; keep it on token churn / a transient null for the SAME
   call; drop only when `callId` changes/null. Connect effect deps **only** on the
   latch (cancellation-safe: `await connect` → if cancelled, `disconnect`).
-- Cam/mic published by **separate** effects once `status==='connected'` (single
-  publish source — the connect effect never publishes, avoiding a double-publish
-  race). Toggles read live state, never re-trigger connect.
+- **SINGLE getUserMedia on connect, then reconcile.** The connect flow calls
+  `enableCameraAndMicrophone()` ONCE, then `setCameraEnabled/setMicrophoneEnabled`
+  to match the user's toggle intent; a `mediaReady` flag + `appliedCam/MicRef`
+  guards gate the per-toggle effects so they only act on *subsequent* changes,
+  never a second concurrent acquisition. The reconcile is **skipped** when the
+  initial acquire threw (permission denied) so we don't fire a redundant
+  camera-only getUserMedia. Toggles read live state, never re-trigger connect.
 - Permission denial (incl. the preview iframe) → `mediaError` **without**
   disconnecting (remote video still flows). `resumeAudio`→`room.startAudio()`.
 - Hoisted into `<Live>` (NOT `InCall`) so the room connects during the 5s
   countdown; `InCall` branches on `live.active`, **never** `call.mediaToken`
   (mirrors the "in-progress call renders before paywall" rule).
+
+## iOS Safari media-plane bugs (the "match works but no remote video/audio")
+Real-phone symptom: lifecycle (match/accept/reveal/countdown) works, but the
+remote video is blank and remote audio is silent. Four iOS-specific causes, all
+fixed in `useLiveKitCall`:
+- **Two separate `getUserMedia` calls drop the first track on iOS.** Requesting
+  camera then mic (or vice-versa) in two calls silently kills the first capture
+  → published mic/cam missing. Fix: acquire BOTH at once via
+  `enableCameraAndMicrophone()`, then reconcile.
+- **`adaptiveStream`/`dynacast` pause a "not visible" remote track.** The
+  fullscreen remote `<video>` sits at `opacity:0` until a track arrives, which
+  adaptiveStream reads as not-visible and pauses → connected-but-blank. Fix:
+  `new Room()` with NEITHER option for 1:1 calls (plain receive).
+- **Remote `<video>` must be `muted`; play remote AUDIO via a separate hidden
+  `<audio>`.** iOS only autoplays a muted video; routing audio through its own
+  element lets the picture autoplay while audio waits for a gesture.
+- **Audio autoplay needs a user gesture with a visible prompt.** Surface
+  `needsAudioGesture` from `room.canPlaybackAudio` + `RoomEvent.AudioPlaybackStatusChanged`;
+  show a "Toca para activar el sonido" button (and opportunistically call
+  `resumeAudio()` from mic/cam toggles) → `room.startAudio()`.
+**Why:** these only reproduce on real iOS devices — cannot be caught in-agent
+(no camera; preview iframe lacks `allow="camera;microphone"`). The final
+see+hear validation always requires the user's two phones.
+
+## Front/back camera switch
+`switchCamera` flips the published camera in place via
+`LocalVideoTrack.restartTrack({ facingMode })` (no re-publish → seamless source
+swap for the remote). `canSwitchCamera` is gated on `enumerateDevices()` finding
+>1 `videoinput`, so the flip control only shows when it would do something.
 
 **Config:** needs secrets `LIVEKIT_URL` (wss://), `LIVEKIT_API_KEY`,
 `LIVEKIT_API_SECRET`. Until set, the whole path no-ops gracefully (placeholder UI
