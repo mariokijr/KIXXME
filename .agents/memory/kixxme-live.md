@@ -108,6 +108,28 @@ fixed in `useLiveKitCall`:
 (no camera; preview iframe lacks `allow="camera;microphone"`). The final
 see+hear validation always requires the user's two phones.
 
+## Corrupted LiveKit creds masquerade as the iOS bug (check creds FIRST)
+A glyph-swapped API key (LiveKit keys start `API`; an `I`→`l` swap gives `APl…`)
+or a truncated/wrong API secret produces the EXACT same symptom as the iOS bug:
+lifecycle works, remote video blank + audio silent — but on **every** device, not
+just iOS. **Why it hides:** `mintRoomToken` signs locally and never validates
+against LiveKit, so `serializeCall` happily returns a `mediaToken`+`mediaUrl` that
+LiveKit then **rejects at room-join** → zero remote tracks. The app still shows
+"in call" because that's only the DB state machine. So before blaming the client,
+verify creds against the real project.
+**Verification recipe (no phones, no extra deps — Node 24 has global `WebSocket`):**
+1. Management API: `new RoomServiceClient(httpUrl,key,secret).listRooms()`.
+   `invalid API key` = key not found in project (glyph swap / wrong project);
+   if correcting the key flips the error to `invalid token`, the **secret** is
+   wrong (signature fails). LiveKit Cloud secrets are ~43 chars (a 32-char one is
+   truncated). The API key is NOT secret (it's the `iss` claim in every client
+   token) so its chars are safe to inspect; the secret is.
+2. Signal join: mint a join token (same grants as `mintRoomToken`) and open
+   `wss://<host>/rtc?access_token=…&protocol=15&auto_subscribe=1&sdk=js`. `open`
+   + first message = the join the client does is accepted (the thing that was
+   failing). Two tokens for one room proves two-way room membership.
+Final on-device see+hear still needs the user's two phones on the published domain.
+
 ## Front/back camera switch
 `switchCamera` flips the published camera in place via
 `LocalVideoTrack.restartTrack({ facingMode })` (no re-publish → seamless source
