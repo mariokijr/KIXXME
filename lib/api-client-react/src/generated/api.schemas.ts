@@ -663,8 +663,10 @@ export interface LiveCall {
   callerAccepted: boolean;
   calleeAccepted: boolean;
   partner: LiveCallParticipant;
-  /** Placeholder for a future LiveKit token; always null in this scaffold */
+  /** Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise. */
   mediaToken?: string | null;
+  /** LiveKit server URL (wss://) the client connects to. Present only when a mediaToken is issued. */
+  mediaUrl?: string | null;
   createdAt?: string;
 }
 

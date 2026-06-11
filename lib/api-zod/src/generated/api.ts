@@ -860,7 +860,8 @@ export const JoinLiveQueueResponse = zod.object({
   "age": zod.number().nullish(),
   "city": zod.string().nullish()
 }),
-  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
+  "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
   "createdAt": zod.string().optional()
 }),zod.null()]).optional()
 })
@@ -896,7 +897,8 @@ export const GetLiveStateResponse = zod.object({
   "age": zod.number().nullish(),
   "city": zod.string().nullish()
 }),
-  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
+  "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
   "createdAt": zod.string().optional()
 }),zod.null()]).optional()
 })
@@ -932,7 +934,8 @@ export const AcceptLiveCallResponse = zod.object({
   "age": zod.number().nullish(),
   "city": zod.string().nullish()
 }),
-  "mediaToken": zod.string().nullish().describe('Placeholder for a future LiveKit token; always null in this scaffold'),
+  "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
+  "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
   "createdAt": zod.string().optional()
 })
 

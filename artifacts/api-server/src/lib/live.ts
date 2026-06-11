@@ -11,6 +11,8 @@ import {
 import { supabase } from "./supabase.js";
 import { getBlockRelations } from "./blocks.js";
 import { getUnavailableIds } from "./moderation.js";
+import { getPlan } from "./entitlement.js";
+import { mintRoomToken, getLiveKitUrl } from "./livekit.js";
 import { haversineKm } from "./geo.js";
 
 /**
@@ -69,6 +71,7 @@ export interface LiveCallDTO {
   calleeAccepted: boolean;
   partner: LiveCallParticipantDTO;
   mediaToken: string | null;
+  mediaUrl: string | null;
   createdAt: string;
 }
 
@@ -95,22 +98,26 @@ interface Geo {
 
 export type CallOutcome = VideoCall | "notfound" | "forbidden";
 
-// --- Media plane (future integration point) --------------------------------
+// --- Media plane (LiveKit) -------------------------------------------------
 
 /**
- * LIVEKIT / WEBRTC INTEGRATION POINT.
+ * Issue a room-scoped LiveKit media token for `userId` to join `roomName`.
  *
- * In the full feature this returns a signed, room-scoped media token (e.g. a
- * LiveKit access token) so the client can join `roomName`. The scaffold has no
- * media server, so it always returns null and the client renders a placeholder
- * in-call surface. Wiring real media is intentionally isolated to this one
- * function plus the `roomName` already persisted on every call row.
+ * GATING: tokens are Gold-only — a non-Gold (or lapsed) user always gets null,
+ * so entitlement is enforced server-side at the exact moment a token is minted,
+ * not merely in the UI. The returned token is locked to exactly `roomName` (see
+ * `mintRoomToken`), so it can never be used to join any other call's room.
+ *
+ * Callers pass the room + viewer of a call the viewer already belongs to
+ * (`serializeCall` derives both from the viewer's own call row), so participant
+ * authorization is structural. Returns null when LiveKit is not configured.
  */
-export function issueMediaToken(
-  _roomName: string,
-  _userId: string,
-): string | null {
-  return null;
+export async function issueMediaToken(
+  roomName: string,
+  userId: string,
+): Promise<string | null> {
+  if ((await getPlan(userId)) !== "gold") return null;
+  return mintRoomToken(roomName, userId);
 }
 
 // --- Scope / age matching --------------------------------------------------
@@ -227,6 +234,13 @@ export async function serializeCall(
   const isCaller = row.callerId === viewerId;
   const partnerId = isCaller ? row.calleeId : row.callerId;
   const partner = await loadParticipant(partnerId);
+  // Mint a room-scoped media token only once the call is active. issueMediaToken
+  // is Gold-gated and locks the token to this call's room; mediaUrl is surfaced
+  // only alongside a real token, so the client never gets one without the other.
+  const mediaToken =
+    row.status === "active"
+      ? await issueMediaToken(row.roomName, viewerId)
+      : null;
   return {
     id: row.id,
     roomName: row.roomName,
@@ -236,10 +250,8 @@ export async function serializeCall(
     callerAccepted: row.callerAcceptedAt != null,
     calleeAccepted: row.calleeAcceptedAt != null,
     partner,
-    // No media plane in the scaffold; a real deploy would mint a token here
-    // once the call is active.
-    mediaToken:
-      row.status === "active" ? issueMediaToken(row.roomName, viewerId) : null,
+    mediaToken,
+    mediaUrl: mediaToken ? getLiveKitUrl() : null,
     createdAt: row.createdAt.toISOString(),
   };
 }
