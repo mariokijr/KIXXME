@@ -32,6 +32,9 @@ import Settings from "@/pages/settings";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
 import BlockedUsers from "@/pages/blocked-users";
+import Welcome from "@/pages/welcome";
+import AuthCallback from "@/pages/auth-callback";
+import LegalPage from "@/pages/legal-page";
 import { ConfirmProvider } from "@/lib/confirm";
 import {
   useGetMyModeration,
@@ -137,8 +140,12 @@ function HomeRedirect() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading) setLocation(session ? "/discover" : "/login");
+    if (!isLoading && session) setLocation("/discover");
   }, [isLoading, session, setLocation]);
+
+  // Unauthenticated visitors get the premium welcome landing (not a bare login).
+  if (!isLoading && !session) return <Welcome />;
+  if (!isLoading && session) return null;
 
   return (
     <div
@@ -157,10 +164,13 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomeRedirect} />
+      <Route path="/welcome" component={Welcome} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/auth/callback" component={AuthCallback} />
+      <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>

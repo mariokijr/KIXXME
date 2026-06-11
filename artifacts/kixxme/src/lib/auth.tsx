@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { AuthUser, Session, setAuthTokenGetter, refreshSession, useLogin, useSignUp, useLogout } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
-import { setRealtimeAuth } from "./supabase";
+import { setRealtimeAuth, supabase } from "./supabase";
 import { queryClient } from "./query-client";
 
 interface AuthState {
@@ -17,6 +17,12 @@ interface AuthContextValue {
   signup: (data: any) => Promise<void>;
   logout: () => void;
   applySession: (res: { user: AuthUser; session: Session | null }) => void;
+  loginWithProvider: (provider: "google" | "apple") => Promise<void>;
+  adoptOAuthSession: (tokens: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -165,8 +171,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Kick off an OAuth (Google/Apple) sign-in. supabase-js redirects the whole
+  // browser to the provider; on return it lands on /auth/callback with tokens
+  // in the URL hash (implicit flow).
+  const loginWithProvider = async (provider: "google" | "apple") => {
+    const baseNoSlash = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const redirectTo = `${window.location.origin}${baseNoSlash}/auth/callback`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo },
+    });
+    if (error) throw error;
+  };
+
+  // Adopt a Supabase session obtained client-side via OAuth. We resolve the
+  // user from the access token and persist it like any other login. New users
+  // have no `username` yet, so /profile forces onboarding (the server JIT-creates
+  // the profile row on the first /profiles/me call).
+  const adoptOAuthSession = async (tokens: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+  }) => {
+    const { data, error } = await supabase.auth.getUser(tokens.access_token);
+    if (error || !data.user) {
+      throw error ?? new Error("No se pudo obtener el usuario");
+    }
+    const u = data.user;
+    const username =
+      typeof u.user_metadata?.username === "string"
+        ? u.user_metadata.username
+        : "";
+    const user: AuthUser = { id: u.id, email: u.email ?? "", username };
+    persist(
+      {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: tokens.expires_at,
+      },
+      user,
+    );
+    queryClient.clear();
+    setLocation("/profile");
+  };
+
   return (
-    <AuthContext.Provider value={{ session: state.session, user: state.user, isLoading, login, signup, logout, applySession }}>
+    <AuthContext.Provider value={{ session: state.session, user: state.user, isLoading, login, signup, logout, applySession, loginWithProvider, adoptOAuthSession }}>
       {children}
     </AuthContext.Provider>
   );

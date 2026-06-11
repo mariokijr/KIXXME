@@ -1,5 +1,10 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "hL1ABFOzBl5V_eNKqBTMu"
+uri = "file://artifacts/kixxme/src/assets/bg-neon-bokeh.png"
+type = "image"
+title = "Neon bokeh abstract background"
 
 [[outputs]]
 id = "TY8k_VSsjYfUKJ6lS07xD"
