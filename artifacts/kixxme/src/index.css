@@ -267,3 +267,21 @@
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after { inset: -1px; }
 }
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 8px 30px rgba(168, 85, 247, 0.35); }
+  50% { box-shadow: 0 10px 46px rgba(217, 70, 239, 0.62); }
+}
+
+@keyframes live-feature-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-glow-pulse { animation: glow-pulse 2.6s ease-in-out infinite; }
+.animate-live-feature-in { animation: live-feature-in 0.5s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-pulse,
+  .animate-live-feature-in { animation: none; }
+}

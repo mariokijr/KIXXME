@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   useGetLiveState,
   getGetLiveStateQueryKey,
+  useGetDiscoveryStats,
   useJoinLiveQueue,
   useLeaveLiveQueue,
   useAcceptLiveCall,
@@ -42,22 +43,19 @@ import {
   Loader2,
   Phone,
   X,
-  Minus,
-  Plus,
-  Clock,
   MapPin,
   AlertTriangle,
   Volume2,
   SkipForward,
 } from "lucide-react";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 
 const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
   [
     { value: "nearby", label: "Cerca de mí", emoji: "📍" },
     { value: "city", label: "Mi ciudad", emoji: "🏙️" },
     { value: "spain", label: "España", emoji: "🇪🇸" },
-    { value: "europe", label: "Europa", emoji: "🌍" },
-    { value: "worldwide", label: "Todo el mundo", emoji: "🌐" },
+    { value: "worldwide", label: "Internacional", emoji: "🌍" },
   ];
 
 const AGE_MIN = 18;
@@ -346,41 +344,6 @@ export default function Live() {
 // Sub-views
 // ===========================================================================
 
-function ComingSoonBanner() {
-  return (
-    <div
-      className="rounded-2xl border p-4 flex items-start gap-3"
-      style={{
-        borderColor: "hsl(38 95% 55% / 0.35)",
-        background:
-          "linear-gradient(135deg, rgba(234,179,8,0.12), rgba(168,85,247,0.07))",
-      }}
-      data-testid="banner-live-coming-soon"
-    >
-      <div
-        className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{
-          background:
-            "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))",
-          boxShadow: "0 0 22px rgba(234,179,8,0.35)",
-        }}
-      >
-        <Clock className="w-5 h-5 text-white" />
-      </div>
-      <div>
-        <p className="font-display text-base tracking-wide text-yellow-400 mb-0.5">
-          Próximamente
-        </p>
-        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
-          KixxMe Live estará disponible próximamente para miembros Gold. Estamos
-          dando los últimos retoques a las videollamadas — muy pronto podrás
-          conectar cara a cara.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function Header() {
   return (
     <div className="flex items-center justify-center gap-2.5 pt-9 pb-1">
@@ -415,9 +378,6 @@ function Paywall({ onUpgrade }: { onUpgrade: () => void }) {
         aleatorias, llamadas privadas y conexiones más intensas dentro de
         KixxMe.
       </p>
-      <div className="w-full max-w-sm mb-6">
-        <ComingSoonBanner />
-      </div>
       <button
         onClick={onUpgrade}
         className="w-full max-w-sm py-4 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0"
@@ -433,41 +393,178 @@ function Paywall({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
-function Stepper({
-  label,
-  value,
-  onDec,
-  onInc,
-}: {
-  label: string;
-  value: number;
-  onDec: () => void;
-  onInc: () => void;
-}) {
+const TRUST_ITEMS: { emoji: string; label: string }[] = [
+  { emoji: "🔒", label: "Videollamadas seguras" },
+  { emoji: "🛡️", label: "Comunidad moderada" },
+  { emoji: "✅", label: "Solo mayores de 18" },
+];
+
+function TrustZone() {
   return (
-    <div className="flex-1">
-      <p className="font-sans text-xs text-muted-foreground mb-2">{label}</p>
-      <div
-        className="flex items-center justify-between rounded-xl border border-border/30 px-2 py-1.5"
-        style={{ background: "rgba(13,11,26,0.8)" }}
-      >
-        <button
-          onClick={onDec}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-primary hover:bg-white/5 transition-colors"
+    <div className="grid grid-cols-3 gap-2" data-testid="live-trust-zone">
+      {TRUST_ITEMS.map((t) => (
+        <div
+          key={t.label}
+          className="flex flex-col items-center gap-1.5 text-center"
         >
-          <Minus className="w-4 h-4" />
-        </button>
-        <span className="font-display text-xl text-foreground tabular-nums">
-          {value}
-        </span>
-        <button
-          onClick={onInc}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-primary hover:bg-white/5 transition-colors"
+          <span className="text-lg">{t.emoji}</span>
+          <span className="font-sans text-[11px] leading-tight text-muted-foreground">
+            {t.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OnlineChip({ count }: { count: number }) {
+  return (
+    <div
+      className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5"
+      style={{
+        borderColor: "rgba(34,197,94,0.35)",
+        background: "rgba(34,197,94,0.08)",
+      }}
+      data-testid="chip-online-now"
+    >
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
+      </span>
+      <span className="font-sans text-sm font-medium text-green-300">
+        {count} {count === 1 ? "persona conectada" : "personas conectadas"} ahora
+      </span>
+    </div>
+  );
+}
+
+const LIVE_FEATURES: { emoji: string; title: string; desc: string }[] = [
+  {
+    emoji: "💬",
+    title: "Conoce gente nueva",
+    desc: "Descubre chicos cerca de ti y por todo el mundo.",
+  },
+  {
+    emoji: "🎥",
+    title: "Videollamadas en directo",
+    desc: "Conecta cara a cara al instante, sin esperas.",
+  },
+  {
+    emoji: "✅",
+    title: "Perfiles verificados",
+    desc: "Personas reales para conexiones reales.",
+  },
+  {
+    emoji: "🔒",
+    title: "Privacidad primero",
+    desc: "Tú decides qué compartes y con quién.",
+  },
+  {
+    emoji: "🛡️",
+    title: "Comunidad segura",
+    desc: "Bloquea o reporta en cualquier momento.",
+  },
+];
+
+function LiveFeatureCarousel() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(
+      () => setI((v) => (v + 1) % LIVE_FEATURES.length),
+      3600,
+    );
+    return () => clearInterval(t);
+  }, []);
+  const f = LIVE_FEATURES[i];
+  return (
+    <div
+      className="rounded-2xl border p-5 overflow-hidden"
+      style={{
+        borderColor: "hsl(273 85% 55% / 0.25)",
+        background:
+          "linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06))",
+      }}
+      data-testid="live-feature-carousel"
+    >
+      <div key={i} className="flex items-center gap-4 animate-live-feature-in">
+        <div
+          className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            boxShadow: "0 0 24px rgba(168,85,247,0.25)",
+          }}
         >
-          <Plus className="w-4 h-4" />
-        </button>
+          {f.emoji}
+        </div>
+        <div className="min-w-0">
+          <p className="font-display text-base tracking-wide text-foreground normal-case">
+            {f.title}
+          </p>
+          <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+            {f.desc}
+          </p>
+        </div>
+      </div>
+      <div className="flex justify-center gap-1.5 mt-4">
+        {LIVE_FEATURES.map((_, idx) => (
+          <span
+            key={idx}
+            className="h-1.5 rounded-full transition-all duration-300"
+            style={{
+              width: idx === i ? 18 : 6,
+              background:
+                idx === i
+                  ? "linear-gradient(90deg, hsl(273,85%,60%), hsl(330,85%,58%))"
+                  : "rgba(255,255,255,0.18)",
+            }}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+function AgeRangeSlider({
+  min,
+  max,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  onChange: (lo: number, hi: number) => void;
+}) {
+  return (
+    <SliderPrimitive.Root
+      className="relative flex w-full touch-none select-none items-center py-3"
+      min={AGE_MIN}
+      max={AGE_MAX}
+      step={1}
+      minStepsBetweenThumbs={1}
+      value={[min, max]}
+      onValueChange={(v) => onChange(v[0], v[1])}
+      data-testid="slider-age-range"
+    >
+      <SliderPrimitive.Track
+        className="relative h-2 w-full grow overflow-hidden rounded-full"
+        style={{ background: "rgba(255,255,255,0.10)" }}
+      >
+        <SliderPrimitive.Range
+          className="absolute h-full rounded-full"
+          style={{
+            background:
+              "linear-gradient(90deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+          }}
+        />
+      </SliderPrimitive.Track>
+      {[0, 1].map((idx) => (
+        <SliderPrimitive.Thumb
+          key={idx}
+          className="block h-6 w-6 rounded-full bg-white transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 active:scale-110"
+          style={{ boxShadow: "0 2px 10px rgba(168,85,247,0.55)" }}
+          aria-label={idx === 0 ? "Edad mínima" : "Edad máxima"}
+        />
+      ))}
+    </SliderPrimitive.Root>
   );
 }
 
@@ -496,12 +593,23 @@ function Idle({
 }) {
   const missingAge = profile != null && !profile.hasAge;
   const missingLocation = profile != null && !profile.hasLocation;
+  const { data: stats } = useGetDiscoveryStats({ scope: "worldwide" });
+  const online = stats?.online ?? 0;
   return (
-    <div className="min-h-full pb-6">
+    <div className="min-h-full pb-10">
       <Header />
-      <p className="text-center font-sans text-sm text-muted-foreground px-6 mb-6">
-        Conecta cara a cara con chicos al instante.
-      </p>
+      <div className="px-6 text-center mb-7">
+        <h2 className="font-display text-[22px] leading-tight tracking-tight text-foreground normal-case mb-3">
+          💜 Personas reales esperando conectar
+        </h2>
+        {online > 0 ? (
+          <OnlineChip count={online} />
+        ) : (
+          <p className="font-sans text-sm text-muted-foreground">
+            Conecta cara a cara con chicos al instante.
+          </p>
+        )}
+      </div>
 
       {(missingAge || missingLocation) && (
         <div className="px-4 mb-5 space-y-3">
@@ -547,8 +655,8 @@ function Idle({
         </div>
       )}
 
-      <div className="px-4 mb-5">
-        <ComingSoonBanner />
+      <div className="px-4 mb-6">
+        <LiveFeatureCarousel />
       </div>
 
       <div className="px-4 space-y-5">
@@ -593,41 +701,42 @@ function Idle({
           className="rounded-2xl border border-border/30 p-5"
           style={{ background: "rgba(13,11,26,0.6)" }}
         >
-          <p className="font-display text-lg tracking-wide mb-3">Rango de edad</p>
-          <div className="flex items-end gap-4">
-            <Stepper
-              label="Mínima"
-              value={ageMin}
-              onDec={() => setAgeMin(Math.max(AGE_MIN, ageMin - 1))}
-              onInc={() => setAgeMin(Math.min(ageMax, ageMin + 1))}
-            />
-            <span className="text-muted-foreground pb-3">—</span>
-            <Stepper
-              label="Máxima"
-              value={ageMax}
-              onDec={() => setAgeMax(Math.max(ageMin, ageMax - 1))}
-              onInc={() => setAgeMax(Math.min(AGE_MAX, ageMax + 1))}
-            />
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-display text-lg tracking-wide">Rango de edad</p>
+            <span className="font-display text-lg text-gradient-brand tabular-nums">
+              {ageMin} – {ageMax >= AGE_MAX ? "99+" : ageMax}
+            </span>
           </div>
+          <AgeRangeSlider
+            min={ageMin}
+            max={ageMax}
+            onChange={(lo, hi) => {
+              setAgeMin(lo);
+              setAgeMax(hi);
+            }}
+          />
         </div>
 
         <button
           onClick={onSearch}
           disabled={searching}
-          className="w-full h-14 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60 flex items-center justify-center gap-2"
+          className="w-full h-16 rounded-2xl font-display text-2xl tracking-widest text-white border-0 transition-transform hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-2 animate-glow-pulse"
           style={{
             background:
               "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-            boxShadow: "0 8px 30px rgba(168,85,247,0.3)",
           }}
           data-testid="button-search-call"
         >
           {searching ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            <>🔥 Buscar videollamada</>
+            <>🎥 Conectar ahora</>
           )}
         </button>
+
+        <div className="pt-1">
+          <TrustZone />
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,59 @@
+Me gusta mucho cómo está quedando KixxMe Live, pero quiero hacer algunos ajustes para que tenga un aspecto todavía más profesional, moderno y premium, al nivel de las grandes apps de citas.
+
+* Eliminar el cartel de “Próximamente”, ya que puede confundir si la función ya está disponible. Si la videollamada funciona, no debería aparecer ese mensaje.
+* Añadir en la parte superior un mensaje atractivo y visual que llame la atención. Algo parecido a:
+
+🔥 Miles de personas esperando una conexión real
+
+o
+
+💜 Miles de personas esperando hablar contigo
+
+Quiero que sea una frase que transmita actividad y genere ganas de usar la app.
+
+* No quiero mostrar números falsos. Pero si hay usuarios reales conectados, sí me gustaría mostrar el número real en tiempo real. Por ejemplo:
+
+🟢 23 personas conectadas ahora
+
+Solo si el dato es real.
+
+* Mantener las opciones de ubicación, pero hacerlas más modernas y visuales:
+    📍 Cerca de mí
+    🏙️ Mi ciudad
+    🇪🇸 España
+    🌍 Internacional
+* Eliminar Europa porque aporta poco valor.
+* Cambiar el selector de edad actual (+ y -) por un slider moderno estilo Tinder o Grindr. Se verá mucho más limpio y profesional.
+* Cambiar el botón principal. En lugar de “Buscar videollamada” me gustaría probar algo más atractivo como:
+
+🔥 Empezar ahora
+
+o
+
+🎥 Conectar ahora
+
+o
+
+⚡ Buscar personas
+
+Quiero que se vea más premium.
+
+* Añadir una animación suave al botón principal (brillo, glow o pulse) para que destaque más.
+* Debajo del botón principal añadir una pequeña zona de confianza:
+
+🔒 Videollamadas seguras
+🛡️ Comunidad moderada
+✅ Solo mayores de 18 años
+
+* Mejorar ligeramente los espacios y tamaños para que la pantalla respire más y parezca una app de nivel profesional.
+* Mantener la estética actual de colores porque me gusta bastante.
+
+Además, quiero recuperar una cosa que había en el diseño anterior y que me gustaba mucho:
+
+Antes había una sección animada/en movimiento que mostraba las distintas funciones de KixxMe (conocer gente nueva, videollamadas, perfiles verificados, privacidad, seguridad, etc.).
+
+Quiero que vuelva a aparecer porque daba sensación de aplicación moderna y premium. Puede ser un carrusel automático, tarjetas deslizables o una animación suave que vaya mostrando las funciones de la app.
+
+Creo que esa parte mejoraba mucho la primera impresión y ayudaba a que la gente entendiera rápidamente todo lo que puede hacer dentro de KixxMe.
+
+La idea general es que cuando alguien abra KixxMe Live tenga la sensación de estar usando una aplicación seria, moderna, rápida y de alta calidad, comparable a las mejores apps de citas actuales.
