@@ -1846,6 +1846,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /account/password/request:
+    post:
+      operationId: requestPasswordChangeCode
+      tags: [account]
+      summary: Verify the current password and email a one-time code to confirm a password change
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeCodeRequest"
+      responses:
+        "200":
+          description: Code request processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountActionCodeResponse"
+        "400":
+          description: Bad request (wrong current password or invalid new password)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests (cooldown)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /account/password/confirm:
+    post:
+      operationId: confirmPasswordChange
+      tags: [account]
+      summary: Confirm and apply a password change with the emailed code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeConfirmRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordChangeConfirmResponse"
+        "400":
+          description: Invalid or expired code, or invalid new password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /reports:
     post:
       operationId: createReport
@@ -3795,6 +3867,35 @@ components:
           type: string
           enum: [deactivate, delete]
       required: [success, action]
+
+    PasswordChangeCodeRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          description: The account's current password (verified server-side)
+        newPassword:
+          type: string
+          description: The desired new password (min 8 chars, letters and numbers)
+      required: [currentPassword, newPassword]
+
+    PasswordChangeConfirmRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The 6-digit code from the security-alert email
+        newPassword:
+          type: string
+          description: The new password to apply (re-sent from the request step; never stored)
+      required: [code, newPassword]
+
+    PasswordChangeConfirmResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
 
     CreateReportRequest:
       type: object

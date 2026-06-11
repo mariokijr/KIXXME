@@ -1225,6 +1225,34 @@ export const ConfirmAccountActionResponse = zod.object({
 
 
 /**
+ * @summary Verify the current password and email a one-time code to confirm a password change
+ */
+export const RequestPasswordChangeCodeBody = zod.object({
+  "currentPassword": zod.string().describe('The account\'s current password (verified server-side)'),
+  "newPassword": zod.string().describe('The desired new password (min 8 chars, letters and numbers)')
+})
+
+export const RequestPasswordChangeCodeResponse = zod.object({
+  "sent": zod.boolean().describe('Whether the verification email was dispatched'),
+  "expiresAt": zod.string().nullish(),
+  "message": zod.string().nullish().describe('Human-readable status (e.g. when email delivery is unavailable)')
+})
+
+
+/**
+ * @summary Confirm and apply a password change with the emailed code
+ */
+export const ConfirmPasswordChangeBody = zod.object({
+  "code": zod.string().describe('The 6-digit code from the security-alert email'),
+  "newPassword": zod.string().describe('The new password to apply (re-sent from the request step; never stored)')
+})
+
+export const ConfirmPasswordChangeResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Report a profile, photo, chat message, video call, or Live user
  */
 export const createReportBodyMessageMax = 5000;

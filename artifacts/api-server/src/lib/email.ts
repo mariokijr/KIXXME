@@ -522,6 +522,65 @@ export function accountActionCodeEmail(
   };
 }
 
+export const PASSWORD_CHANGE_CODE_SUBJECT =
+  "Confirma tu cambio de contraseña en KixxMe";
+
+/**
+ * Security-alert email for the password-change flow. States clearly that a
+ * password change was requested and shows the one-time code prominently. The
+ * password itself is NEVER included — only the confirmation code.
+ */
+export function passwordChangeCodeEmail(code: string): {
+  subject: string;
+  html: string;
+} {
+  const body = [
+    `<p style="margin:0 0 14px 0;">Hola,</p>`,
+    `<p style="margin:0 0 14px 0;">Hemos recibido una solicitud para <strong style="color:#f4f1fb;">cambiar la contraseña</strong> de tu cuenta de KixxMe.</p>`,
+    `<p style="margin:0 0 4px 0;">Para confirmar que has sido tú, copia este código y pégalo en la aplicación:</p>`,
+    codeBlock(code),
+    `<p style="margin:14px 0 0 0;">Este código caduca en <strong style="color:#f4f1fb;">10 minutos</strong>.</p>`,
+    `<p style="margin:14px 0 0 0;color:#f3b14b;">\u26A0\uFE0F Si no has solicitado este cambio, ignora este correo y contacta con Soporte KixxMe. Tu contraseña seguirá intacta.</p>`,
+    `<p style="margin:14px 0 0 0;">Nunca compartas este código con nadie.</p>`,
+  ].join("\n            ");
+  return {
+    subject: PASSWORD_CHANGE_CODE_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu código para confirmar el cambio de contraseña.",
+      heading: "Confirma tu cambio de contraseña \u{1F510}",
+      bodyHtml: body,
+    }),
+  };
+}
+
+export const PASSWORD_CHANGED_SUBJECT =
+  "Tu contraseña de KixxMe se ha cambiado";
+
+/**
+ * Security notice sent AFTER a successful password change so the account owner
+ * is alerted (and can react if it wasn't them). Contains no credentials.
+ */
+export function passwordChangedEmail(appUrl?: string): {
+  subject: string;
+  html: string;
+} {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">La contraseña de tu cuenta de KixxMe se ha cambiado correctamente.</strong>",
+    "Si has sido tú, no tienes que hacer nada más.",
+    "<span style=\"color:#f3b14b;\">\u26A0\uFE0F Si no has sido tú, tu cuenta podría estar en riesgo: restablece tu contraseña de inmediato desde \u201COlvidé mi contraseña\u201D y contacta con Soporte KixxMe.</span>",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: PASSWORD_CHANGED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu contraseña de KixxMe se ha cambiado.",
+      heading: "Contraseña actualizada \u{1F510}",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Abrir KixxMe", url: appUrl } : undefined,
+    }),
+  };
+}
+
 export const DEACTIVATED_SUBJECT = "Tu cuenta de KixxMe est\u00E1 desactivada";
 
 /** Confirmation sent after a successful deactivation. */

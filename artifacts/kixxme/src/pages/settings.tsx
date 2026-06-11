@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Ban,
   LogOut,
+  KeyRound,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -230,6 +231,29 @@ export default function Settings() {
             <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
               Cerrar sesión
             </span>
+          </button>
+        </div>
+
+        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
+          SEGURIDAD
+        </h2>
+        <p className="font-sans text-sm text-muted-foreground mb-5">
+          Mantén tu cuenta protegida.
+        </p>
+
+        <div className="space-y-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setLocation("/settings/password")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-change-password"
+          >
+            <KeyRound className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Cambiar contraseña
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 

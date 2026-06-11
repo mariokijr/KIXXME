@@ -902,6 +902,24 @@ export interface AccountActionConfirmResponse {
   action: AccountActionConfirmResponseAction;
 }
 
+export interface PasswordChangeCodeRequest {
+  /** The account's current password (verified server-side) */
+  currentPassword: string;
+  /** The desired new password (min 8 chars, letters and numbers) */
+  newPassword: string;
+}
+
+export interface PasswordChangeConfirmRequest {
+  /** The 6-digit code from the security-alert email */
+  code: string;
+  /** The new password to apply (re-sent from the request step; never stored) */
+  newPassword: string;
+}
+
+export interface PasswordChangeConfirmResponse {
+  success: boolean;
+}
+
 export type CreateReportRequestReportType = typeof CreateReportRequestReportType[keyof typeof CreateReportRequestReportType];
 
 

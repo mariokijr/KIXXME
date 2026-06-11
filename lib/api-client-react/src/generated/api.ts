@@ -73,6 +73,9 @@ import type {
   NotificationsSummary,
   OfficialSupportTicketResponse,
   OpenSupportTicketRequest,
+  PasswordChangeCodeRequest,
+  PasswordChangeConfirmRequest,
+  PasswordChangeConfirmResponse,
   Profile,
   ProfilePhoto,
   PublicProfile,
@@ -4576,6 +4579,148 @@ export const useConfirmAccountAction = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getConfirmAccountActionMutationOptions(options));
+    }
+
+export const getRequestPasswordChangeCodeUrl = () => {
+
+
+
+
+  return `/api/account/password/request`
+}
+
+/**
+ * @summary Verify the current password and email a one-time code to confirm a password change
+ */
+export const requestPasswordChangeCode = async (passwordChangeCodeRequest: PasswordChangeCodeRequest, options?: RequestInit): Promise<AccountActionCodeResponse> => {
+
+  return customFetch<AccountActionCodeResponse>(getRequestPasswordChangeCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      passwordChangeCodeRequest,)
+  }
+);}
+
+
+
+
+export const getRequestPasswordChangeCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPasswordChangeCode>>, TError,{data: BodyType<PasswordChangeCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPasswordChangeCode>>, TError,{data: BodyType<PasswordChangeCodeRequest>}, TContext> => {
+
+const mutationKey = ['requestPasswordChangeCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPasswordChangeCode>>, {data: BodyType<PasswordChangeCodeRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestPasswordChangeCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPasswordChangeCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestPasswordChangeCode>>>
+    export type RequestPasswordChangeCodeMutationBody = BodyType<PasswordChangeCodeRequest>
+    export type RequestPasswordChangeCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Verify the current password and email a one-time code to confirm a password change
+ */
+export const useRequestPasswordChangeCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPasswordChangeCode>>, TError,{data: BodyType<PasswordChangeCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestPasswordChangeCode>>,
+        TError,
+        {data: BodyType<PasswordChangeCodeRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestPasswordChangeCodeMutationOptions(options));
+    }
+
+export const getConfirmPasswordChangeUrl = () => {
+
+
+
+
+  return `/api/account/password/confirm`
+}
+
+/**
+ * @summary Confirm and apply a password change with the emailed code
+ */
+export const confirmPasswordChange = async (passwordChangeConfirmRequest: PasswordChangeConfirmRequest, options?: RequestInit): Promise<PasswordChangeConfirmResponse> => {
+
+  return customFetch<PasswordChangeConfirmResponse>(getConfirmPasswordChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      passwordChangeConfirmRequest,)
+  }
+);}
+
+
+
+
+export const getConfirmPasswordChangeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPasswordChange>>, TError,{data: BodyType<PasswordChangeConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmPasswordChange>>, TError,{data: BodyType<PasswordChangeConfirmRequest>}, TContext> => {
+
+const mutationKey = ['confirmPasswordChange'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmPasswordChange>>, {data: BodyType<PasswordChangeConfirmRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmPasswordChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmPasswordChangeMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPasswordChange>>>
+    export type ConfirmPasswordChangeMutationBody = BodyType<PasswordChangeConfirmRequest>
+    export type ConfirmPasswordChangeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Confirm and apply a password change with the emailed code
+ */
+export const useConfirmPasswordChange = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPasswordChange>>, TError,{data: BodyType<PasswordChangeConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmPasswordChange>>,
+        TError,
+        {data: BodyType<PasswordChangeConfirmRequest>},
+        TContext
+      > => {
+      return useMutation(getConfirmPasswordChangeMutationOptions(options));
     }
 
 export const getCreateReportUrl = () => {

@@ -13,8 +13,17 @@ import {
   type DeactivationType,
 } from "../lib/account.js";
 import {
+  PASSWORD_CHANGE_ACTION,
+  PASSWORD_CODE_TTL_MS,
+  validateNewPassword,
+  verifyCurrentPassword,
+  applyNewPassword,
+} from "../lib/password-change.js";
+import {
   RequestAccountActionCodeBody,
   ConfirmAccountActionBody,
+  RequestPasswordChangeCodeBody,
+  ConfirmPasswordChangeBody,
 } from "@workspace/api-zod";
 import {
   sendEmail,
@@ -22,6 +31,8 @@ import {
   accountActionCodeEmail,
   accountDeactivatedEmail,
   accountDeletedEmail,
+  passwordChangeCodeEmail,
+  passwordChangedEmail,
 } from "../lib/email.js";
 
 const router = Router();
@@ -210,6 +221,202 @@ router.post("/account/verification/confirm", async (req, res) => {
   }
 
   res.json({ success: true, action: "delete" });
+});
+
+// --- Password change -------------------------------------------------------
+//
+// Two-step, email-verified password change for email/password accounts:
+//   1) /account/password/request — verify the CURRENT password, then email a
+//      one-time 6-digit code (10-min TTL). The new password is NOT stored.
+//   2) /account/password/confirm — consume the code and apply the new password
+//      (re-sent by the client), then send a security notice.
+//
+// requireAuth already proves session ownership, so the current-password check
+// is an identity re-confirmation. It still runs a Supabase sign-in per attempt,
+// so we bound attempts per user (in-memory) to stop a hijacked session from
+// brute-forcing the current password through this endpoint. Confirm is already
+// protected by the code's own attempts cap + single-use + expiry.
+const PW_REQUEST_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const PW_REQUEST_MAX = 10; // attempts per user per window
+const pwRequestHits = new Map<string, number[]>();
+
+function pwRequestRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const hits = (pwRequestHits.get(userId) ?? []).filter(
+    (t) => now - t < PW_REQUEST_WINDOW_MS,
+  );
+  if (hits.length >= PW_REQUEST_MAX) {
+    pwRequestHits.set(userId, hits);
+    return true;
+  }
+  hits.push(now);
+  pwRequestHits.set(userId, hits);
+  return false;
+}
+
+/** Verify the current password and email a one-time code to confirm a change. */
+router.post("/account/password/request", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const parsed = RequestPasswordChangeCodeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Solicitud no válida" });
+    return;
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  // Validate the new password BEFORE any network calls (cheap rejections first).
+  const formatError = validateNewPassword(newPassword);
+  if (formatError) {
+    res.status(400).json({ error: formatError });
+    return;
+  }
+  if (newPassword === currentPassword) {
+    res.status(400).json({
+      error: "La nueva contraseña no puede ser igual a la actual.",
+    });
+    return;
+  }
+
+  // Bound attempts per user (covers wrong-current-password retries that never
+  // reach the code-cooldown below).
+  if (pwRequestRateLimited(auth.userId)) {
+    res.status(429).json({
+      error: "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+    });
+    return;
+  }
+
+  const email = auth.email ?? (await getUserEmail(auth.userId));
+  if (!email) {
+    res
+      .status(400)
+      .json({ error: "No se pudo encontrar tu correo electrónico" });
+    return;
+  }
+
+  // Re-confirm identity: the current password must be correct.
+  const correct = await verifyCurrentPassword(email, currentPassword);
+  if (!correct) {
+    res.status(400).json({ error: "La contraseña actual no es correcta." });
+    return;
+  }
+
+  // At most one code per 60s (separate from the per-user attempt cap above).
+  const remaining = await requestCooldownRemaining(
+    auth.userId,
+    PASSWORD_CHANGE_ACTION,
+  );
+  if (remaining > 0) {
+    res.status(429).json({
+      error: `Espera ${Math.ceil(
+        remaining / 1000,
+      )} segundos antes de pedir otro código`,
+    });
+    return;
+  }
+
+  const { code, expiresAt } = await createActionCode(
+    auth.userId,
+    PASSWORD_CHANGE_ACTION,
+    undefined,
+    PASSWORD_CODE_TTL_MS,
+  );
+
+  const { subject, html } = passwordChangeCodeEmail(code);
+  const sent = await sendEmail({ to: email, subject, html });
+  if (!sent) {
+    res.status(200).json({
+      sent: false,
+      expiresAt: expiresAt.toISOString(),
+      message:
+        "No pudimos enviar el correo de verificación en este momento. Inténtalo de nuevo más tarde.",
+    });
+    return;
+  }
+
+  res.json({ sent: true, expiresAt: expiresAt.toISOString() });
+});
+
+/** Confirm and apply a password change with the emailed code. */
+router.post("/account/password/confirm", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const parsed = ConfirmPasswordChangeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Solicitud no válida" });
+    return;
+  }
+  const code = parsed.data.code.trim();
+  const { newPassword } = parsed.data;
+  if (!/^\d{6}$/.test(code)) {
+    res.status(400).json({ error: "Código no válido" });
+    return;
+  }
+
+  // Re-validate the new password (defense in depth — a client could bypass the
+  // form UI). The current password is intentionally NOT required here: a valid
+  // session plus the single-use, expiring code emailed to the account is the
+  // proof of intent.
+  const formatError = validateNewPassword(newPassword);
+  if (formatError) {
+    res.status(400).json({ error: formatError });
+    return;
+  }
+
+  // Consume the code FIRST (single-use guarantee) before applying the change.
+  const result = await consumeActionCode(
+    auth.userId,
+    PASSWORD_CHANGE_ACTION,
+    code,
+  );
+  if (!result.ok) {
+    const msg =
+      result.reason === "expired"
+        ? "El código ha caducado. Solicita uno nuevo."
+        : result.reason === "toomany"
+          ? "Demasiados intentos. Solicita un código nuevo."
+          : result.reason === "notfound"
+            ? "No hay ningún código pendiente. Solicita uno nuevo."
+            : "Código incorrecto.";
+    res.status(400).json({ error: msg });
+    return;
+  }
+
+  const applied = await applyNewPassword(auth.userId, newPassword);
+  if (!applied.ok) {
+    // Log the provider message only — never the password.
+    req.log.warn(
+      { err: applied.providerMessage },
+      "password-change: updateUserById failed",
+    );
+    res.status(400).json({ error: applied.error });
+    return;
+  }
+
+  // Evict every OTHER device's session so a password change locks out a possible
+  // hijacker, while keeping the current session alive. Best-effort — never blocks
+  // the success response. (`updateUserById` alone does not revoke refresh tokens.)
+  try {
+    await supabase.auth.admin.signOut(auth.token, "others");
+  } catch (err) {
+    req.log.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      "password-change: sign-out of other sessions failed (continuing)",
+    );
+  }
+
+  // Security notice (fire-and-forget): alert the owner that the password changed.
+  const email = auth.email ?? (await getUserEmail(auth.userId));
+  if (email) {
+    const base = appBaseUrl();
+    const { subject, html } = passwordChangedEmail(base ? `${base}/` : undefined);
+    void sendEmail({ to: email, subject, html });
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

@@ -36,6 +36,14 @@ import { purgeUserTickets } from "./support-tickets.js";
 export type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
 export type AccountAction = "deactivate" | "delete";
 
+/**
+ * Actions gated by an emailed 6-digit code. Extends the self-service account
+ * actions with "change_password" so the password-change flow can reuse the same
+ * hardened code lifecycle (hashed, single-use, attempts-capped, expiring). The
+ * `action` column is free-text, so no migration is needed for new values.
+ */
+export type CodeAction = AccountAction | "change_password";
+
 const MONTHS: Record<Exclude<DeactivationType, "indefinite">, number> = {
   "1m": 1,
   "3m": 3,
@@ -164,7 +172,7 @@ function generateCode(): string {
 /** Remaining cooldown in ms before a new code may be requested (0 = ready). */
 export async function requestCooldownRemaining(
   userId: string,
-  action: AccountAction,
+  action: CodeAction,
 ): Promise<number> {
   const [recent] = await db
     .select({ createdAt: accountActionCodesTable.createdAt })
@@ -188,8 +196,9 @@ export async function requestCooldownRemaining(
  */
 export async function createActionCode(
   userId: string,
-  action: AccountAction,
+  action: CodeAction,
   payload?: AccountActionPayload,
+  ttlMs: number = CODE_TTL_MS,
 ): Promise<{ code: string; expiresAt: Date }> {
   await db
     .delete(accountActionCodesTable)
@@ -201,7 +210,7 @@ export async function createActionCode(
       ),
     );
   const code = generateCode();
-  const expiresAt = new Date(Date.now() + CODE_TTL_MS);
+  const expiresAt = new Date(Date.now() + ttlMs);
   await db.insert(accountActionCodesTable).values({
     userId,
     action,
@@ -224,7 +233,7 @@ export type ConsumeResult =
  */
 export async function consumeActionCode(
   userId: string,
-  action: AccountAction,
+  action: CodeAction,
   code: string,
 ): Promise<ConsumeResult> {
   const [row] = await db
