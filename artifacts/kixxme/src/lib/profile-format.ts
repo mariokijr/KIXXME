@@ -28,3 +28,33 @@ export function formatDistance(km: number | null | undefined): string | null {
   if (km < 10) return `${km.toFixed(1)} km`;
   return `${Math.round(km)} km`;
 }
+
+/** Rol/Preferencia code → human label (matches the profile edit form options). */
+export const ROLE_LABELS: Record<string, string> = {
+  activo: "Activo",
+  pasivo: "Pasivo",
+  versatil: "Versátil",
+  heterocurioso: "Heterocurioso",
+  flexible: "Flexible",
+  no_decir: "Prefiero no decirlo",
+};
+
+/** "Qué busca" code → human label (matches the profile edit form options). */
+export const LOOKING_FOR_LABELS: Record<string, string> = {
+  amistad: "Amistad",
+  chat: "Chat",
+  citas: "Citas",
+  relacion: "Relación seria",
+  encuentros: "Encuentros",
+  lo_que_surja: "Lo que surja",
+};
+
+/** Resolve a Rol/Preferencia code to its label, or null when unknown/unset. */
+export function roleLabel(code: string | null | undefined): string | null {
+  return code ? (ROLE_LABELS[code] ?? null) : null;
+}
+
+/** Resolve a "Qué busca" code to its label, or null when unknown/unset. */
+export function lookingForLabel(code: string | null | undefined): string | null {
+  return code ? (LOOKING_FOR_LABELS[code] ?? null) : null;
+}

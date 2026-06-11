@@ -613,12 +613,74 @@ export interface LiveCallEndRequest {
   reason?: string;
 }
 
+/**
+ * A single captured media error (name + message only — no PII).
+ */
+export interface LiveDiagError {
+  /** Where it happened (connect|combined|mic|camera|switch|toggle-cam|toggle-mic) */
+  stage?: string;
+  /** DOMException name (NotAllowedError, NotReadableError, …) */
+  name?: string;
+  message?: string;
+}
+
+/**
+ * Client-side media diagnostics for one Live call, used to debug why a device can't capture/publish. Contains NO tokens and no PII beyond the userAgent string.
+ */
+export interface LiveDiagReport {
+  /** What triggered this snapshot (acquire|delayed|teardown) */
+  reason?: string;
+  /** Whether room.connect() succeeded (separate from getUserMedia) */
+  connectOk?: boolean;
+  connectError?: LiveDiagError;
+  /** How local media was acquired (combined|mic-only|camera-only|failed|none) */
+  gumMode?: string;
+  cameraAcquired?: boolean;
+  micAcquired?: boolean;
+  gumErrors?: LiveDiagError[];
+  /** LocalTrackPublished fired for the camera track */
+  publishedCamera?: boolean;
+  /** LocalTrackPublished fired for the mic track */
+  publishedMic?: boolean;
+  /** Subscribed to the partner's camera track */
+  subscribedVideo?: boolean;
+  /** Subscribed to the partner's mic track */
+  subscribedAudio?: boolean;
+  /** enumerateDevices videoinput count before acquisition */
+  videoInputsPre?: number;
+  audioInputsPre?: number;
+  /** enumerateDevices videoinput count after acquisition */
+  videoInputsPost?: number;
+  audioInputsPost?: number;
+  connectionState?: string;
+  disconnectReason?: string;
+  userAgent?: string;
+  isSecureContext?: boolean;
+  /** Running as an iOS Home-Screen PWA (navigator.standalone) */
+  standalone?: boolean;
+  /** navigator.mediaDevices is defined (false in insecure/odd contexts) */
+  mediaDevicesPresent?: boolean;
+  /** navigator.permissions camera state (granted|denied|prompt|unknown) */
+  cameraPermission?: string;
+  /** navigator.permissions microphone state */
+  micPermission?: string;
+}
+
+export interface LiveDiagRequest {
+  callId: string;
+  report: LiveDiagReport;
+}
+
 export interface LiveCallParticipant {
   id: string;
   username?: string | null;
   avatar_url?: string | null;
   age?: number | null;
   city?: string | null;
+  /** Rol/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir). From the real profile; null when not set. */
+  role?: string | null;
+  /** "Qué busca" (amistad|chat|citas|relacion|encuentros|lo_que_surja). From the real profile; null when not set. */
+  looking_for?: string | null;
 }
 
 export type LiveCallType = typeof LiveCallType[keyof typeof LiveCallType];

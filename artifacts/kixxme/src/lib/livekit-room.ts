@@ -8,6 +8,11 @@ import {
   type LocalTrackPublication,
   type LocalVideoTrack,
 } from "livekit-client";
+import {
+  reportLiveDiag,
+  type LiveDiagReport,
+  type LiveDiagError,
+} from "@workspace/api-client-react";
 
 /**
  * KixxMe Live media-plane hook (LiveKit client).
@@ -25,13 +30,16 @@ import {
  * 2. The connect effect depends ONLY on the latch and reads cam/mic via refs,
  *    so toggling the camera/mic never reconnects the room.
  *
- * 3. SINGLE getUserMedia. iOS Safari drops the first captured track when the
- *    camera and microphone are requested in two separate getUserMedia calls,
- *    which silently kills the published mic (and sometimes the camera). We
- *    acquire BOTH at once via `enableCameraAndMicrophone()` on connect, then
- *    reconcile with the user's toggle intent. Per-toggle effects only act on
- *    *subsequent* changes (guarded by `mediaReady` + applied refs) so they
- *    never trigger a second simultaneous acquisition.
+ * 3. SINGLE getUserMedia, with a SEQUENTIAL FALLBACK. iOS Safari drops the
+ *    first captured track when the camera and microphone are requested in two
+ *    separate getUserMedia calls, which silently kills the published mic (and
+ *    sometimes the camera). So we try BOTH at once via
+ *    `enableCameraAndMicrophone()` first. Only if that throws do we fall back to
+ *    enabling the mic and then the camera independently — each in its own
+ *    try/catch — so a dead/blocked camera still lets AUDIO through instead of
+ *    killing the whole call. Per-toggle effects only act on *subsequent* changes
+ *    (guarded by `mediaReady` + applied refs) so they never trigger a second
+ *    simultaneous acquisition.
  *
  * 4. NO adaptiveStream / dynacast. For a 1:1 fullscreen call adaptiveStream can
  *    pause the remote track when it can't measure the <video> as "visible",
@@ -48,7 +56,19 @@ import {
  *    call not active) → `active` is false and the caller shows its placeholder.
  *    A blocked camera (e.g. the Replit preview iframe has no
  *    `allow="camera;microphone"`, or a real permission denial) sets
- *    `mediaError` but keeps the connection so remote video still flows.
+ *    `mediaError` (+ a typed `mediaErrorReason`) but keeps the connection so
+ *    remote video still flows.
+ *
+ * 7. DIAGNOSTICS. Because a self-view only proves LOCAL capture — not that the
+ *    track ever reached the SFU — every connection reports a structured
+ *    snapshot to `POST /live/diag` at three moments (acquire-settled, ~6s in,
+ *    teardown) and on any toggle/switch failure. The report captures connect
+ *    outcome (separate from getUserMedia), how media was acquired, which local
+ *    tracks published, which remote tracks subscribed, device counts, and the
+ *    environment (userAgent / secure-context / iOS standalone PWA / permission
+ *    states). It NEVER contains tokens. The server pairs it with the
+ *    authoritative `listParticipants` room view so we can tell "didn't join",
+ *    "joined but published nothing", and "published but no media" apart.
  */
 
 export type LiveKitStatus =
@@ -58,6 +78,15 @@ export type LiveKitStatus =
   | "reconnecting"
   | "error";
 
+/** Why local media couldn't be captured/published — drives an actionable UI message. */
+export type MediaErrorReason =
+  | "denied"
+  | "busy"
+  | "notfound"
+  | "insecure"
+  | "overconstrained"
+  | "unknown";
+
 export interface LiveKitCall {
   /** True once credentials are latched and a connection is being held. */
   active: boolean;
@@ -66,6 +95,8 @@ export interface LiveKitCall {
   hasRemoteVideo: boolean;
   /** Local camera/mic could not be published (permissions / iframe sandbox). */
   mediaError: boolean;
+  /** Typed cause of `mediaError`, for an actionable message (null when none). */
+  mediaErrorReason: MediaErrorReason | null;
   /** Remote audio is being received but the browser blocked autoplay. */
   needsAudioGesture: boolean;
   /** Ref callback for the full-screen remote <video>. */
@@ -97,6 +128,122 @@ interface Latched {
   url: string;
 }
 
+// --- Diagnostics helpers (module scope, no React state) --------------------
+
+/**
+ * livekit.DisconnectReason is a wire-stable protobuf enum; map the numeric
+ * codes to readable names locally so the log is legible without importing the
+ * enum object (avoids version coupling). Mirror of the server-side maps.
+ */
+const DISCONNECT_REASON: Record<number, string> = {
+  0: "unknown",
+  1: "client_initiated",
+  2: "duplicate_identity",
+  3: "server_shutdown",
+  4: "participant_removed",
+  5: "room_deleted",
+  6: "state_mismatch",
+  7: "join_failure",
+  8: "migration",
+  9: "signal_close",
+  10: "room_closed",
+  11: "user_unavailable",
+  12: "user_rejected",
+  13: "sip_trunk_failure",
+};
+
+function errInfo(err: unknown, stage: string): LiveDiagError {
+  const e = err as { name?: string; message?: string } | undefined;
+  return {
+    stage,
+    name: e?.name,
+    message: e?.message ? String(e.message).slice(0, 300) : undefined,
+  };
+}
+
+/** Map a DOMException name to a typed reason for an actionable UI message. */
+function classifyMediaError(err: unknown): MediaErrorReason {
+  // An insecure or stripped context (no mediaDevices) is the most common silent
+  // killer in odd webviews / non-HTTPS — surface it explicitly first.
+  if (typeof navigator !== "undefined" && !navigator.mediaDevices) {
+    return "insecure";
+  }
+  if (typeof window !== "undefined" && window.isSecureContext === false) {
+    return "insecure";
+  }
+  const name = (err as { name?: string } | undefined)?.name;
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "denied";
+    case "NotReadableError":
+    case "TrackStartError":
+    case "AbortError":
+      return "busy";
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return "notfound";
+    case "OverconstrainedError":
+    case "ConstraintNotSatisfiedError":
+      return "overconstrained";
+    default:
+      return "unknown";
+  }
+}
+
+/** Running as an installed/standalone PWA (iOS `navigator.standalone` or display-mode). */
+function isStandalone(): boolean {
+  try {
+    const iosStandalone = (navigator as unknown as { standalone?: boolean })
+      .standalone;
+    if (iosStandalone === true) return true;
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** enumerateDevices input counts; null when unavailable (insecure/stripped context). */
+async function deviceCounts(): Promise<{
+  video: number;
+  audio: number;
+} | null> {
+  try {
+    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return {
+      video: devices.filter((d) => d.kind === "videoinput").length,
+      audio: devices.filter((d) => d.kind === "audioinput").length,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Permissions API state, wrapped because Safari < 16 throws on camera/microphone. */
+async function queryPermission(
+  name: "camera" | "microphone",
+): Promise<string> {
+  try {
+    const perms = (
+      navigator as unknown as {
+        permissions?: {
+          query?: (d: { name: PermissionName }) => Promise<{ state: string }>;
+        };
+      }
+    ).permissions;
+    if (!perms?.query) return "unknown";
+    const res = await perms.query({ name: name as PermissionName });
+    return res.state ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export function useLiveKitCall({
   callId,
   token,
@@ -108,6 +255,8 @@ export function useLiveKitCall({
   const [status, setStatus] = useState<LiveKitStatus>("idle");
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const [mediaError, setMediaError] = useState(false);
+  const [mediaErrorReason, setMediaErrorReason] =
+    useState<MediaErrorReason | null>(null);
   const [needsAudioGesture, setNeedsAudioGesture] = useState(false);
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   // Flipped true once the connect flow has acquired local media; gates the
@@ -133,6 +282,67 @@ export function useLiveKitCall({
   // initial run (already handled by the connect flow's acquisition).
   const appliedCamRef = useRef<boolean | null>(null);
   const appliedMicRef = useRef<boolean | null>(null);
+
+  // Accumulating diagnostics for the current connection, plus a mirror of the
+  // latch so off-effect handlers (toggles/switch) can post against the right
+  // callId. diagRef is reset at the top of each connect.
+  const diagRef = useRef<LiveDiagReport>({});
+  const mediaRef = useRef<Latched | null>(null);
+  mediaRef.current = media;
+
+  // Snapshot the current diagnostics + live environment and fire it at the
+  // server, fire-and-forget. Never throws, never blocks the call, never carries
+  // a token. `callId` is passed explicitly so a teardown post uses the OLD
+  // call's id even when the latch has already advanced to a new call.
+  const postDiag = useCallback(
+    (reason: string, diagCallId: string | null | undefined) => {
+      if (!diagCallId) return;
+      const room = roomRef.current;
+      const connectionState = room ? String(room.state) : undefined;
+      const subscribedVideo = !!remoteVideoTrackRef.current;
+      const subscribedAudio = !!remoteAudioTrackRef.current;
+      void (async () => {
+        try {
+          const counts = await deviceCounts();
+          const report: LiveDiagReport = {
+            ...diagRef.current,
+            reason,
+            connectionState,
+            subscribedVideo,
+            subscribedAudio,
+            userAgent:
+              typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+            isSecureContext:
+              typeof window !== "undefined" ? window.isSecureContext : undefined,
+            standalone: isStandalone(),
+            mediaDevicesPresent:
+              typeof navigator !== "undefined" && !!navigator.mediaDevices,
+            cameraPermission: await queryPermission("camera"),
+            micPermission: await queryPermission("microphone"),
+          };
+          if (counts) {
+            report.videoInputsPost = counts.video;
+            report.audioInputsPost = counts.audio;
+          }
+          await reportLiveDiag({ callId: diagCallId, report });
+        } catch {
+          // Diagnostics must never disrupt the call.
+        }
+      })();
+    },
+    [],
+  );
+
+  // Record a media failure: set the boolean + typed reason for the UI, and add
+  // the error to the diagnostics trail.
+  const recordMediaError = useCallback((err: unknown, stage: string) => {
+    diagRef.current.gumErrors = [
+      ...(diagRef.current.gumErrors ?? []),
+      errInfo(err, stage),
+    ];
+    setMediaError(true);
+    setMediaErrorReason(classifyMediaError(err));
+  }, []);
 
   // --- Latch credentials once per call -------------------------------------
   useEffect(() => {
@@ -201,8 +411,11 @@ export function useLiveKitCall({
         facingModeRef.current = next;
         if (localElRef.current) track.attach(localElRef.current);
       })
-      .catch(() => {});
-  }, []);
+      .catch((err) => {
+        recordMediaError(err, "switch");
+        postDiag("toggle-cam", mediaRef.current?.callId);
+      });
+  }, [recordMediaError, postDiag]);
 
   // --- Connect (only when the latch changes) -------------------------------
   useEffect(() => {
@@ -211,7 +424,11 @@ export function useLiveKitCall({
       return;
     }
 
+    const diagCallId = media.callId;
     let cancelled = false;
+    let delayedDiagId: ReturnType<typeof setTimeout> | undefined;
+    // Fresh diagnostics trail for this connection.
+    diagRef.current = {};
     // Plain receive: no adaptiveStream/dynacast (see rule #4) so the remote
     // track is never paused for a "not visible" fullscreen <video>.
     const room = new Room();
@@ -219,6 +436,7 @@ export function useLiveKitCall({
     setStatus("connecting");
     setHasRemoteVideo(false);
     setMediaError(false);
+    setMediaErrorReason(null);
     setMediaReady(false);
     setNeedsAudioGesture(false);
     appliedCamRef.current = null;
@@ -255,9 +473,16 @@ export function useLiveKitCall({
       }
     };
     const onLocalPublished = (pub: LocalTrackPublication) => {
-      if (pub.kind === Track.Kind.Video && pub.track) {
-        localTrackRef.current = pub.track;
-        if (localElRef.current) pub.track.attach(localElRef.current);
+      // Authoritative client-side proof that a track was handed to the SFU
+      // (distinct from merely capturing it locally).
+      if (pub.kind === Track.Kind.Video) {
+        diagRef.current.publishedCamera = true;
+        if (pub.track) {
+          localTrackRef.current = pub.track;
+          if (localElRef.current) pub.track.attach(localElRef.current);
+        }
+      } else if (pub.kind === Track.Kind.Audio) {
+        diagRef.current.publishedMic = true;
       }
     };
     const onState = (s: ConnectionState) => {
@@ -269,78 +494,171 @@ export function useLiveKitCall({
     const onAudioStatus = () => {
       if (!cancelled) setNeedsAudioGesture(!room.canPlaybackAudio);
     };
+    const onDisconnected = (reason?: number) => {
+      diagRef.current.disconnectReason =
+        reason == null
+          ? undefined
+          : (DISCONNECT_REASON[reason] ?? String(reason));
+    };
 
     room
       .on(RoomEvent.TrackSubscribed, onTrackSubscribed)
       .on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
       .on(RoomEvent.LocalTrackPublished, onLocalPublished)
       .on(RoomEvent.ConnectionStateChanged, onState)
-      .on(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus);
+      .on(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus)
+      .on(RoomEvent.Disconnected, onDisconnected);
 
     void (async () => {
+      // Connect outcome is tracked SEPARATELY from getUserMedia: a failure here
+      // means the token/URL/SFU is the problem, not the camera.
       try {
         await room.connect(media.url, media.token);
-        if (cancelled) {
-          await room.disconnect();
-          return;
-        }
-        setStatus("connected");
-
-        // Acquire camera + mic in a SINGLE getUserMedia (rule #3).
-        let acquired = true;
-        try {
-          await room.localParticipant.enableCameraAndMicrophone();
-        } catch {
-          acquired = false;
-          if (!cancelled) setMediaError(true);
-        }
-        if (cancelled) {
-          await room.disconnect();
-          return;
-        }
-
-        // Reconcile with the user's current intent (they may have toggled cam/
-        // mic off during the pre-call countdown). No-ops when already correct,
-        // so this never fires a second simultaneous acquisition. Skipped when
-        // acquisition failed (e.g. permission denied) so we don't fire a
-        // redundant second getUserMedia attempt — a later toggle can retry.
-        if (acquired) {
-          try {
-            await room.localParticipant.setCameraEnabled(camOnRef.current, {
-              facingMode: facingModeRef.current,
-            });
-            await room.localParticipant.setMicrophoneEnabled(micOnRef.current);
-            const camPub = room.localParticipant.getTrackPublication(
-              Track.Source.Camera,
-            );
-            if (camPub?.track && localElRef.current) {
-              camPub.track.attach(localElRef.current);
-            }
-          } catch {
-            if (!cancelled) setMediaError(true);
-          }
-        }
-
-        appliedCamRef.current = camOnRef.current;
-        appliedMicRef.current = micOnRef.current;
-        void detectCameras();
-        if (!cancelled) {
-          setNeedsAudioGesture(!room.canPlaybackAudio);
-          setMediaReady(true);
-        }
-      } catch {
+        diagRef.current.connectOk = true;
+      } catch (err) {
+        diagRef.current.connectOk = false;
+        diagRef.current.connectError = errInfo(err, "connect");
         if (!cancelled) setStatus("error");
+        postDiag("acquire", diagCallId);
+        return;
+      }
+      if (cancelled) {
+        await room.disconnect();
+        return;
+      }
+      setStatus("connected");
+      // Post a delayed snapshot once the call has had time to settle — this is
+      // the one that reveals "connected but no remote/published media".
+      delayedDiagId = setTimeout(() => postDiag("delayed", diagCallId), 6000);
+
+      // Device inventory before acquisition (0 videoinputs ⇒ no camera at all).
+      const pre = await deviceCounts();
+      if (pre) {
+        diagRef.current.videoInputsPre = pre.video;
+        diagRef.current.audioInputsPre = pre.audio;
+      }
+
+      // Acquire camera + mic in a SINGLE getUserMedia (rule #3), then fall back
+      // to mic-first / camera-second so a blocked camera still gives us audio.
+      let cameraAcquired = false;
+      let micAcquired = false;
+      let gumMode = "none";
+      try {
+        await room.localParticipant.enableCameraAndMicrophone();
+        cameraAcquired = true;
+        micAcquired = true;
+        gumMode = "combined";
+      } catch (err) {
+        diagRef.current.gumErrors = [
+          ...(diagRef.current.gumErrors ?? []),
+          errInfo(err, "combined"),
+        ];
+        // Mic first — audio is the floor of a usable call.
+        try {
+          await room.localParticipant.setMicrophoneEnabled(true);
+          micAcquired = true;
+        } catch (micErr) {
+          diagRef.current.gumErrors = [
+            ...(diagRef.current.gumErrors ?? []),
+            errInfo(micErr, "mic"),
+          ];
+        }
+        // Then camera, independently.
+        try {
+          await room.localParticipant.setCameraEnabled(true, {
+            facingMode: facingModeRef.current,
+          });
+          cameraAcquired = true;
+        } catch (camErr) {
+          diagRef.current.gumErrors = [
+            ...(diagRef.current.gumErrors ?? []),
+            errInfo(camErr, "camera"),
+          ];
+        }
+        gumMode =
+          cameraAcquired && micAcquired
+            ? "combined-fallback"
+            : micAcquired
+              ? "mic-only"
+              : cameraAcquired
+                ? "camera-only"
+                : "failed";
+      }
+      diagRef.current.gumMode = gumMode;
+      diagRef.current.cameraAcquired = cameraAcquired;
+      diagRef.current.micAcquired = micAcquired;
+
+      if (cancelled) {
+        await room.disconnect();
+        return;
+      }
+
+      // Surface a media error tied to the self-view (camera). Audio-only still
+      // counts as a working call, so we keep the connection regardless.
+      if (!cameraAcquired) {
+        const camErr =
+          diagRef.current.gumErrors?.find((e) => e.stage === "camera") ??
+          diagRef.current.gumErrors?.find((e) => e.stage === "combined");
+        setMediaError(true);
+        setMediaErrorReason(classifyMediaError({ name: camErr?.name }));
+      } else {
+        setMediaError(false);
+        setMediaErrorReason(null);
+      }
+
+      // Reconcile with the user's pre-call toggle intent (they may have toggled
+      // cam/mic off during the countdown). Only turn ACQUIRED tracks off — never
+      // re-enable here, so we don't fire a redundant second getUserMedia.
+      try {
+        if (cameraAcquired && camOnRef.current === false) {
+          await room.localParticipant.setCameraEnabled(false);
+        }
+        if (micAcquired && micOnRef.current === false) {
+          await room.localParticipant.setMicrophoneEnabled(false);
+        }
+        const camPub = room.localParticipant.getTrackPublication(
+          Track.Source.Camera,
+        );
+        if (camPub?.track && localElRef.current) {
+          camPub.track.attach(localElRef.current);
+        }
+      } catch (err) {
+        diagRef.current.gumErrors = [
+          ...(diagRef.current.gumErrors ?? []),
+          errInfo(err, "reconcile"),
+        ];
+      }
+
+      // Device inventory after acquisition (labels populate once permission is
+      // granted; a jump from 0→N confirms the grant happened).
+      const post = await deviceCounts();
+      if (post) {
+        diagRef.current.videoInputsPost = post.video;
+        diagRef.current.audioInputsPost = post.audio;
+      }
+
+      appliedCamRef.current = camOnRef.current;
+      appliedMicRef.current = micOnRef.current;
+      void detectCameras();
+      if (!cancelled) {
+        setNeedsAudioGesture(!room.canPlaybackAudio);
+        setMediaReady(true);
+        postDiag("acquire", diagCallId);
       }
     })();
 
     return () => {
       cancelled = true;
+      if (delayedDiagId) clearTimeout(delayedDiagId);
+      // Final snapshot BEFORE we tear refs down (reads roomRef/track refs).
+      postDiag("teardown", diagCallId);
       room
         .off(RoomEvent.TrackSubscribed, onTrackSubscribed)
         .off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
         .off(RoomEvent.LocalTrackPublished, onLocalPublished)
         .off(RoomEvent.ConnectionStateChanged, onState)
-        .off(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus);
+        .off(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus)
+        .off(RoomEvent.Disconnected, onDisconnected);
       remoteVideoTrackRef.current = null;
       remoteAudioTrackRef.current = null;
       localTrackRef.current = null;
@@ -353,7 +671,7 @@ export function useLiveKitCall({
       setMediaReady(false);
       setNeedsAudioGesture(false);
     };
-  }, [media, detectCameras]);
+  }, [media, detectCameras, postDiag]);
 
   // --- Per-toggle camera publish (only AFTER the initial acquisition) ------
   useEffect(() => {
@@ -367,10 +685,14 @@ export function useLiveKitCall({
       .then((pub) => {
         if (pub?.track && localElRef.current) pub.track.attach(localElRef.current);
         setMediaError(false);
+        setMediaErrorReason(null);
         if (camOn) void detectCameras();
       })
-      .catch(() => setMediaError(true));
-  }, [camOn, mediaReady, detectCameras]);
+      .catch((err) => {
+        recordMediaError(err, "toggle-cam");
+        postDiag("toggle-cam", mediaRef.current?.callId);
+      });
+  }, [camOn, mediaReady, detectCameras, recordMediaError, postDiag]);
 
   // --- Per-toggle microphone publish --------------------------------------
   useEffect(() => {
@@ -378,16 +700,18 @@ export function useLiveKitCall({
     if (!room || !mediaReady) return;
     if (appliedMicRef.current === micOn) return;
     appliedMicRef.current = micOn;
-    room.localParticipant
-      .setMicrophoneEnabled(micOn)
-      .catch(() => setMediaError(true));
-  }, [micOn, mediaReady]);
+    room.localParticipant.setMicrophoneEnabled(micOn).catch((err) => {
+      recordMediaError(err, "toggle-mic");
+      postDiag("toggle-mic", mediaRef.current?.callId);
+    });
+  }, [micOn, mediaReady, recordMediaError, postDiag]);
 
   return {
     active: !!media,
     status,
     hasRemoteVideo,
     mediaError,
+    mediaErrorReason,
     needsAudioGesture,
     attachRemoteVideo,
     attachLocalVideo,

@@ -60,6 +60,7 @@ import type {
   LiveCall,
   LiveCallEndRequest,
   LiveCallRequest,
+  LiveDiagRequest,
   LiveQueueRequest,
   LiveState,
   LocationUpdateRequest,
@@ -3489,6 +3490,77 @@ export function useGetLiveState<TData = Awaited<ReturnType<typeof getLiveState>>
 
 
 
+
+export const getReportLiveDiagUrl = () => {
+
+
+
+
+  return `/api/live/diag`
+}
+
+/**
+ * @summary Report client-side media diagnostics for one Live call (participant only)
+ */
+export const reportLiveDiag = async (liveDiagRequest: LiveDiagRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getReportLiveDiagUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      liveDiagRequest,)
+  }
+);}
+
+
+
+
+export const getReportLiveDiagMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportLiveDiag>>, TError,{data: BodyType<LiveDiagRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportLiveDiag>>, TError,{data: BodyType<LiveDiagRequest>}, TContext> => {
+
+const mutationKey = ['reportLiveDiag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportLiveDiag>>, {data: BodyType<LiveDiagRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reportLiveDiag(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportLiveDiagMutationResult = NonNullable<Awaited<ReturnType<typeof reportLiveDiag>>>
+    export type ReportLiveDiagMutationBody = BodyType<LiveDiagRequest>
+    export type ReportLiveDiagMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Report client-side media diagnostics for one Live call (participant only)
+ */
+export const useReportLiveDiag = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportLiveDiag>>, TError,{data: BodyType<LiveDiagRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportLiveDiag>>,
+        TError,
+        {data: BodyType<LiveDiagRequest>},
+        TContext
+      > => {
+      return useMutation(getReportLiveDiagMutationOptions(options));
+    }
 
 export const getCreateLiveCallUrl = () => {
 

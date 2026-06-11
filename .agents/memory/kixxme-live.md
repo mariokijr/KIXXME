@@ -130,6 +130,49 @@ verify creds against the real project.
    failing). Two tokens for one room proves two-way room membership.
 Final on-device see+hear still needs the user's two phones on the published domain.
 
+## A self-view proves LOCAL capture only — get SFU-side evidence
+**Why:** "I see my own camera but not the other person" tells you nothing about
+whether your track ever reached the SFU. A self-`<video>` attaches the *local*
+track; it is true even when nothing publishes. To diagnose a real two-phone
+failure you need evidence from BOTH the client and the authoritative server room
+view, correlated.
+**How:** `useLiveKitCall` accumulates a structured snapshot (`diagRef`) and POSTs
+it to `POST /live/diag` fire-and-forget at three moments — acquire-settled,
+~6s "delayed" (the key one: connected-but-no-media shows here), and teardown —
+plus on any toggle/switch failure. The server pairs it with
+`listRoomParticipants(roomName)` (authoritative SFU identities + track kinds) in
+ONE `req.log.info({liveDiag})` line. The triad that disambiguates the three
+failure modes: `connectOk`/`connectError` (didn't join) → `gumMode`+
+`cameraAcquired`+`publishedCamera/Mic` from `LocalTrackPublished` (joined but
+published nothing) → `subscribedVideo/Audio` + the server participant track list
+(published but remote sees no media). Env capture (UA, isSecureContext,
+`navigator.standalone` PWA, mediaDevicesPresent, permissions.query camera/mic)
+covers the iOS suspects. **The diag report NEVER contains a token.** Teardown uses
+a plain fetch (not sendBeacon) so it's lost on tab-kill — rely on acquire +
+delayed. Pass the effect-closure `callId` to `postDiag` so teardown logs the OLD
+call even after the latch advances.
+
+## Blind spot: a null mediaToken means ZERO diag rows (and that's the finding)
+If a user's `mediaToken` is null (lapsed Gold per `issueMediaToken`'s getPlan
+check, or a LiveKit env issue at mint), `useLiveKitCall` never activates → that
+user posts NO `liveDiag` lines at all. **Absence of one side's diag is itself
+evidence:** check that user's `GET /live/state` DTO for a null `mediaToken` and
+the partner's server snapshot (it will show only one participant). Don't read
+"no logs from Sara" as "diagnostics broken".
+
+## Sequential getUserMedia fallback keeps AUDIO alive when the camera dies
+**Why:** a blocked/dead camera must not take the whole call down — audio is the
+floor of a usable call.
+**How:** combined `enableCameraAndMicrophone()` first; on throw, fall back to
+`setMicrophoneEnabled(true)` THEN `setCameraEnabled(true)`, each in its own
+try/catch recording a typed `gumErrors[]` entry (stage = combined/mic/camera).
+`mediaError` (boolean, back-compat) tracks the CAMERA (self-view) outcome; a
+typed `mediaErrorReason` (denied/busy/notfound/insecure/overconstrained/unknown,
+classified from the DOMException `name` with an insecure-context check first)
+drives an actionable Spanish message in `InCall` (`mediaErrorMessage()`). Partner
+`role`/`looking_for` now ride the DTO (`loadParticipant` merges Supabase +
+`getProfileDetails`) and render as chips via the shared `profile-format` labels.
+
 ## Front/back camera switch
 `switchCamera` flips the published camera in place via
 `LocalVideoTrack.restartTrack({ facingMode })` (no re-publish → seamless source

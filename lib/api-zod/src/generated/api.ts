@@ -858,7 +858,9 @@ export const JoinLiveQueueResponse = zod.object({
   "username": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "age": zod.number().nullish(),
-  "city": zod.string().nullish()
+  "city": zod.string().nullish(),
+  "role": zod.string().nullish().describe('Rol\/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir). From the real profile; null when not set.'),
+  "looking_for": zod.string().nullish().describe('\"Qué busca\" (amistad|chat|citas|relacion|encuentros|lo_que_surja). From the real profile; null when not set.')
 }),
   "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
   "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
@@ -899,7 +901,9 @@ export const GetLiveStateResponse = zod.object({
   "username": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "age": zod.number().nullish(),
-  "city": zod.string().nullish()
+  "city": zod.string().nullish(),
+  "role": zod.string().nullish().describe('Rol\/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir). From the real profile; null when not set.'),
+  "looking_for": zod.string().nullish().describe('\"Qué busca\" (amistad|chat|citas|relacion|encuentros|lo_que_surja). From the real profile; null when not set.')
 }),
   "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
   "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),
@@ -909,6 +913,51 @@ export const GetLiveStateResponse = zod.object({
   "hasAge": zod.boolean().describe('Whether the user has an age set (required to be matched).'),
   "hasLocation": zod.boolean().describe('Whether the user has coordinates. When false, location-based scopes (nearby\/spain\/europe) fall back to worldwide.\n')
 }),zod.null()]).optional().describe('Searcher\'s profile-readiness flags (present when Gold and not in a call). Used to warn about a missing age (can\'t be matched) or a missing location (location scopes fall back to worldwide).\n')
+})
+
+
+/**
+ * @summary Report client-side media diagnostics for one Live call (participant only)
+ */
+export const ReportLiveDiagBody = zod.object({
+  "callId": zod.string(),
+  "report": zod.object({
+  "reason": zod.string().optional().describe('What triggered this snapshot (acquire|delayed|teardown)'),
+  "connectOk": zod.boolean().optional().describe('Whether room.connect() succeeded (separate from getUserMedia)'),
+  "connectError": zod.object({
+  "stage": zod.string().optional().describe('Where it happened (connect|combined|mic|camera|switch|toggle-cam|toggle-mic)'),
+  "name": zod.string().optional().describe('DOMException name (NotAllowedError, NotReadableError, …)'),
+  "message": zod.string().optional()
+}).optional().describe('A single captured media error (name + message only — no PII).'),
+  "gumMode": zod.string().optional().describe('How local media was acquired (combined|mic-only|camera-only|failed|none)'),
+  "cameraAcquired": zod.boolean().optional(),
+  "micAcquired": zod.boolean().optional(),
+  "gumErrors": zod.array(zod.object({
+  "stage": zod.string().optional().describe('Where it happened (connect|combined|mic|camera|switch|toggle-cam|toggle-mic)'),
+  "name": zod.string().optional().describe('DOMException name (NotAllowedError, NotReadableError, …)'),
+  "message": zod.string().optional()
+}).describe('A single captured media error (name + message only — no PII).')).optional(),
+  "publishedCamera": zod.boolean().optional().describe('LocalTrackPublished fired for the camera track'),
+  "publishedMic": zod.boolean().optional().describe('LocalTrackPublished fired for the mic track'),
+  "subscribedVideo": zod.boolean().optional().describe('Subscribed to the partner\'s camera track'),
+  "subscribedAudio": zod.boolean().optional().describe('Subscribed to the partner\'s mic track'),
+  "videoInputsPre": zod.number().optional().describe('enumerateDevices videoinput count before acquisition'),
+  "audioInputsPre": zod.number().optional(),
+  "videoInputsPost": zod.number().optional().describe('enumerateDevices videoinput count after acquisition'),
+  "audioInputsPost": zod.number().optional(),
+  "connectionState": zod.string().optional(),
+  "disconnectReason": zod.string().optional(),
+  "userAgent": zod.string().optional(),
+  "isSecureContext": zod.boolean().optional(),
+  "standalone": zod.boolean().optional().describe('Running as an iOS Home-Screen PWA (navigator.standalone)'),
+  "mediaDevicesPresent": zod.boolean().optional().describe('navigator.mediaDevices is defined (false in insecure\/odd contexts)'),
+  "cameraPermission": zod.string().optional().describe('navigator.permissions camera state (granted|denied|prompt|unknown)'),
+  "micPermission": zod.string().optional().describe('navigator.permissions microphone state')
+}).describe('Client-side media diagnostics for one Live call, used to debug why a device can\'t capture\/publish. Contains NO tokens and no PII beyond the userAgent string.')
+})
+
+export const ReportLiveDiagResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -940,7 +989,9 @@ export const AcceptLiveCallResponse = zod.object({
   "username": zod.string().nullish(),
   "avatar_url": zod.string().nullish(),
   "age": zod.number().nullish(),
-  "city": zod.string().nullish()
+  "city": zod.string().nullish(),
+  "role": zod.string().nullish().describe('Rol\/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir). From the real profile; null when not set.'),
+  "looking_for": zod.string().nullish().describe('\"Qué busca\" (amistad|chat|citas|relacion|encuentros|lo_que_surja). From the real profile; null when not set.')
 }),
   "mediaToken": zod.string().nullish().describe('Short-lived, room-scoped LiveKit access token. Issued only for Gold users while the call is active; null otherwise.'),
   "mediaUrl": zod.string().nullish().describe('LiveKit server URL (wss:\/\/) the client connects to. Present only when a mediaToken is issued.'),

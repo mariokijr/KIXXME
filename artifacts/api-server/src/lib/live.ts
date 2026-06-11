@@ -13,6 +13,7 @@ import { getBlockRelations } from "./blocks.js";
 import { getUnavailableIds } from "./moderation.js";
 import { getPlan } from "./entitlement.js";
 import { mintRoomToken, getLiveKitUrl, deleteRoom } from "./livekit.js";
+import { getProfileDetails } from "./profile-details.js";
 import { haversineKm } from "./geo.js";
 
 /**
@@ -60,6 +61,10 @@ export interface LiveCallParticipantDTO {
   avatar_url: string | null;
   age: number | null;
   city: string | null;
+  /** Rol/Preferencia from the repo-owned profile details (null when unset). */
+  role: string | null;
+  /** "Qué busca" from the repo-owned profile details (null when unset). */
+  looking_for: string | null;
 }
 
 export interface LiveCallDTO {
@@ -264,17 +269,24 @@ export async function getLiveProfileFlags(
 }
 
 async function loadParticipant(userId: string): Promise<LiveCallParticipantDTO> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, username, avatar_url, age, city")
-    .eq("id", userId)
-    .maybeSingle();
+  // Supabase has the base profile; Rol/Preferencia + "Qué busca" live in the
+  // repo-owned Replit Postgres (dual-DB), so fetch both in parallel and merge.
+  const [{ data }, details] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, username, avatar_url, age, city")
+      .eq("id", userId)
+      .maybeSingle(),
+    getProfileDetails(userId),
+  ]);
   return {
     id: userId,
     username: (data?.username as string | null) ?? null,
     avatar_url: (data?.avatar_url as string | null) ?? null,
     age: (data?.age as number | null) ?? null,
     city: (data?.city as string | null) ?? null,
+    role: details.role,
+    looking_for: details.looking_for,
   };
 }
 
@@ -305,6 +317,31 @@ export async function serializeCall(
     mediaUrl: mediaToken ? getLiveKitUrl() : null,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+/**
+ * Look up a call by id ONLY if `userId` is one of its two participants.
+ * Used by the diagnostics endpoint to gate logging to the caller's own call
+ * (IDOR guard) and to recover the LiveKit room name for the server snapshot.
+ */
+export async function getCallForParticipant(
+  callId: string,
+  userId: string,
+): Promise<VideoCall | undefined> {
+  const [row] = await db
+    .select()
+    .from(videoCallsTable)
+    .where(
+      and(
+        eq(videoCallsTable.id, callId),
+        or(
+          eq(videoCallsTable.callerId, userId),
+          eq(videoCallsTable.calleeId, userId),
+        ),
+      ),
+    )
+    .limit(1);
+  return row;
 }
 
 // --- Active call lookup ----------------------------------------------------

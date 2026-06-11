@@ -12,4 +12,8 @@ export interface LiveCallParticipant {
   avatar_url?: string | null;
   age?: number | null;
   city?: string | null;
+  /** Rol/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir). From the real profile; null when not set. */
+  role?: string | null;
+  /** "Qué busca" (amistad|chat|citas|relacion|encuentros|lo_que_surja). From the real profile; null when not set. */
+  looking_for?: string | null;
 }

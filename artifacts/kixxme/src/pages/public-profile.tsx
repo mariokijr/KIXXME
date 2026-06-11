@@ -30,25 +30,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
+import { ROLE_LABELS, LOOKING_FOR_LABELS } from "@/lib/profile-format";
 import { useLikeActions } from "@/lib/like-actions";
-
-const ROLE_LABELS: Record<string, string> = {
-  activo: "Activo",
-  pasivo: "Pasivo",
-  versatil: "Versátil",
-  heterocurioso: "Heterocurioso",
-  flexible: "Flexible",
-  no_decir: "Prefiero no decirlo",
-};
-
-const LOOKING_FOR_LABELS: Record<string, string> = {
-  amistad: "Amistad",
-  chat: "Chat",
-  citas: "Citas",
-  relacion: "Relación seria",
-  encuentros: "Encuentros",
-  lo_que_surja: "Lo que surja",
-};
 
 export default function PublicProfile() {
   const params = useParams();

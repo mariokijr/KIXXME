@@ -1339,6 +1339,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /live/diag:
+    post:
+      operationId: reportLiveDiag
+      tags: [live]
+      summary: Report client-side media diagnostics for one Live call (participant only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveDiagRequest"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Call not found or not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /live/calls:
     post:
       operationId: createLiveCall
@@ -3239,6 +3278,97 @@ components:
           type: string
           description: Optional reason the call ended (e.g. hangup, reported)
 
+    LiveDiagError:
+      type: object
+      description: A single captured media error (name + message only — no PII).
+      properties:
+        stage:
+          type: string
+          description: Where it happened (connect|combined|mic|camera|switch|toggle-cam|toggle-mic)
+        name:
+          type: string
+          description: DOMException name (NotAllowedError, NotReadableError, …)
+        message:
+          type: string
+
+    LiveDiagReport:
+      type: object
+      description: >-
+        Client-side media diagnostics for one Live call, used to debug why a
+        device can't capture/publish. Contains NO tokens and no PII beyond the
+        userAgent string.
+      properties:
+        reason:
+          type: string
+          description: What triggered this snapshot (acquire|delayed|teardown)
+        connectOk:
+          type: boolean
+          description: Whether room.connect() succeeded (separate from getUserMedia)
+        connectError:
+          $ref: "#/components/schemas/LiveDiagError"
+        gumMode:
+          type: string
+          description: How local media was acquired (combined|mic-only|camera-only|failed|none)
+        cameraAcquired:
+          type: boolean
+        micAcquired:
+          type: boolean
+        gumErrors:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveDiagError"
+        publishedCamera:
+          type: boolean
+          description: LocalTrackPublished fired for the camera track
+        publishedMic:
+          type: boolean
+          description: LocalTrackPublished fired for the mic track
+        subscribedVideo:
+          type: boolean
+          description: Subscribed to the partner's camera track
+        subscribedAudio:
+          type: boolean
+          description: Subscribed to the partner's mic track
+        videoInputsPre:
+          type: integer
+          description: enumerateDevices videoinput count before acquisition
+        audioInputsPre:
+          type: integer
+        videoInputsPost:
+          type: integer
+          description: enumerateDevices videoinput count after acquisition
+        audioInputsPost:
+          type: integer
+        connectionState:
+          type: string
+        disconnectReason:
+          type: string
+        userAgent:
+          type: string
+        isSecureContext:
+          type: boolean
+        standalone:
+          type: boolean
+          description: Running as an iOS Home-Screen PWA (navigator.standalone)
+        mediaDevicesPresent:
+          type: boolean
+          description: navigator.mediaDevices is defined (false in insecure/odd contexts)
+        cameraPermission:
+          type: string
+          description: navigator.permissions camera state (granted|denied|prompt|unknown)
+        micPermission:
+          type: string
+          description: navigator.permissions microphone state
+
+    LiveDiagRequest:
+      type: object
+      properties:
+        callId:
+          type: string
+        report:
+          $ref: "#/components/schemas/LiveDiagReport"
+      required: [callId, report]
+
     LiveCallParticipant:
       type: object
       properties:
@@ -3256,6 +3386,18 @@ components:
         city:
           type: string
           nullable: true
+        role:
+          type: string
+          nullable: true
+          description: >-
+            Rol/Preferencia (activo|pasivo|versatil|heterocurioso|flexible|no_decir).
+            From the real profile; null when not set.
+        looking_for:
+          type: string
+          nullable: true
+          description: >-
+            "Qué busca" (amistad|chat|citas|relacion|encuentros|lo_que_surja).
+            From the real profile; null when not set.
       required: [id]
 
     LiveCall:

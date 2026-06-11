@@ -3,11 +3,13 @@ import { requireAuth } from "../lib/auth.js";
 import { isBlockedBetween } from "../lib/blocks.js";
 import { isUnavailable } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
+import { listRoomParticipants } from "../lib/livekit.js";
 import * as live from "../lib/live.js";
 import {
   JoinLiveQueueBody,
   CreateLiveCallBody,
   EndLiveCallBody,
+  ReportLiveDiagBody,
 } from "@workspace/api-zod";
 
 const router = Router();
@@ -236,6 +238,56 @@ router.post("/live/calls/:id/skip", async (req, res) => {
     });
     return;
   }
+  res.json({ success: true });
+});
+
+/**
+ * Client media diagnostics for a single call. Records exactly why a device
+ * could (or couldn't) capture and publish its camera/mic, and cross-checks the
+ * client's self-report against the authoritative LiveKit room snapshot
+ * (`listRoomParticipants`) — the ground truth of who actually joined and which
+ * tracks reached the SFU. Gated to the call's two participants (IDOR guard).
+ *
+ * Privacy: logs only DOMException names/messages, device counts, connection
+ * state, and the userAgent string. It NEVER receives or logs media tokens.
+ */
+router.post("/live/diag", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const me = auth.userId;
+
+  const parsed = ReportLiveDiagBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Solicitud no válida" });
+    return;
+  }
+  const { callId, report } = parsed.data;
+
+  // IDOR guard: only a participant of this call may report on it.
+  const call = await live.getCallForParticipant(callId, me);
+  if (!call) {
+    res.status(404).json({ error: "Llamada no encontrada" });
+    return;
+  }
+
+  // Authoritative server-side view: who is in the room and what they published.
+  const server = await listRoomParticipants(call.roomName);
+
+  req.log.info(
+    {
+      liveDiag: {
+        callId,
+        roomName: call.roomName,
+        callStatus: call.status,
+        userId: me,
+        role: call.callerId === me ? "caller" : "callee",
+        client: report,
+        server,
+      },
+    },
+    "live.diag",
+  );
+
   res.json({ success: true });
 });
 

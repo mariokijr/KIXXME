@@ -20,7 +20,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { playSound } from "@/lib/sound";
-import { useLiveKitCall, type LiveKitCall } from "@/lib/livekit-room";
+import {
+  useLiveKitCall,
+  type LiveKitCall,
+  type MediaErrorReason,
+} from "@/lib/livekit-room";
+import { roleLabel, lookingForLabel } from "@/lib/profile-format";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -994,6 +999,49 @@ function CtrlButton({
   );
 }
 
+/**
+ * Map a typed media-capture failure to an actionable Spanish message. Driven by
+ * the real DOMException the diagnostics layer classified, so the user is told
+ * exactly what to fix instead of a generic "check permissions".
+ */
+function mediaErrorMessage(reason: MediaErrorReason | null): {
+  title: string;
+  hint: string;
+} {
+  switch (reason) {
+    case "denied":
+      return {
+        title: "Permiso de cámara o micrófono denegado",
+        hint: "Permite el acceso en los ajustes de tu navegador y vuelve a intentarlo.",
+      };
+    case "busy":
+      return {
+        title: "Tu cámara o micrófono está ocupado",
+        hint: "Otra app lo está usando. Ciérrala e inténtalo de nuevo.",
+      };
+    case "notfound":
+      return {
+        title: "No se encontró cámara ni micrófono",
+        hint: "Conecta o habilita un dispositivo y vuelve a intentarlo.",
+      };
+    case "insecure":
+      return {
+        title: "La cámara no está disponible aquí",
+        hint: "Abre KixxMe desde el navegador (no como app instalada) y con conexión segura.",
+      };
+    case "overconstrained":
+      return {
+        title: "Tu cámara no admite esta configuración",
+        hint: "Inténtalo de nuevo o cambia de cámara.",
+      };
+    default:
+      return {
+        title: "No se pudo acceder a tu cámara o micrófono",
+        hint: "Revisa los permisos e inténtalo de nuevo.",
+      };
+  }
+}
+
 function InCall({
   call,
   camOn,
@@ -1024,6 +1072,10 @@ function InCall({
   ]
     .filter(Boolean)
     .join(" · ");
+  // Real Rol/Preferencia + "Qué busca" from the partner's profile (null when unset).
+  const roleText = roleLabel(call.partner.role);
+  const lookingText = lookingForLabel(call.partner.looking_for);
+  const hasChips = Boolean(roleText || lookingText);
 
   // Call-duration timer: starts when the media connection reports "connected",
   // resets per call.
@@ -1126,6 +1178,35 @@ function InCall({
                     {subtitle}
                   </p>
                 )}
+                {hasChips && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
+                    {roleText && (
+                      <span
+                        className="px-2.5 py-1 rounded-full font-sans text-xs text-primary"
+                        style={{
+                          background: "hsl(326 60% 22% / 0.5)",
+                          border: "1px solid hsl(326 70% 50% / 0.35)",
+                        }}
+                        data-testid="chip-partner-role"
+                      >
+                        {roleText}
+                      </span>
+                    )}
+                    {lookingText && (
+                      <span
+                        className="px-2.5 py-1 rounded-full font-sans text-xs"
+                        style={{
+                          color: "hsl(266 80% 80%)",
+                          background: "hsl(266 50% 24% / 0.5)",
+                          border: "1px solid hsl(266 70% 55% / 0.35)",
+                        }}
+                        data-testid="chip-partner-looking"
+                      >
+                        {lookingText}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1168,6 +1249,34 @@ function InCall({
                   </span>
                 )}
               </div>
+              {hasChips && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {roleText && (
+                    <span
+                      className="px-2 py-0.5 rounded-full font-sans text-[11px] text-white"
+                      style={{
+                        background: "rgba(236,72,153,0.32)",
+                        border: "1px solid rgba(236,72,153,0.45)",
+                        textShadow: "0 1px 6px rgba(0,0,0,0.6)",
+                      }}
+                    >
+                      {roleText}
+                    </span>
+                  )}
+                  {lookingText && (
+                    <span
+                      className="px-2 py-0.5 rounded-full font-sans text-[11px] text-white"
+                      style={{
+                        background: "rgba(139,92,246,0.30)",
+                        border: "1px solid rgba(139,92,246,0.45)",
+                        textShadow: "0 1px 6px rgba(0,0,0,0.6)",
+                      }}
+                    >
+                      {lookingText}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Connection failure notice (token/credentials/network — the room
@@ -1189,15 +1298,19 @@ function InCall({
               </div>
             )}
 
-            {/* Permission / publish error notice */}
+            {/* Permission / publish error notice — actionable, driven by the
+                real DOMException the diagnostics layer classified. */}
             {live.mediaError && (
               <div
-                className="absolute top-28 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full max-w-[88%]"
-                style={{ background: "rgba(127,29,29,0.9)" }}
+                className="absolute top-28 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl max-w-[88%] text-center"
+                style={{ background: "rgba(127,29,29,0.92)" }}
                 data-testid="text-media-error"
               >
-                <span className="font-sans text-[11px] text-white text-center block">
-                  No se pudo acceder a tu cámara o micrófono. Revisa los permisos.
+                <span className="font-display text-[12px] text-white block tracking-wide">
+                  {mediaErrorMessage(live.mediaErrorReason).title}
+                </span>
+                <span className="font-sans text-[11px] text-white/85 block mt-0.5">
+                  {mediaErrorMessage(live.mediaErrorReason).hint}
                 </span>
               </div>
             )}

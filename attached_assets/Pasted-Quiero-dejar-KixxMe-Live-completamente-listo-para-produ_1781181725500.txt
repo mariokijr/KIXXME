@@ -1,0 +1,70 @@
+Quiero dejar KixxMe Live completamente listo para producción para todos los usuarios Gold.
+
+Nueva prueba real realizada:
+
+* Mario sí ve su propia cámara.
+* La cámara local de Mario funciona.
+* Mario NO ve a Sara.
+* Mario NO oye a Sara.
+
+En el móvil de Sara:
+
+* No consigue activar la cámara.
+* No se ve a sí misma.
+* Por tanto no está enviando vídeo.
+* Tampoco podemos verificar audio saliente.
+
+Quiero que investigues específicamente y encuentres la causa exacta:
+
+1. Por qué Sara no puede activar cámara ni micrófono.
+2. Si getUserMedia está fallando en Safari/iPhone.
+3. Si existen errores de permisos.
+4. Si Sara entra en la sala pero sin publicar pistas.
+5. Si LiveKit recibe las publicaciones de Mario pero no las de Sara.
+6. Logs reales de publicación y suscripción de tracks.
+7. Eventos de conexión de ambos participantes.
+8. Errores de publishTrack, enableCamera, enableMicrophone o permisos.
+
+No quiero hipótesis. Quiero diagnóstico real con logs y evidencia.
+
+Además quiero que dejes la UI final de videollamada preparada para producción:
+
+* Vídeo remoto ocupando prácticamente toda la pantalla.
+* Mi cámara pequeña flotando en una esquina.
+* Nombre visible.
+* Edad visible.
+* Ciudad visible.
+* Rol visible (Activo, Pasivo o Versátil).
+* Preferencia/orientación visible según los datos reales del perfil.
+* Indicador de conexión.
+* Tiempo de llamada.
+
+Diseño:
+
+* Estilo moderno y premium tipo FaceTime / Tinder Live.
+* Que la otra persona se vea grande y destaque visualmente.
+* Interfaz limpia, elegante y preparada para usuarios Gold.
+
+Mantener visibles y funcionando:
+
+* Colgar.
+* Silenciar micrófono.
+* Activar/desactivar cámara.
+* Cambiar cámara frontal/trasera.
+* Reportar usuario.
+* Bloquear usuario.
+
+Importante:
+
+Toda la información mostrada debe venir de los datos reales del perfil del usuario, no de valores hardcodeados.
+
+No cierres esta incidencia hasta que la experiencia esté lista para usuarios Gold reales y la causa de que Sara no publique vídeo quede identificada y solucionada.
+
+Antes de darlo por terminado quiero una verificación real de que:
+
+* Mario ve a Sara.
+* Sara ve a Mario.
+* Mario oye a Sara.
+* Sara oye a Mario.
+
+No quiero considerar KixxMe Live listo para producción hasta que vídeo, audio, interfaz y controles estén completamente operativos para usuarios Gold reales.

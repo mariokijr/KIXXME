@@ -117,6 +117,81 @@ function getRoomService(): RoomServiceClient | null {
 }
 
 /**
+ * Authoritative server-side snapshot of who is actually in a call's LiveKit
+ * room and what each participant has published. This is the ground truth the
+ * client cannot fake: it reveals whether a device joined the room at all and
+ * whether its camera/mic tracks reached the SFU — exactly what's needed to tell
+ * "didn't join", "joined but published nothing", and "published but no media"
+ * apart. Returns null when LiveKit is unconfigured or the room doesn't exist
+ * yet (no one has joined). Never throws.
+ *
+ * Protobuf enum values are wire-stable, so we map the numeric codes to readable
+ * names locally instead of importing the enums (avoids version-coupling).
+ */
+const TRACK_TYPE: Record<number, string> = {
+  0: "audio",
+  1: "video",
+  2: "data",
+};
+const TRACK_SOURCE: Record<number, string> = {
+  0: "unknown",
+  1: "camera",
+  2: "microphone",
+  3: "screen_share",
+  4: "screen_share_audio",
+};
+const PARTICIPANT_STATE: Record<number, string> = {
+  0: "joining",
+  1: "joined",
+  2: "active",
+  3: "disconnected",
+};
+
+export interface RoomTrackInfo {
+  source: string;
+  type: string;
+  muted: boolean;
+}
+
+export interface RoomParticipantInfo {
+  identity: string;
+  state: string;
+  joinedAtSec: number | null;
+  trackCount: number;
+  tracks: RoomTrackInfo[];
+}
+
+export async function listRoomParticipants(
+  roomName: string,
+): Promise<RoomParticipantInfo[] | null> {
+  const svc = getRoomService();
+  if (!svc) return null;
+  try {
+    const participants = await svc.listParticipants(roomName);
+    return participants.map((p) => ({
+      identity: p.identity,
+      state: PARTICIPANT_STATE[Number(p.state)] ?? String(p.state),
+      joinedAtSec: Number(p.joinedAt) || null,
+      trackCount: p.tracks.length,
+      tracks: p.tracks.map((t) => ({
+        source: TRACK_SOURCE[Number(t.source)] ?? String(t.source),
+        type: TRACK_TYPE[Number(t.type)] ?? String(t.type),
+        muted: Boolean(t.muted),
+      })),
+    }));
+  } catch (err) {
+    // A not-found room (no one joined yet) is expected and informative, not an
+    // error — return an empty snapshot so the diag log clearly shows "nobody in
+    // the room" rather than a missing field.
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), roomName },
+      "listRoomParticipants: room not found or list failed",
+    );
+    return [];
+  }
+}
+
+/**
  * Best-effort teardown of a call's LiveKit room when the call ends or a user is
  * blocked, so a token still within its TTL can't be reused to rejoin the room.
  *
