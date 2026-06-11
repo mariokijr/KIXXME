@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ChevronLeft,
+  ChevronRight,
   Settings as SettingsIcon,
   PauseCircle,
   Trash2,
@@ -28,6 +29,8 @@ import {
   Loader2,
   Mail,
   AlertTriangle,
+  Ban,
+  LogOut,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -200,6 +203,36 @@ export default function Settings() {
       </header>
 
       <div className="px-5 pt-6">
+        {/* Quick actions: blocked users + logout */}
+        <div className="space-y-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setLocation("/settings/blocked")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-blocked-users"
+          >
+            <Ban className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Usuarios bloqueados
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-logout"
+          >
+            <LogOut className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Cerrar sesión
+            </span>
+          </button>
+        </div>
+
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           GESTIÓN DE CUENTA
         </h2>

@@ -31,6 +31,8 @@ import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
+import BlockedUsers from "@/pages/blocked-users";
+import { ConfirmProvider } from "@/lib/confirm";
 import {
   useGetMyModeration,
   getGetMyModerationQueryKey,
@@ -169,6 +171,7 @@ function Router() {
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
       <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
       <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
+      <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
       <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />
@@ -185,11 +188,13 @@ function App() {
             <NotificationsProvider>
               <MatchCelebrationProvider>
                 <LimitUpsellProvider>
-                  <LocationSync />
-                  <ModerationGate>
-                    <WelcomeModal />
-                    <Router />
-                  </ModerationGate>
+                  <ConfirmProvider>
+                    <LocationSync />
+                    <ModerationGate>
+                      <WelcomeModal />
+                      <Router />
+                    </ModerationGate>
+                  </ConfirmProvider>
                 </LimitUpsellProvider>
               </MatchCelebrationProvider>
             </NotificationsProvider>

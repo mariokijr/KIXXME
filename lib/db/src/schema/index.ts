@@ -5,6 +5,7 @@ export * from "./support-reports";
 export * from "./support-tickets";
 export * from "./support-ticket-messages";
 export * from "./live";
+export * from "./live-diag";
 export * from "./account-status";
 export * from "./account-action-codes";
 export * from "./account-moderation";

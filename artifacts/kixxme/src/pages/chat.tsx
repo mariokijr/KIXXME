@@ -36,6 +36,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/lib/confirm";
 import { supabase } from "@/lib/supabase";
 
 function timeLabel(iso: string) {
@@ -105,6 +106,7 @@ export default function Chat() {
   const blockUser = useBlockProfile();
   const unblockUser = useUnblockProfile();
   const createLiveCall = useCreateLiveCall();
+  const confirm = useConfirm();
 
   const { data: myProfile } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
@@ -318,9 +320,17 @@ export default function Chat() {
     setReportOpen(true);
   };
 
-  const handleBlock = () => {
+  const handleBlock = async () => {
     if (!otherUser) return;
     setMenuOpen(false);
+    const ok = await confirm({
+      title: `¿Bloquear a ${otherUser.username ?? "este usuario"}?`,
+      description:
+        "Dejaréis de veros en la app y no podrá escribirte. Podrás desbloquearle desde Ajustes › Usuarios bloqueados.",
+      confirmLabel: "Bloquear",
+      tone: "danger",
+    });
+    if (!ok) return;
     blockUser.mutate(
       { id: otherUser.id },
       {

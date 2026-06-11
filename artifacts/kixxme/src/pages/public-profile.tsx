@@ -28,6 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/lib/confirm";
 import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
 import { ROLE_LABELS, LOOKING_FOR_LABELS } from "@/lib/profile-format";
@@ -55,6 +56,7 @@ export default function PublicProfile() {
   const createConv = useCreateOrGetConversation();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
+  const confirm = useConfirm();
 
   const invalidateProfile = () =>
     qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id) });
@@ -100,9 +102,19 @@ export default function PublicProfile() {
     );
   };
 
-  const handleToggleBlock = () => {
+  const handleToggleBlock = async () => {
     if (!profile) return;
     const blocking = !profile.blocked_by_me;
+    if (blocking) {
+      const ok = await confirm({
+        title: `¿Bloquear a ${profile.username ?? "este usuario"}?`,
+        description:
+          "Dejaréis de veros en la app y no podrá escribirte. Podrás desbloquearle desde Ajustes › Usuarios bloqueados.",
+        confirmLabel: "Bloquear",
+        tone: "danger",
+      });
+      if (!ok) return;
+    }
     const mutation = blocking ? blockProfile : unblockProfile;
     qc.setQueryData(getGetProfileQueryKey(id), {
       ...profile,

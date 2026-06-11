@@ -631,6 +631,31 @@ export const ClaimDailyRewardResponse = zod.object({
 
 
 /**
+ * @summary List users the current user has blocked
+ */
+export const ListBlockedProfilesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "created_at": zod.string().optional()
+})
+export const ListBlockedProfilesResponse = zod.array(ListBlockedProfilesResponseItem)
+
+
+/**
  * @summary Block a user (prevents messaging and hides them)
  */
 export const BlockProfileParams = zod.object({
@@ -952,7 +977,14 @@ export const ReportLiveDiagBody = zod.object({
   "standalone": zod.boolean().optional().describe('Running as an iOS Home-Screen PWA (navigator.standalone)'),
   "mediaDevicesPresent": zod.boolean().optional().describe('navigator.mediaDevices is defined (false in insecure\/odd contexts)'),
   "cameraPermission": zod.string().optional().describe('navigator.permissions camera state (granted|denied|prompt|unknown)'),
-  "micPermission": zod.string().optional().describe('navigator.permissions microphone state')
+  "micPermission": zod.string().optional().describe('navigator.permissions microphone state'),
+  "localVideoWidth": zod.number().optional().describe('videoWidth of the self-view <video> (>0 = local frames decoding)'),
+  "remoteVideoWidth": zod.number().optional().describe('videoWidth of the remote <video> (>0 = remote frames decoding)'),
+  "cameraPubMuted": zod.boolean().optional().describe('Local camera publication isMuted (published but sending black)'),
+  "cameraTrackReadyState": zod.string().optional().describe('Local camera MediaStreamTrack.readyState (live|ended)'),
+  "cameraTrackMuted": zod.boolean().optional().describe('Local camera MediaStreamTrack.muted (true = producing no frames)'),
+  "cameraWidth": zod.number().optional().describe('Local camera getSettings().width'),
+  "cameraHeight": zod.number().optional().describe('Local camera getSettings().height')
 }).describe('Client-side media diagnostics for one Live call, used to debug why a device can\'t capture\/publish. Contains NO tokens and no PII beyond the userAgent string.')
 })
 

@@ -664,6 +664,20 @@ export interface LiveDiagReport {
   cameraPermission?: string;
   /** navigator.permissions microphone state */
   micPermission?: string;
+  /** videoWidth of the self-view <video> (>0 = local frames decoding) */
+  localVideoWidth?: number;
+  /** videoWidth of the remote <video> (>0 = remote frames decoding) */
+  remoteVideoWidth?: number;
+  /** Local camera publication isMuted (published but sending black) */
+  cameraPubMuted?: boolean;
+  /** Local camera MediaStreamTrack.readyState (live|ended) */
+  cameraTrackReadyState?: string;
+  /** Local camera MediaStreamTrack.muted (true = producing no frames) */
+  cameraTrackMuted?: boolean;
+  /** Local camera getSettings().width */
+  cameraWidth?: number;
+  /** Local camera getSettings().height */
+  cameraHeight?: number;
 }
 
 export interface LiveDiagRequest {

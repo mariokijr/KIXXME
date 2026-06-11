@@ -19,6 +19,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/lib/confirm";
 import { playSound } from "@/lib/sound";
 import {
   useLiveKitCall,
@@ -47,6 +48,7 @@ import {
   MapPin,
   AlertTriangle,
   Volume2,
+  SkipForward,
 } from "lucide-react";
 
 const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
@@ -117,6 +119,7 @@ export default function Live() {
   const endCall = useEndLiveCall();
   const blockUser = useBlockProfile();
   const reportUser = useCreateReport();
+  const confirm = useConfirm();
 
   // Media plane: connect to the active call's LiveKit room. Gated on the call
   // being active (a token only exists then); the hook latches creds per call.id
@@ -132,6 +135,17 @@ export default function Live() {
     camOn,
     micOn,
   });
+
+  // Reset cam/mic intent to ON whenever a NEW call starts. Without this, a user
+  // who turned the camera off in a previous call carries that intent into the
+  // next one and the connect-flow reconcile disables the camera again — a
+  // self-view black screen with no obvious cause.
+  useEffect(() => {
+    if (activeCall?.id) {
+      setCamOn(true);
+      setMicOn(true);
+    }
+  }, [activeCall?.id]);
 
   const onError = (msg: string) => (err: any) =>
     toast({
@@ -210,7 +224,15 @@ export default function Live() {
     );
   }
 
-  function blockPartner(call: LiveCall) {
+  async function blockPartner(call: LiveCall) {
+    const ok = await confirm({
+      title: "¿Bloquear a esta persona?",
+      description:
+        "Se terminará la llamada y dejaréis de veros en la app. Podrás desbloquearla desde Ajustes › Usuarios bloqueados.",
+      confirmLabel: "Bloquear",
+      tone: "danger",
+    });
+    if (!ok) return;
     blockUser.mutate(
       { id: call.partner.id },
       {
@@ -257,6 +279,9 @@ export default function Live() {
         onEnd={() => hangUp(call)}
         onReport={() => reportPartner(call)}
         onBlock={() => blockPartner(call)}
+        onSkip={() => skip(call)}
+        skipping={skipCall.isPending}
+        canSkip={call.type !== "private"}
         ending={endCall.isPending}
         live={live}
       />
@@ -1012,7 +1037,7 @@ function mediaErrorMessage(reason: MediaErrorReason | null): {
     case "denied":
       return {
         title: "Permiso de cámara o micrófono denegado",
-        hint: "Permite el acceso en los ajustes de tu navegador y vuelve a intentarlo.",
+        hint: "En iPhone: toca «aA» en la barra de Safari → Configuración del sitio web → Cámara → Permitir. Luego pulsa «Activar cámara».",
       };
     case "busy":
       return {
@@ -1042,6 +1067,44 @@ function mediaErrorMessage(reason: MediaErrorReason | null): {
   }
 }
 
+// Call-duration ticker isolated into its own component so the per-second state
+// update only re-renders this tiny text node — NOT the whole InCall tree, which
+// holds the LiveKit <video> views. Resets per call.id.
+function CallTimer({ active, callId }: { active: boolean; callId: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    startRef.current = null;
+    setElapsed(0);
+  }, [callId]);
+
+  useEffect(() => {
+    if (!active) return;
+    if (startRef.current == null) startRef.current = Date.now();
+    const t = setInterval(() => {
+      if (startRef.current != null) {
+        setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [active, callId]);
+
+  if (!active) return null;
+  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(
+    elapsed % 60,
+  ).padStart(2, "0")}`;
+  return (
+    <span
+      className="font-sans text-xs text-white/70 tabular-nums"
+      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.7)" }}
+      data-testid="text-call-duration"
+    >
+      · {mmss}
+    </span>
+  );
+}
+
 function InCall({
   call,
   camOn,
@@ -1051,6 +1114,9 @@ function InCall({
   onEnd,
   onReport,
   onBlock,
+  onSkip,
+  skipping,
+  canSkip,
   ending,
   live,
 }: {
@@ -1062,6 +1128,9 @@ function InCall({
   onEnd: () => void;
   onReport: () => void;
   onBlock: () => void;
+  onSkip: () => void;
+  skipping: boolean;
+  canSkip: boolean;
   ending: boolean;
   live: LiveKitCall;
 }) {
@@ -1076,28 +1145,6 @@ function InCall({
   const roleText = roleLabel(call.partner.role);
   const lookingText = lookingForLabel(call.partner.looking_for);
   const hasChips = Boolean(roleText || lookingText);
-
-  // Call-duration timer: starts when the media connection reports "connected",
-  // resets per call.
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef<number | null>(null);
-  useEffect(() => {
-    startRef.current = null;
-    setElapsed(0);
-  }, [call.id]);
-  useEffect(() => {
-    if (live.status !== "connected") return;
-    if (startRef.current == null) startRef.current = Date.now();
-    const t = setInterval(() => {
-      if (startRef.current != null) {
-        setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
-      }
-    }, 1000);
-    return () => clearInterval(t);
-  }, [live.status, call.id]);
-  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(
-    elapsed % 60,
-  ).padStart(2, "0")}`;
 
   // Connection indicator (dot colour + label).
   const conn =
@@ -1239,15 +1286,10 @@ function InCall({
                 >
                   {conn.label}
                 </span>
-                {live.status === "connected" && (
-                  <span
-                    className="font-sans text-xs text-white/70 tabular-nums"
-                    style={{ textShadow: "0 1px 8px rgba(0,0,0,0.7)" }}
-                    data-testid="text-call-duration"
-                  >
-                    · {mmss}
-                  </span>
-                )}
+                <CallTimer
+                  active={live.status === "connected"}
+                  callId={call.id}
+                />
               </div>
               {hasChips && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -1302,7 +1344,7 @@ function InCall({
                 real DOMException the diagnostics layer classified. */}
             {live.mediaError && (
               <div
-                className="absolute top-28 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl max-w-[88%] text-center"
+                className="absolute top-48 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl max-w-[78%] text-center"
                 style={{ background: "rgba(127,29,29,0.92)" }}
                 data-testid="text-media-error"
               >
@@ -1312,6 +1354,20 @@ function InCall({
                 <span className="font-sans text-[11px] text-white/85 block mt-0.5">
                   {mediaErrorMessage(live.mediaErrorReason).hint}
                 </span>
+                {live.mediaErrorReason === "denied" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      live.retryCamera();
+                    }}
+                    data-testid="button-retry-camera"
+                    className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white font-display text-[11px] tracking-wide active:scale-95 transition-transform"
+                    style={{ color: "hsl(0,72%,32%)" }}
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    Activar cámara
+                  </button>
+                )}
               </div>
             )}
 
@@ -1459,6 +1515,29 @@ function InCall({
             <Ban className="w-6 h-6" />
           </CtrlButton>
         </div>
+
+        {/* Siguiente — skip to a new person. Random/roulette calls only; a
+            private chat invite has no "next" so the button is hidden there. */}
+        {canSkip && (
+          <button
+            onClick={withAudioUnlock(onSkip)}
+            disabled={skipping}
+            data-testid="button-skip-call"
+            className="mt-4 w-full h-12 rounded-full flex items-center justify-center gap-2 font-display tracking-wide text-white disabled:opacity-60 active:scale-95 transition-all"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(266 85% 58%), hsl(326 90% 52%))",
+              boxShadow: "0 8px 24px rgba(168,85,247,0.4)",
+            }}
+          >
+            {skipping ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <SkipForward className="w-5 h-5" />
+            )}
+            Siguiente
+          </button>
+        )}
       </div>
     </div>
   );

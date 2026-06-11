@@ -109,6 +109,8 @@ export interface LiveKitCall {
   canSwitchCamera: boolean;
   /** Flip between the front and back camera. */
   switchCamera: () => void;
+  /** Re-request the camera after a denial/failure, from a user gesture. */
+  retryCamera: () => void;
 }
 
 interface Params {
@@ -324,6 +326,34 @@ export function useLiveKitCall({
             report.videoInputsPost = counts.video;
             report.audioInputsPost = counts.audio;
           }
+          // Element + published-track health. This is what distinguishes
+          // "camera blocked" (no track, widths 0) from "camera published but
+          // black" (track live but muted / producing 0×0 frames) — the two
+          // top-ranked iOS causes.
+          const localEl = localElRef.current;
+          const remoteEl = remoteElRef.current;
+          if (localEl) report.localVideoWidth = localEl.videoWidth;
+          if (remoteEl) report.remoteVideoWidth = remoteEl.videoWidth;
+          const camPub = room?.localParticipant.getTrackPublication(
+            Track.Source.Camera,
+          );
+          if (camPub) {
+            report.cameraPubMuted = camPub.isMuted;
+            const mst = (camPub.track as LocalVideoTrack | undefined)
+              ?.mediaStreamTrack;
+            if (mst) {
+              report.cameraTrackReadyState = mst.readyState;
+              report.cameraTrackMuted = mst.muted;
+              try {
+                const s = mst.getSettings();
+                if (typeof s.width === "number") report.cameraWidth = s.width;
+                if (typeof s.height === "number")
+                  report.cameraHeight = s.height;
+              } catch {
+                // getSettings unsupported — skip.
+              }
+            }
+          }
           await reportLiveDiag({ callId: diagCallId, report });
         } catch {
           // Diagnostics must never disrupt the call.
@@ -417,6 +447,30 @@ export function useLiveKitCall({
       });
   }, [recordMediaError, postDiag]);
 
+  // Manual retry after a camera denial/failure. iOS Safari won't re-prompt
+  // automatically once camera is denied per-site, but a fresh gesture-driven
+  // request succeeds the moment the user re-enables it (Safari aA → Configuración
+  // del sitio web → Cámara). Clears the error on success so the UI recovers.
+  const retryCamera = useCallback(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    room.localParticipant
+      .setCameraEnabled(true, { facingMode: facingModeRef.current })
+      .then((pub) => {
+        appliedCamRef.current = true;
+        if (pub?.track && localElRef.current)
+          pub.track.attach(localElRef.current);
+        setMediaError(false);
+        setMediaErrorReason(null);
+        void detectCameras();
+        postDiag("acquire", mediaRef.current?.callId);
+      })
+      .catch((err) => {
+        recordMediaError(err, "retry-camera");
+        postDiag("acquire", mediaRef.current?.callId);
+      });
+  }, [detectCameras, recordMediaError, postDiag]);
+
   // --- Connect (only when the latch changes) -------------------------------
   useEffect(() => {
     if (!media) {
@@ -508,6 +562,32 @@ export function useLiveKitCall({
       .on(RoomEvent.ConnectionStateChanged, onState)
       .on(RoomEvent.AudioPlaybackStatusChanged, onAudioStatus)
       .on(RoomEvent.Disconnected, onDisconnected);
+
+    // iOS mutes the local camera when the app is backgrounded mid-call (capture
+    // interruption → published-but-black frames). On resume, best-effort restart
+    // the camera track so video recovers without tearing down the call.
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!camOnRef.current) return;
+      const r = roomRef.current;
+      if (!r) return;
+      const pub = r.localParticipant.getTrackPublication(Track.Source.Camera);
+      const track = pub?.track as LocalVideoTrack | undefined;
+      if (!track) return;
+      const mst = track.mediaStreamTrack;
+      if (pub?.isMuted || mst?.muted || mst?.readyState === "ended") {
+        track
+          .restartTrack({ facingMode: facingModeRef.current })
+          .then(() => {
+            if (localElRef.current) track.attach(localElRef.current);
+          })
+          .catch((err) => {
+            recordMediaError(err, "visibility-restart");
+            postDiag("delayed", mediaRef.current?.callId);
+          });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     void (async () => {
       // Connect outcome is tracked SEPARATELY from getUserMedia: a failure here
@@ -650,6 +730,7 @@ export function useLiveKitCall({
     return () => {
       cancelled = true;
       if (delayedDiagId) clearTimeout(delayedDiagId);
+      document.removeEventListener("visibilitychange", onVisibility);
       // Final snapshot BEFORE we tear refs down (reads roomRef/track refs).
       postDiag("teardown", diagCallId);
       room
@@ -671,7 +752,7 @@ export function useLiveKitCall({
       setMediaReady(false);
       setNeedsAudioGesture(false);
     };
-  }, [media, detectCameras, postDiag]);
+  }, [media, detectCameras, postDiag, recordMediaError]);
 
   // --- Per-toggle camera publish (only AFTER the initial acquisition) ------
   useEffect(() => {
@@ -718,5 +799,6 @@ export function useLiveKitCall({
     resumeAudio,
     canSwitchCamera,
     switchCamera,
+    retryCamera,
   };
 }

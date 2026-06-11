@@ -2477,6 +2477,83 @@ export const useClaimDailyReward = <TError = ErrorType<ErrorResponse>,
       return useMutation(getClaimDailyRewardMutationOptions(options));
     }
 
+export const getListBlockedProfilesUrl = () => {
+
+
+
+
+  return `/api/profiles/blocks`
+}
+
+/**
+ * @summary List users the current user has blocked
+ */
+export const listBlockedProfiles = async ( options?: RequestInit): Promise<PublicProfile[]> => {
+
+  return customFetch<PublicProfile[]>(getListBlockedProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBlockedProfilesQueryKey = () => {
+    return [
+    `/api/profiles/blocks`
+    ] as const;
+    }
+
+
+export const getListBlockedProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listBlockedProfiles>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBlockedProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBlockedProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBlockedProfiles>>> = ({ signal }) => listBlockedProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBlockedProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBlockedProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listBlockedProfiles>>>
+export type ListBlockedProfilesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List users the current user has blocked
+ */
+
+export function useListBlockedProfiles<TData = Awaited<ReturnType<typeof listBlockedProfiles>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBlockedProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBlockedProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getBlockProfileUrl = (id: string,) => {
 
 

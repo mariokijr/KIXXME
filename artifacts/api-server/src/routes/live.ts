@@ -5,6 +5,7 @@ import { isUnavailable } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
 import { listRoomParticipants } from "../lib/livekit.js";
 import * as live from "../lib/live.js";
+import { db, liveDiagnosticsTable } from "@workspace/db";
 import {
   JoinLiveQueueBody,
   CreateLiveCallBody,
@@ -287,6 +288,22 @@ router.post("/live/diag", async (req, res) => {
     },
     "live.diag",
   );
+
+  // Persist so the exact error survives log rotation and stays queryable
+  // directly. Diagnostics must never disrupt the call → swallow + log any
+  // DB failure rather than 500 the report.
+  try {
+    await db.insert(liveDiagnosticsTable).values({
+      callId,
+      userId: me,
+      role: call.callerId === me ? "caller" : "callee",
+      reason: report.reason,
+      client: report,
+      server,
+    });
+  } catch (err) {
+    req.log.error({ err }, "live.diag persist failed");
+  }
 
   res.json({ success: true });
 });

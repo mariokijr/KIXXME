@@ -669,6 +669,42 @@ router.delete("/profiles/:id/block", async (req, res) => {
   res.json({ success: true });
 });
 
+// Must be registered BEFORE "/profiles/:id" so Express doesn't capture the
+// literal "blocks" as the :id param.
+router.get("/profiles/blocks", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { iBlocked } = await getBlockRelations(auth.userId);
+  const ids = [...iBlocked];
+  if (ids.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PUBLIC_COLUMNS)
+    .in("id", ids);
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  // Everyone in this list is blocked-by-me by definition; keep ordering stable
+  // by most-recently-blocked is not tracked, so sort by username for a calm UI.
+  const blockedSet = new Set(ids);
+  const rows = (data as ProfileRow[])
+    .map((row) => toPublic(row, null, new Set<string>(), blockedSet))
+    .sort((a, b) =>
+      (a.username ?? "").localeCompare(b.username ?? "", "es", {
+        sensitivity: "base",
+      }),
+    );
+  res.json(rows);
+});
+
 router.get("/profiles/:id", async (req, res) => {
   const { id } = req.params;
   const viewer = await optionalAuth(req);
