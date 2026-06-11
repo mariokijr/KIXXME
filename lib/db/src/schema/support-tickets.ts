@@ -1,4 +1,12 @@
-import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Priority support chat — threaded admin↔user tickets ("Soporte Premium Gold").
@@ -27,6 +35,10 @@ import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
  */
 export type SupportTicketStatus = "pending" | "answered" | "closed" | "urgent";
 export type SupportActorRole = "user" | "admin";
+// "support" = a normal user/admin priority-support thread.
+// "official" = the auto-created "👑 Soporte KixxMe" welcome conversation that
+// every Gold member gets (pinned at the top of Messages). At most one per user.
+export type SupportTicketKind = "support" | "official";
 
 export const supportTicketsTable = pgTable(
   "support_tickets",
@@ -34,6 +46,9 @@ export const supportTicketsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     // Supabase auth user who owns the ticket (the affected user).
     userId: uuid("user_id").notNull(),
+    // support | official — the official thread is the auto-created Gold welcome
+    // conversation; there is at most one per user (partial unique index below).
+    kind: text("kind").$type<SupportTicketKind>().notNull().default("support"),
     // pending | answered | closed | urgent
     status: text("status")
       .$type<SupportTicketStatus>()
@@ -70,6 +85,11 @@ export const supportTicketsTable = pgTable(
     index("support_tickets_user_idx").on(t.userId),
     index("support_tickets_status_idx").on(t.status),
     index("support_tickets_last_message_idx").on(t.lastMessageAt),
+    // At most one official "👑 Soporte KixxMe" welcome thread per user
+    // (race-safe; the create path also relies on onConflictDoNothing).
+    uniqueIndex("support_tickets_user_official_idx")
+      .on(t.userId)
+      .where(sql`kind = 'official'`),
   ],
 );
 

@@ -10,6 +10,7 @@ import {
   allowedHosts,
   premiumWelcomeEmail,
 } from "./email.js";
+import { ensureOfficialTicket } from "./support-tickets.js";
 
 export type Tier = "plus" | "gold";
 export type Interval = "month" | "year";
@@ -323,6 +324,18 @@ export async function handleStripeWebhook(
         );
         await sendEmail({ to: email, subject, html });
       })();
+      // Gold members get the official "👑 Soporte KixxMe" welcome conversation,
+      // auto-created (idempotent) on activation. Fire-and-forget so a failure
+      // never turns into a webhook 500 / Stripe retry; GET /support/official is
+      // a lazy safety net if this misses.
+      if (tier === "gold") {
+        void ensureOfficialTicket(userId).catch((error) => {
+          log.error(
+            { userId, error: error instanceof Error ? error.message : error },
+            "Failed to ensure official support ticket on Gold activation",
+          );
+        });
+      }
       log.info({ userId, tier }, "Activated plan from checkout");
       return;
     }

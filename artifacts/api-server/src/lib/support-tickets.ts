@@ -32,6 +32,28 @@ import { supabase } from "./supabase.js";
 
 const PREVIEW_LEN = 140;
 
+/**
+ * Sentinel sender id for system-authored messages (the official "Soporte
+ * KixxMe" welcome). `support_ticket_messages.senderId` is a plain `uuid` with
+ * NO foreign key, and message bubbles are aligned by `senderRole` (never by id),
+ * so an all-zeros UUID is safe and distinguishable from any real user.
+ */
+const SYSTEM_SENDER_ID = "00000000-0000-0000-0000-000000000000";
+
+/** Subject of the auto-created Gold welcome conversation. */
+export const OFFICIAL_TICKET_SUBJECT = "👑 Soporte KixxMe";
+
+/** Spanish welcome posted into every Gold member's official support thread. */
+const OFFICIAL_WELCOME_BODY = [
+  "Hola 👋 Gracias por formar parte de KixxMe Gold.",
+  "",
+  "Ahora tienes atención prioritaria dentro de la app. Si necesitas ayuda con tu cuenta, tu suscripción o cualquier incidencia, escríbenos por aquí y te responderemos lo antes posible.",
+  "",
+  "📩 Atención prioritaria",
+  "💎 Exclusiva para miembros Gold",
+  "🕒 Soporte 24/7",
+].join("\n");
+
 /** API-facing ticket shape (mirrors the OpenAPI `SupportTicket` schema). */
 export interface TicketView {
   id: string;
@@ -257,6 +279,79 @@ export async function adminCreateTicket(
   return (await getTicketDetail(ticketId, adminId, true))!;
 }
 
+/** Load a user's single official "Soporte KixxMe" ticket row, if any. */
+async function loadOfficialRow(
+  userId: string,
+): Promise<SupportTicketRow | null> {
+  const [row] = await db
+    .select()
+    .from(supportTicketsTable)
+    .where(
+      and(
+        eq(supportTicketsTable.userId, userId),
+        eq(supportTicketsTable.kind, "official"),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * User-perspective view of an official ticket WITHOUT the read side-effect of
+ * `getTicketDetail` — the chats list polls this, so it must never auto-clear the
+ * unread badge. Opening the thread (via getTicketDetail) is what marks it read.
+ */
+async function officialTicketView(row: SupportTicketRow): Promise<TicketView> {
+  const previews = await loadPreviews([row.id]);
+  return mapTicket(row, "user", { preview: previews.get(row.id) ?? null });
+}
+
+/**
+ * Idempotently ensure the user's official "👑 Soporte KixxMe" welcome thread
+ * exists and return its user-perspective view (no read side-effect). Called
+ * eagerly on Gold activation (Stripe webhook) and lazily by GET /support/official
+ * as a safety net (e.g. GOLD_TEST_EMAILS users who never hit the webhook). The
+ * partial unique index `(userId) WHERE kind='official'` + `onConflictDoNothing`
+ * make concurrent callers race-safe: the loser inserts nothing and re-reads.
+ */
+export async function ensureOfficialTicket(
+  userId: string,
+): Promise<TicketView> {
+  const existing = await loadOfficialRow(userId);
+  if (existing) return officialTicketView(existing);
+
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(supportTicketsTable)
+      .values({
+        userId,
+        kind: "official",
+        status: "answered",
+        subject: OFFICIAL_TICKET_SUBJECT,
+        openedByRole: "admin",
+        lastMessageAt: now,
+        lastSenderRole: "admin",
+        // Admin side is implicitly caught up; the USER has it unread (new).
+        adminLastReadAt: now,
+      })
+      .onConflictDoNothing()
+      .returning({ id: supportTicketsTable.id });
+    const ticketId = inserted[0]?.id;
+    if (!ticketId) return; // Lost the race — another caller created it.
+    await tx.insert(supportTicketMessagesTable).values({
+      ticketId,
+      senderId: SYSTEM_SENDER_ID,
+      senderRole: "admin",
+      body: OFFICIAL_WELCOME_BODY,
+    });
+  });
+
+  const row = await loadOfficialRow(userId);
+  if (!row) throw new Error("official ticket missing after ensure");
+  return officialTicketView(row);
+}
+
 async function loadTicketRow(
   ticketId: string,
 ): Promise<SupportTicketRow | null> {
@@ -449,6 +544,32 @@ export async function countUserUnread(userId: string): Promise<number> {
     .where(
       and(
         eq(supportTicketsTable.userId, userId),
+        eq(supportTicketsTable.lastSenderRole, "admin"),
+        or(
+          isNull(supportTicketsTable.userLastReadAt),
+          gt(
+            supportTicketsTable.lastMessageAt,
+            supportTicketsTable.userLastReadAt,
+          ),
+        ),
+      ),
+    );
+  return rows[0]?.c ?? 0;
+}
+
+/**
+ * 1 when the official "Soporte KixxMe" thread has an unread admin message for
+ * the user, else 0 (there is at most one official ticket per user). Folded into
+ * the Messages-tab badge so the pinned card shows a dot like any conversation.
+ */
+export async function countOfficialUnread(userId: string): Promise<number> {
+  const rows = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(supportTicketsTable)
+    .where(
+      and(
+        eq(supportTicketsTable.userId, userId),
+        eq(supportTicketsTable.kind, "official"),
         eq(supportTicketsTable.lastSenderRole, "admin"),
         or(
           isNull(supportTicketsTable.userLastReadAt),

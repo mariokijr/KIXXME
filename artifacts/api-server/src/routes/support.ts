@@ -12,6 +12,7 @@ import {
   createTicket,
   getTicketDetail,
   postMessage,
+  ensureOfficialTicket,
 } from "../lib/support-tickets.js";
 import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
 
@@ -164,6 +165,30 @@ router.get("/support/tickets", async (req, res) => {
   if (!auth) return;
   const list = await listMine(auth.userId);
   res.json(list);
+});
+
+// The official "👑 Soporte KixxMe" welcome conversation. Gold-only and gated by
+// server-side entitlement (hasGold also covers GOLD_TEST_EMAILS, whose
+// profiles.plan stays 'free'), so we never trust the client's plan. Lazily
+// ensures the thread exists, then returns it WITHOUT marking it read (the chats
+// list polls this). Non-Gold users get { ticket: null }.
+router.get("/support/official", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  if (!(await hasGold(auth.userId))) {
+    res.json({ ticket: null });
+    return;
+  }
+  try {
+    const ticket = await ensureOfficialTicket(auth.userId);
+    res.json({ ticket });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support official: failed to ensure ticket",
+    );
+    res.status(500).json({ error: "No se pudo abrir el chat de soporte" });
+  }
 });
 
 router.post("/support/tickets", async (req, res) => {

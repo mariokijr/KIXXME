@@ -75,11 +75,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const prevRef = useRef<Map<string, number>>(new Map());
   const initRef = useRef(false);
 
-  const totalUnread = conversations.reduce(
-    (sum, c) => sum + (c.unread_count ?? 0),
-    0
-  );
-
   useEffect(() => {
     const next = new Map<string, number>();
     for (const c of conversations) next.set(c.id, c.unread_count ?? 0);
@@ -117,6 +112,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const likes = summary?.likes ?? [];
   const matches = summary?.matches ?? [];
+
+  // Messages-tab badge = unread DMs + the official "Soporte KixxMe" thread
+  // (0/1). The pinned card lives in the Mensajes list, so its unread folds into
+  // the same badge as a normal conversation.
+  const totalUnread =
+    conversations.reduce((sum, c) => sum + (c.unread_count ?? 0), 0) +
+    (summary?.official_unread ?? 0);
 
   // Latest data behind refs so the mark-seen callbacks stay referentially
   // stable (avoids re-running the favorites mark-seen effect every poll).

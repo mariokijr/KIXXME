@@ -15,5 +15,7 @@ export interface NotificationsSummary {
   matches: MatchNotification[];
   /** Unread admin replies on the viewer's own support tickets */
   support_unread: number;
+  /** 1 when the official "Soporte KixxMe" thread has an unread admin message for the viewer, else 0 (folded into the Messages badge) */
+  official_unread: number;
   admin?: AdminNotificationSummary;
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import {
   LifeBuoy,
   MessageCircle,
@@ -112,10 +112,17 @@ function timeAgo(iso: string): string {
 }
 
 export default function Support() {
+  const search = useSearch();
+  const initialTicketId = useMemo(
+    () => new URLSearchParams(search).get("ticket"),
+    [search],
+  );
   const [contactOpen, setContactOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  const [activeTicketId, setActiveTicketId] = useState<string | null>(
+    initialTicketId,
+  );
 
   if (activeTicketId) {
     return (

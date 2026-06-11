@@ -1,9 +1,16 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { MessageCircle, Edit2, Lock, Loader2, BadgeCheck } from "lucide-react";
+import { MessageCircle, Edit2, Lock, Loader2, BadgeCheck, Crown, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useListConversations, getListConversationsQueryKey, Conversation } from "@workspace/api-client-react";
+import {
+  useListConversations,
+  getListConversationsQueryKey,
+  useGetOfficialSupportTicket,
+  getGetOfficialSupportTicketQueryKey,
+  Conversation,
+  SupportTicket,
+} from "@workspace/api-client-react";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -21,6 +28,18 @@ export default function Chats() {
   const { data: conversations = [], isLoading } = useListConversations({
     query: { queryKey: getListConversationsQueryKey(), refetchInterval: 10000 },
   });
+
+  // The official "👑 Soporte KixxMe" thread (Gold only; server returns null
+  // otherwise). Pinned above all conversations and always visible while Gold.
+  const { data: officialData } = useGetOfficialSupportTicket({
+    query: {
+      queryKey: getGetOfficialSupportTicketQueryKey(),
+      refetchInterval: 15000,
+    },
+  });
+  const official = officialData?.ticket ?? null;
+
+  const hasContent = conversations.length > 0 || !!official;
 
   return (
     <div className="flex flex-col h-full">
@@ -43,7 +62,7 @@ export default function Chats() {
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
-      ) : conversations.length === 0 ? (
+      ) : !hasContent ? (
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-6 py-16">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center border border-primary/20" style={{ background: "rgba(168,85,247,0.08)" }}>
             <MessageCircle className="w-10 h-10 text-primary" style={{ filter: "drop-shadow(0 0 10px rgba(168,85,247,0.5))" }} />
@@ -68,12 +87,77 @@ export default function Chats() {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
-            <ConvCard key={conv.id} conv={conv} onClick={() => setLocation(`/chats/${conv.id}`)} />
-          ))}
+          {official && (
+            <OfficialCard
+              ticket={official}
+              onClick={() => setLocation(`/support?ticket=${official.id}`)}
+            />
+          )}
+          {conversations.length === 0 ? (
+            <p className="font-sans text-sm text-muted-foreground text-center px-8 py-10 leading-relaxed">
+              Explora perfiles y conecta con alguien para empezar a chatear.
+            </p>
+          ) : (
+            conversations.map((conv) => (
+              <ConvCard key={conv.id} conv={conv} onClick={() => setLocation(`/chats/${conv.id}`)} />
+            ))
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function OfficialCard({ ticket, onClick }: { ticket: SupportTicket; onClick: () => void }) {
+  const preview =
+    ticket.lastMessagePreview?.trim() || "Bienvenido a KixxMe Gold";
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-yellow-500/20 hover:bg-yellow-500/[0.04] transition-colors text-left"
+      style={{ background: "rgba(234,179,8,0.06)" }}
+    >
+      <div className="relative flex-shrink-0">
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center border border-yellow-500/40"
+          style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))" }}
+        >
+          <Crown className="w-6 h-6 text-white" style={{ filter: "drop-shadow(0 0 6px rgba(234,179,8,0.6))" }} />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-display text-base text-foreground tracking-wide truncate flex items-center gap-1.5">
+            {ticket.subject}
+            <Pin className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" style={{ transform: "rotate(45deg)" }} />
+          </span>
+          {ticket.lastMessageAt && (
+            <span
+              className={`font-sans text-xs ml-2 flex-shrink-0 ${
+                ticket.unread ? "text-yellow-400 font-semibold" : "text-muted-foreground"
+              }`}
+            >
+              {timeAgo(ticket.lastMessageAt)}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p
+            className={`font-sans text-sm truncate ${
+              ticket.unread ? "text-foreground font-medium" : "text-muted-foreground"
+            }`}
+          >
+            {preview}
+          </p>
+          {ticket.unread && (
+            <span
+              className="flex-shrink-0 w-2.5 h-2.5 rounded-full"
+              style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))" }}
+            />
+          )}
+        </div>
+      </div>
+    </button>
   );
 }
 

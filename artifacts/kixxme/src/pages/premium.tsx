@@ -23,6 +23,8 @@ import {
   Loader2,
   Check,
   Minus,
+  Mail,
+  Clock,
 } from "lucide-react";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
@@ -80,7 +82,10 @@ const GOLD_FEATURES = [
   { icon: Zap, text: "Boost diario prioritario" },
   { icon: Eye, text: "Visitas en detalle" },
   { icon: SlidersHorizontal, text: "Filtros exclusivos" },
-  { icon: Star, text: "Soporte VIP 24/7" },
+  { icon: Shield, text: "Acceso exclusivo al soporte premium" },
+  { icon: Mail, text: "Atención prioritaria desde la app" },
+  { icon: MessageCircle, text: "Chat directo con Soporte KixxMe" },
+  { icon: Clock, text: "Soporte 24/7" },
 ];
 
 export default function Premium() {

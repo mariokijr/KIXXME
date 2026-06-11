@@ -8,7 +8,11 @@ import { getBlockRelations } from "../lib/blocks.js";
 import { getUnavailableIds } from "../lib/moderation.js";
 import { getPlan } from "../lib/entitlement.js";
 import { getSuperLikerIds } from "../lib/likes.js";
-import { countUserUnread, adminTicketStats } from "../lib/support-tickets.js";
+import {
+  countUserUnread,
+  countOfficialUnread,
+  adminTicketStats,
+} from "../lib/support-tickets.js";
 
 const router = Router();
 
@@ -235,11 +239,18 @@ router.get("/notifications/summary", async (req, res) => {
   }
 
   // The user's own unread support replies (admin answered after they last read).
-  const supportUnread = await countUserUnread(me);
+  // `support_unread` counts ALL of the user's tickets; `official_unread` (0/1)
+  // is just the official "Soporte KixxMe" thread, folded separately into the
+  // Messages-tab badge so the pinned card behaves like a normal conversation.
+  const [supportUnread, officialUnread] = await Promise.all([
+    countUserUnread(me),
+    countOfficialUnread(me),
+  ]);
 
   res.json({
     unread_messages: unreadMessages,
     support_unread: supportUnread,
+    official_unread: officialUnread,
     likes,
     matches,
     ...(admin ? { admin } : {}),

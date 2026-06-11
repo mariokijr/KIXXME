@@ -29,6 +29,21 @@ Threaded admin↔user support chat. TWO repo-owned Drizzle tables in **Replit Po
 
 - **Notifications are derived, not stored** (same pattern as likes/admin-reports): `GET /notifications/summary` returns user `support_unread` + an admin block `open_tickets` (pending+urgent) / `latest_ticket_at`; `GET /admin/summary` returns `openTickets`.
 
+## Official "👑 Soporte KixxMe" auto-conversation (Gold)
+
+A system-owned welcome ticket auto-created for Gold members; pinned atop Messages, repliable from the admin panel like any ticket. Reuses the same two tables via a `kind` discriminator ('support'|'official').
+
+- **Idempotency = `kind` column + partial unique index `(userId) WHERE kind='official'`.** `ensureOfficialTicket(userId)` inserts the ticket row AND the Spanish welcome message in ONE `db.transaction`; the race loser's `onConflictDoNothing` returns no id, so it re-reads the committed row (which already carries the message, since both live in the winner's tx). Never patches lastReadAt — it's side-effect-free so the chats-list poll doesn't self-clear the badge.
+  - **Why:** the welcome message must exist exactly once even under concurrent webhook + GET races.
+
+- **Two trigger points, both needed.** (1) Fire-and-forget from the Stripe `checkout.session.completed` webhook on `tier==='gold'` (caught, never turns a webhook into a 500/retry). (2) Lazy ensure inside `GET /support/official`, gated on `hasGold` (entitlement, NOT `profiles.plan`) so it also covers `GOLD_TEST_EMAILS` users (plan stays 'free') and anyone who never hit the webhook. Non-Gold → `{ticket:null}`.
+
+- **Unread folds in separately to avoid double-count.** New official ticket sets `userLastReadAt=null` + `adminLastReadAt=now` → user sees unread, admin doesn't. `countOfficialUnread` (0/1) is surfaced as `official_unread` and folded into the frontend `totalUnread`. The existing `support_unread` (counts ALL tickets, incl. official) is computed but **unused in the kixxme frontend** — do not also sum it or you double-count.
+
+- **Frontend pin + deep-link.** `chats.tsx` renders a gold `OfficialCard` above conversations via `useGetOfficialSupportTicket`; always visible while Gold even with zero conversations (`hasContent = convos>0 || !!official`). Card → `/support?ticket=<id>`; `support.tsx` seeds `activeTicketId` from the `?ticket=` param (wouter `useSearch`), and `TicketThread` mount marks read + invalidates notifications-summary so the badge clears.
+
+- **No admin-side changes needed:** `listAdmin` has no `kind` filter, so official tickets appear in the admin queue and the shared `postMessage`/status machine handle replies unchanged.
+
 ## e2e
 
 Real auth e2e requires tokens: create users via service-role `admin.auth.admin.createUser({email_confirm:true})`, set the gold tester's Supabase `profiles.plan='gold'` directly (only Stripe writes plan in prod), temporarily append a synthetic admin email to the `.replit` `ADMIN_EMAILS` env via `setEnvVars` + restart api-server, then revert. Clean up auth users + ticket rows after. See `kixxme-dual-database.md` for the two-DB split.

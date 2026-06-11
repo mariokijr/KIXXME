@@ -820,6 +820,29 @@ export const SendSupportMessageBody = zod.object({
 
 
 /**
+ * Returns the auto-created official support thread that every Gold member gets, ensuring it exists on first read. Returns `ticket: null` for non-Gold users.
+ * @summary Get my official "Soporte KixxMe" welcome conversation (Gold only)
+ */
+export const GetOfficialSupportTicketResponse = zod.object({
+  "ticket": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+}).nullable().describe('The official \"Soporte KixxMe\" thread, or null when not Gold')
+})
+
+
+/**
  * @summary Aggregated in-app notifications (unread messages, likes, matches)
  */
 export const GetNotificationsSummaryResponse = zod.object({
@@ -839,6 +862,7 @@ export const GetNotificationsSummaryResponse = zod.object({
   "matched_at": zod.string()
 })),
   "support_unread": zod.number().describe('Unread admin replies on the viewer\'s own support tickets'),
+  "official_unread": zod.number().describe('1 when the official \"Soporte KixxMe\" thread has an unread admin message for the viewer, else 0 (folded into the Messages badge)'),
   "admin": zod.object({
   "open_reports": zod.number(),
   "open_flags": zod.number(),

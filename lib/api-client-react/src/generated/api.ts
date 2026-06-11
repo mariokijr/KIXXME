@@ -71,6 +71,7 @@ import type {
   MyVerificationStatus,
   MyVisitorsResponse,
   NotificationsSummary,
+  OfficialSupportTicketResponse,
   OpenSupportTicketRequest,
   Profile,
   ProfilePhoto,
@@ -3272,6 +3273,84 @@ export const useSendSupportMessage = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getSendSupportMessageMutationOptions(options));
     }
+
+export const getGetOfficialSupportTicketUrl = () => {
+
+
+
+
+  return `/api/support/official`
+}
+
+/**
+ * Returns the auto-created official support thread that every Gold member gets, ensuring it exists on first read. Returns `ticket: null` for non-Gold users.
+ * @summary Get my official "Soporte KixxMe" welcome conversation (Gold only)
+ */
+export const getOfficialSupportTicket = async ( options?: RequestInit): Promise<OfficialSupportTicketResponse> => {
+
+  return customFetch<OfficialSupportTicketResponse>(getGetOfficialSupportTicketUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOfficialSupportTicketQueryKey = () => {
+    return [
+    `/api/support/official`
+    ] as const;
+    }
+
+
+export const getGetOfficialSupportTicketQueryOptions = <TData = Awaited<ReturnType<typeof getOfficialSupportTicket>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOfficialSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOfficialSupportTicketQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOfficialSupportTicket>>> = ({ signal }) => getOfficialSupportTicket({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOfficialSupportTicket>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOfficialSupportTicketQueryResult = NonNullable<Awaited<ReturnType<typeof getOfficialSupportTicket>>>
+export type GetOfficialSupportTicketQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get my official "Soporte KixxMe" welcome conversation (Gold only)
+ */
+
+export function useGetOfficialSupportTicket<TData = Awaited<ReturnType<typeof getOfficialSupportTicket>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOfficialSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOfficialSupportTicketQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetNotificationsSummaryUrl = () => {
 

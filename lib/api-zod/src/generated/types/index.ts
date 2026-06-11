@@ -99,6 +99,7 @@ export * from './myVerificationStatus';
 export * from './myVerificationStatusStatus';
 export * from './myVisitorsResponse';
 export * from './notificationsSummary';
+export * from './officialSupportTicketResponse';
 export * from './openSupportTicketRequest';
 export * from './profile';
 export * from './profileLookingFor';
