@@ -31,6 +31,11 @@ const STORAGE_KEY = "kixxme_session";
 // Refresh proactively when the access token is within this many seconds of expiry.
 const EXPIRY_BUFFER_SECONDS = 60;
 
+// Temporarily disabled: hides the "Continuar con Google/Apple" buttons app-wide
+// so email + password is the only auth method. The underlying OAuth code is left
+// in place; flip this back to true to restore social login (no other changes).
+export const SOCIAL_AUTH_ENABLED: boolean = false;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ session: null, user: null });
   const [isLoading, setIsLoading] = useState(true);

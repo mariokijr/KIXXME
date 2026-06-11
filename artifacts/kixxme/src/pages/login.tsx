@@ -2,7 +2,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/lib/auth";
+import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { Link, useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -151,39 +151,43 @@ export default function Login() {
               </form>
             </Form>
 
-            <div className="flex items-center gap-3 py-2">
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="text-xs uppercase tracking-wider font-semibold text-white/30">O continúa con</span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
+            {SOCIAL_AUTH_ENABLED && (
+              <>
+                <div className="flex items-center gap-3 py-2">
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="text-xs uppercase tracking-wider font-semibold text-white/30">O continúa con</span>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
 
-            <div className="flex flex-col gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loadingProvider !== null}
-                onClick={() => handleProvider("google")}
-                className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
-                data-testid="button-google"
-              >
-                <GoogleIcon />
-                {loadingProvider === "google" ? "Conectando..." : "Google"}
-              </Button>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loadingProvider !== null}
+                    onClick={() => handleProvider("google")}
+                    className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
+                    data-testid="button-google"
+                  >
+                    <GoogleIcon />
+                    {loadingProvider === "google" ? "Conectando..." : "Google"}
+                  </Button>
 
-              {showApple && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={loadingProvider !== null}
-                  onClick={() => handleProvider("apple")}
-                  className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
-                  data-testid="button-apple"
-                >
-                  <AppleIcon />
-                  {loadingProvider === "apple" ? "Conectando..." : "Apple"}
-                </Button>
-              )}
-            </div>
+                  {showApple && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={loadingProvider !== null}
+                      onClick={() => handleProvider("apple")}
+                      className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
+                      data-testid="button-apple"
+                    >
+                      <AppleIcon />
+                      {loadingProvider === "apple" ? "Conectando..." : "Apple"}
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="pt-4 text-center text-white/60 text-[15px]" data-testid="text-signup-prompt">
               ¿No tienes perfil?{" "}

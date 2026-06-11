@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Users, Video, Heart, ShieldCheck, BadgeCheck } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { isIOS } from "@/lib/platform";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
@@ -167,44 +167,48 @@ export default function Welcome() {
             INICIAR SESIÓN
           </Button>
 
-          <div className="flex items-center gap-3 my-1">
-            <span className="h-px flex-1 bg-white/10" />
-            <span className="text-xs font-medium text-white/40">o continúa con</span>
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
+          {SOCIAL_AUTH_ENABLED && (
+            <>
+              <div className="flex items-center gap-3 my-1">
+                <span className="h-px flex-1 bg-white/10" />
+                <span className="text-xs font-medium text-white/40">o continúa con</span>
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loadingProvider !== null}
-            onClick={() => handleProvider("google")}
-            className="w-full h-[52px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md"
-            data-testid="button-google"
-          >
-            {loadingProvider === "google" ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            Continuar con Google
-          </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingProvider !== null}
+                onClick={() => handleProvider("google")}
+                className="w-full h-[52px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md"
+                data-testid="button-google"
+              >
+                {loadingProvider === "google" ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <GoogleIcon />
+                )}
+                Continuar con Google
+              </Button>
 
-          {showApple && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={loadingProvider !== null}
-              onClick={() => handleProvider("apple")}
-              className="w-full h-[52px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md"
-              data-testid="button-apple"
-            >
-              {loadingProvider === "apple" ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <AppleIcon />
+              {showApple && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingProvider !== null}
+                  onClick={() => handleProvider("apple")}
+                  className="w-full h-[52px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md"
+                  data-testid="button-apple"
+                >
+                  {loadingProvider === "apple" ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <AppleIcon />
+                  )}
+                  Continuar con Apple
+                </Button>
               )}
-              Continuar con Apple
-            </Button>
+            </>
           )}
 
           <Link
