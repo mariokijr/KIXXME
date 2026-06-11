@@ -41,11 +41,52 @@ function encodeHeaderWord(value: string): string {
   return `=?UTF-8?B?${Buffer.from(clean, "utf8").toString("base64")}?=`;
 }
 
-function buildRawMessage(message: GmailMessage): string {
-  // base64-encode the (UTF-8) HTML body and wrap at 76 chars per RFC 2045.
-  const bodyBase64 = Buffer.from(message.html, "utf8")
+/**
+ * Best-effort plain-text rendering of an HTML email body. Sent as the
+ * `text/plain` alternative part so messages are NOT HTML-only — HTML-only mail
+ * is markedly more likely to be classified as spam by Gmail and others.
+ */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<head[\s\S]*?<\/head>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h1|h2|h3|h4|li|td)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_m, n: string) => {
+      try {
+        return String.fromCodePoint(Number(n));
+      } catch {
+        return "";
+      }
+    })
+    .replace(/[ \t]+/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+/** base64-encode a UTF-8 string and wrap at 76 chars per RFC 2045. */
+function base64Body(input: string): string {
+  return Buffer.from(input, "utf8")
     .toString("base64")
     .replace(/(.{76})/g, "$1\r\n");
+}
+
+function buildRawMessage(message: GmailMessage): string {
+  const boundary =
+    "kixxme_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12);
+
+  const text =
+    htmlToPlainText(message.html) ||
+    "Abre este correo en un cliente compatible con HTML.";
 
   const headers = [
     `From: ${headerValue(message.from)}`,
@@ -53,11 +94,27 @@ function buildRawMessage(message: GmailMessage): string {
     ...(message.replyTo ? [`Reply-To: ${headerValue(message.replyTo)}`] : []),
     `Subject: ${encodeHeaderWord(message.subject)}`,
     "MIME-Version: 1.0",
-    'Content-Type: text/html; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
   ];
 
-  return `${headers.join("\r\n")}\r\n\r\n${bodyBase64}`;
+  // multipart/alternative: plain-text first, HTML second (clients render the
+  // last part they support — i.e. HTML when available, text as the fallback).
+  const body = [
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    base64Body(text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    base64Body(message.html),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  return `${headers.join("\r\n")}\r\n\r\n${body}`;
 }
 
 export async function sendGmailMessage(message: GmailMessage): Promise<void> {

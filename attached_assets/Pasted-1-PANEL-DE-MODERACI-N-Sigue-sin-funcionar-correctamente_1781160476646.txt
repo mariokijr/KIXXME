@@ -1,0 +1,158 @@
+1. PANEL DE MODERACIÓN
+
+Sigue sin funcionar correctamente.
+
+He utilizado mi cuenta de administrador para enviar una advertencia real a otra cuenta creada por mí y he detectado dos problemas:
+
+Problema 1: No llegan los emails
+
+He enviado una advertencia real desde el panel de moderación.
+
+Resultado:
+
+* La acción se registra.
+* Pero NO llega ningún email al usuario sancionado.
+
+Quiero que revises completamente el sistema de emails de moderación.
+
+Comprueba:
+
+* Advertencia.
+* Suspensión.
+* Baneo.
+* Eliminación.
+* Restauración.
+
+Haz pruebas reales de envío y verifica que el correo llega realmente al destinatario.
+
+No quiero que simplemente se genere el evento.
+
+Quiero comprobar que el email se envía y se recibe correctamente.
+
+Problema 2: El panel sigue sin actualizarse
+
+Los contadores y estadísticas siguen sin reflejar correctamente las acciones realizadas.
+
+Quiero una revisión completa de:
+
+* Reportes.
+* Alertas.
+* Verificaciones.
+* Suspendidos.
+* Baneados.
+* Eliminados.
+* Tickets.
+
+Verifica que:
+
+* Se guardan en la base de datos.
+* Los contadores se actualizan.
+* El panel muestra datos reales.
+* Los cambios aparecen inmediatamente.
+
+Haz pruebas reales de extremo a extremo y documenta los resultados.
+
+⸻
+
+2. VERIFICACIÓN POR TELÉFONO (MUY IMPORTANTE)
+
+Quiero añadir verificación mediante número de teléfono.
+
+Registro
+
+Durante el registro el usuario debe introducir:
+
+* Email.
+* Contraseña.
+* Número de teléfono.
+
+Verificación SMS
+
+Después del registro:
+
+* Enviar código por SMS.
+* Solicitar introducir el código.
+* Verificar el número.
+
+Hasta que el código no sea correcto:
+
+* No permitir acceder a KixxMe.
+
+Seguridad
+
+Quiero:
+
+* Un número de teléfono por cuenta.
+* Evitar cuentas masivas.
+* Evitar spam.
+* Evitar bots.
+
+Requisitos técnicos
+
+Haz una propuesta técnica completa indicando:
+
+* Servicio recomendado (Twilio, Vonage, MessageBird o el que consideres mejor).
+* Coste aproximado por SMS.
+* Coste mensual estimado.
+* Dificultad de implementación.
+* Protección contra abuso.
+* Gestión de reenvío de códigos.
+* Tiempo de expiración del código.
+* Límite de intentos.
+
+Flujo recomendado
+
+Quiero que me implementes la opción más profesional y segura posible.
+
+Por ejemplo:
+
+1. Usuario introduce teléfono.
+2. Se envía código SMS.
+3. Código válido durante 5 minutos.
+4. Máximo 5 intentos.
+5. Máximo 3 reenvíos.
+6. Cuenta marcada como teléfono verificado.
+
+⸻
+
+3. AUDITORÍA FINAL
+
+Antes de seguir creando nuevas funciones quiero una auditoría completa y real de:
+
+* Moderación.
+* Emails.
+* Reportes.
+* Verificaciones.
+* Usuarios.
+* Premium.
+* Likes.
+* SuperLikes.
+* Sonidos.
+* Fotos.
+* Descubrir.
+* Mapa.
+* KixxMe Live.
+
+Quiero saber exactamente:
+
+* Qué funciona realmente.
+* Qué está parcialmente terminado.
+* Qué está roto.
+* Qué falta por hacer.
+
+No quiero asumir que algo funciona. Quiero pruebas reales de extremo a extremo verificadas.
+
+⸻
+
+Además, recuerda terminar el sistema de fotos:
+
+* 4 fotos máximas.
+* 1 foto principal obligatoria.
+* Añadir foto.
+* Cambiar foto.
+* Eliminar foto.
+* Elegir foto principal.
+* No permitir eliminar la última foto.
+* No permitir usar KixxMe sin al menos una foto principal.
+
+Y confirmar que todo esto funciona con pruebas reales.
