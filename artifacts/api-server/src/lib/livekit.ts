@@ -1,4 +1,4 @@
-import { AccessToken, type VideoGrant } from "livekit-server-sdk";
+import { AccessToken, RoomServiceClient, type VideoGrant } from "livekit-server-sdk";
 import { logger } from "./logger.js";
 
 /**
@@ -93,5 +93,46 @@ export async function mintRoomToken(
       "mintRoomToken: failed to sign LiveKit token",
     );
     return null;
+  }
+}
+
+/** RoomServiceClient needs the https:// host, not the wss:// client URL. */
+function toHttpUrl(wsUrl: string): string {
+  return wsUrl.replace(/^ws/, "http");
+}
+
+let roomService: RoomServiceClient | null = null;
+
+function getRoomService(): RoomServiceClient | null {
+  const cfg = getLiveKitConfig();
+  if (!cfg) return null;
+  if (!roomService) {
+    roomService = new RoomServiceClient(
+      toHttpUrl(cfg.url),
+      cfg.apiKey,
+      cfg.apiSecret,
+    );
+  }
+  return roomService;
+}
+
+/**
+ * Best-effort teardown of a call's LiveKit room when the call ends or a user is
+ * blocked, so a token still within its TTL can't be reused to rejoin the room.
+ *
+ * No-op when LiveKit isn't configured; never throws (deleting a room that was
+ * never created — e.g. a call declined before anyone joined — is treated as
+ * success).
+ */
+export async function deleteRoom(roomName: string): Promise<void> {
+  const svc = getRoomService();
+  if (!svc) return;
+  try {
+    await svc.deleteRoom(roomName);
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), roomName },
+      "deleteRoom: failed (room may not exist)",
+    );
   }
 }

@@ -1,6 +1,6 @@
 ---
-name: KixxMe Live (video-call scaffold)
-description: Architecture and boundaries of the Gold-only "KixxMe Live" video-call feature — matchmaking concurrency, scaffold limits, and UI state rules.
+name: KixxMe Live (Gold video calls, LiveKit)
+description: Architecture and boundaries of the Gold-only "KixxMe Live" video-call feature — matchmaking concurrency, the LiveKit media plane, and UI state rules.
 ---
 
 # KixxMe Live
@@ -15,8 +15,9 @@ photo/name/age·city + Aceptar). The secondary action differs by type: random
 shows "Siguiente" (skip → find someone new); private shows "Rechazar" (decline
 this specific invite). Private has no "Cancelar búsqueda" footer; the private
 caller (auto-accepted on creation) lands directly in the waiting/"Llamando…"
-state. A one-time cosmetic 5→1 countdown plays before the in-call surface (keyed
-by `call.id` in local state).
+state. A one-time 5→1 countdown plays before the in-call surface (keyed by
+`call.id` in local state); the LiveKit room connects during it (the
+`useLiveKitCall` hook is hoisted into `<Live>`, not `InCall`).
 **Why:** the single `Ringing` component was removed — keeping two parallel
 incoming-call UIs drifted; route every ringing call through `Reveal`.
 
@@ -53,11 +54,40 @@ call-row lock; the loser of a race sees a non-ringing status → `"invalid"` (40
 Legacy old-shape `filters` (`{scope,ageMin,ageMax}`, no caller/callee) are
 defensive via optional chaining + `filtersOf()` permissive defaults.
 
-## Scaffold boundary (intentional, not a bug)
-There is **no media plane**. `lib/live.ts` `issueMediaToken()` is a documented
-stub and is the single future integration point for WebRTC/LiveKit. In-call
-cam/mic toggles in `pages/live.tsx` are cosmetic local state only. Do not treat
-"no real video / no token" as a defect — the task was a scaffold.
+## Media plane: LiveKit
+Real video runs on LiveKit Cloud. Server `lib/livekit.ts`:
+`mintRoomToken(roomName,userId)` signs a **room-scoped, Gold-gated** JWT (TTL 2h,
+`roomRecord:false`); `issueMediaToken` (lib/live.ts) wraps it and `serializeCall`
+attaches `mediaToken`+`mediaUrl` to the DTO **only while status==='active'** (null
+otherwise / when LiveKit is unconfigured / not Gold). `endCall` fires a
+best-effort `deleteRoom(roomName)` so a still-valid token can't rejoin after
+hangup/block (block routes through `endCall`; ringing exits never minted a token,
+so no room exists). `deleteRoom` lazily caches a `RoomServiceClient`
+(wss→https via `toHttpUrl`), no-ops when unconfigured, never throws.
+
+Frontend `src/lib/livekit-room.ts` `useLiveKitCall({callId,token,url,camOn,micOn})`:
+- **LATCH creds once per `callId`.** The ~2s `GET /live/state` poll re-mints the
+  token every call and returns null on a plan lapse — connecting straight off the
+  DTO would reconnect every poll and tear down an active call. Latch
+  `{callId,token,url}`; keep it on token churn / a transient null for the SAME
+  call; drop only when `callId` changes/null. Connect effect deps **only** on the
+  latch (cancellation-safe: `await connect` → if cancelled, `disconnect`).
+- Cam/mic published by **separate** effects once `status==='connected'` (single
+  publish source — the connect effect never publishes, avoiding a double-publish
+  race). Toggles read live state, never re-trigger connect.
+- Permission denial (incl. the preview iframe) → `mediaError` **without**
+  disconnecting (remote video still flows). `resumeAudio`→`room.startAudio()`.
+- Hoisted into `<Live>` (NOT `InCall`) so the room connects during the 5s
+  countdown; `InCall` branches on `live.active`, **never** `call.mediaToken`
+  (mirrors the "in-progress call renders before paywall" rule).
+
+**Config:** needs secrets `LIVEKIT_URL` (wss://), `LIVEKIT_API_KEY`,
+`LIVEKIT_API_SECRET`. Until set, the whole path no-ops gracefully (placeholder UI
++ `ComingSoonBanner` retained).
+**Caveat:** `getUserMedia` needs `allow="camera;microphone"`, which the Replit
+preview iframe lacks — local publish only works on the **published domain**;
+in-preview you get the `mediaError` notice (remote-only). Can't fully e2e
+in-agent (no camera).
 
 ## Matchmaking concurrency model
 **Why:** two searchers polling concurrently must never double-match or both grab

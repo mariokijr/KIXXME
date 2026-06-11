@@ -20,6 +20,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { playSound } from "@/lib/sound";
+import { useLiveKitCall, type LiveKitCall } from "@/lib/livekit-room";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -69,8 +70,9 @@ export default function Live() {
   const [ageMin, setAgeMin] = useState(18);
   const [ageMax, setAgeMax] = useState(45);
 
-  // Local-only media UI state. There is no media plane in this scaffold, so
-  // these toggles are purely cosmetic placeholders for the future WebRTC wiring.
+  // Local camera/mic intent. Drives both the in-call controls and the LiveKit
+  // publish state (see `useLiveKitCall`); defaults on so a connected call starts
+  // with video + audio.
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
 
@@ -106,6 +108,21 @@ export default function Live() {
   const endCall = useEndLiveCall();
   const blockUser = useBlockProfile();
   const reportUser = useCreateReport();
+
+  // Media plane: connect to the active call's LiveKit room. Gated on the call
+  // being active (a token only exists then); the hook latches creds per call.id
+  // so the ~2s state-poll token churn never reconnects, and connects during the
+  // pre-call Countdown (rendered while status is already "active"). No-op when
+  // there's no active call or LiveKit isn't configured (token/url null).
+  const activeCall =
+    data?.call && data.call.status === "active" ? data.call : null;
+  const live = useLiveKitCall({
+    callId: activeCall?.id ?? null,
+    token: activeCall?.mediaToken ?? null,
+    url: activeCall?.mediaUrl ?? null,
+    camOn,
+    micOn,
+  });
 
   const onError = (msg: string) => (err: any) =>
     toast({
@@ -232,6 +249,7 @@ export default function Live() {
         onReport={() => reportPartner(call)}
         onBlock={() => blockPartner(call)}
         ending={endCall.isPending}
+        live={live}
       />
     );
   }
@@ -918,6 +936,7 @@ function InCall({
   onReport,
   onBlock,
   ending,
+  live,
 }: {
   call: LiveCall;
   camOn: boolean;
@@ -928,54 +947,168 @@ function InCall({
   onReport: () => void;
   onBlock: () => void;
   ending: boolean;
+  live: LiveKitCall;
 }) {
   const name = partnerName(call);
+
+  // Status pill copy for the real-video path.
+  const statusLabel =
+    live.status === "connecting"
+      ? "Conectando vídeo…"
+      : live.status === "reconnecting"
+        ? "Reconectando…"
+        : live.status === "error"
+          ? "No se pudo conectar el vídeo"
+          : !live.hasRemoteVideo
+            ? `Esperando el vídeo de ${name}…`
+            : null;
+
   return (
     <div className="min-h-full flex flex-col">
-      {/* Video surface placeholder — no media plane in this scaffold. */}
+      {/* Video surface */}
       <div
         className="flex-1 relative flex flex-col items-center justify-center overflow-hidden"
         style={{
           background:
             "radial-gradient(ellipse 90% 60% at 50% 30%, hsl(273 40% 16%) 0%, hsl(238 30% 6%) 70%)",
         }}
+        onClick={live.active ? live.resumeAudio : undefined}
       >
-        <Avatar className="w-28 h-28 rounded-full border-2 border-primary/40 mb-4 opacity-90">
-          {call.partner.avatar_url && (
-            <AvatarImage src={call.partner.avatar_url} className="object-cover" />
-          )}
-          <AvatarFallback className="font-display text-2xl bg-card text-primary">
-            {initialsOf(name)}
-          </AvatarFallback>
-        </Avatar>
-        <h2 className="font-display text-2xl tracking-wide text-foreground">
-          {name}
-        </h2>
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="font-sans text-xs text-green-400">En llamada</span>
-        </div>
+        {live.active ? (
+          <>
+            {/* Remote video fills the surface; invisible until a track arrives. */}
+            <video
+              ref={live.attachRemoteVideo}
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: live.hasRemoteVideo ? 1 : 0 }}
+              data-testid="video-remote"
+            />
+            {/* Avatar fallback while the remote video isn't flowing yet. */}
+            {!live.hasRemoteVideo && (
+              <div className="relative flex flex-col items-center">
+                <Avatar className="w-28 h-28 rounded-full border-2 border-primary/40 mb-4 opacity-90">
+                  {call.partner.avatar_url && (
+                    <AvatarImage
+                      src={call.partner.avatar_url}
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="font-display text-2xl bg-card text-primary">
+                    {initialsOf(name)}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="font-display text-2xl tracking-wide text-foreground">
+                  {name}
+                </h2>
+              </div>
+            )}
 
-        <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full"
-          style={{ background: "rgba(0,0,0,0.4)" }}
-        >
-          <span className="font-sans text-[11px] text-muted-foreground">
-            Vídeo no disponible en esta versión · próximamente
-          </span>
-        </div>
+            {/* Name overlay once remote video is showing */}
+            {live.hasRemoteVideo && (
+              <div
+                className="absolute bottom-16 left-4 px-3 py-1.5 rounded-xl"
+                style={{ background: "rgba(0,0,0,0.45)" }}
+              >
+                <span className="font-display text-lg text-white">{name}</span>
+              </div>
+            )}
 
-        {/* Self preview placeholder */}
-        <div
-          className="absolute top-4 right-4 w-20 h-28 rounded-xl border border-white/10 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-        >
-          {camOn ? (
-            <Video className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <VideoOff className="w-5 h-5 text-muted-foreground" />
-          )}
-        </div>
+            {/* Connection status pill */}
+            {statusLabel && (
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full flex items-center gap-2"
+                style={{ background: "rgba(0,0,0,0.5)" }}
+                data-testid="text-live-status"
+              >
+                {(live.status === "connecting" ||
+                  live.status === "reconnecting") && (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                )}
+                <span className="font-sans text-[11px] text-white/90">
+                  {statusLabel}
+                </span>
+              </div>
+            )}
+
+            {/* Permission / publish error notice */}
+            {live.mediaError && (
+              <div
+                className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full max-w-[90%]"
+                style={{ background: "rgba(127,29,29,0.85)" }}
+                data-testid="text-media-error"
+              >
+                <span className="font-sans text-[11px] text-white text-center block">
+                  No se pudo acceder a tu cámara o micrófono. Revisa los permisos.
+                </span>
+              </div>
+            )}
+
+            {/* Self preview */}
+            <div
+              className="absolute top-4 right-4 w-20 h-28 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center"
+              style={{ background: "rgba(0,0,0,0.6)" }}
+            >
+              <video
+                ref={live.attachLocalVideo}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ opacity: camOn ? 1 : 0 }}
+                data-testid="video-local"
+              />
+              {!camOn && (
+                <VideoOff className="absolute w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+          </>
+        ) : (
+          // Graceful fallback: LiveKit not configured / no token yet. Keeps the
+          // original placeholder so the call lifecycle still works end-to-end.
+          <>
+            <Avatar className="w-28 h-28 rounded-full border-2 border-primary/40 mb-4 opacity-90">
+              {call.partner.avatar_url && (
+                <AvatarImage
+                  src={call.partner.avatar_url}
+                  className="object-cover"
+                />
+              )}
+              <AvatarFallback className="font-display text-2xl bg-card text-primary">
+                {initialsOf(name)}
+              </AvatarFallback>
+            </Avatar>
+            <h2 className="font-display text-2xl tracking-wide text-foreground">
+              {name}
+            </h2>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="font-sans text-xs text-green-400">En llamada</span>
+            </div>
+
+            <div
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(0,0,0,0.4)" }}
+            >
+              <span className="font-sans text-[11px] text-muted-foreground">
+                Vídeo no disponible en esta versión · próximamente
+              </span>
+            </div>
+
+            {/* Self preview placeholder */}
+            <div
+              className="absolute top-4 right-4 w-20 h-28 rounded-xl border border-white/10 flex items-center justify-center"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+            >
+              {camOn ? (
+                <Video className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <VideoOff className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Controls */}

@@ -12,16 +12,17 @@ import { supabase } from "./supabase.js";
 import { getBlockRelations } from "./blocks.js";
 import { getUnavailableIds } from "./moderation.js";
 import { getPlan } from "./entitlement.js";
-import { mintRoomToken, getLiveKitUrl } from "./livekit.js";
+import { mintRoomToken, getLiveKitUrl, deleteRoom } from "./livekit.js";
 import { haversineKm } from "./geo.js";
 
 /**
  * KixxMe Live matchmaking + call lifecycle.
  *
- * SCAFFOLD: this module owns the queue, the match algorithm, and the call state
- * machine, but it does NOT touch any media plane. There is no WebRTC, no SFU,
- * and no token minting yet — see `issueMediaToken` for the single integration
- * point a future LiveKit (or similar) wiring would replace.
+ * This module owns the queue, the match algorithm, and the call state machine.
+ * The media plane is LiveKit: `issueMediaToken` mints a room-scoped token for an
+ * active call (attached to the DTO by `serializeCall`), and `endCall` tears the
+ * room down via `deleteRoom`. Media credentials are minted only while a call is
+ * `active`; ringing/declined/cancelled/skipped calls never get a token.
  */
 
 // --- Tunables --------------------------------------------------------------
@@ -697,12 +698,18 @@ export async function endCall(
   userId: string,
   reason?: string,
 ): Promise<CallOutcome> {
-  const { outcome } = await terminate(
+  const { outcome, flipped } = await terminate(
     callId,
     userId,
     "ended",
     ["ringing", "active"],
     reason && reason.length > 0 ? reason.slice(0, 100) : "hangup",
   );
+  // Best-effort: tear down the LiveKit room so a still-valid token can't be
+  // reused to rejoin after a hang-up or block. Fire-and-forget; no-op when
+  // LiveKit isn't configured. Only when WE actually ended the call (flipped).
+  if (flipped && typeof outcome !== "string") {
+    void deleteRoom(outcome.roomName);
+  }
   return outcome;
 }
