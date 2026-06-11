@@ -1,0 +1,145 @@
+Quiero que empecemos ya con la parte de las videollamadas de KixxMe que habíamos dejado preparada.
+
+Antes de desarrollar nada, necesito un presupuesto técnico completo y realista.
+
+1. Arquitectura recomendada
+
+Confírmame cuál es la mejor opción:
+
+* LiveKit Cloud
+* LiveKit Self Hosted
+* WebRTC puro
+* Otra alternativa
+
+Y explícame:
+
+* Ventajas
+* Inconvenientes
+* Escalabilidad
+* Complejidad de mantenimiento
+* Coste real
+
+⸻
+
+2. Presupuesto completo
+
+Necesito una estimación para:
+
+* 100 usuarios activos
+* 500 usuarios activos
+* 1.000 usuarios activos
+* 5.000 usuarios activos
+* 10.000 usuarios activos
+
+Incluyendo:
+
+* Videollamadas 1 a 1
+* Infraestructura
+* Tráfico
+* STUN/TURN
+* Grabación (si algún día se añade)
+* Coste mensual estimado
+
+⸻
+
+3. Fase Beta
+
+Quiero lanzar primero una beta cerrada.
+
+Requisitos:
+
+* Solo usuarios Gold pueden acceder.
+* Ambos usuarios deben ser Gold.
+* Emparejamiento aleatorio.
+* Filtros por edad.
+* Filtros por ubicación.
+* Mostrar antes de conectar:
+    * Nombre
+    * Edad
+    * Ciudad
+
+Botones:
+
+* Aceptar
+* Siguiente
+* Cancelar
+
+Durante la videollamada:
+
+* Activar/desactivar cámara.
+* Activar/desactivar micrófono.
+* Cambiar entre cámara frontal y trasera.
+* Girar cámara en tiempo real.
+* Finalizar llamada.
+* Reportar usuario.
+* Bloquear usuario.
+
+⸻
+
+4. Seguridad y moderación
+
+Quiero que analices:
+
+* Sistema de reportes durante la llamada.
+* Bloqueos durante la llamada.
+* Integración con el panel de moderación.
+* Detección de abuso.
+* Límites anti-spam.
+* Protección contra multicuentas.
+
+No quiero grabar llamadas por privacidad.
+
+⸻
+
+5. Experiencia Premium
+
+Quiero que la experiencia se sienta premium.
+
+Analiza si podemos añadir:
+
+* Sonido al encontrar videollamada.
+* Animación de conexión.
+* Pantalla de espera elegante.
+* Contador de tiempo de llamada.
+* Indicador de calidad de conexión.
+* Reconexión automática si se corta internet.
+* Aviso cuando el otro usuario activa o desactiva cámara o micrófono.
+
+⸻
+
+6. Roadmap de implementación
+
+Quiero un plan dividido por fases:
+
+Fase 1
+
+Infraestructura mínima viable.
+
+Fase 2
+
+Videollamadas beta para Gold.
+
+Fase 3
+
+Optimización y escalado.
+
+Fase 4
+
+Funciones premium avanzadas.
+
+⸻
+
+7. Estimación final
+
+Necesito que me digas:
+
+* Tiempo aproximado de desarrollo.
+* Dificultad.
+* Riesgos.
+* Dependencias externas necesarias.
+* Secrets necesarios.
+* Coste mensual estimado.
+
+No empieces a implementar todavía.
+
+Primero quiero la propuesta técnica completa y el presupuesto detallado para decidir cómo lo hacemos.
