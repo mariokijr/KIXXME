@@ -18,6 +18,7 @@ import {
   type SupportActorRole,
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
+import { hasGold } from "./entitlement.js";
 
 /**
  * Priority support chat — all ticket transitions live here so routes never
@@ -69,6 +70,11 @@ export interface TicketView {
   updatedAt: string;
   username?: string | null;
   avatarUrl?: string | null;
+  // Whether THIS viewer may post a new message. Premium ("official" or
+  // user-opened) tickets are Gold-only to send into; admins and non-premium
+  // (admin-initiated outreach) tickets are always replyable. Only set by
+  // getTicketDetail (the only surface with a composer); undefined = allowed.
+  canReply?: boolean;
 }
 
 export interface MessageView {
@@ -408,7 +414,49 @@ export async function getTicketDetail(
     viewer === "admin"
       ? (await loadOwners([row.userId])).get(row.userId) ?? null
       : undefined;
-  return { ticket: mapTicket(fresh, viewer, { preview, owner }), messages };
+  const ticket = mapTicket(fresh, viewer, { preview, owner });
+
+  // Sending into a PREMIUM ticket (the official welcome thread, or one the user
+  // opened themselves) requires Gold. Admins always reply; admin-initiated
+  // outreach (kind='support', openedByRole='admin') stays free-answerable so a
+  // moderated/free user can respond. Use the `isAdmin` param — NOT the derived
+  // viewer role — because an admin viewing their OWN ticket reads as "user" but
+  // must still keep canReply. hasGold (a cached read) only runs for the one case
+  // that needs it, since getTicketDetail is polled.
+  const isPremiumTicket =
+    row.kind === "official" || row.openedByRole === "user";
+  ticket.canReply =
+    isAdmin || !isPremiumTicket || (await hasGold(viewerId));
+
+  return { ticket, messages };
+}
+
+/**
+ * Immutable gate fields for a ticket (userId/kind/openedByRole never change
+ * after insert), used by the POST messages route to decide the Gold send gate
+ * before delegating to postMessage. Returns null when the ticket doesn't exist.
+ */
+export async function getTicketGate(ticketId: string): Promise<{
+  userId: string;
+  kind: SupportTicketRow["kind"];
+  openedByRole: SupportActorRole;
+} | null> {
+  const row = await loadTicketRow(ticketId);
+  if (!row) return null;
+  return { userId: row.userId, kind: row.kind, openedByRole: row.openedByRole };
+}
+
+/**
+ * Read-only view of the user's official "Soporte KixxMe" thread WITHOUT
+ * creating it. Used for lapsed-Gold members: they keep reading their existing
+ * history but can no longer trigger creation (that stays Gold-gated). Returns
+ * null when no official ticket exists yet.
+ */
+export async function getExistingOfficialTicket(
+  userId: string,
+): Promise<TicketView | null> {
+  const row = await loadOfficialRow(userId);
+  return row ? officialTicketView(row) : null;
 }
 
 /**

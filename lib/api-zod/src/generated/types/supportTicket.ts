@@ -26,4 +26,6 @@ export interface SupportTicket {
   username?: string | null;
   /** Ticket owner's avatar (admin views only) */
   avatarUrl?: string | null;
+  /** Whether the requesting viewer may post a new message. Premium tickets (official / user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed. */
+  canReply?: boolean;
 }

@@ -556,6 +556,7 @@ function TicketThread({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
   const [reply, setReply] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -582,6 +583,10 @@ function TicketThread({
   }, [messages.length]);
 
   const isClosed = ticket?.status === "closed";
+  // The server decides whether THIS viewer may send (Gold gate on premium
+  // tickets). `undefined` = allowed (backward compatible); only an explicit
+  // `false` locks the composer into a "Hazte Gold" upsell.
+  const locked = ticket?.canReply === false;
 
   const submit = () => {
     const body = reply.trim();
@@ -596,7 +601,24 @@ function TicketThread({
           });
           qc.invalidateQueries({ queryKey: getListSupportTicketsQueryKey() });
         },
-        onError: () => {
+        onError: (error) => {
+          const status = (error as { status?: number } | null)?.status;
+          const code = (error as { data?: { code?: string } } | null)?.data
+            ?.code;
+          if (status === 402 || code === "gold_required") {
+            // Entitlement lapsed between loads — surface the Gold upsell and
+            // refresh so the composer locks on the next render.
+            toast({
+              title: "Necesitas KixxMe Gold",
+              description:
+                "Hazte Gold para enviar mensajes al soporte prioritario.",
+              variant: "destructive",
+            });
+            qc.invalidateQueries({
+              queryKey: getGetSupportTicketQueryKey(ticketId),
+            });
+            return;
+          }
           toast({
             title: "No se pudo enviar el mensaje",
             variant: "destructive",
@@ -687,7 +709,35 @@ function TicketThread({
         )}
       </div>
 
-      {isClosed ? (
+      {locked ? (
+        <div
+          className="px-4 py-4 border-t border-border/40 flex-shrink-0 text-center space-y-2"
+          style={{ background: "rgba(13,11,26,0.9)" }}
+          data-testid="ticket-locked-upsell"
+        >
+          <Crown className="w-6 h-6 text-amber-400 mx-auto" />
+          <p className="font-sans text-sm text-foreground">
+            Necesitas KixxMe Gold para enviar nuevos mensajes al soporte
+            prioritario.
+          </p>
+          <p className="font-sans text-xs text-muted-foreground">
+            Puedes seguir leyendo tu conversación.
+          </p>
+          <button
+            type="button"
+            onClick={() => setLocation("/premium")}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-display text-sm tracking-wide"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(45,90%,55%), hsl(28,90%,52%))",
+            }}
+            data-testid="button-ticket-gold-upsell"
+          >
+            <Crown className="w-4 h-4" />
+            Hazte Gold
+          </button>
+        </div>
+      ) : isClosed ? (
         <div className="px-4 py-3 border-t border-border/40 flex-shrink-0">
           <p className="font-sans text-xs text-muted-foreground text-center">
             Este ticket está cerrado. Si escribes un mensaje, se reabrirá.

@@ -2670,6 +2670,13 @@ components:
           type: string
           nullable: true
           description: Ticket owner's avatar (admin views only)
+        canReply:
+          type: boolean
+          description: >-
+            Whether the requesting viewer may post a new message. Premium
+            tickets (official / user-opened) require Gold to send into; admins
+            and admin-initiated outreach are always replyable. Only set on the
+            ticket-detail response; absent means allowed.
       required:
         [
           id,

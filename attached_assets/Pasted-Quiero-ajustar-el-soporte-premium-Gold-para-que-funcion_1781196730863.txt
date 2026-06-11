@@ -1,0 +1,51 @@
+Quiero ajustar el soporte premium Gold para que funcione exactamente como soporte real dentro de KixxMe.
+
+Ahora mismo quiero que el chat de soporte esté conectado directamente con la cuenta oficial:
+
+supportkixxme@gmail.com
+
+Funcionamiento deseado:
+
+* Cuando un usuario Gold escriba al soporte desde la app, ese mensaje debe llegar a una conversación real con la cuenta supportkixxme@gmail.com.
+* Si yo inicio sesión en KixxMe con supportkixxme@gmail.com, debo poder ver todos los usuarios Gold que han escrito al soporte.
+* Desde esa cuenta de soporte debo poder responderles como si fuera un chat normal.
+* El usuario Gold debe ver la respuesta en su conversación de soporte dentro de Mensajes.
+* La conversación de soporte debe quedar fijada en mensajes para usuarios Gold.
+* Debe mostrar mensajes no leídos.
+* Debe funcionar como un chat real bidireccional usuario Gold ↔ Soporte KixxMe.
+
+Además quiero notificaciones por email:
+
+* Cuando un usuario Gold escriba al soporte, debe llegar un aviso por email a supportkixxme@gmail.com.
+* Cuando soporte responda al usuario, el usuario debe recibir un email diciendo que Soporte KixxMe le ha respondido.
+* El email debe incluir un botón/enlace para volver a entrar en KixxMe y ver el mensaje.
+* El email no debe mostrar información sensible innecesaria.
+* El diseño del email debe ser profesional y con branding KixxMe.
+
+Ejemplo de email al usuario:
+
+Asunto:
+Soporte KixxMe te ha respondido
+
+Texto:
+“Hola, tienes una nueva respuesta de Soporte KixxMe.
+
+Entra en la aplicación para leer el mensaje y continuar la conversación.”
+
+Botón:
+“Ver respuesta en KixxMe”
+
+Importante:
+
+* Este soporte premium solo debe estar disponible para usuarios Gold.
+* Los usuarios que no sean Gold pueden ver soporte básico o contacto, pero no el chat prioritario.
+* La cuenta supportkixxme@gmail.com debe tener acceso completo a estas conversaciones aunque no sea usuario Gold.
+* Si el usuario pierde Gold, puede conservar el historial, pero no debería poder enviar nuevos mensajes al soporte premium.
+* Todo debe quedar conectado al sistema real de mensajes, no como una pantalla separada falsa.
+* Quiero una prueba real:
+    1. Usuario Gold escribe al soporte.
+    2. supportkixxme@gmail.com ve el mensaje iniciando sesión en la app.
+    3. Soporte responde.
+    4. El usuario recibe la respuesta dentro de Mensajes.
+    5. El usuario recibe email avisando de la respuesta.
+    6. El email de soporte recibe aviso cuando entra una nueva solicitud.

@@ -658,41 +658,80 @@ export function moderationRestoredEmailHtml(appUrl?: string): string {
 }
 
 // --- Support ticket reply (priority "Soporte Premium" chat) -----------------
-// Sent fire-and-forget to the ticket owner when an admin replies, so the user
-// knows there's an answer waiting even if the app is closed. The reply body is
-// NOT included (it may contain sensitive context) — we only nudge them in.
+// Sent fire-and-forget to the ticket owner when support replies, so the user
+// knows there's an answer waiting even if the app is closed. It deliberately
+// carries NO sensitive context (no subject, no reply body) — only a neutral
+// nudge back into the app, where the actual conversation lives.
 
-export const SUPPORT_REPLY_SUBJECT = "\u{1F4AC} Respuesta de soporte de KixxMe";
+export const SUPPORT_REPLY_SUBJECT = "Soporte KixxMe te ha respondido";
 
-export function supportReplyEmailHtml(
-  subject: string,
-  appUrl?: string,
-): string {
-  const safeSubject = subject.trim();
-  const body = [
-    paragraphs([
-      "<strong style=\"color:#f4f1fb;\">El equipo de soporte de KixxMe ha respondido a tu consulta.</strong>",
-      safeSubject
-        ? `Asunto: <span style="color:#f4f1fb;">${escapeHtml(safeSubject)}</span>`
-        : "",
-      "Abre la app para leer la respuesta y continuar la conversaci\u00F3n.",
-      "Equipo KixxMe",
-    ]),
-  ].join("\n            ");
+export function supportReplyEmailHtml(appUrl?: string): string {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Hola, tienes una nueva respuesta de Soporte KixxMe.</strong>",
+    "Entra en la aplicaci\u00F3n para leer el mensaje y continuar la conversaci\u00F3n.",
+  ]);
   return renderEmail({
-    preheader: "El equipo de soporte de KixxMe ha respondido a tu consulta.",
-    heading: "\u{1F4AC} Tienes una respuesta de soporte",
+    preheader: "Tienes una nueva respuesta de Soporte KixxMe.",
+    heading: "\u{1F4AC} Soporte KixxMe te ha respondido",
     bodyHtml: body,
-    cta: appUrl ? { label: "Ver respuesta", url: appUrl } : undefined,
+    cta: appUrl ? { label: "Ver respuesta en KixxMe", url: appUrl } : undefined,
   });
 }
 
-export function supportReplyEmail(
-  subject: string,
-  appUrl?: string,
-): { subject: string; html: string } {
+export function supportReplyEmail(appUrl?: string): {
+  subject: string;
+  html: string;
+} {
   return {
     subject: SUPPORT_REPLY_SUBJECT,
-    html: supportReplyEmailHtml(subject, appUrl),
+    html: supportReplyEmailHtml(appUrl),
+  };
+}
+
+// --- Support inbox notification (a user wrote into priority support) ---------
+// Sent to SUPPORT_EMAIL whenever a user opens a priority ticket or replies in
+// one, so the operator (supportkixxme@gmail.com) is nudged even when not in the
+// app. Unlike the user-facing email, this is the operator's OWN inbox, so a
+// username + short preview is fine (same trust level as supportReportEmailHtml).
+
+export function supportNewMessageEmailHtml(opts: {
+  username: string;
+  ticketSubject: string;
+  preview: string;
+  isNew: boolean;
+  appUrl?: string;
+}): string {
+  const { username, ticketSubject, preview, isNew, appUrl } = opts;
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">${escapeHtml(username)}</strong> ${
+      isNew
+        ? "ha abierto un nuevo ticket de soporte prioritario."
+        : "ha respondido en su ticket de soporte prioritario."
+    }`,
+    `Asunto: <span style="color:#f4f1fb;">${escapeHtml(ticketSubject)}</span>`,
+    `Mensaje: <span style="color:#f4f1fb;">${escapeHtml(preview)}</span>`,
+    "Responde desde el panel de moderaci\u00F3n de KixxMe.",
+  ]);
+  return renderEmail({
+    preheader: `${username}: ${preview}`,
+    heading: isNew
+      ? "\u{1F4E9} Nuevo ticket de soporte"
+      : "\u{1F4E9} Nueva respuesta de soporte",
+    bodyHtml: body,
+    cta: appUrl ? { label: "Abrir en KixxMe", url: appUrl } : undefined,
+  });
+}
+
+export function supportNewMessageEmail(opts: {
+  username: string;
+  ticketSubject: string;
+  preview: string;
+  isNew: boolean;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const tag = opts.isNew ? "Nuevo ticket" : "Respuesta";
+  return {
+    subject: `[KixxMe Soporte] ${tag}: ${opts.ticketSubject}`,
+    html: supportNewMessageEmailHtml(opts),
   };
 }

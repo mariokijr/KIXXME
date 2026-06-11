@@ -996,7 +996,7 @@ router.post("/admin/tickets", async (req, res) => {
       message.trim(),
     );
     // Admin-initiated outreach nudges the user by email (fire-and-forget).
-    void notifySupportReplyByEmail(userId, detail.ticket.subject);
+    void notifySupportReplyByEmail(userId);
     res.status(201).json(detail);
   } catch (error) {
     req.log.error(

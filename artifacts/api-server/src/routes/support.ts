@@ -13,8 +13,13 @@ import {
   getTicketDetail,
   postMessage,
   ensureOfficialTicket,
+  getExistingOfficialTicket,
+  getTicketGate,
 } from "../lib/support-tickets.js";
-import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
+import {
+  notifySupportReplyByEmail,
+  notifySupportNewMessageByEmail,
+} from "../lib/support-notifications.js";
 
 const router = Router();
 
@@ -171,12 +176,26 @@ router.get("/support/tickets", async (req, res) => {
 // server-side entitlement (hasGold also covers GOLD_TEST_EMAILS, whose
 // profiles.plan stays 'free'), so we never trust the client's plan. Lazily
 // ensures the thread exists, then returns it WITHOUT marking it read (the chats
-// list polls this). Non-Gold users get { ticket: null }.
+// list polls this). Lapsed-Gold users keep reading any existing thread (sending
+// is gated separately); users who were never Gold get { ticket: null }.
 router.get("/support/official", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
+  // Gold members get the thread ensured (created on first read if needed).
+  // Lapsed-Gold members no longer trigger creation but keep READING any thread
+  // they already have (sending is gated separately, server-side). Users who
+  // were never Gold simply have no official ticket → { ticket: null }.
   if (!(await hasGold(auth.userId))) {
-    res.json({ ticket: null });
+    try {
+      const ticket = await getExistingOfficialTicket(auth.userId);
+      res.json({ ticket });
+    } catch (error) {
+      req.log.error(
+        { error: error instanceof Error ? error.message : String(error) },
+        "support official: failed to load existing ticket",
+      );
+      res.json({ ticket: null });
+    }
     return;
   }
   try {
@@ -228,6 +247,13 @@ router.post("/support/tickets", async (req, res) => {
       singleLine(subject).slice(0, MAX_SUBJECT),
       message.trim(),
     );
+    // Nudge the support inbox (operator's own inbox) — fire-and-forget.
+    void notifySupportNewMessageByEmail(
+      auth.userId,
+      detail.ticket.subject,
+      message.trim(),
+      true,
+    );
     res.status(201).json(detail);
   } catch (error) {
     req.log.error(
@@ -277,18 +303,49 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
   }
 
   const isAdmin = isAdminEmail(auth.email);
+
+  // Gold gate on SENDING into a premium ticket. The owner of an "official" or
+  // self-opened ticket must be Gold to post a new message (lapsed-Gold keeps
+  // read-only history); admins always reply, and admin-initiated outreach
+  // (kind='support') stays free-answerable. The gate fields are immutable, so
+  // this pre-read can't race postMessage's own re-authorization.
+  const gate = await getTicketGate(id);
+  if (!gate) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const isOwner = gate.userId === auth.userId;
+  if (!isOwner && !isAdmin) {
+    res.status(404).json({ error: "Ticket no encontrado" });
+    return;
+  }
+  const isPremiumTicket =
+    gate.kind === "official" || gate.openedByRole === "user";
+  if (isOwner && !isAdmin && isPremiumTicket && !(await hasGold(auth.userId))) {
+    res.status(402).json({
+      error: "El chat de soporte prioritario es exclusivo de KixxMe Gold",
+      code: "gold_required",
+    });
+    return;
+  }
+
   try {
     const detail = await postMessage(id, auth.userId, isAdmin, body.trim());
     if (!detail) {
       res.status(404).json({ error: "Ticket no encontrado" });
       return;
     }
-    // An admin reply (the sender is not the ticket owner) nudges the owner by
-    // email — fire-and-forget; never fails the request.
     if (detail.ticket.userId !== auth.userId) {
-      void notifySupportReplyByEmail(
-        detail.ticket.userId,
+      // An admin reply (sender is not the owner) nudges the owner by email —
+      // fire-and-forget; user-facing copy carries no sensitive info.
+      void notifySupportReplyByEmail(detail.ticket.userId);
+    } else if (!isAdmin) {
+      // The user wrote in their own ticket → nudge the support inbox.
+      void notifySupportNewMessageByEmail(
+        auth.userId,
         detail.ticket.subject,
+        body.trim(),
+        false,
       );
     }
     res.status(201).json(detail);

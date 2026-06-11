@@ -748,7 +748,8 @@ export const ListSupportTicketsResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
-  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
 })),
   "total": zod.number()
 })
@@ -790,7 +791,8 @@ export const GetSupportTicketResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
-  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
 }),
   "messages": zod.array(zod.object({
   "id": zod.string(),
@@ -837,7 +839,8 @@ export const GetOfficialSupportTicketResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
-  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
 }).nullable().describe('The official \"Soporte KixxMe\" thread, or null when not Gold')
 })
 
@@ -1593,7 +1596,8 @@ export const ListAdminTicketsResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
-  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
 })),
   "total": zod.number()
 })
@@ -1640,7 +1644,8 @@ export const SetAdminTicketStatusResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
-  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)')
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
 }),
   "messages": zod.array(zod.object({
   "id": zod.string(),
