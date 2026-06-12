@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { supabase, supabaseAuth } from "./supabase.js";
 import { getModerationState } from "./moderation.js";
-import { recordIfSystem } from "./system-accounts.js";
+import { recordIfSystem, isSystemEmail } from "./system-accounts.js";
 
 export interface AuthContext {
   userId: string;
@@ -114,6 +114,36 @@ export async function requireAdmin(
   const auth = await requireAuth(req, res);
   if (!auth) return null;
   if (!isAdminEmail(auth.email)) {
+    res.status(403).json({ error: "No autorizado" });
+    return null;
+  }
+  return auth;
+}
+
+/**
+ * An "operator" is anyone who runs the support console: a real admin
+ * (ADMIN_EMAILS) OR a system support account (SYSTEM_ACCOUNT_EMAILS, e.g.
+ * supportkixxme@gmail.com). This is DELIBERATELY narrower than admin: it grants
+ * only the support-ticket / support-inbox surfaces, NEVER the moderation,
+ * verification or report-triage routes (those stay `requireAdmin`). The system
+ * account is default-on with no env opt-in, so it must not silently inherit
+ * ban/remove powers or access to private verification selfies.
+ */
+export function isOperatorEmail(email: string | null | undefined): boolean {
+  return isAdminEmail(email) || isSystemEmail(email);
+}
+
+/**
+ * Require an authenticated operator (admin OR system support account). Used by
+ * the support-ticket queue and the support-inbox endpoints only.
+ */
+export async function requireOperator(
+  req: Request,
+  res: Response,
+): Promise<AuthContext | null> {
+  const auth = await requireAuth(req, res);
+  if (!auth) return null;
+  if (!isOperatorEmail(auth.email)) {
     res.status(403).json({ error: "No autorizado" });
     return null;
   }

@@ -2687,6 +2687,130 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/support-users:
+    get:
+      operationId: listSupportInboxUsers
+      tags: [admin]
+      summary: Support-console directory of all users (Gold → Plus → free)
+      description: >-
+        Operator-only (admin or system support account). Lists every real user
+        for the support console, paid tiers first (Gold, then Plus), then free,
+        with optional search. System accounts are never included.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportInboxList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/support-users/{userId}/thread:
+    get:
+      operationId: getSupportInboxThread
+      tags: [admin]
+      summary: Resolve a user's canonical support thread (operator view)
+      description: >-
+        Operator-only. Returns the official "Soporte KixxMe" thread if it
+        exists, otherwise the user's most-recent ticket, or null when none.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thread
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportInboxThread"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: startSupportInboxThread
+      tags: [admin]
+      summary: Start (or continue) a user's support thread and post a message
+      description: >-
+        Operator-only. Gold-aware cold start: a Gold target's message lands in
+        the official thread; a non-Gold target gets an admin-initiated outreach
+        ticket they can answer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSupportThreadBody"
+      responses:
+        "201":
+          description: Thread started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketDetail"
+        "400":
+          description: Invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/tickets:
     get:
       operationId: listAdminTickets
@@ -3191,6 +3315,69 @@ components:
         total:
           type: integer
       required: [tickets, total]
+
+    SupportInboxUser:
+      type: object
+      description: A user row in the support-console directory.
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        plan:
+          type: string
+          enum: [free, plus, gold]
+        isVerified:
+          type: boolean
+        isOnline:
+          type: boolean
+        lastActiveAt:
+          type: string
+          nullable: true
+        state:
+          type: string
+          enum: [active, suspended, banned, removed]
+      required: [id, plan, isVerified, isOnline, state]
+
+    SupportInboxList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportInboxUser"
+        total:
+          type: integer
+      required: [users, total]
+
+    SupportInboxThread:
+      type: object
+      description: >-
+        A user's canonical support thread from the operator perspective. `ticket`
+        is null when the user has no support thread yet.
+      properties:
+        ticket:
+          allOf:
+            - $ref: "#/components/schemas/SupportTicket"
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportTicketMessage"
+      required: [ticket, messages]
+
+    StartSupportThreadBody:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+      required: [message]
 
     OpenSupportTicketRequest:
       type: object

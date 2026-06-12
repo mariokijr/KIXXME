@@ -477,19 +477,6 @@ export async function getTicketGate(ticketId: string): Promise<{
 }
 
 /**
- * Read-only view of the user's official "Soporte KixxMe" thread WITHOUT
- * creating it. Used for lapsed-Gold members: they keep reading their existing
- * history but can no longer trigger creation (that stays Gold-gated). Returns
- * null when no official ticket exists yet.
- */
-export async function getExistingOfficialTicket(
-  userId: string,
-): Promise<TicketView | null> {
-  const row = await loadOfficialRow(userId);
-  return row ? officialTicketView(row) : null;
-}
-
-/**
  * Post a message to an existing ticket. `senderRole` is derived server-side:
  * the owner is always "user" (even if they're an admin), a non-owner admin is
  * "admin", anyone else is unauthorized (null → 404). Status transitions:
@@ -699,4 +686,69 @@ export async function purgeUserTickets(userId: string): Promise<void> {
   await db
     .delete(supportTicketsTable)
     .where(eq(supportTicketsTable.userId, userId));
+}
+
+/** Default subject for an operator-initiated outreach to a non-Gold user. */
+const OUTREACH_TICKET_SUBJECT = "Soporte KixxMe";
+
+/**
+ * Resolve the single canonical support thread for `userId` from the operator's
+ * (support console) perspective: the official "👑 Soporte KixxMe" thread when
+ * one exists, otherwise the user's most-recently-active ticket of any kind.
+ * Returns the full detail (marking the admin side read, like any operator open)
+ * or null when the user has no ticket at all. The viewer is the operator, so it
+ * always reads as `isAdmin=true`.
+ */
+export async function getCanonicalThreadForUser(
+  userId: string,
+  operatorId: string,
+): Promise<TicketDetail | null> {
+  const official = await loadOfficialRow(userId);
+  let ticketId = official?.id ?? null;
+  if (!ticketId) {
+    const [recent] = await db
+      .select({ id: supportTicketsTable.id })
+      .from(supportTicketsTable)
+      .where(eq(supportTicketsTable.userId, userId))
+      .orderBy(desc(supportTicketsTable.lastMessageAt))
+      .limit(1);
+    ticketId = recent?.id ?? null;
+  }
+  if (!ticketId) return null;
+  return getTicketDetail(ticketId, operatorId, true);
+}
+
+/**
+ * Start (or continue) the canonical support thread with `targetUserId` from the
+ * operator side, then post `message`. Gold-aware so the conversation always
+ * lands where the USER will see it:
+ *
+ * - Gold target → ensure the official "👑 Soporte KixxMe" thread (idempotent)
+ *   and post into it, so it appears as the user's pinned chat. This avoids
+ *   stranding the conversation in a separate outreach ticket that the official
+ *   thread would later supersede in canonical resolution.
+ * - Non-Gold target → an admin-initiated outreach ticket (kind='support'),
+ *   which the free user can read and answer (not Gold-gated).
+ *
+ * Returns the resulting thread detail (operator perspective).
+ */
+export async function startThreadForUser(
+  operatorId: string,
+  targetUserId: string,
+  message: string,
+): Promise<TicketDetail> {
+  if (await hasGold(targetUserId)) {
+    const official = await ensureOfficialTicket(targetUserId);
+    const detail = await postMessage(official.id, operatorId, true, {
+      body: message,
+    });
+    if (!detail) throw new Error("official ticket missing after start");
+    return detail;
+  }
+  return adminCreateTicket(
+    operatorId,
+    targetUserId,
+    OUTREACH_TICKET_SUBJECT,
+    message,
+  );
 }

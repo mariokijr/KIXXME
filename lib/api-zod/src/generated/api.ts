@@ -1854,6 +1854,87 @@ export const RestoreUserResponse = zod.object({
 
 
 /**
+ * Operator-only (admin or system support account). Lists every real user for the support console, paid tiers first (Gold, then Plus), then free, with optional search. System accounts are never included.
+ * @summary Support-console directory of all users (Gold → Plus → free)
+ */
+export const ListSupportInboxUsersQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListSupportInboxUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "plan": zod.enum(['free', 'plus', 'gold']),
+  "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
+  "lastActiveAt": zod.string().nullish(),
+  "state": zod.enum(['active', 'suspended', 'banned', 'removed'])
+}).describe('A user row in the support-console directory.')),
+  "total": zod.number()
+})
+
+
+/**
+ * Operator-only. Returns the official "Soporte KixxMe" thread if it exists, otherwise the user's most-recent ticket, or null when none.
+ * @summary Resolve a user's canonical support thread (operator view)
+ */
+export const GetSupportInboxThreadParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const GetSupportInboxThreadResponse = zod.object({
+  "ticket": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'answered', 'closed', 'urgent']),
+  "subject": zod.string(),
+  "openedByRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.string(),
+  "lastSenderRole": zod.enum(['user', 'admin']),
+  "lastMessagePreview": zod.string().nullish(),
+  "unread": zod.boolean().describe('True when the other side has unread messages for the viewer'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "username": zod.string().nullish().describe('Ticket owner\'s username (admin views only)'),
+  "avatarUrl": zod.string().nullish().describe('Ticket owner\'s avatar (admin views only)'),
+  "canReply": zod.boolean().optional().describe('Whether the requesting viewer may post a new message. Premium tickets (official \/ user-opened) require Gold to send into; admins and admin-initiated outreach are always replyable. Only set on the ticket-detail response; absent means allowed.')
+}).nullable(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "ticketId": zod.string(),
+  "senderId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "body": zod.string().nullable(),
+  "imageUrl": zod.string().nullish(),
+  "audioUrl": zod.string().nullish(),
+  "audioDuration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
+  "createdAt": zod.string()
+}))
+}).describe('A user\'s canonical support thread from the operator perspective. `ticket` is null when the user has no support thread yet.')
+
+
+/**
+ * Operator-only. Gold-aware cold start: a Gold target's message lands in the official thread; a non-Gold target gets an admin-initiated outreach ticket they can answer.
+ * @summary Start (or continue) a user's support thread and post a message
+ */
+export const StartSupportInboxThreadParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const startSupportInboxThreadBodyMessageMax = 5000;
+
+
+
+export const StartSupportInboxThreadBody = zod.object({
+  "message": zod.string().min(1).max(startSupportInboxThreadBodyMessageMax)
+})
+
+
+/**
  * @summary List all support tickets with status filter
  */
 export const ListAdminTicketsQueryParams = zod.object({

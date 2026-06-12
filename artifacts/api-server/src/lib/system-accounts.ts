@@ -40,7 +40,7 @@ export function systemAccountEmails(): Set<string> {
   return new Set(emails);
 }
 
-function isSystemEmail(email: string | null | undefined): boolean {
+export function isSystemEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return systemAccountEmails().has(email.toLowerCase());
 }

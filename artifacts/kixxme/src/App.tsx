@@ -27,6 +27,7 @@ import Discover from "@/pages/discover";
 import MapView from "@/pages/map-view";
 import Chats from "@/pages/chats";
 import ChatPage from "@/pages/chat";
+import SupportInboxThread from "@/pages/support-inbox-thread";
 import Premium from "@/pages/premium";
 import Favorites from "@/pages/favorites";
 import Matches from "@/pages/matches";
@@ -181,6 +182,7 @@ function Router() {
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>
       <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
       <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
+      <Route path="/support-inbox/:userId">{() => <ProtectedMain component={SupportInboxThread} />}</Route>
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>

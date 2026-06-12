@@ -8,9 +8,11 @@ import {
   getListConversationsQueryKey,
   useGetOfficialSupportTicket,
   getGetOfficialSupportTicketQueryKey,
+  useGetMyProfile,
   Conversation,
   SupportTicket,
 } from "@workspace/api-client-react";
+import SupportInbox from "@/components/support-inbox";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -25,6 +27,9 @@ function timeAgo(iso: string) {
 export default function Chats() {
   const [, setLocation] = useLocation();
 
+  // The system support account turns "Mensajes" into the support console.
+  const { data: me } = useGetMyProfile({});
+
   const { data: conversations = [], isLoading } = useListConversations({
     query: { queryKey: getListConversationsQueryKey(), refetchInterval: 10000 },
   });
@@ -38,6 +43,9 @@ export default function Chats() {
     },
   });
   const official = officialData?.ticket ?? null;
+
+  // Support console for the system account (all hooks above run unconditionally).
+  if (me?.is_system) return <SupportInbox />;
 
   const hasContent = conversations.length > 0 || !!official;
 

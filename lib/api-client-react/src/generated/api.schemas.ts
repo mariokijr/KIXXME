@@ -162,6 +162,60 @@ export interface SupportTicketList {
   total: number;
 }
 
+export type SupportInboxUserPlan = typeof SupportInboxUserPlan[keyof typeof SupportInboxUserPlan];
+
+
+export const SupportInboxUserPlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export type SupportInboxUserState = typeof SupportInboxUserState[keyof typeof SupportInboxUserState];
+
+
+export const SupportInboxUserState = {
+  active: 'active',
+  suspended: 'suspended',
+  banned: 'banned',
+  removed: 'removed',
+} as const;
+
+/**
+ * A user row in the support-console directory.
+ */
+export interface SupportInboxUser {
+  id: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  plan: SupportInboxUserPlan;
+  isVerified: boolean;
+  isOnline: boolean;
+  lastActiveAt?: string | null;
+  state: SupportInboxUserState;
+}
+
+export interface SupportInboxList {
+  users: SupportInboxUser[];
+  total: number;
+}
+
+/**
+ * A user's canonical support thread from the operator perspective. `ticket` is null when the user has no support thread yet.
+ */
+export interface SupportInboxThread {
+  ticket: SupportTicket | null;
+  messages: SupportTicketMessage[];
+}
+
+export interface StartSupportThreadBody {
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  message: string;
+}
+
 export interface OpenSupportTicketRequest {
   /**
      * @minLength 1
@@ -1502,6 +1556,12 @@ export const ListAdminUsersStatus = {
   banned: 'banned',
   removed: 'removed',
 } as const;
+
+export type ListSupportInboxUsersParams = {
+q?: string;
+limit?: number;
+offset?: number;
+};
 
 export type ListAdminTicketsParams = {
 status?: ListAdminTicketsStatus;

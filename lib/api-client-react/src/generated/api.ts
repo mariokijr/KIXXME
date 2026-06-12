@@ -60,6 +60,7 @@ import type {
   ListAdminUsersParams,
   ListMapUsersParams,
   ListProfilesParams,
+  ListSupportInboxUsersParams,
   LiveCall,
   LiveCallEndRequest,
   LiveCallRequest,
@@ -99,8 +100,11 @@ import type {
   SetPhotoAsAvatar200,
   SetTicketStatusRequest,
   SignUpRequest,
+  StartSupportThreadBody,
   SubscriptionStatus,
   SuccessResponse,
+  SupportInboxList,
+  SupportInboxThread,
   SupportMessageRequest,
   SupportReportRequest,
   SupportReportResponse,
@@ -6535,6 +6539,242 @@ export const useRestoreUser = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRestoreUserMutationOptions(options));
+    }
+
+export const getListSupportInboxUsersUrl = (params?: ListSupportInboxUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/support-users?${stringifiedParams}` : `/api/admin/support-users`
+}
+
+/**
+ * Operator-only (admin or system support account). Lists every real user for the support console, paid tiers first (Gold, then Plus), then free, with optional search. System accounts are never included.
+ * @summary Support-console directory of all users (Gold → Plus → free)
+ */
+export const listSupportInboxUsers = async (params?: ListSupportInboxUsersParams, options?: RequestInit): Promise<SupportInboxList> => {
+
+  return customFetch<SupportInboxList>(getListSupportInboxUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSupportInboxUsersQueryKey = (params?: ListSupportInboxUsersParams,) => {
+    return [
+    `/api/admin/support-users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSupportInboxUsersQueryOptions = <TData = Awaited<ReturnType<typeof listSupportInboxUsers>>, TError = ErrorType<ErrorResponse>>(params?: ListSupportInboxUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportInboxUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSupportInboxUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSupportInboxUsers>>> = ({ signal }) => listSupportInboxUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSupportInboxUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSupportInboxUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listSupportInboxUsers>>>
+export type ListSupportInboxUsersQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Support-console directory of all users (Gold → Plus → free)
+ */
+
+export function useListSupportInboxUsers<TData = Awaited<ReturnType<typeof listSupportInboxUsers>>, TError = ErrorType<ErrorResponse>>(
+ params?: ListSupportInboxUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportInboxUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSupportInboxUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSupportInboxThreadUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/support-users/${userId}/thread`
+}
+
+/**
+ * Operator-only. Returns the official "Soporte KixxMe" thread if it exists, otherwise the user's most-recent ticket, or null when none.
+ * @summary Resolve a user's canonical support thread (operator view)
+ */
+export const getSupportInboxThread = async (userId: string, options?: RequestInit): Promise<SupportInboxThread> => {
+
+  return customFetch<SupportInboxThread>(getGetSupportInboxThreadUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSupportInboxThreadQueryKey = (userId: string,) => {
+    return [
+    `/api/admin/support-users/${userId}/thread`
+    ] as const;
+    }
+
+
+export const getGetSupportInboxThreadQueryOptions = <TData = Awaited<ReturnType<typeof getSupportInboxThread>>, TError = ErrorType<ErrorResponse>>(userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportInboxThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSupportInboxThreadQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSupportInboxThread>>> = ({ signal }) => getSupportInboxThread(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSupportInboxThread>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSupportInboxThreadQueryResult = NonNullable<Awaited<ReturnType<typeof getSupportInboxThread>>>
+export type GetSupportInboxThreadQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Resolve a user's canonical support thread (operator view)
+ */
+
+export function useGetSupportInboxThread<TData = Awaited<ReturnType<typeof getSupportInboxThread>>, TError = ErrorType<ErrorResponse>>(
+ userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportInboxThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSupportInboxThreadQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getStartSupportInboxThreadUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/support-users/${userId}/thread`
+}
+
+/**
+ * Operator-only. Gold-aware cold start: a Gold target's message lands in the official thread; a non-Gold target gets an admin-initiated outreach ticket they can answer.
+ * @summary Start (or continue) a user's support thread and post a message
+ */
+export const startSupportInboxThread = async (userId: string,
+    startSupportThreadBody: StartSupportThreadBody, options?: RequestInit): Promise<SupportTicketDetail> => {
+
+  return customFetch<SupportTicketDetail>(getStartSupportInboxThreadUrl(userId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startSupportThreadBody,)
+  }
+);}
+
+
+
+
+export const getStartSupportInboxThreadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSupportInboxThread>>, TError,{userId: string;data: BodyType<StartSupportThreadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startSupportInboxThread>>, TError,{userId: string;data: BodyType<StartSupportThreadBody>}, TContext> => {
+
+const mutationKey = ['startSupportInboxThread'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startSupportInboxThread>>, {userId: string;data: BodyType<StartSupportThreadBody>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  startSupportInboxThread(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartSupportInboxThreadMutationResult = NonNullable<Awaited<ReturnType<typeof startSupportInboxThread>>>
+    export type StartSupportInboxThreadMutationBody = BodyType<StartSupportThreadBody>
+    export type StartSupportInboxThreadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start (or continue) a user's support thread and post a message
+ */
+export const useStartSupportInboxThread = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSupportInboxThread>>, TError,{userId: string;data: BodyType<StartSupportThreadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startSupportInboxThread>>,
+        TError,
+        {userId: string;data: BodyType<StartSupportThreadBody>},
+        TContext
+      > => {
+      return useMutation(getStartSupportInboxThreadMutationOptions(options));
     }
 
 export const getListAdminTicketsUrl = (params?: ListAdminTicketsParams,) => {

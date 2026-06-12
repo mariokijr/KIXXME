@@ -8,8 +8,9 @@ import {
   videoCallsTable,
   type SupportReport,
 } from "@workspace/db";
-import { requireAdmin } from "../lib/auth.js";
+import { requireAdmin, requireOperator } from "../lib/auth.js";
 import { supabase } from "../lib/supabase.js";
+import { getSystemAccountIds } from "../lib/system-accounts.js";
 import { isOnline } from "../lib/geo.js";
 import { removePhotoRow } from "../lib/photos.js";
 import {
@@ -57,6 +58,8 @@ import {
   setTicketStatus,
   adminTicketStats,
   profileExists,
+  getCanonicalThreadForUser,
+  startThreadForUser,
 } from "../lib/support-tickets.js";
 import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
 import type { SupportTicketStatus } from "@workspace/db";
@@ -953,7 +956,7 @@ const TICKET_STATUSES: SupportTicketStatus[] = [
 ];
 
 router.get("/admin/tickets", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireOperator(req, res);
   if (!auth) return;
 
   const statusParam =
@@ -969,7 +972,7 @@ router.get("/admin/tickets", async (req, res) => {
 });
 
 router.post("/admin/tickets", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireOperator(req, res);
   if (!auth) return;
 
   const parsed = AdminCreateTicketBody.safeParse(req.body);
@@ -1029,6 +1032,201 @@ router.post("/admin/tickets/:id/status", async (req, res) => {
     return;
   }
   res.json(detail);
+});
+
+// ---------------------------------------------------------------------------
+// Support inbox (operator console). Gated by `requireOperator` (admin OR the
+// system support account) — deliberately NARROWER than requireAdmin, so the
+// default-on support account never inherits moderation/verification powers.
+// Backs the Mensajes tab of the support account: a directory of ALL users
+// (Gold → Plus → free) plus resolve/start of the canonical support thread.
+// ---------------------------------------------------------------------------
+
+const SUPPORT_INBOX_COLS =
+  "id, username, avatar_url, is_verified, plan, last_active_at";
+// Paid tiers are a small minority; bound the priority prefetch (PostgREST caps
+// rows anyway). The free bucket is paged normally underneath the paid prefix.
+const PAID_PREFETCH_CAP = 1000;
+
+interface SupportInboxRow {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  is_verified: boolean | null;
+  plan: string | null;
+  last_active_at: string | null;
+}
+
+router.get("/admin/support-users", async (req, res) => {
+  const auth = await requireOperator(req, res);
+  if (!auth) return;
+
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  // PostgREST .or() uses ',' '(' ')' as grammar — strip them so the search term
+  // can never break out of or inject into the filter expression.
+  const safeQ = q.replace(/[,()]/g, " ").trim();
+  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  // System accounts (incl. the calling support account) must never surface in
+  // the directory or the totals.
+  const systemIds = [...new Set([...getSystemAccountIds(), auth.userId])];
+
+  const fetchPaid = async (
+    plan: "gold" | "plus",
+  ): Promise<SupportInboxRow[]> => {
+    let query = supabase
+      .from("profiles")
+      .select(SUPPORT_INBOX_COLS)
+      .eq("plan", plan);
+    if (safeQ) {
+      query = query.or(`username.ilike.%${safeQ}%,city.ilike.%${safeQ}%`);
+    }
+    if (systemIds.length > 0) {
+      query = query.not("id", "in", `(${systemIds.join(",")})`);
+    }
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .limit(PAID_PREFETCH_CAP);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as SupportInboxRow[];
+  };
+
+  try {
+    // Paid users come first (Gold, then Plus), fully prefetched so the priority
+    // prefix is stable across pages; free users page underneath.
+    const [goldRows, plusRows] = await Promise.all([
+      fetchPaid("gold"),
+      fetchPaid("plus"),
+    ]);
+    const priorityRows = [...goldRows, ...plusRows];
+    const paidIds = priorityRows.map((r) => r.id);
+
+    const prioritySlice = priorityRows.slice(offset, offset + limit);
+    let pageRows: SupportInboxRow[] = prioritySlice;
+    const remaining = limit - prioritySlice.length;
+    if (remaining > 0) {
+      // The free window starts where the priority list ran out.
+      const freeOffset = Math.max(0, offset - priorityRows.length);
+      const notIn = [...new Set([...paidIds, ...systemIds])];
+      let freeQuery = supabase.from("profiles").select(SUPPORT_INBOX_COLS);
+      if (safeQ) {
+        freeQuery = freeQuery.or(
+          `username.ilike.%${safeQ}%,city.ilike.%${safeQ}%`,
+        );
+      }
+      if (notIn.length > 0) {
+        freeQuery = freeQuery.not("id", "in", `(${notIn.join(",")})`);
+      }
+      const { data: freeData, error: freeErr } = await freeQuery
+        .order("created_at", { ascending: false })
+        .range(freeOffset, freeOffset + remaining - 1);
+      if (freeErr) throw new Error(freeErr.message);
+      pageRows = [
+        ...prioritySlice,
+        ...((freeData ?? []) as SupportInboxRow[]),
+      ];
+    }
+
+    // total = every non-system profile matching the search (one count query),
+    // which equals |gold| + |plus| + |free| under the same filter.
+    let countQuery = supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+    if (safeQ) {
+      countQuery = countQuery.or(
+        `username.ilike.%${safeQ}%,city.ilike.%${safeQ}%`,
+      );
+    }
+    if (systemIds.length > 0) {
+      countQuery = countQuery.not("id", "in", `(${systemIds.join(",")})`);
+    }
+    const { count } = await countQuery;
+
+    const states = await getModerationStatesForUsers(pageRows.map((r) => r.id));
+    const users = pageRows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      avatarUrl: r.avatar_url,
+      plan: normalizePlan(r.plan),
+      isVerified: Boolean(r.is_verified),
+      isOnline: isOnline(r.last_active_at),
+      lastActiveAt: r.last_active_at,
+      state: states.get(r.id)?.state ?? "active",
+    }));
+    res.json({ users, total: count ?? users.length });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support inbox: user directory failed",
+    );
+    res.status(500).json({ error: "No se pudieron cargar los usuarios" });
+  }
+});
+
+router.get("/admin/support-users/:userId/thread", async (req, res) => {
+  const auth = await requireOperator(req, res);
+  if (!auth) return;
+  if (!UUID_RE.test(req.params.userId)) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+  try {
+    const detail = await getCanonicalThreadForUser(
+      req.params.userId,
+      auth.userId,
+    );
+    res.json({
+      ticket: detail?.ticket ?? null,
+      messages: detail?.messages ?? [],
+    });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support inbox: thread load failed",
+    );
+    res.status(500).json({ error: "No se pudo cargar la conversación" });
+  }
+});
+
+router.post("/admin/support-users/:userId/thread", async (req, res) => {
+  const auth = await requireOperator(req, res);
+  if (!auth) return;
+  if (!UUID_RE.test(req.params.userId)) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+  const message =
+    typeof req.body?.message === "string" ? req.body.message.trim() : "";
+  if (!message) {
+    res.status(400).json({ error: "El mensaje es obligatorio" });
+    return;
+  }
+  if (message.length > 5000) {
+    res.status(400).json({ error: "El mensaje es demasiado largo" });
+    return;
+  }
+  // The target must be a real account (cross-DB: Supabase profile).
+  if (!(await profileExists(req.params.userId))) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+  try {
+    const detail = await startThreadForUser(
+      auth.userId,
+      req.params.userId,
+      message,
+    );
+    // Nudge the user by email (fire-and-forget).
+    void notifySupportReplyByEmail(req.params.userId);
+    res.status(201).json({ ticket: detail.ticket, messages: detail.messages });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "support inbox: thread start failed",
+    );
+    res.status(500).json({ error: "No se pudo iniciar la conversación" });
+  }
 });
 
 export default router;

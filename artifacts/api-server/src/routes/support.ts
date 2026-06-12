@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, isAdminEmail } from "../lib/auth.js";
+import { requireAuth, isOperatorEmail } from "../lib/auth.js";
 import { db, supportReportsTable } from "@workspace/db";
 import {
   sendEmail,
@@ -13,7 +13,6 @@ import {
   getTicketDetail,
   postMessage,
   ensureOfficialTicket,
-  getExistingOfficialTicket,
   getTicketGate,
 } from "../lib/support-tickets.js";
 import {
@@ -181,26 +180,20 @@ router.get("/support/tickets", async (req, res) => {
 // server-side entitlement (hasGold also covers GOLD_TEST_EMAILS, whose
 // profiles.plan stays 'free'), so we never trust the client's plan. Lazily
 // ensures the thread exists, then returns it WITHOUT marking it read (the chats
-// list polls this). Lapsed-Gold users keep reading any existing thread (sending
-// is gated separately); users who were never Gold get { ticket: null }.
+// list polls this). The pinned card is tied to ACTIVE Gold: when Gold lapses
+// (or was never held) we return { ticket: null } so the card disappears from
+// Mensajes. Re-granting Gold re-shows the SAME thread (ensureOfficialTicket is
+// idempotent, so the history is intact). Any existing official thread also
+// stays readable (read-only) from the Soporte page via GET /support/tickets.
 router.get("/support/official", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
-  // Gold members get the thread ensured (created on first read if needed).
-  // Lapsed-Gold members no longer trigger creation but keep READING any thread
-  // they already have (sending is gated separately, server-side). Users who
-  // were never Gold simply have no official ticket → { ticket: null }.
+  // Only ACTIVE Gold sees the pinned official chat. Lapsed/never-Gold users get
+  // { ticket: null } → the Mensajes card is hidden (history is preserved and
+  // reappears on re-grant; it also remains visible read-only on the Soporte
+  // page's ticket list, which is intentional).
   if (!(await hasGold(auth.userId))) {
-    try {
-      const ticket = await getExistingOfficialTicket(auth.userId);
-      res.json({ ticket });
-    } catch (error) {
-      req.log.error(
-        { error: error instanceof Error ? error.message : String(error) },
-        "support official: failed to load existing ticket",
-      );
-      res.json({ ticket: null });
-    }
+    res.json({ ticket: null });
     return;
   }
   try {
@@ -280,7 +273,7 @@ router.get("/support/tickets/:id", async (req, res) => {
   const detail = await getTicketDetail(
     id,
     auth.userId,
-    isAdminEmail(auth.email),
+    isOperatorEmail(auth.email),
   );
   if (!detail) {
     res.status(404).json({ error: "Ticket no encontrado" });
@@ -320,7 +313,7 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
     return;
   }
 
-  const isAdmin = isAdminEmail(auth.email);
+  const isAdmin = isOperatorEmail(auth.email);
 
   // Gold gate on SENDING into a premium ticket. The owner of an "official" or
   // self-opened ticket must be Gold to post a new message (lapsed-Gold keeps
@@ -396,7 +389,7 @@ router.post("/support/tickets/:id/attachments", async (req, res) => {
     return;
   }
 
-  const isAdmin = isAdminEmail(auth.email);
+  const isAdmin = isOperatorEmail(auth.email);
   const gate = await getTicketGate(id);
   if (!gate) {
     res.status(404).json({ error: "Ticket no encontrado" });
