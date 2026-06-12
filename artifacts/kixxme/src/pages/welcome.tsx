@@ -257,6 +257,16 @@ export default function Welcome() {
             >
               <TikTokIcon />
             </a>
+            <a
+              href="https://x.com/kixxmeapp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Síguenos en X"
+              data-testid="link-x"
+              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+            >
+              <XIcon />
+            </a>
           </div>
 
           <p className="text-[12px] font-medium text-white/40">
@@ -303,6 +313,14 @@ function TikTokIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M16.6 5.82a4.28 4.28 0 0 1-2.6-3.82h-3.2v12.86a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V8.98a5.86 5.86 0 0 0-.78-.05A5.74 5.74 0 1 0 14.4 14.6V8.6a7.45 7.45 0 0 0 4.36 1.4V6.8a4.28 4.28 0 0 1-2.16-.98z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817-5.967 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
