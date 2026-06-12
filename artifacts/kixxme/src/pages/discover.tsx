@@ -1,18 +1,29 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Loader2, Share2, Users, Heart, Star, BadgeCheck, Flag } from "lucide-react";
 import {
-  useListProfiles,
-  getListProfilesQueryKey,
-  useCreateOrGetConversation,
+  MapPin,
+  Loader2,
+  Share2,
+  Users,
+  Heart,
+  Star,
+  BadgeCheck,
+  Flag,
+  Sparkles,
+} from "lucide-react";
+import {
+  useListMyLikes,
+  getListMyLikesQueryKey,
+  useListOnlineProfiles,
+  getListOnlineProfilesQueryKey,
   useUnlikeProfile,
   PublicProfile,
-  type ListProfilesSort,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
+import { useStartConversation } from "@/lib/use-start-conversation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
@@ -21,31 +32,16 @@ import { ReportDialog } from "@/components/report-dialog";
 
 export { gradFor, formatDistance } from "@/lib/profile-format";
 
-type ViewType = "todos" | "cerca" | "online" | "con-foto";
-
-const VIEW_LABEL: Record<ViewType, string> = {
-  todos: "Todos",
-  cerca: "Cerca",
-  online: "Online",
-  "con-foto": "Con foto",
-};
-
-const VIEW_SORT: Record<ViewType, ListProfilesSort> = {
-  todos: "recent",
-  cerca: "distance",
-  online: "online",
-  "con-foto": "recent",
-};
-
 const DISCOVER_MODE_KEY = "kixxme:discover-mode";
 
+function readMode(): DiscoverMode {
+  if (typeof window === "undefined") return "tarjetas";
+  const v = window.localStorage.getItem(DISCOVER_MODE_KEY);
+  return v === "cuadricula" || v === "enlinea" ? v : "tarjetas";
+}
+
 export default function Discover() {
-  const [mode, setMode] = useState<DiscoverMode>(() => {
-    if (typeof window === "undefined") return "tarjetas";
-    return window.localStorage.getItem(DISCOVER_MODE_KEY) === "cuadricula"
-      ? "cuadricula"
-      : "tarjetas";
-  });
+  const [mode, setMode] = useState<DiscoverMode>(readMode);
 
   const changeMode = (m: DiscoverMode) => {
     setMode(m);
@@ -56,65 +52,70 @@ export default function Discover() {
     }
   };
 
-  return mode === "tarjetas" ? (
-    <SwipeView mode={mode} setMode={changeMode} />
-  ) : (
-    <GridDiscover mode={mode} setMode={changeMode} />
+  if (mode === "tarjetas") {
+    return <SwipeView mode={mode} setMode={changeMode} />;
+  }
+  return (
+    <GridDiscover
+      mode={mode}
+      setMode={changeMode}
+      source={mode === "cuadricula" ? "likes" : "online"}
+    />
   );
 }
 
 function GridDiscover({
   mode,
   setMode,
+  source,
 }: {
   mode: DiscoverMode;
   setMode: (m: DiscoverMode) => void;
+  source: "likes" | "online";
 }) {
-  const [view, setView] = useState<ViewType>("todos");
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
   const { newLikes, newMatches } = useNotifications();
   const likesBadge = newLikes + newMatches;
 
+  // Only the active source actually fetches; the other stays disabled.
+  const likesQuery = useListMyLikes({
+    query: { queryKey: getListMyLikesQueryKey(), enabled: source === "likes" },
+  });
+  const onlineQuery = useListOnlineProfiles({
+    query: {
+      queryKey: getListOnlineProfilesQueryKey(),
+      enabled: source === "online",
+    },
+  });
   const {
     data: profiles = [],
     isLoading,
     isError,
-  } = useListProfiles({ sort: VIEW_SORT[view] });
+  } = source === "likes" ? likesQuery : onlineQuery;
 
-  const createConv = useCreateOrGetConversation();
+  const { start } = useStartConversation();
   const likeActions = useLikeActions();
   const unlikeMut = useUnlikeProfile();
 
-  const filtered = profiles.filter((u) => {
-    if (view === "con-foto") return !!u.avatar_url;
-    if (view === "online") return !!u.is_online;
-    return true;
-  });
-
-  const isEmpty = !isLoading && (isError || filtered.length === 0);
-
-  const handleMessage = (userId: string) => {
-    createConv.mutate(
-      { data: { other_user_id: userId } },
-      { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
-    );
-  };
-
-  const invalidateProfiles = () =>
-    qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+  const invalidate = () =>
+    qc.invalidateQueries({
+      queryKey:
+        source === "likes"
+          ? getListMyLikesQueryKey()
+          : getListOnlineProfilesQueryKey(),
+    });
 
   const handleToggleLike = (user: PublicProfile) => {
     if (user.liked_by_me) {
-      unlikeMut.mutate({ id: user.id }, { onSettled: invalidateProfiles });
+      unlikeMut.mutate({ id: user.id }, { onSettled: invalidate });
     } else {
-      likeActions.like(user, { onSettled: invalidateProfiles });
+      likeActions.like(user, { onSettled: invalidate });
     }
   };
 
   const handleSuperLike = (user: PublicProfile) => {
-    likeActions.superLike(user, { onSettled: invalidateProfiles });
+    likeActions.superLike(user, { onSettled: invalidate });
   };
 
   const handleShare = async () => {
@@ -136,6 +137,9 @@ function GridDiscover({
   };
 
   const onlineCount = profiles.filter((u) => u.is_online).length;
+  const isEmpty = !isLoading && (isError || profiles.length === 0);
+
+  const heading = source === "likes" ? "Tus Me gusta" : "En línea ahora";
 
   return (
     <div className="min-h-full">
@@ -155,12 +159,12 @@ function GridDiscover({
             </span>
           )}
         </div>
-        <Link href="/favorites">
+        <Link href="/matches">
           <button
             className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
             style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="Favoritos"
-            data-testid="link-favorites"
+            aria-label="Emparejamientos"
+            data-testid="link-matches"
           >
             <Heart className="w-4 h-4 text-primary" />
             {likesBadge > 0 && (
@@ -185,57 +189,36 @@ function GridDiscover({
 
       <div className="px-4 pt-4 pb-2">
         <h2 className="font-display text-3xl tracking-wide leading-tight">
-          Conecta con chicos cerca de ti
+          {heading}
         </h2>
-        {!isLoading && !isError && filtered.length > 0 && (
+        {!isLoading && !isError && profiles.length > 0 && (
           <p className="text-muted-foreground font-sans text-sm mt-1">
-            {filtered.length} perfil{filtered.length !== 1 ? "es" : ""} disponible
-            {filtered.length !== 1 ? "s" : ""}
+            {profiles.length} perfil{profiles.length !== 1 ? "es" : ""}
           </p>
         )}
-      </div>
-
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
-        {(["todos", "cerca", "online", "con-foto"] as ViewType[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setView(f)}
-            className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-sans font-medium border transition-all duration-200"
-            style={
-              view === f
-                ? {
-                    background:
-                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                    borderColor: "transparent",
-                    color: "white",
-                  }
-                : {
-                    background: "rgba(255,255,255,0.04)",
-                    borderColor: "rgba(255,255,255,0.1)",
-                    color: "hsl(240,10%,55%)",
-                  }
-            }
-          >
-            {VIEW_LABEL[f]}
-          </button>
-        ))}
       </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
+          <p className="font-sans text-sm text-muted-foreground">
+            Cargando perfiles...
+          </p>
         </div>
       ) : isEmpty ? (
-        <EmptyState view={view} onShare={handleShare} />
+        <EmptyState
+          source={source}
+          onShare={handleShare}
+          onExplore={() => setMode("tarjetas")}
+        />
       ) : (
         <div className="px-4 pb-6 grid grid-cols-2 gap-3">
-          {filtered.map((user) => (
+          {profiles.map((user) => (
             <UserCard
               key={user.id}
               user={user}
               grad={gradFor(user.id)}
-              onMessage={() => handleMessage(user.id)}
+              onMessage={() => start(user.id)}
               onToggleLike={() => handleToggleLike(user)}
               onSuperLike={() => handleSuperLike(user)}
               superLikePending={likeActions.isPending}
@@ -247,13 +230,22 @@ function GridDiscover({
   );
 }
 
-function EmptyState({ view, onShare }: { view: ViewType; onShare: () => void }) {
-  const title =
-    view === "online"
-      ? "Nadie en línea ahora mismo."
-      : view === "con-foto"
-        ? "Nadie con foto por aquí todavía."
-        : "Todavía no hay usuarios cerca.";
+function EmptyState({
+  source,
+  onShare,
+  onExplore,
+}: {
+  source: "likes" | "online";
+  onShare: () => void;
+  onExplore: () => void;
+}) {
+  const isLikes = source === "likes";
+  const title = isLikes
+    ? "Aún no has dado Me gusta."
+    : "Nadie en línea ahora mismo.";
+  const subtitle = isLikes
+    ? "Explora los perfiles y toca el corazón para guardarlos aquí."
+    : "Vuelve más tarde o invita a tus amigos para llenar la app.";
 
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-8">
@@ -261,27 +253,46 @@ function EmptyState({ view, onShare }: { view: ViewType; onShare: () => void }) 
         className="w-24 h-24 rounded-2xl flex items-center justify-center border border-primary/20"
         style={{ background: "rgba(168,85,247,0.08)" }}
       >
-        <Users
-          className="w-12 h-12 text-primary"
-          style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.5))" }}
-        />
+        {isLikes ? (
+          <Heart
+            className="w-12 h-12 text-primary"
+            style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.5))" }}
+          />
+        ) : (
+          <Users
+            className="w-12 h-12 text-primary"
+            style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.5))" }}
+          />
+        )}
       </div>
 
       <div className="space-y-2">
         <h3 className="font-display text-2xl tracking-wide text-foreground">{title}</h3>
         <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-          Invita a tus amigos para empezar.
+          {subtitle}
         </p>
       </div>
 
-      <button
-        onClick={onShare}
-        className="flex items-center gap-2 h-12 px-8 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
-        style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-      >
-        <Share2 className="w-4 h-4" />
-        Compartir KixxMe
-      </button>
+      {isLikes ? (
+        <button
+          onClick={onExplore}
+          className="flex items-center gap-2 h-12 px-8 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+          data-testid="button-explore-cards"
+        >
+          <Sparkles className="w-4 h-4" />
+          Explorar perfiles
+        </button>
+      ) : (
+        <button
+          onClick={onShare}
+          className="flex items-center gap-2 h-12 px-8 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0"
+          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+        >
+          <Share2 className="w-4 h-4" />
+          Compartir KixxMe
+        </button>
+      )}
     </div>
   );
 }
@@ -334,6 +345,19 @@ export function UserCard({
           >
             <span className="w-1.5 h-1.5 rounded-full bg-white" />
             En línea
+          </span>
+        )}
+        {user.matched && (
+          <span
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-sans font-medium text-white"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+            }}
+            data-testid="badge-match"
+          >
+            <Heart className="w-2.5 h-2.5" fill="white" />
+            Match
           </span>
         )}
       </div>

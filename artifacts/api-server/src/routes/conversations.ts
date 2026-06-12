@@ -14,6 +14,8 @@ import {
   chatMediaPath,
   clampAudioDuration,
 } from "../lib/chat-media.js";
+import { areMatched } from "../lib/likes.js";
+import { hasGold } from "../lib/entitlement.js";
 
 const router = Router();
 
@@ -156,8 +158,27 @@ router.post("/conversations", async (req, res) => {
 
   const otherUser = await getOtherProfile(other_user_id);
 
+  // An already-existing thread is always returned ungated: the gate is only on
+  // CREATING a brand-new conversation. Once a thread exists (via a match or a
+  // Gold-initiated chat), both participants may keep messaging for free.
   if (existing) {
     res.json({ ...existing, other_user: otherUser, unread_count: 0, last_message: null });
+    return;
+  }
+
+  // Gate on creation: a free/Plus user can only start a NEW conversation with
+  // someone they've matched with (mutual like). Gold users may message anyone.
+  // hasGold honors the GOLD_TEST_EMAILS override (never reads raw plan).
+  const [matched, gold] = await Promise.all([
+    areMatched(auth.userId, other_user_id),
+    hasGold(auth.userId),
+  ]);
+  if (!matched && !gold) {
+    res.status(403).json({
+      error:
+        "Para iniciar una conversación sin match necesitas KixxMe Gold.",
+      code: "gold_required_no_match",
+    });
     return;
   }
 

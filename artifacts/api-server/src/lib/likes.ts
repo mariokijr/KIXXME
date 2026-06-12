@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import {
   db,
   likeActionsTable,
@@ -82,6 +82,13 @@ export type RecordLikeResult =
        * edge so repeat/duplicate likes can't re-spam the recipient.
        */
       firstEdge: boolean;
+      /**
+       * True when this call was a no-op repeat of an existing like edge (the
+       * charge was refunded). A like→SuperLike UPGRADE is NOT alreadyProcessed
+       * (it keeps a one-SuperLike charge). The route surfaces this so the
+       * client can skip re-celebrating / re-charging.
+       */
+      alreadyProcessed: boolean;
       quota: LikeQuota;
     }
   | { ok: false; reason: "limit"; kind: LikeKind; quota: LikeQuota }
@@ -265,25 +272,29 @@ export async function recordLike(
   if (error) {
     // Dual compensating refund: undo BOTH the action log row and any credit
     // spend row, so a downstream Supabase failure never costs the user a base
-    // unit OR a bonus credit. Both deletes run in one transaction so a partial
-    // failure can't leave the credit spent but the like un-recorded.
-    try {
-      await db.transaction(async (tx) => {
-        if (gate.id) {
-          await tx
-            .delete(likeActionsTable)
-            .where(eq(likeActionsTable.id, gate.id));
-        }
-        if (gate.spendId) {
-          await tx
-            .delete(rewardCreditsTable)
-            .where(eq(rewardCreditsTable.id, gate.spendId));
-        }
-      });
-    } catch {
-      /* best-effort refund */
-    }
+    // unit OR a bonus credit.
+    await refundAction(gate.id, gate.spendId);
     return { ok: false, reason: "error", message: error.message };
+  }
+
+  // Idempotency. `firstEdge === false` means the Supabase like edge already
+  // existed, so this is a REPEAT. Distinguish two cases:
+  //   - like → SuperLike UPGRADE: keep the charge and the freshly-inserted
+  //     superlike row (it becomes the latest action and promotes the pair to
+  //     SuperLike status).
+  //   - any other repeat (repeat like, repeat superlike, or a plain like after
+  //     a prior superlike): refund the just-made charge (base unit + any credit)
+  //     and report alreadyProcessed. Deleting the duplicate row also prevents a
+  //     stale 'like' from overwriting an earlier SuperLike as the latest action.
+  let alreadyProcessed = false;
+  if (!firstEdge) {
+    const isUpgrade =
+      kind === "superlike" &&
+      !(await hasExistingSuperLike(likerId, likedId, gate.id));
+    if (!isUpgrade) {
+      await refundAction(gate.id, gate.spendId);
+      alreadyProcessed = true;
+    }
   }
 
   const { data: reciprocal } = await supabase
@@ -298,8 +309,79 @@ export async function recordLike(
     isSuper: kind === "superlike",
     matched: !!reciprocal,
     firstEdge,
+    alreadyProcessed,
     quota: await getLikeQuota(likerId),
   };
+}
+
+/**
+ * Whether a SuperLike action already exists for this (liker, liked) pair,
+ * ignoring `excludeId` (the row we just inserted). Used to tell a genuine
+ * like→SuperLike upgrade from a repeat SuperLike.
+ */
+async function hasExistingSuperLike(
+  likerId: string,
+  likedId: string,
+  excludeId: string | null,
+): Promise<boolean> {
+  const conds = [
+    eq(likeActionsTable.likerId, likerId),
+    eq(likeActionsTable.likedId, likedId),
+    eq(likeActionsTable.kind, "superlike"),
+  ];
+  if (excludeId) conds.push(ne(likeActionsTable.id, excludeId));
+  const rows = await db
+    .select({ id: likeActionsTable.id })
+    .from(likeActionsTable)
+    .where(and(...conds))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/**
+ * Compensating refund: delete the just-inserted action log row and any credit
+ * spend row in one transaction, so a downstream failure (or an idempotent
+ * repeat) never costs the user a base unit OR a bonus credit. Best-effort.
+ */
+async function refundAction(
+  actionId: string | null,
+  spendId: string | null,
+): Promise<void> {
+  if (!actionId && !spendId) return;
+  try {
+    await db.transaction(async (tx) => {
+      if (actionId) {
+        await tx
+          .delete(likeActionsTable)
+          .where(eq(likeActionsTable.id, actionId));
+      }
+      if (spendId) {
+        await tx
+          .delete(rewardCreditsTable)
+          .where(eq(rewardCreditsTable.id, spendId));
+      }
+    });
+  } catch {
+    /* best-effort refund */
+  }
+}
+
+/**
+ * True when `a` and `b` have a MUTUAL like (both directions). Used to gate
+ * conversation creation (matched users may always chat, even on the free tier).
+ * Reads the Supabase `likes` edges directly (no grammar-injection risk: ids are
+ * passed as a parameterized `.in` list, not interpolated into an `.or` filter).
+ */
+export async function areMatched(a: string, b: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("likes")
+    .select("liker_id, liked_id")
+    .in("liker_id", [a, b])
+    .in("liked_id", [a, b]);
+  const edges = new Set(
+    (data ?? []).map((r) => `${r.liker_id}>${r.liked_id}`),
+  );
+  return edges.has(`${a}>${b}`) && edges.has(`${b}>${a}`);
 }
 
 // --- SuperLike status (for received-like notifications) ---------------------

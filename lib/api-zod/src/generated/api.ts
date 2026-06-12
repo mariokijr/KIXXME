@@ -231,6 +231,7 @@ export const GetProfileResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
 
@@ -274,6 +275,7 @@ export const ListProfilesResponseItem = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
@@ -323,6 +325,7 @@ export const ListMapUsersResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })).describe('Other Gold users on the map (empty when can_access is false).')
 })
@@ -424,6 +427,7 @@ export const ListConversationsResponseItem = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -460,6 +464,7 @@ export const CreateOrGetConversationResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }),
   "last_message_at": zod.string().nullish(),
@@ -600,9 +605,66 @@ export const ListMyLikesResponseItem = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
 export const ListMyLikesResponse = zod.array(ListMyLikesResponseItem)
+
+
+/**
+ * Profiles active within the online window, viewable by all users. Applies the same calidad mínima and visibility (block/deactivation/moderation) filters as discovery, but does NOT exclude users the viewer has already liked/passed (this is a directory of who is online, not a swipe deck).
+
+ * @summary List currently-online users ("En línea")
+ */
+export const ListOnlineProfilesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
+  "created_at": zod.string().optional()
+})
+export const ListOnlineProfilesResponse = zod.array(ListOnlineProfilesResponseItem)
+
+
+/**
+ * Profiles with which the viewer has a mutual like (both directions), excluding blocked/deactivated/moderated users. Each item has matched=true.
+
+ * @summary List the current user's mutual matches ("Empareja")
+ */
+export const ListMyMatchesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
+  "created_at": zod.string().optional()
+})
+export const ListMyMatchesResponse = zod.array(ListMyMatchesResponseItem)
 
 
 /**
@@ -663,6 +725,20 @@ export const UnlikeProfileParams = zod.object({
 })
 
 export const UnlikeProfileResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Records a free, unlimited, idempotent dismissal. Creates no Supabase like edge and never charges quota/credits. Repeat passes are no-ops.
+
+ * @summary Pass on ("no me interesa") a profile so it stops appearing in Descubrir
+ */
+export const PassProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PassProfileResponse = zod.object({
   "success": zod.boolean()
 })
 
@@ -746,6 +822,7 @@ export const ListBlockedProfilesResponseItem = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
 export const ListBlockedProfilesResponse = zod.array(ListBlockedProfilesResponseItem)
@@ -1426,6 +1503,7 @@ export const GetAdminReportResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }).nullish(),
   "target": zod.object({
@@ -1445,6 +1523,7 @@ export const GetAdminReportResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }).nullish(),
   "targetState": zod.enum(['active', 'suspended', 'banned', 'removed']),

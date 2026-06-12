@@ -16,7 +16,9 @@ import {
 } from "../lib/blocks.js";
 import { isUnavailable } from "../lib/moderation.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
-import { recordLike } from "../lib/likes.js";
+import { recordLike, areMatched } from "../lib/likes.js";
+import { recordPass, getPassedIds } from "../lib/passes.js";
+import { ensureConversation } from "../lib/conversations.js";
 import {
   notifyMatchByEmail,
   notifySuperLikeByEmail,
@@ -167,7 +169,17 @@ router.get("/profiles", async (req, res) => {
   }
 
   const likedSet = await getLikedSet(auth.userId);
+  const passedSet = await getPassedIds(auth.userId);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+
+  // Descubrir never re-shows a profile the viewer already acted on. "Acted on"
+  // = liked/superliked (Supabase like edge) ∪ passed/disliked (Replit Postgres
+  // profile_passes). The JS filter below is the correctness backstop; this
+  // DB-side exclusion (capped, since PostgREST IN lists can't be unbounded)
+  // keeps those already-handled profiles from eating the 200-row candidate
+  // budget. The cap means a heavily-active user may still get a few interacted
+  // rows in the sample — the JS filter drops them — but never sees them surface.
+  const interacted = new Set([...likedSet, ...passedSet]);
 
   // Push the bounding box into the query BEFORE limiting, so we don't merely
   // sample the most-recent 200 rows and then drop everything out of scope.
@@ -175,9 +187,11 @@ router.get("/profiles", async (req, res) => {
   // columns (main photo, age, city, bio) are filtered DB-side BEFORE the limit
   // so we don't waste the 200-row budget on incomplete profiles; role/looking_for
   // (repo-owned Postgres) are refined in JS below.
-  let query = supabase
-    .from("profiles")
-    .select(PUBLIC_COLUMNS)
+  // `base` is annotated so the conditional reassignments below don't accumulate
+  // an excessively-deep inferred type (TS2589). All filter methods return the
+  // same builder type, so `typeof base` is a stable, type-safe cap.
+  const base = supabase.from("profiles").select(PUBLIC_COLUMNS);
+  let query: typeof base = base
     .neq("id", auth.userId)
     .not("username", "is", null)
     .not("avatar_url", "is", null)
@@ -192,6 +206,13 @@ router.get("/profiles", async (req, res) => {
       .gte("longitude", box.lngMin)
       .lte("longitude", box.lngMax);
   }
+  if (interacted.size > 0) {
+    query = query.not(
+      "id",
+      "in",
+      `(${Array.from(interacted).slice(0, 250).join(",")})`,
+    );
+  }
 
   const { data, error } = await query
     .order("last_active_at", { ascending: false, nullsFirst: false })
@@ -203,7 +224,9 @@ router.get("/profiles", async (req, res) => {
     return;
   }
 
-  let rows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
+  let rows = (data as ProfileRow[]).filter(
+    (row) => !hidden.has(row.id) && !interacted.has(row.id),
+  );
 
   // Precise refinement for radius scopes (the box is an over-approximation).
   if (scope) {
@@ -690,12 +713,25 @@ router.get("/profiles/me/likes", async (req, res) => {
     return;
   }
 
+  // Which of my likes are mutual (the other user liked me back) → matched=true,
+  // so the Cuadrícula can badge matches. One batched query over the people who
+  // liked me, intersected with my outgoing likes.
+  const { data: incoming } = await supabase
+    .from("likes")
+    .select("liker_id")
+    .eq("liked_id", auth.userId)
+    .in("liker_id", ids);
+  const matchedSet = new Set((incoming ?? []).map((r) => r.liker_id as string));
+
   const likedSet = new Set(ids);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
   res.json(
     (data as ProfileRow[])
       .filter((row) => !hidden.has(row.id))
-      .map((row) => toPublic(row, me ?? null, likedSet, iBlocked)),
+      .map((row) => ({
+        ...toPublic(row, me ?? null, likedSet, iBlocked),
+        matched: matchedSet.has(row.id),
+      })),
   );
 });
 
@@ -779,9 +815,25 @@ router.post("/profiles/:id/like", async (req, res) => {
     }
   }
 
+  // On a mutual match, auto-create the conversation so a thread appears in
+  // Mensajes for both users immediately (both may then chat free). Idempotent
+  // and self-healing — called on EVERY match, not just the first edge — and
+  // best-effort: a hiccup here must never fail the like itself.
+  if (result.matched) {
+    try {
+      await ensureConversation(auth.userId, id);
+    } catch (err) {
+      req.log.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        "like POST: ensureConversation failed",
+      );
+    }
+  }
+
   res.status(201).json({
     matched: result.matched,
     is_super: result.isSuper,
+    already_processed: result.alreadyProcessed,
     quota: result.quota,
   });
 });
@@ -799,6 +851,33 @@ router.delete("/profiles/:id/like", async (req, res) => {
 
   if (error) {
     res.status(400).json({ error: error.message });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
+// Pass ("no me interesa"): record a free, unlimited, idempotent dismissal so
+// the profile stops appearing in Descubrir. Creates no Supabase like edge and
+// never charges quota/credits. Repeat passes are no-ops.
+router.post("/profiles/:id/pass", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params;
+  if (id === auth.userId) {
+    res.status(400).json({ error: "Cannot pass yourself" });
+    return;
+  }
+
+  try {
+    await recordPass(auth.userId, id);
+  } catch (err) {
+    req.log.error(
+      { error: err instanceof Error ? err.message : String(err) },
+      "pass POST: error",
+    );
+    res.status(400).json({ error: "No se pudo registrar la acción" });
     return;
   }
 
@@ -876,6 +955,115 @@ router.get("/profiles/blocks", async (req, res) => {
       }),
     );
   res.json(rows);
+});
+
+// "En línea": a directory of currently-online users, visible to everyone. Unlike
+// the swipe deck this does NOT exclude profiles the viewer already liked/passed
+// (it's a who's-online list, not a deck), but it applies the same calidad mínima
+// and visibility (block/deactivation/moderation) filters. Mirrors /profiles/stats'
+// JS isOnline() filter rather than a DB time predicate.
+router.get("/profiles/online", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("latitude, longitude")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  const likedSet = await getLikedSet(auth.userId);
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PUBLIC_COLUMNS)
+    .neq("id", auth.userId)
+    .not("username", "is", null)
+    .not("avatar_url", "is", null)
+    .not("age", "is", null)
+    .gte("age", 18)
+    .not("city", "is", null)
+    .not("bio", "is", null)
+    .order("last_active_at", { ascending: false, nullsFirst: false })
+    .limit(200);
+
+  if (error) {
+    req.log.error({ error: error.message }, "profiles/online GET: error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  let rows = (data as ProfileRow[]).filter(
+    (row) => !hidden.has(row.id) && isOnline(row.last_active_at),
+  );
+
+  // Calidad mínima (part 2): role + "qué busca" + minimum bio (Postgres-side).
+  const detailsMap = await getProfileDetailsForUsers(rows.map((r) => r.id));
+  rows = rows.filter((row) => {
+    const d = detailsMap.get(row.id);
+    return (
+      !!row.avatar_url &&
+      row.age != null &&
+      row.age >= 18 &&
+      !!row.city?.trim() &&
+      (row.bio?.trim().length ?? 0) >= MIN_BIO_LENGTH &&
+      !!d?.role &&
+      !!d?.looking_for
+    );
+  });
+
+  res.json(rows.map((row) => toPublic(row, me ?? null, likedSet, iBlocked)));
+});
+
+// "Empareja": the viewer's mutual matches (both liked each other). Excludes
+// blocked/deactivated/moderated users; every item carries matched=true.
+router.get("/profiles/me/matches", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const [{ data: outgoing }, { data: incoming }] = await Promise.all([
+    supabase.from("likes").select("liked_id").eq("liker_id", auth.userId),
+    supabase.from("likes").select("liker_id").eq("liked_id", auth.userId),
+  ]);
+
+  const likedIds = new Set((outgoing ?? []).map((r) => r.liked_id as string));
+  const matchedIds = (incoming ?? [])
+    .map((r) => r.liker_id as string)
+    .filter((likerId) => likedIds.has(likerId));
+
+  if (matchedIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("latitude, longitude")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PUBLIC_COLUMNS)
+    .in("id", matchedIds);
+
+  if (error) {
+    req.log.error({ error: error.message }, "profiles/me/matches GET: error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const likedSet = new Set(matchedIds);
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+  res.json(
+    (data as ProfileRow[])
+      .filter((row) => !hidden.has(row.id))
+      .map((row) => ({
+        ...toPublic(row, me ?? null, likedSet, iBlocked),
+        matched: true,
+      })),
+  );
 });
 
 router.get("/profiles/:id", async (req, res) => {

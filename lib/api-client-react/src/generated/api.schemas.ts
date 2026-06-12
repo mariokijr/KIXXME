@@ -11,6 +11,8 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  /** Optional machine-readable error code (e.g. "gold_required_no_match") so the client can branch without parsing the human message. */
+  code?: string | null;
 }
 
 export type CheckoutRequestTier = typeof CheckoutRequestTier[keyof typeof CheckoutRequestTier];
@@ -291,6 +293,8 @@ export interface LikeRequest {
 export interface LikeResponse {
   matched: boolean;
   is_super: boolean;
+  /** True when this like/SuperLike was a repeat of an existing like edge (no new charge was made). A like→SuperLike upgrade is NOT already_processed (it charges one SuperLike). */
+  already_processed?: boolean;
   quota: LikeQuota;
 }
 
@@ -484,6 +488,8 @@ export interface PublicProfile {
   role?: PublicProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: PublicProfileLookingFor;
+  /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
+  matched?: boolean;
   created_at?: string;
 }
 

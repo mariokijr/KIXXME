@@ -22,13 +22,13 @@ import {
   useGetMyProfile,
   getGetMyProfileQueryKey,
   PublicProfile,
-  useCreateOrGetConversation,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useLikeActions } from "@/lib/like-actions";
+import { useStartConversation } from "@/lib/use-start-conversation";
 import { formatDistance, initialsFor } from "@/lib/profile-format";
 import { ReportDialog } from "@/components/report-dialog";
 
@@ -165,7 +165,8 @@ export default function MapView() {
       },
     }
   );
-  const createConv = useCreateOrGetConversation();
+  const { start: startConversation, isPending: convPending } =
+    useStartConversation();
   const likeActions = useLikeActions();
   const geo = useGeolocation();
   const updateVisibility = useUpdateMapVisibility();
@@ -211,10 +212,7 @@ export default function MapView() {
   );
 
   const handleMessage = (userId: string) => {
-    createConv.mutate(
-      { data: { other_user_id: userId } },
-      { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
-    );
+    startConversation(userId);
   };
 
   const toggleVisibility = () => {
@@ -723,7 +721,7 @@ export default function MapView() {
             </button>
             <button
               onClick={() => handleMessage(selected.id)}
-              disabled={createConv.isPending}
+              disabled={convPending}
               className="flex-shrink-0 px-4 py-2 rounded-lg text-white text-sm font-sans font-medium disabled:opacity-60"
               style={{
                 background:

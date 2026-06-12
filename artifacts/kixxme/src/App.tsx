@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { NotificationsProvider } from "@/lib/notifications";
 import { MatchCelebrationProvider } from "@/lib/match-celebration";
 import { LimitUpsellProvider } from "@/lib/limit-upsell";
+import { GoldUpsellProvider } from "@/lib/gold-upsell";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
@@ -28,6 +29,7 @@ import Chats from "@/pages/chats";
 import ChatPage from "@/pages/chat";
 import Premium from "@/pages/premium";
 import Favorites from "@/pages/favorites";
+import Matches from "@/pages/matches";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ChangePassword from "@/pages/change-password";
@@ -181,6 +183,7 @@ function Router() {
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
+      <Route path="/matches">{() => <ProtectedMain component={Matches} />}</Route>
       <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
       <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
       <Route path="/settings/password">{() => <ProtectedMain component={ChangePassword} />}</Route>
@@ -201,15 +204,17 @@ function App() {
             <NotificationsProvider>
               <MatchCelebrationProvider>
                 <LimitUpsellProvider>
-                  <ConfirmProvider>
-                    <LocationSync />
-                    <ModerationGate>
-                      <OnboardingGate>
-                        <WelcomeModal />
-                        <Router />
-                      </OnboardingGate>
-                    </ModerationGate>
-                  </ConfirmProvider>
+                  <GoldUpsellProvider>
+                    <ConfirmProvider>
+                      <LocationSync />
+                      <ModerationGate>
+                        <OnboardingGate>
+                          <WelcomeModal />
+                          <Router />
+                        </OnboardingGate>
+                      </ModerationGate>
+                    </ConfirmProvider>
+                  </GoldUpsellProvider>
                 </LimitUpsellProvider>
               </MatchCelebrationProvider>
             </NotificationsProvider>

@@ -8,4 +8,6 @@
 
 export interface ErrorResponse {
   error: string;
+  /** Optional machine-readable error code (e.g. "gold_required_no_match") so the client can branch without parsing the human message. */
+  code?: string | null;
 }

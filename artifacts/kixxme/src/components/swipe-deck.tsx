@@ -36,6 +36,7 @@ import {
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
+import { usePassProfile } from "@workspace/api-client-react";
 import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
@@ -491,6 +492,7 @@ export function SwipeView({
   const { newLikes, newMatches } = useNotifications();
   const likesBadge = newLikes + newMatches;
   const likeActions = useLikeActions();
+  const passMut = usePassProfile();
 
   const {
     data: profiles = [],
@@ -528,7 +530,16 @@ export function SwipeView({
         likeActions.superLike(profile, { onSettled: invalidateQuota });
       } else {
         playSound("pass");
+        // Persist the dislike so this profile is excluded from Descubrir next time.
+        passMut.mutate({ id: profile.id });
       }
+      // Mark the candidate list stale so a later remount refetches (excluding
+      // this now liked/superliked/passed profile) WITHOUT disrupting the
+      // current in-session deck order (refetchType "none").
+      qc.invalidateQueries({
+        queryKey: getListProfilesQueryKey({ sort: "recent" }),
+        refetchType: "none",
+      });
     }
     setIndex((i) => i + 1);
   };
@@ -555,12 +566,12 @@ export function SwipeView({
         style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
       >
         <KixxMeLogo size={22} withWordmark />
-        <Link href="/favorites">
+        <Link href="/matches">
           <button
             className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
             style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="Favoritos"
-            data-testid="link-favorites"
+            aria-label="Emparejamientos"
+            data-testid="link-matches"
           >
             <Heart className="w-4 h-4 text-primary" />
             {likesBadge > 0 && (

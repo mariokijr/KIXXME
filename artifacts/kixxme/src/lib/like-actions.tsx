@@ -36,6 +36,9 @@ export function useLikeActions() {
       { id: user.id, data: { kind } },
       {
         onSuccess: (res) => {
+          // Idempotent repeat (same edge, no charge): nothing changed, so no
+          // re-celebration / re-toast.
+          if (res.already_processed) return;
           if (res.matched) {
             celebrate({
               userId: user.id,

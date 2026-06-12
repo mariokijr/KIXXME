@@ -1,15 +1,18 @@
-import { Layers, LayoutGrid } from "lucide-react";
+import { Layers, Heart, Radio } from "lucide-react";
 
-export type DiscoverMode = "tarjetas" | "cuadricula";
+export type DiscoverMode = "tarjetas" | "cuadricula" | "enlinea";
 
 const OPTIONS: { key: DiscoverMode; label: string; Icon: typeof Layers }[] = [
   { key: "tarjetas", label: "Tarjetas", Icon: Layers },
-  { key: "cuadricula", label: "Cuadrícula", Icon: LayoutGrid },
+  { key: "cuadricula", label: "Cuadrícula", Icon: Heart },
+  { key: "enlinea", label: "En línea", Icon: Radio },
 ];
 
 /**
- * Segmented control to switch the Discover tab between the Tinder-style swipe
- * deck ("Tarjetas") and the existing grid ("Cuadrícula"). Shared by both views.
+ * Segmented control for the Discover tab:
+ * - "Tarjetas": Tinder-style swipe deck (discovery candidates).
+ * - "Cuadrícula": grid of the profiles you've liked / SuperLiked.
+ * - "En línea": grid of users currently online.
  */
 export function ModeToggle({
   mode,

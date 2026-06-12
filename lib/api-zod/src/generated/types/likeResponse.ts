@@ -10,5 +10,7 @@ import type { LikeQuota } from './likeQuota';
 export interface LikeResponse {
   matched: boolean;
   is_super: boolean;
+  /** True when this like/SuperLike was a repeat of an existing like edge (no new charge was made). A like→SuperLike upgrade is NOT already_processed (it charges one SuperLike). */
+  already_processed?: boolean;
   quota: LikeQuota;
 }

@@ -2271,6 +2271,164 @@ export function useListMyLikes<TData = Awaited<ReturnType<typeof listMyLikes>>, 
 
 
 
+export const getListOnlineProfilesUrl = () => {
+
+
+
+
+  return `/api/profiles/online`
+}
+
+/**
+ * Profiles active within the online window, viewable by all users. Applies the same calidad mínima and visibility (block/deactivation/moderation) filters as discovery, but does NOT exclude users the viewer has already liked/passed (this is a directory of who is online, not a swipe deck).
+
+ * @summary List currently-online users ("En línea")
+ */
+export const listOnlineProfiles = async ( options?: RequestInit): Promise<PublicProfile[]> => {
+
+  return customFetch<PublicProfile[]>(getListOnlineProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOnlineProfilesQueryKey = () => {
+    return [
+    `/api/profiles/online`
+    ] as const;
+    }
+
+
+export const getListOnlineProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listOnlineProfiles>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOnlineProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOnlineProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOnlineProfiles>>> = ({ signal }) => listOnlineProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOnlineProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOnlineProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listOnlineProfiles>>>
+export type ListOnlineProfilesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List currently-online users ("En línea")
+ */
+
+export function useListOnlineProfiles<TData = Awaited<ReturnType<typeof listOnlineProfiles>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOnlineProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOnlineProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListMyMatchesUrl = () => {
+
+
+
+
+  return `/api/profiles/me/matches`
+}
+
+/**
+ * Profiles with which the viewer has a mutual like (both directions), excluding blocked/deactivated/moderated users. Each item has matched=true.
+
+ * @summary List the current user's mutual matches ("Empareja")
+ */
+export const listMyMatches = async ( options?: RequestInit): Promise<PublicProfile[]> => {
+
+  return customFetch<PublicProfile[]>(getListMyMatchesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyMatchesQueryKey = () => {
+    return [
+    `/api/profiles/me/matches`
+    ] as const;
+    }
+
+
+export const getListMyMatchesQueryOptions = <TData = Awaited<ReturnType<typeof listMyMatches>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyMatchesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyMatches>>> = ({ signal }) => listMyMatches({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof listMyMatches>>>
+export type ListMyMatchesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List the current user's mutual matches ("Empareja")
+ */
+
+export function useListMyMatches<TData = Awaited<ReturnType<typeof listMyMatches>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyMatchesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getReorderPhotosUrl = () => {
 
 
@@ -2559,6 +2717,78 @@ export const useUnlikeProfile = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUnlikeProfileMutationOptions(options));
+    }
+
+export const getPassProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/pass`
+}
+
+/**
+ * Records a free, unlimited, idempotent dismissal. Creates no Supabase like edge and never charges quota/credits. Repeat passes are no-ops.
+
+ * @summary Pass on ("no me interesa") a profile so it stops appearing in Descubrir
+ */
+export const passProfile = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getPassProfileUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPassProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof passProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof passProfile>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['passProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof passProfile>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  passProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PassProfileMutationResult = NonNullable<Awaited<ReturnType<typeof passProfile>>>
+
+    export type PassProfileMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Pass on ("no me interesa") a profile so it stops appearing in Descubrir
+ */
+export const usePassProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof passProfile>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof passProfile>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getPassProfileMutationOptions(options));
     }
 
 export const getGetLikeQuotaUrl = () => {

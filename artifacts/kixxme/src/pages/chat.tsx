@@ -33,8 +33,6 @@ import {
   useUploadChatAudio,
   useBlockProfile,
   useUnblockProfile,
-  useGetMyProfile,
-  getGetMyProfileQueryKey,
   useCreateLiveCall,
   Message,
   PublicProfile,
@@ -43,6 +41,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/lib/confirm";
+import { useGoldUpsell } from "@/lib/gold-upsell";
 import { supabase } from "@/lib/supabase";
 
 function timeLabel(iso: string) {
@@ -65,6 +64,7 @@ export default function Chat() {
   const { session, user } = useAuth();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { showGold } = useGoldUpsell();
   const myId = user?.id ?? "";
 
   const [text, setText] = useState("");
@@ -109,11 +109,6 @@ export default function Chat() {
   const unblockUser = useUnblockProfile();
   const createLiveCall = useCreateLiveCall();
   const confirm = useConfirm();
-
-  const { data: myProfile } = useGetMyProfile({
-    query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
-  });
-  const isGold = myProfile?.plan === "gold";
 
   // Reset local state when switching conversations so messages never bleed across chats.
   useEffect(() => {
@@ -332,24 +327,28 @@ export default function Chat() {
 
   const handleVideoCall = () => {
     if (!otherUser) return;
-    if (!isGold) {
-      toast({
-        title: "Videollamadas solo para Gold",
-        description: "Hazte Gold para iniciar videollamadas privadas.",
-      });
-      setLocation("/premium");
-      return;
-    }
+    // Both participants must be Gold; this is enforced server-side via getPlan
+    // (which honors GOLD_TEST_EMAILS), so we attempt the call and surface the
+    // Gold upsell on a 402 rather than pre-gating on the raw client plan.
     createLiveCall.mutate(
       { data: { recipientId: otherUser.id } },
       {
         onSuccess: () => setLocation("/live"),
-        onError: (err: any) =>
-          toast({
-            title: "No se pudo iniciar la videollamada",
-            description: err?.data?.error ?? undefined,
-            variant: "destructive",
-          }),
+        onError: (err: any) => {
+          if (err?.status === 402) {
+            showGold({
+              title: "Videollamadas solo para Gold",
+              subtitle:
+                "Tú y la otra persona necesitáis Gold para iniciar una videollamada en KixxMe Live.",
+            });
+          } else {
+            toast({
+              title: "No se pudo iniciar la videollamada",
+              description: err?.data?.error ?? undefined,
+              variant: "destructive",
+            });
+          }
+        },
       },
     );
   };

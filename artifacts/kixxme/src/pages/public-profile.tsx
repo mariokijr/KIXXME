@@ -5,7 +5,6 @@ import {
   useListProfilePhotos,
   getListProfilePhotosQueryKey,
   useUnlikeProfile,
-  useCreateOrGetConversation,
   useBlockProfile,
   useUnblockProfile,
 } from "@workspace/api-client-react";
@@ -33,6 +32,7 @@ import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
 import { ROLE_LABELS, LOOKING_FOR_LABELS } from "@/lib/profile-format";
 import { useLikeActions } from "@/lib/like-actions";
+import { useStartConversation } from "@/lib/use-start-conversation";
 
 export default function PublicProfile() {
   const params = useParams();
@@ -53,7 +53,8 @@ export default function PublicProfile() {
 
   const likeActions = useLikeActions();
   const unlikeProfile = useUnlikeProfile();
-  const createConv = useCreateOrGetConversation();
+  const { start: startConversation, isPending: convPending } =
+    useStartConversation();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const confirm = useConfirm();
@@ -89,17 +90,7 @@ export default function PublicProfile() {
 
   const handleMessage = () => {
     if (!profile) return;
-    createConv.mutate(
-      { data: { other_user_id: profile.id } },
-      {
-        onSuccess: (conv) => setLocation(`/chats/${conv.id}`),
-        onError: () =>
-          toast({
-            title: "No se pudo abrir el chat",
-            variant: "destructive",
-          }),
-      }
-    );
+    startConversation(profile.id);
   };
 
   const handleToggleBlock = async () => {
@@ -400,12 +391,12 @@ export default function PublicProfile() {
           <>
             <button
               onClick={handleMessage}
-              disabled={createConv.isPending}
+              disabled={convPending}
               className="flex-1 h-14 rounded-2xl font-display text-lg tracking-widest border-0 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
               data-testid="button-message"
             >
-              {createConv.isPending ? (
+              {convPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>

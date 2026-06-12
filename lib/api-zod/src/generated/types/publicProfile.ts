@@ -29,5 +29,7 @@ export interface PublicProfile {
   role?: PublicProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: PublicProfileLookingFor;
+  /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
+  matched?: boolean;
   created_at?: string;
 }
