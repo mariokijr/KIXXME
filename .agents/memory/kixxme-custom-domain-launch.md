@@ -62,6 +62,19 @@ allowlist.
   `/reset-password` to Redirect URLs and set the Site URL to that dev origin. The
   allowlist is checked at click time, so a link already emailed starts working the
   moment the URL is added (token TTL permitting) — no re-send needed.
+- **Client self-heals a SAME-HOST Site-URL fallback.** `main.tsx` runs a pre-mount
+  `forwardRecoveryHash()` that, when a recovery hash (`type=recovery`, or an
+  `error_code`/`error` not on `/auth/callback`) lands on any non-`/reset-password`
+  path, `history.replaceState`s it to `${BASE_URL}reset-password` (hash intact).
+  **So the Site-URL fallback now only breaks when the Site URL points to a
+  DIFFERENT host** (e.g. left on the old dev origin) — code can't rescue an
+  off-host landing, so the dashboard Site URL + `APP_BASE_URL` deploy secret are
+  still mandatory. The masking means a misconfigured allowlist may *appear* fixed
+  while the wrong Site URL silently still bites cross-host.
+- **Reset route revokes all sessions.** POST `/auth/reset-password` now calls
+  `admin.signOut(accessToken,"global")` after the password update (best-effort,
+  before the fresh sign-in) so a recovery reset logs out every prior token —
+  mirroring the OTP change-password sweep.
 - Recovery tokens arrive via the URL **hash** (`#access_token`, implicit flow),
   which is exactly what `reset-password.tsx` parses — no PKCE `?code=` handling
   needed. Verified live end-to-end (forgot → generate_link → reset → login → admin).

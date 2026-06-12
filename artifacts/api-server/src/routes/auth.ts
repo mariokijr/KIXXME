@@ -298,6 +298,21 @@ router.post("/auth/reset-password", async (req, res) => {
     return;
   }
 
+  // Invalidate every existing session now that the password changed. A recovery
+  // reset must log out anyone holding an old token (including a potential
+  // attacker), mirroring the OTP-gated change-password flow's session sweep.
+  // Best-effort — the password is already updated, so never fail the reset on a
+  // revocation hiccup. Runs BEFORE the fresh sign-in below so the new session
+  // isn't swept away by this global sign-out.
+  try {
+    await supabase.auth.admin.signOut(accessToken, "global");
+  } catch (err) {
+    req.log.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      "reset-password: session revocation failed",
+    );
+  }
+
   // Resetting the password is also an "I'm back" signal: clear any temporary
   // deactivation, mirroring login.
   try {
