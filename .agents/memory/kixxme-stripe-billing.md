@@ -97,6 +97,35 @@ mapping. Entitlement itself lives in Supabase `profiles.plan` (`free`/`plus`/`go
   allowed`. Set `APP_BASE_URL=https://kixxme.com` as a deployment secret to make it deterministic
   (same secret also fixes recovery-link + email base URLs).
 
+## Auditing the live funnel — what "customers in Stripe" really means
+
+- A Stripe **Customer is created at checkout START** (`findOrCreateCustomer` inside
+  `createCheckoutSession`), NOT at signup. So "users appear as customers in Stripe" only
+  means they clicked Activar Gold/Plus and a session was created — it says nothing about
+  payment. Don't equate Stripe customer count with registered users or with conversions.
+- **Conversion truth = `checkout.sessions.list` bucketed by `status/payment_status`.**
+  `open/unpaid` = reached/started checkout but never paid (abandoned, no card entered);
+  `complete/paid` = real conversion. `paymentIntents.list` by status gives card declines
+  (0 declines + many open sessions ⇒ top-of-checkout abandonment, a product/pricing/UX
+  problem, not a backend bug).
+- **Webhook delivery health without dashboard access:** `stripe.events.list()` → each event's
+  `pending_webhooks` is the number of endpoints that have NOT yet returned 2xx. `=0` on the
+  entitlement events (checkout.session.completed / customer.subscription.created / invoice.paid)
+  proves the webhook delivered AND the handler acknowledged. Also list `webhookEndpoints` and
+  confirm `status=enabled`, `livemode=true`, and the 3 events are in `enabled_events`.
+- **Entitlement source of truth is shared; the cache is per-environment.** Supabase
+  `profiles.plan` is in the SHARED Supabase project (dev and prod read the same rows), so verify
+  a real purchaser's grant there (admin listUsers→id→profiles.plan). `billing_customers` /
+  `plan_grants` live in **Replit Postgres, which is SEPARATE per environment** — the
+  `executeSql` callback hits the **DEV** DB, so a missing/stale `billing_customers` row there is
+  NOT evidence of a prod webhook failure. Use Supabase to judge prod entitlement.
+- **Real root cause of "registros suben, conversiones ~0" can simply be: the LIVE account had no
+  products/prices yet.** `resolvePriceId` runs BEFORE `findOrCreateCustomer`, so an unseeded live
+  account 502s every checkout before a customer is ever created ⇒ ZERO live Stripe customers and
+  zero conversions, even though all code is correct. Symptom check: `prices.list({lookup_keys})`
+  with `livemode` + the `price.created` timestamp tells you exactly when live checkout became
+  possible. Fix is the idempotent seed (no redeploy — shared connection).
+
 ## Checkout 502 "No such customer: 'cus_…'" = stale test-mode customer under live keys
 
 - Symptom: `POST /api/stripe/checkout` 502s and `GET /subscription` warns, both with
