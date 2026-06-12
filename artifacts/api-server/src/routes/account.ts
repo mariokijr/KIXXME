@@ -53,7 +53,8 @@ async function getUserEmail(userId: string): Promise<string | null> {
 
 /** Current account status (active or deactivated). */
 router.get("/account/status", async (req, res) => {
-  const auth = await requireAuth(req, res);
+  // Reachable while email is unverified so the client can resolve session state.
+  const auth = await requireAuth(req, res, { allowUnverified: true });
   if (!auth) return;
 
   const row = await getAccountStatus(auth.userId);
@@ -72,8 +73,12 @@ router.get("/account/status", async (req, res) => {
 /** Email a verification code to confirm a deactivation or deletion. */
 router.post("/account/verification/request", async (req, res) => {
   // Self-service exit (deactivate / permanent delete) must stay reachable for
-  // suspended or banned users — they have a right to leave / erase their data.
-  const auth = await requireAuth(req, res, { allowModerated: true });
+  // suspended/banned users AND users who never verified their email — everyone
+  // keeps the right to leave / erase their data.
+  const auth = await requireAuth(req, res, {
+    allowModerated: true,
+    allowUnverified: true,
+  });
   if (!auth) return;
 
   const parsed = RequestAccountActionCodeBody.safeParse(req.body);
@@ -136,8 +141,12 @@ router.post("/account/verification/request", async (req, res) => {
 /** Confirm a deactivation or deletion with the emailed code. */
 router.post("/account/verification/confirm", async (req, res) => {
   // Self-service exit (deactivate / permanent delete) must stay reachable for
-  // suspended or banned users — they have a right to leave / erase their data.
-  const auth = await requireAuth(req, res, { allowModerated: true });
+  // suspended/banned users AND users who never verified their email — everyone
+  // keeps the right to leave / erase their data.
+  const auth = await requireAuth(req, res, {
+    allowModerated: true,
+    allowUnverified: true,
+  });
   if (!auth) return;
 
   const parsed = ConfirmAccountActionBody.safeParse(req.body);

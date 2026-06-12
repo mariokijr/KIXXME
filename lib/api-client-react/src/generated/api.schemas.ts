@@ -1029,6 +1029,18 @@ export interface AccountActionConfirmResponse {
   action: AccountActionConfirmResponseAction;
 }
 
+export interface EmailVerificationStatus {
+  /** Whether the account's email has been verified */
+  verified: boolean;
+  /** The account's email address (for display/masking) */
+  email: string;
+}
+
+export interface EmailVerificationConfirmRequest {
+  /** The 6-digit code from the verification email */
+  code: string;
+}
+
 export interface PasswordChangeCodeRequest {
   /** The account's current password (verified server-side) */
   currentPassword: string;

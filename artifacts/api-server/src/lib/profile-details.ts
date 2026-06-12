@@ -194,3 +194,44 @@ export async function markTutorialCompleted(userId: string): Promise<Date> {
     .returning({ tutorialCompletedAt: profileDetailsTable.tutorialCompletedAt });
   return row?.tutorialCompletedAt ?? new Date();
 }
+
+/**
+ * When the user proved access to their email via the mandatory signup code, or
+ * NULL when not yet verified. Kept as a dedicated accessor (not folded into
+ * getProfileDetails) because that helper's shape is spread verbatim into the
+ * public profile responses — email-verification state is private and must never
+ * leak there.
+ */
+export async function getEmailVerifiedAt(userId: string): Promise<Date | null> {
+  const [row] = await db
+    .select({ emailVerifiedAt: profileDetailsTable.emailVerifiedAt })
+    .from(profileDetailsTable)
+    .where(eq(profileDetailsTable.userId, userId))
+    .limit(1);
+  return row?.emailVerifiedAt ?? null;
+}
+
+/**
+ * Mark the email as verified exactly once. Uses an EXPLICIT timestamp (not
+ * now()) so we can detect a first-set: the COALESCE keeps the original value on
+ * a repeat call, so when the row we get back equals the timestamp we passed in,
+ * this call is the one that set it (welcome email fires exactly once). Returns
+ * `{ verifiedAt, firstSet }`.
+ */
+export async function markEmailVerified(
+  userId: string,
+): Promise<{ verifiedAt: Date; firstSet: boolean }> {
+  const ts = new Date();
+  const [row] = await db
+    .insert(profileDetailsTable)
+    .values({ userId, emailVerifiedAt: ts })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: {
+        emailVerifiedAt: sql`coalesce(${profileDetailsTable.emailVerifiedAt}, ${ts})`,
+      },
+    })
+    .returning({ emailVerifiedAt: profileDetailsTable.emailVerifiedAt });
+  const verifiedAt = row?.emailVerifiedAt ?? ts;
+  return { verifiedAt, firstSet: verifiedAt.getTime() === ts.getTime() };
+}

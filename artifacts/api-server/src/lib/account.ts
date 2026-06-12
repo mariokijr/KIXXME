@@ -45,7 +45,8 @@ export type AccountAction = "deactivate" | "delete";
 export type CodeAction =
   | AccountAction
   | "change_password"
-  | "cancel_subscription";
+  | "cancel_subscription"
+  | "verify_email";
 
 const MONTHS: Record<Exclude<DeactivationType, "indefinite">, number> = {
   "1m": 1,

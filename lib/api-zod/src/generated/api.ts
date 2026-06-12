@@ -1366,6 +1366,38 @@ export const ConfirmAccountActionResponse = zod.object({
 
 
 /**
+ * @summary Whether the caller's email is verified (mandatory at signup)
+ */
+export const GetEmailVerificationResponse = zod.object({
+  "verified": zod.boolean().describe('Whether the account\'s email has been verified'),
+  "email": zod.string().describe('The account\'s email address (for display\/masking)')
+})
+
+
+/**
+ * @summary Email a 6-digit verification code (60s resend cooldown)
+ */
+export const SendEmailVerificationCodeResponse = zod.object({
+  "sent": zod.boolean().describe('Whether the verification email was dispatched'),
+  "expiresAt": zod.string().nullish(),
+  "message": zod.string().nullish().describe('Human-readable status (e.g. when email delivery is unavailable)')
+})
+
+
+/**
+ * @summary Confirm the emailed verification code; lifts the signup gate
+ */
+export const ConfirmEmailVerificationBody = zod.object({
+  "code": zod.string().describe('The 6-digit code from the verification email')
+})
+
+export const ConfirmEmailVerificationResponse = zod.object({
+  "verified": zod.boolean().describe('Whether the account\'s email has been verified'),
+  "email": zod.string().describe('The account\'s email address (for display\/masking)')
+})
+
+
+/**
  * @summary Current subscription status (plan + whether a real active Stripe subscription exists)
  */
 export const GetSubscriptionResponse = zod.object({

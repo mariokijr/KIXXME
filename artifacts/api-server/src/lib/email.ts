@@ -554,6 +554,37 @@ export function passwordChangeCodeEmail(code: string): {
   };
 }
 
+export const EMAIL_VERIFICATION_CODE_SUBJECT =
+  "Confirma tu correo electrónico en KixxMe";
+
+/**
+ * Verification-code email for the mandatory email check at signup. Shows the
+ * one-time 6-digit code prominently; the account stays unusable until it is
+ * entered. 15-minute TTL, mirroring the code lifecycle in `lib/account.ts`.
+ */
+export function emailVerificationCodeEmail(code: string): {
+  subject: string;
+  html: string;
+} {
+  const body = [
+    `<p style="margin:0 0 14px 0;">\u00A1Te damos la bienvenida a KixxMe! \u{1F389}</p>`,
+    `<p style="margin:0 0 4px 0;">Para completar tu registro y empezar a conectar, confirma tu correo electr\u00F3nico copiando este c\u00F3digo y peg\u00E1ndolo en la aplicaci\u00F3n:</p>`,
+    codeBlock(code),
+    `<p style="margin:14px 0 0 0;">Este c\u00F3digo caduca en <strong style="color:#f4f1fb;">15 minutos</strong>.</p>`,
+    `<p style="margin:14px 0 0 0;">Si no lo ves en tu bandeja de entrada, revisa la carpeta de spam o correo no deseado.</p>`,
+    `<p style="margin:14px 0 0 0;color:#f3b14b;">\u26A0\uFE0F Si no has creado una cuenta en KixxMe, ignora este correo.</p>`,
+    `<p style="margin:14px 0 0 0;">Nunca compartas este c\u00F3digo con nadie.</p>`,
+  ].join("\n            ");
+  return {
+    subject: EMAIL_VERIFICATION_CODE_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu c\u00F3digo para confirmar tu correo electr\u00F3nico.",
+      heading: "Confirma tu correo electr\u00F3nico \u2709\uFE0F",
+      bodyHtml: body,
+    }),
+  };
+}
+
 export const PASSWORD_CHANGED_SUBJECT =
   "Tu contraseña de KixxMe se ha cambiado";
 

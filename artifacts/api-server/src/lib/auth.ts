@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { supabase, supabaseAuth } from "./supabase.js";
 import { getModerationState } from "./moderation.js";
 import { recordIfSystem, isSystemEmail } from "./system-accounts.js";
+import { isEmailVerified } from "./email-verification.js";
 
 export interface AuthContext {
   userId: string;
@@ -30,11 +31,16 @@ function touchLastActive(userId: string): void {
  * Spanish screen. Pass `{ allowModerated: true }` for the few endpoints a
  * moderated user must still reach (their own moderation status, logout, and
  * permanent account deletion).
+ *
+ * New accounts that haven't completed the mandatory email check are blocked with
+ * a 403 `{ code: "email_unverified" }`. Pass `{ allowUnverified: true }` for the
+ * endpoints the verification flow itself needs (send/confirm the code, read
+ * own status) plus the self-service account-exit routes.
  */
 export async function requireAuth(
   req: Request,
   res: Response,
-  opts?: { allowModerated?: boolean },
+  opts?: { allowModerated?: boolean; allowUnverified?: boolean },
 ): Promise<AuthContext | null> {
   const token = getToken(req);
   if (!token) {
@@ -61,6 +67,20 @@ export async function requireAuth(
         error,
         code: mod.state,
         until: mod.suspendedUntil ? mod.suspendedUntil.toISOString() : null,
+      });
+      return null;
+    }
+  }
+
+  // Mandatory email verification for new accounts (grandfathers legacy users and
+  // exempts system accounts internally). Fails OPEN on a DB error.
+  if (!opts?.allowUnverified) {
+    const verified = await isEmailVerified(data.user, req.log);
+    if (!verified) {
+      res.status(403).json({
+        error:
+          "Confirma tu correo electrónico para continuar usando KixxMe.",
+        code: "email_unverified",
       });
       return null;
     }

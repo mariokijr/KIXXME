@@ -46,6 +46,8 @@ import type {
   CreateReportRequest,
   DeletePhoto200,
   DiscoveryStats,
+  EmailVerificationConfirmRequest,
+  EmailVerificationStatus,
   ErrorResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
@@ -4978,6 +4980,224 @@ export const useConfirmAccountAction = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getConfirmAccountActionMutationOptions(options));
+    }
+
+export const getGetEmailVerificationUrl = () => {
+
+
+
+
+  return `/api/me/email-verification`
+}
+
+/**
+ * @summary Whether the caller's email is verified (mandatory at signup)
+ */
+export const getEmailVerification = async ( options?: RequestInit): Promise<EmailVerificationStatus> => {
+
+  return customFetch<EmailVerificationStatus>(getGetEmailVerificationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailVerificationQueryKey = () => {
+    return [
+    `/api/me/email-verification`
+    ] as const;
+    }
+
+
+export const getGetEmailVerificationQueryOptions = <TData = Awaited<ReturnType<typeof getEmailVerification>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailVerificationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailVerification>>> = ({ signal }) => getEmailVerification({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailVerification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailVerificationQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailVerification>>>
+export type GetEmailVerificationQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Whether the caller's email is verified (mandatory at signup)
+ */
+
+export function useGetEmailVerification<TData = Awaited<ReturnType<typeof getEmailVerification>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailVerificationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSendEmailVerificationCodeUrl = () => {
+
+
+
+
+  return `/api/auth/email/verify/send`
+}
+
+/**
+ * @summary Email a 6-digit verification code (60s resend cooldown)
+ */
+export const sendEmailVerificationCode = async ( options?: RequestInit): Promise<AccountActionCodeResponse> => {
+
+  return customFetch<AccountActionCodeResponse>(getSendEmailVerificationCodeUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendEmailVerificationCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendEmailVerificationCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendEmailVerificationCode>>, TError,void, TContext> => {
+
+const mutationKey = ['sendEmailVerificationCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendEmailVerificationCode>>, void> = () => {
+
+
+          return  sendEmailVerificationCode(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendEmailVerificationCodeMutationResult = NonNullable<Awaited<ReturnType<typeof sendEmailVerificationCode>>>
+
+    export type SendEmailVerificationCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Email a 6-digit verification code (60s resend cooldown)
+ */
+export const useSendEmailVerificationCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendEmailVerificationCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendEmailVerificationCode>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSendEmailVerificationCodeMutationOptions(options));
+    }
+
+export const getConfirmEmailVerificationUrl = () => {
+
+
+
+
+  return `/api/auth/email/verify/confirm`
+}
+
+/**
+ * @summary Confirm the emailed verification code; lifts the signup gate
+ */
+export const confirmEmailVerification = async (emailVerificationConfirmRequest: EmailVerificationConfirmRequest, options?: RequestInit): Promise<EmailVerificationStatus> => {
+
+  return customFetch<EmailVerificationStatus>(getConfirmEmailVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      emailVerificationConfirmRequest,)
+  }
+);}
+
+
+
+
+export const getConfirmEmailVerificationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmEmailVerification>>, TError,{data: BodyType<EmailVerificationConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmEmailVerification>>, TError,{data: BodyType<EmailVerificationConfirmRequest>}, TContext> => {
+
+const mutationKey = ['confirmEmailVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmEmailVerification>>, {data: BodyType<EmailVerificationConfirmRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmEmailVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmEmailVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof confirmEmailVerification>>>
+    export type ConfirmEmailVerificationMutationBody = BodyType<EmailVerificationConfirmRequest>
+    export type ConfirmEmailVerificationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Confirm the emailed verification code; lifts the signup gate
+ */
+export const useConfirmEmailVerification = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmEmailVerification>>, TError,{data: BodyType<EmailVerificationConfirmRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmEmailVerification>>,
+        TError,
+        {data: BodyType<EmailVerificationConfirmRequest>},
+        TContext
+      > => {
+      return useMutation(getConfirmEmailVerificationMutationOptions(options));
     }
 
 export const getGetSubscriptionUrl = () => {

@@ -120,7 +120,10 @@ router.post("/reports", async (req, res) => {
  * suspended/banned" screen instead of being bounced with a bare 403.
  */
 router.get("/me/moderation", async (req, res) => {
-  const auth = await requireAuth(req, res, { allowModerated: true });
+  const auth = await requireAuth(req, res, {
+    allowModerated: true,
+    allowUnverified: true,
+  });
   if (!auth) return;
 
   const mod = await getModerationState(auth.userId);

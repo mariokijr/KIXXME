@@ -52,6 +52,8 @@ export * from './createReportRequestReportType';
 export * from './createReportRequestTargetType';
 export * from './deletePhoto200';
 export * from './discoveryStats';
+export * from './emailVerificationConfirmRequest';
+export * from './emailVerificationStatus';
 export * from './errorResponse';
 export * from './forgotPasswordRequest';
 export * from './forgotPasswordResponse';

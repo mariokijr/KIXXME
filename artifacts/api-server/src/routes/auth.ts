@@ -1,13 +1,11 @@
 import { Router } from "express";
 import { supabase, supabaseUserAuth } from "../lib/supabase.js";
 import { reactivateOnLogin } from "../lib/account.js";
+import { sendEmail, appBaseUrl, passwordResetEmail } from "../lib/email.js";
 import {
-  sendEmail,
-  appBaseUrl,
-  WELCOME_SUBJECT,
-  welcomeEmailHtml,
-  passwordResetEmail,
-} from "../lib/email.js";
+  isValidEmail,
+  sendVerificationEmail,
+} from "../lib/email-verification.js";
 
 const router = Router();
 
@@ -58,6 +56,12 @@ router.post("/auth/signup", async (req, res) => {
     res.status(400).json({ error: "email and password are required" });
     return;
   }
+  if (!isValidEmail(email)) {
+    res
+      .status(400)
+      .json({ error: "Introduce un correo electrónico válido." });
+    return;
+  }
 
   const { data, error } = await supabaseUserAuth.auth.signUp({
     email,
@@ -72,14 +76,28 @@ router.post("/auth/signup", async (req, res) => {
     return;
   }
 
-  // Fire-and-forget welcome email. sendEmail never throws (it logs and returns
-  // false when email is not configured), so signup is never blocked or failed.
-  const base = appBaseUrl();
-  void sendEmail({
-    to: email,
-    subject: WELCOME_SUBJECT,
-    html: welcomeEmailHtml(base ? `${base}/` : undefined),
-  });
+  // Mandatory email verification: email the 6-digit code immediately. The
+  // account is created but unusable (requireAuth gate) until it's verified.
+  // The WELCOME email is intentionally deferred to the moment verification
+  // first succeeds (see routes/email-verification.ts), so it only lands for a
+  // genuinely usable account.
+  if (data.user?.id) {
+    void sendVerificationEmail(data.user.id, email).catch((err) => {
+      req.log.error(
+        { err: err instanceof Error ? err.message : String(err) },
+        "signup: failed to send verification email",
+      );
+    });
+  }
+
+  // The in-app verify screen needs the session that Supabase returns from
+  // signUp — which only happens while the project's "Confirm email" setting is
+  // OFF. A null session means it has been turned ON; log loudly so it's caught.
+  if (!data.session) {
+    req.log.warn(
+      "signup: no session returned — Supabase 'Confirm email' is likely ON; the in-app email-verification flow requires it OFF",
+    );
+  }
 
   res.status(201).json({
     user: {

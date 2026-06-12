@@ -14,6 +14,7 @@ import { WelcomeModal } from "@/components/welcome-modal";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { ModerationGate } from "@/components/moderation-gate";
+import { EmailVerificationGate } from "@/components/email-verification-gate";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import BottomNav from "@/components/layout/bottom-nav";
 
@@ -212,10 +213,12 @@ function App() {
                     <ConfirmProvider>
                       <LocationSync />
                       <ModerationGate>
-                        <OnboardingGate>
-                          <WelcomeModal />
-                          <Router />
-                        </OnboardingGate>
+                        <EmailVerificationGate>
+                          <OnboardingGate>
+                            <WelcomeModal />
+                            <Router />
+                          </OnboardingGate>
+                        </EmailVerificationGate>
                       </ModerationGate>
                     </ConfirmProvider>
                   </GoldUpsellProvider>

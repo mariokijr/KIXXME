@@ -23,6 +23,11 @@ export const profileDetailsTable = pgTable("profile_details", {
   // completed; set once (never re-shown). Lives here (not Supabase) because the
   // Supabase `profiles` schema is NOT DDL-modifiable from this repo.
   tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
+  // When the user proved access to their email via the mandatory 6-digit signup
+  // code. NULL until verified; set once (COALESCE) so it never resets. Lives here
+  // (not Supabase) because the Supabase `profiles` schema is NOT DDL-modifiable
+  // from this repo. Private — never folded into the public profile responses.
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   // "Mostrarme en el mapa": whether the user appears as a marker on the Gold map.
   // Default true (visible); the user can opt out to be invisible to everyone on
   // the map. Private setting — never exposed on PublicProfile.

@@ -2001,6 +2001,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /me/email-verification:
+    get:
+      operationId: getEmailVerification
+      tags: [account]
+      summary: Whether the caller's email is verified (mandatory at signup)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Email verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailVerificationStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/email/verify/send:
+    post:
+      operationId: sendEmailVerificationCode
+      tags: [account]
+      summary: Email a 6-digit verification code (60s resend cooldown)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Code request processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountActionCodeResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests (cooldown)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/email/verify/confirm:
+    post:
+      operationId: confirmEmailVerification
+      tags: [account]
+      summary: Confirm the emailed verification code; lifts the signup gate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationConfirmRequest"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailVerificationStatus"
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /subscription:
     get:
       operationId: getSubscription
@@ -4484,6 +4571,25 @@ components:
           type: string
           enum: [deactivate, delete]
       required: [success, action]
+
+    EmailVerificationStatus:
+      type: object
+      properties:
+        verified:
+          type: boolean
+          description: Whether the account's email has been verified
+        email:
+          type: string
+          description: The account's email address (for display/masking)
+      required: [verified, email]
+
+    EmailVerificationConfirmRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The 6-digit code from the verification email
+      required: [code]
 
     PasswordChangeCodeRequest:
       type: object
