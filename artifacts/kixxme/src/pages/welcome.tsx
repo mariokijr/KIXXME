@@ -220,6 +220,50 @@ export default function Welcome() {
           </Link>
         </motion.div>
 
+        {/* Redes sociales oficiales */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+          className="mt-8 flex flex-col items-center gap-4"
+          data-testid="section-social"
+        >
+          <div className="flex items-center gap-3 w-full">
+            <span className="h-px flex-1 bg-white/10" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+              Síguenos en redes
+            </span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <a
+              href="https://www.instagram.com/kixxmeapp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Síguenos en Instagram"
+              data-testid="link-instagram"
+              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+            >
+              <InstagramIcon />
+            </a>
+            <a
+              href="https://www.tiktok.com/@kixxmeapp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Síguenos en TikTok"
+              data-testid="link-tiktok"
+              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+            >
+              <TikTokIcon />
+            </a>
+          </div>
+
+          <p className="text-[12px] font-medium text-white/40">
+            Conecta con la comunidad KixxMe
+          </p>
+        </motion.div>
+
         <LegalFooter />
       </div>
     </div>
@@ -241,6 +285,24 @@ function AppleIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="white" aria-hidden="true">
       <path d="M16.36 1.43c0 1.14-.42 2.2-1.25 3.06-.99 1.02-2.18 1.61-3.47 1.51a3.5 3.5 0 0 1-.03-.43c0-1.09.48-2.26 1.27-3.08.4-.42.9-.77 1.51-1.05.6-.27 1.17-.42 1.71-.44.02.15.03.29.03.43zM20.5 17.04c-.3.69-.45 1-.83 1.61-.54.85-1.3 1.91-2.24 1.92-.84.01-1.05-.55-2.18-.54-1.13 0-1.37.55-2.2.55-.95.01-1.67-.96-2.21-1.81-1.5-2.37-1.66-5.15-.73-6.63.66-1.05 1.69-1.66 2.67-1.66.99 0 1.61.55 2.43.55.8 0 1.28-.55 2.43-.55.86 0 1.78.47 2.43 1.28-2.13 1.17-1.79 4.22.4 5.28z" />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="17.5" cy="6.5" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.6 5.82a4.28 4.28 0 0 1-2.6-3.82h-3.2v12.86a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V8.98a5.86 5.86 0 0 0-.78-.05A5.74 5.74 0 1 0 14.4 14.6V8.6a7.45 7.45 0 0 0 4.36 1.4V6.8a4.28 4.28 0 0 1-2.16-.98z" />
     </svg>
   );
 }
