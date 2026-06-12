@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { logger } from "./logger.js";
+import { notifyVerificationReviewedByEmail } from "./verification-notifications.js";
 
 /**
  * Profile / identity verification workflow.
@@ -306,5 +307,8 @@ export async function reviewVerification(
       })
       .where(eq(verificationRequestsTable.id, id));
   }
+
+  // Tell the user the outcome (fire-and-forget; never blocks/fails the review).
+  void notifyVerificationReviewedByEmail(row.userId, decision, note ?? null, id);
   return "ok";
 }

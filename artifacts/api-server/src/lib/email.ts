@@ -1173,3 +1173,82 @@ export function reportResolvedEmail(opts: {
     }),
   };
 }
+
+// --- Missed video call (private/direct call) --------------------------------
+
+export const MISSED_CALL_SUBJECT = "\u{1F4F9} Llamada perdida en KixxMe";
+
+export function missedCallEmail(opts: {
+  callerName?: string | null;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const who = opts.callerName
+    ? `<strong style="color:#f4f1fb;">${escapeHtml(opts.callerName)}</strong>`
+    : "Alguien";
+  const body = paragraphs([
+    `${who} intent\u00F3 hacerte una videollamada en KixxMe y no pudiste contestar.`,
+    "Abre la app para devolverle la llamada o seguir la conversaci\u00F3n \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: MISSED_CALL_SUBJECT,
+    html: renderEmail({
+      preheader: "Tienes una videollamada perdida en KixxMe.",
+      heading: "\u{1F4F9} Llamada perdida",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Abrir KixxMe", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+// --- Profile verification reviewed ------------------------------------------
+
+export const VERIFICATION_APPROVED_SUBJECT =
+  "\u2705 Tu perfil ha sido verificado";
+
+export function verificationApprovedEmail(opts: {
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">\u00A1Enhorabuena! Tu perfil ya est\u00E1 verificado.</strong>",
+    "Tu insignia de verificaci\u00F3n \u2705 ya es visible para el resto de la comunidad. Los perfiles verificados generan m\u00E1s confianza y aparecen antes en Descubrir.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: VERIFICATION_APPROVED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu perfil ya est\u00E1 verificado.",
+      heading: "\u2705 Perfil verificado",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Ver mi perfil", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+export const VERIFICATION_REJECTED_SUBJECT =
+  "Sobre tu solicitud de verificaci\u00F3n";
+
+export function verificationRejectedEmail(opts: {
+  note?: string | null;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const lines = [
+    "<strong style=\"color:#f4f1fb;\">No hemos podido verificar tu perfil esta vez.</strong>",
+    "Aseg\u00FArate de que tu selfie sea n\u00EDtido, con buena luz y que tu rostro coincida con las fotos de tu perfil. Puedes volver a solicitar la verificaci\u00F3n cuando quieras.",
+  ];
+  if (opts.note && opts.note.trim()) {
+    lines.push(`Nota del equipo: ${escapeHtml(opts.note.trim())}`);
+  }
+  lines.push("Equipo KixxMe");
+  return {
+    subject: VERIFICATION_REJECTED_SUBJECT,
+    html: renderEmail({
+      preheader: "Sobre tu solicitud de verificaci\u00F3n.",
+      heading: "Solicitud de verificaci\u00F3n",
+      bodyHtml: paragraphs(lines),
+      cta: opts.appUrl
+        ? { label: "Volver a intentarlo", url: opts.appUrl }
+        : undefined,
+    }),
+  };
+}

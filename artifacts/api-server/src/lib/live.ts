@@ -15,6 +15,7 @@ import { getPlan } from "./entitlement.js";
 import { mintRoomToken, getLiveKitUrl, deleteRoom } from "./livekit.js";
 import { getProfileDetails } from "./profile-details.js";
 import { haversineKm } from "./geo.js";
+import { notifyMissedCallByEmail } from "./live-notifications.js";
 
 /**
  * KixxMe Live matchmaking + call lifecycle.
@@ -374,10 +375,23 @@ export async function getActiveCall(
     row.status === "ringing" &&
     Date.now() - row.createdAt.getTime() > RING_TTL_MS
   ) {
-    await db
+    // Status-guarded so only ONE concurrent read wins the transition; the
+    // returned row tells us we're the one that should fire the notification.
+    const [missed] = await db
       .update(videoCallsTable)
       .set({ status: "missed", endedAt: new Date(), endReason: "timeout" })
-      .where(eq(videoCallsTable.id, row.id));
+      .where(
+        and(
+          eq(videoCallsTable.id, row.id),
+          eq(videoCallsTable.status, "ringing"),
+        ),
+      )
+      .returning({ id: videoCallsTable.id });
+    // Only PRIVATE (direct, person-to-person) calls warrant a missed-call
+    // email; random-match calls are anonymous and live-only.
+    if (missed && row.type === "private") {
+      void notifyMissedCallByEmail(row.calleeId, row.callerId);
+    }
     return undefined;
   }
   return row;

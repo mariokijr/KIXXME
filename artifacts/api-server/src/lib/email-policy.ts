@@ -37,7 +37,10 @@ export type EmailCategory =
   | "ticket_opened"
   | "ticket_closed"
   | "report_received"
-  | "report_resolved";
+  | "report_resolved"
+  | "missed_call"
+  | "verification_approved"
+  | "verification_rejected";
 
 /**
  * Maps an engagement category to its preference column. Categories absent from

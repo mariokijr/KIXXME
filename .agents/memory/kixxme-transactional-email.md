@@ -44,3 +44,15 @@ The send path now goes through a policy gate, NOT raw `sendEmail`, for every non
 
 **Transport is Resend-first with Gmail fallback** (`lib/email-transport.ts`): if `RESEND_API_KEY` + `EMAIL_FROM` are set it sends via Resend, else (or on Resend failure) falls back to the Gmail connector; still fail-soft. The user's earlier Gmail-only choice is now the *fallback*. Resend is the recommended prod path for custom-domain deliverability (SPF/DKIM/DMARC on kixxme.com); `APP_BASE_URL=https://kixxme.com` must be set (deploy secret) for logo+CTA links.
 **How to apply:** to add a new email, pick a category (always-on vs engagement), claim before sending, choose a stable dedupKey, and decide the fail direction by asking "is flooding or dropping worse here?".
+
+## Full event coverage (final audit)
+
+Every important user-facing event now emails. Mapping (template → trigger):
+welcome→signup, password reset→forgot (Supabase generateLink redirect `${base}/reset-password`), password change code/changed, match/message/superlike (engagement), premium welcome/renewed/payment-failed/cancelled/ended (Stripe webhook, always-on), support ticket opened/closed/reply/new-message, report received/resolved, account deactivated/deleted (+OTP codes), moderation warn/suspend/ban/remove/restore, **verification approved/rejected**, **missed private (direct) video calls**.
+
+- **Verification & missed-call emails** live in dedicated fire-and-forget modules (`verification-notifications.ts`, `live-notifications.ts`), invoked with `void` from `reviewVerification` (after the status write) and `getActiveCall` (lazy ringing→missed). Both are **always-on** categories (transactional outcomes of user-initiated actions), so they bypass `notification_preferences`.
+- **Missed-call is PRIVATE-only.** Random roulette calls never email (anonymous, live-only). The lazy missed transition is status-guarded (`where status='ringing'` + `.returning()`) so exactly one concurrent reader wins and fires; on top, the claim uses a **per-pair 30-min cooldown** (`missed:<callerId>:<calleeId>`) so repeated unanswered calls don't flood. Timeliness is bounded by the next `getActiveCall` read (caller's ~2s poll covers it). A caller who cancels before the 60s TTL yields `cancelled`, not `missed` → no email (intended).
+
+**Intentional non-events:** there is NO change-email feature (`CodeAction` = deactivate|delete|change_password|cancel_subscription, no change_email) → nothing to notify; signup email confirmation is **Supabase Auth dashboard config** (template + redirect to kixxme.com), not repo code.
+
+**Prod "From = KixxMe <no-reply@kixxme.com>" is config, not code.** Gmail fallback MUST keep its From = the connected `supportkixxme@gmail.com` (Gmail can't send as kixxme.com). Resend uses `EMAIL_FROM`. `deliverEmail` logs a one-time warning when `RESEND_API_KEY` is set but `EMAIL_FROM` is empty (Resend rejects the Gmail From → falls back to Gmail). The three prod secrets for branded kixxme.com delivery: `RESEND_API_KEY`, `EMAIL_FROM="KixxMe <no-reply@kixxme.com>"`, `APP_BASE_URL=https://kixxme.com`.

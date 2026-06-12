@@ -63,9 +63,17 @@ async function sendViaResend(key: string, email: OutboundEmail): Promise<void> {
  * Deliver one email through the active provider. Resend when configured (with a
  * Gmail fallback on failure), otherwise Gmail directly.
  */
+let warnedMissingEmailFrom = false;
+
 export async function deliverEmail(email: OutboundEmail): Promise<void> {
   const key = resendApiKey();
   if (key) {
+    if (!(process.env.EMAIL_FROM ?? "").trim() && !warnedMissingEmailFrom) {
+      warnedMissingEmailFrom = true;
+      logger.warn(
+        'RESEND_API_KEY is set but EMAIL_FROM is not. Resend requires a verified custom-domain sender (e.g. "KixxMe <no-reply@kixxme.com>"); the Gmail From will be rejected and mail will fall back to Gmail. Set EMAIL_FROM to send from kixxme.com.',
+      );
+    }
     try {
       await sendViaResend(key, email);
       return;
