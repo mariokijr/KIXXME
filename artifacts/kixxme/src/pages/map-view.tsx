@@ -204,6 +204,11 @@ export default function MapView() {
     () => filtered.filter((p) => p.distance_km != null),
     [filtered]
   );
+  // Pins actually visible on the map = other placeable Gold users + the viewer's
+  // own marker, which only renders when they have a real location. Keeps the
+  // header counter in sync with what's drawn (a lone Gold viewer who is pinned
+  // now reads "1 en el mapa", not "0").
+  const onMapCount = placeable.length + (hasLocation ? 1 : 0);
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
   // Real community totals computed server-side (global, not just the placeable
@@ -305,18 +310,22 @@ export default function MapView() {
 
     if (!canAccess) return;
 
-    // Own marker.
-    const meIcon = L.divIcon({
-      html: `<div style="width:20px;height:20px;border-radius:9999px;background:hsl(330,85%,55%);border:3px solid #fff;box-shadow:0 0 14px rgba(236,72,153,0.9);"></div>`,
-      className: "",
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
-    const meMarker = L.marker(center, {
-      icon: meIcon,
-      zIndexOffset: 1000,
-    }).addTo(map);
-    markersRef.current.push(meMarker);
+    // Own "you are here" marker — only when the viewer has a real location, so we
+    // never pin a phantom self at the national-centroid fallback (DEFAULT_CENTER).
+    // This keeps the header counter (onMapCount) in sync with what's actually drawn.
+    if (hasLocation) {
+      const meIcon = L.divIcon({
+        html: `<div style="width:20px;height:20px;border-radius:9999px;background:hsl(330,85%,55%);border:3px solid #fff;box-shadow:0 0 14px rgba(236,72,153,0.9);"></div>`,
+        className: "",
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      const meMarker = L.marker(center, {
+        icon: meIcon,
+        zIndexOffset: 1000,
+      }).addTo(map);
+      markersRef.current.push(meMarker);
+    }
 
     // Other Gold users.
     for (const user of placeable) {
@@ -337,7 +346,7 @@ export default function MapView() {
       marker.on("click", () => setSelectedId(user.id));
       markersRef.current.push(marker);
     }
-  }, [placeable, canAccess, center[0], center[1]]);
+  }, [placeable, canAccess, hasLocation, center[0], center[1]]);
 
   // Non-Gold viewers get the premium demo/trailer instead of the real map. The
   // gate is the server-computed `can_access` (never raw `profiles.plan`). Wait
@@ -358,7 +367,7 @@ export default function MapView() {
         </h1>
         {canAccess && (
           <span className="font-sans text-sm text-muted-foreground">
-            {isLoading ? "..." : `${placeable.length} en el mapa`}
+            {isLoading ? "..." : `${onMapCount} en el mapa`}
           </span>
         )}
       </header>

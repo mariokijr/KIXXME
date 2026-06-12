@@ -85,6 +85,19 @@ Gold user in the aggregate is intentional ("invisible on the map" ≠ "not a Gol
 can show 0 markers with non-zero counters; any actively-polling Gold viewer counts as ≥1 online
 (self). Auto-updates via the existing 30s `refetchInterval`.
 
+## Header "X en el mapa" counter is MARKER-synced (opposite of the stat cards)
+The small top-right header counter is a DIFFERENT metric from the `gold_total`/`online_total`
+stat cards: it must equal the pins actually drawn. Use `onMapCount = placeable.length +
+(hasLocation ? 1 : 0)` — i.e. other placeable Gold users PLUS the viewer's own pin **iff** it
+is drawn. The self ("you are here") marker is gated on `hasLocation`, so it is NOT pinned at the
+`DEFAULT_CENTER` national-centroid fallback when the viewer has no coords.
+**Why:** the bug was the header showing `placeable.length` (other users only, excludes self via
+the server `.neq("id",self)`) while the self marker was ALWAYS rendered → a lone Gold viewer saw
+their pin but "0 en el mapa". Reconcile by counting the self pin AND only drawing it when real.
+**How to apply:** keep header counter == rendered markers in lockstep. Note the self pin renders/
+counts even when "Mostrarme en el mapa" is OFF — `show_on_map` only hides you from OTHERS; the
+header counts pins on YOUR map. Do NOT conflate with the stat cards, which stay marker-decoupled.
+
 ## Non-Gold map = full early-return sales screen (not an in-map overlay)
 Non-Gold users get a whole-screen premium "trailer" (`components/map-demo.tsx`,
 self-contained radar + fake crown markers + 3 marketing messages + "Hazte Gold" CTA)
