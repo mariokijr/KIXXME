@@ -13,6 +13,7 @@ import {
   Check,
   CheckCheck,
   Video,
+  Lock,
   X,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -99,6 +100,10 @@ export default function Chat() {
   });
   const conv = conversations.find((c) => c.id === conversationId);
   const otherUser: PublicProfile | undefined = conv?.other_user;
+  // Video calls (KixxMe Live) require BOTH participants to hold Gold. The
+  // recipient's plan comes from the conversation DTO; the viewer's own Gold is
+  // verified server-side on attempt (honors GOLD_TEST_EMAILS), never pre-gated.
+  const recipientIsGold = otherUser?.plan === "gold";
 
   const sendMessage = useSendMessage();
   const markRead = useMarkConversationRead();
@@ -327,19 +332,25 @@ export default function Chat() {
 
   const handleVideoCall = () => {
     if (!otherUser) return;
-    // Both participants must be Gold; this is enforced server-side via getPlan
-    // (which honors GOLD_TEST_EMAILS), so we attempt the call and surface the
-    // Gold upsell on a 402 rather than pre-gating on the raw client plan.
+    // Video calls are Gold-to-Gold. We attempt unconditionally and let the server
+    // decide for BOTH parties via getPlan (which honors GOLD_TEST_EMAILS), then
+    // branch on the 402. The lock badge on the button is a display-only hint from
+    // the raw plan; it must NOT short-circuit the request here, or a
+    // GOLD_TEST_EMAILS recipient (whose override never writes the display plan)
+    // would be uncallable even though the server would allow it.
     createLiveCall.mutate(
       { data: { recipientId: otherUser.id } },
       {
         onSuccess: () => setLocation("/live"),
         onError: (err: any) => {
           if (err?.status === 402) {
+            // Two distinct server 402s — caller-not-Gold vs recipient-not-Gold —
+            // both already carry clear, on-brand Spanish copy; surface it.
             showGold({
-              title: "Videollamadas solo para Gold",
+              title: "Videollamada solo Gold",
               subtitle:
-                "Tú y la otra persona necesitáis Gold para iniciar una videollamada en KixxMe Live.",
+                err?.data?.error ??
+                "Las videollamadas de KixxMe Live solo funcionan cuando tú y la otra persona tenéis Gold activo.",
             });
           } else {
             toast({
@@ -469,13 +480,39 @@ export default function Chat() {
           onClick={handleVideoCall}
           disabled={createLiveCall.isPending}
           data-testid="button-video-call"
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-primary hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-60"
-          style={{ background: "rgba(168,85,247,0.12)" }}
+          aria-label={
+            recipientIsGold
+              ? "Iniciar videollamada"
+              : "Videollamada disponible solo entre usuarios Gold"
+          }
+          title={
+            recipientIsGold
+              ? "Videollamada"
+              : "Disponible solo cuando ambos tenéis Gold"
+          }
+          className={`relative w-9 h-9 flex items-center justify-center rounded-xl border flex-shrink-0 transition-colors disabled:opacity-60 ${
+            recipientIsGold
+              ? "border-border/40 text-primary hover:text-foreground"
+              : "border-border/30 text-muted-foreground/60"
+          }`}
+          style={{
+            background: recipientIsGold
+              ? "rgba(168,85,247,0.12)"
+              : "rgba(255,255,255,0.03)",
+          }}
         >
           {createLiveCall.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Video className="w-4 h-4" />
+          )}
+          {!recipientIsGold && !createLiveCall.isPending && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(8,7,18,0.95)" }}
+            >
+              <Lock className="w-2.5 h-2.5 text-muted-foreground" />
+            </span>
           )}
         </button>
         <button

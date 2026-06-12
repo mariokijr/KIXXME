@@ -14,8 +14,8 @@ description: Why frontend must not pre-block Gold features on the raw plan from 
 and short-circuit before the request. That wrongly blocks `GOLD_TEST_EMAILS`
 testers (and any future server-side override) because the request never reaches
 the server that would have allowed it. Instead **attempt the action and branch on
-the server response** — show the Gold upsell modal on `402`/`403` (e.g. video call
-→ live route 402; conversation create → `403 {code:"gold_required_no_match"}`),
+the server response** — show the premium upsell modal on `402`/`403` (e.g. video
+call → live route 402; conversation create → `403 {code:"premium_required_no_match"}`),
 otherwise a generic error toast.
 
 **Why:** raw `profiles.plan` is intentionally display-only (badges, premium page
@@ -23,10 +23,35 @@ show the *real* tier per the billing design); functional gates are enforced
 server-side via `getPlan`. A client pre-gate silently diverges from the server
 truth. Cost us a code-review cycle on the chat video button.
 
-**How to apply:** when adding any Gold-only action, let the server decide. Reuse
-the shared `useStartConversation` (conversation create → Gold modal on the coded
-403) and the `GoldUpsellProvider`/`useGoldUpsell().showGold()` modal rather than
-inventing a new toast/pre-check.
+**The "round-trip the server" rule covers BOTH parties for video calls.** You
+may use the **other** party's DTO `plan` (raw display plan from `getOtherProfile`)
+as a **display-only** hint — e.g. the chat video button shows a lock badge when
+`other_user.plan !== "gold"`. But that lock must **NOT** short-circuit the
+request: clicking still calls `createLiveCall` and branches on the server's 402,
+because `/live/calls` verifies BOTH caller and recipient via `getPlan` (honors
+`GOLD_TEST_EMAILS`). The server returns two distinct 402s — caller-not-Gold
+("KixxMe Live es exclusivo para miembros Gold") vs recipient-not-Gold ("El otro
+usuario no tiene KixxMe Gold"); surface `err.data.error` in the upsell.
+**Why:** `GOLD_TEST_EMAILS` is SET in this dev environment (the owner tests Gold
+on real phones), and the override never writes the display plan — so a hard
+client block on the recipient's raw plan makes a test-Gold recipient
+*uncallable* even though the server would allow the call. A display-only lock
+that still attempts is accurate in prod (when the allowlist is empty) AND keeps
+test-Gold↔test-Gold video calls working.
+
+**Plan tiers for the two chat gates (product rule, the owner's decision):**
+- **Cold-start chat (no mutual match):** allowed for **Plus AND Gold**; FREE
+  still needs a match. Backend gate in `conversations.ts` reads `getPlan` and
+  blocks only `plan === "free"` → `403 {code:"premium_required_no_match"}`. The
+  premium page already advertises "Chats ilimitados" for Plus, so this aligns
+  backend with marketing.
+- **Video calls (KixxMe Live):** Gold **to** Gold only — server 402s if either
+  caller or recipient isn't Gold; Plus can never call.
+
+**How to apply:** when adding any premium-only action, let the server decide.
+Reuse the shared `useStartConversation` (conversation create → upsell on the
+coded 403) and the `GoldUpsellProvider`/`useGoldUpsell().showGold()` modal rather
+than inventing a new toast/pre-check.
 
 # Descubrir / likes interaction model (intent, not code)
 

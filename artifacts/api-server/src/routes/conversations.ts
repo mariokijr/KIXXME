@@ -15,7 +15,7 @@ import {
   clampAudioDuration,
 } from "../lib/chat-media.js";
 import { areMatched } from "../lib/likes.js";
-import { hasGold } from "../lib/entitlement.js";
+import { getPlan } from "../lib/entitlement.js";
 import {
   notifyNewMessageByEmail,
   notifyConversationInviteByEmail,
@@ -29,7 +29,7 @@ const router = Router();
 async function getOtherProfile(userId: string) {
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, city, age, gender, location, created_at, last_active_at, is_verified")
+    .select("id, username, bio, avatar_url, city, age, gender, location, created_at, last_active_at, is_verified, plan")
     .eq("id", userId)
     .maybeSingle();
   if (!data) return null;
@@ -45,6 +45,7 @@ async function getOtherProfile(userId: string) {
     created_at: data.created_at,
     is_online: isOnline(data.last_active_at),
     is_verified: Boolean(data.is_verified),
+    plan: (data.plan as "free" | "plus" | "gold" | null) ?? null,
   };
 }
 
@@ -173,18 +174,19 @@ router.post("/conversations", async (req, res) => {
     return;
   }
 
-  // Gate on creation: a free/Plus user can only start a NEW conversation with
-  // someone they've matched with (mutual like). Gold users may message anyone.
-  // hasGold honors the GOLD_TEST_EMAILS override (never reads raw plan).
-  const [matched, gold] = await Promise.all([
+  // Gate on creation: a FREE user can only start a NEW conversation with someone
+  // they've matched with (mutual like). Paid tiers (Plus and Gold) may message
+  // anyone. getPlan honors the GOLD_TEST_EMAILS override (never reads raw plan).
+  const [matched, plan] = await Promise.all([
     areMatched(auth.userId, other_user_id),
-    hasGold(auth.userId),
+    getPlan(auth.userId),
   ]);
-  if (!matched && !gold) {
+  const isPaid = plan !== "free";
+  if (!matched && !isPaid) {
     res.status(403).json({
       error:
-        "Para iniciar una conversación sin match necesitas KixxMe Gold.",
-      code: "gold_required_no_match",
+        "Para iniciar una conversación sin match necesitas KixxMe Plus o Gold.",
+      code: "premium_required_no_match",
     });
     return;
   }
@@ -203,9 +205,9 @@ router.post("/conversations", async (req, res) => {
 
   res.status(201).json({ ...created, other_user: otherUser, unread_count: 0, last_message: null });
 
-  // Gold cold-start (no prior match): nudge the recipient by email, once-ever
+  // Paid cold-start (no prior match): nudge the recipient by email, once-ever
   // per conversation. Fire-and-forget — never affects the response.
-  if (gold && !matched) {
+  if (isPaid && !matched) {
     void notifyConversationInviteByEmail({
       conversationId: created.id,
       senderId: auth.userId,

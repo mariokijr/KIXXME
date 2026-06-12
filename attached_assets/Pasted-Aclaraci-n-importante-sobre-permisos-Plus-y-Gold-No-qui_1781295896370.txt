@@ -1,0 +1,66 @@
+Aclaración importante sobre permisos Plus y Gold.
+
+No quiero que Plus y Gold tengan exactamente el mismo acceso.
+
+PLAN PLUS
+
+El usuario Plus puede:
+
+* Ver perfiles del apartado “En línea”.
+* Pinchar en perfiles que aparecen en “En línea”.
+* Ver la información pública del perfil.
+* Dar likes ilimitados, según lo prometido en Premium.
+* Iniciar chat con usuarios que aparecen en “En línea”.
+
+El usuario Plus NO puede:
+
+* Hacer videollamadas.
+* Usar funciones exclusivas de Gold.
+* Tener superlikes ilimitados si eso está reservado para Gold.
+
+PLAN GOLD
+
+El usuario Gold puede:
+
+* Ver todos los perfiles del apartado “En línea”.
+* Pinchar en cualquier perfil que aparezca en “En línea”.
+* Ver toda la información pública del perfil.
+* Dar likes.
+* Usar superlikes según los permisos definidos para Gold.
+* Iniciar chat con cualquier usuario que aparezca en “En línea”, aunque ese usuario sea gratuito, Plus o Gold.
+* Acceder a la función de videollamada.
+
+REGLA DE CHAT EN “EN LÍNEA”
+
+Los usuarios Plus y Gold pueden iniciar conversación con cualquier perfil que aparezca en el apartado “En línea”.
+
+Esto aplica solo a usuarios mostrados en la sección “En línea”, no necesariamente a toda la aplicación si existe otra lógica distinta.
+
+REGLA DE VIDEOLLAMADA
+
+La videollamada es exclusiva para usuarios Gold.
+
+Para que una videollamada pueda hacerse, ambos usuarios deben tener plan Gold activo.
+
+Ejemplos:
+
+* Gold + Gold = videollamada permitida.
+* Gold + Plus = videollamada bloqueada.
+* Gold + Gratis = videollamada bloqueada.
+* Plus + Plus = videollamada bloqueada.
+* Plus + Gratis = videollamada bloqueada.
+* Gratis + Gratis = videollamada bloqueada.
+
+CASO IMPORTANTE
+
+Si un usuario Gold escribe a un usuario gratuito desde “En línea”, el chat debe funcionar normal.
+
+Pero si intentan hacer videollamada desde mensajes, al usuario gratuito debe salirle un aviso indicando que necesita activar el plan Gold para poder hacer videollamadas.
+
+Lo mismo aplica para usuarios Plus: pueden chatear, pero si intentan hacer videollamada, debe aparecer un aviso de que la videollamada es exclusiva del plan Gold.
+
+OBJETIVO FINAL
+
+* Plus: acceso a perfiles en línea, likes ilimitados y chat con usuarios en línea, pero sin videollamadas ni superlikes ilimitados si no están incluidos.
+* Gold: acceso completo a perfiles en línea, chat con cualquier usuario en línea y videollamadas solo cuando ambos usuarios sean Gold.
+* Usuarios gratuitos: mantener las restricciones actuales.

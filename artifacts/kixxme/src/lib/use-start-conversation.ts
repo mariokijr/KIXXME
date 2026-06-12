@@ -6,9 +6,9 @@ import { useGoldUpsell } from "@/lib/gold-upsell";
 /**
  * Centralizes "open a chat with this user" across discover, En línea, favorites,
  * matches, public profile and the map. Creating a conversation is gated server-
- * side: an existing conversation always opens; otherwise a match OR Gold is
- * required. A 403 with code `gold_required_no_match` surfaces the on-brand Gold
- * upsell modal instead of a generic error toast.
+ * side: an existing conversation always opens; otherwise a match OR a paid plan
+ * (Plus or Gold) is required. A 403 with code `premium_required_no_match`
+ * surfaces the on-brand premium upsell modal instead of a generic error toast.
  */
 export function useStartConversation() {
   const createConv = useCreateOrGetConversation();
@@ -24,12 +24,12 @@ export function useStartConversation() {
         onError: (err: any) => {
           if (
             err?.status === 403 &&
-            err?.data?.code === "gold_required_no_match"
+            err?.data?.code === "premium_required_no_match"
           ) {
             showGold({
-              title: "Inicia el chat con Gold",
+              title: "Chatea sin esperar",
               subtitle:
-                "Para escribir a alguien sin un match mutuo necesitas Gold. ¡Hazte Gold y conecta sin esperar!",
+                "Para escribir a alguien sin un match mutuo necesitas KixxMe Plus o Gold. ¡Mejora tu plan y conecta al instante!",
             });
           } else {
             toast({

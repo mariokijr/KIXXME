@@ -1,0 +1,60 @@
+He detectado un problema importante con los permisos y funcionalidades de los planes Plus y Gold dentro de la sección “En línea” del apartado Descubrir.
+
+Necesito que reviséis e implementéis el siguiente comportamiento:
+
+SECCIÓN “EN LÍNEA”
+
+Los perfiles que aparecen en “En línea” deben ser completamente interactivos según el plan del usuario.
+
+USUARIO GOLD
+
+* Puede pulsar cualquier perfil que aparezca en “En línea”.
+* Puede abrir el perfil completo.
+* Puede ver toda la información pública del usuario.
+* Puede dar Like.
+* Puede dar SuperLike.
+* Puede iniciar una conversación privada con cualquier usuario que esté en línea.
+* Puede navegar libremente entre todos los perfiles en línea sin restricciones.
+
+VIDEOLLAMADAS GOLD
+
+La videollamada debe ser una función exclusiva de Gold, pero únicamente cuando ambos usuarios tengan Gold activo.
+
+Ejemplos:
+
+* Gold + Gold = Videollamada permitida.
+* Gold + Plus = Videollamada no permitida.
+* Gold + Usuario gratuito = Videollamada no permitida.
+
+Si un usuario Gold entra en el perfil de alguien que no tiene Gold, debe poder escribirle y chatear normalmente, pero el botón de videollamada debe aparecer bloqueado o no disponible.
+
+USUARIO PLUS
+
+* Puede abrir perfiles de usuarios que estén en línea.
+* Puede ver toda la información pública.
+* Puede dar Like.
+* Puede dar SuperLike.
+* Puede iniciar conversaciones privadas.
+* No puede realizar videollamadas bajo ninguna circunstancia.
+
+USUARIO GRATUITO
+
+Mantener las limitaciones actuales según el modelo de negocio definido.
+
+REVISIÓN TÉCNICA
+
+Revisad:
+
+* Roles y permisos.
+* Middleware de autorización.
+* Restricciones de frontend.
+* Restricciones de backend.
+* Actualización de permisos en tiempo real.
+* Control de acceso a perfiles en línea.
+* Sistema de likes, superlikes, chat y videollamadas.
+
+OBJETIVO FINAL
+
+Los usuarios Gold y Plus deben poder interactuar completamente con los perfiles mostrados en la sección “En línea” (ver perfil, dar likes, superlikes y abrir chat).
+
+La videollamada debe ser una función premium exclusiva para usuarios Gold y solo debe habilitarse cuando ambos participantes tengan una suscripción Gold activa.
