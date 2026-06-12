@@ -25,8 +25,8 @@ const INFO_CARDS = [
   },
   {
     icon: <Heart className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Conecta con gais y personas trans",
-    desc: "Un espacio diseñado exclusivamente para que la comunidad gay, trans y LGBTQ+ conecte de verdad.",
+    title: "Conecta con personas",
+    desc: "Un espacio diseñado para que personas auténticas creen conexiones reales en una comunidad segura y acogedora.",
   },
   {
     icon: <ShieldCheck className="w-8 h-8" strokeWidth={1.5} />,
