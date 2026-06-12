@@ -257,9 +257,16 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess, hasLocation]);
 
-  // Initialize the map once.
+  // Initialize the map when (and only when) the viewer has Gold access and the
+  // container is mounted. Tying init to `canAccess` — instead of a one-time `[]`
+  // mount — is deliberate: the main return only renders the map container during
+  // the loading frame or for Gold users, so a one-time init would build a Leaflet
+  // instance during a non-Gold loading frame that the early return then orphans.
+  // Re-running on `canAccess` means a user who upgrades while sitting on /map
+  // (access flips via the 30s poll, no route remount) still gets a live map, and
+  // the map is torn down cleanly if access is ever lost.
   useEffect(() => {
-    if (!mapDivRef.current || mapRef.current) return;
+    if (!canAccess || !mapDivRef.current || mapRef.current) return;
     const map = L.map(mapDivRef.current, {
       center,
       zoom: hasLocation ? 12 : 5,
@@ -277,7 +284,7 @@ export default function MapView() {
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canAccess]);
 
   // Recenter when the user's own location becomes available.
   useEffect(() => {

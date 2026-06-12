@@ -83,13 +83,14 @@ self-contained radar + fake crown markers + 3 marketing messages + "Hazte Gold" 
 returned **early** from `map-view.tsx` — `if (!isLoading && !canAccess) return <MapDemo/>`,
 placed AFTER all hooks. Gate on `can_access`, never `profiles.plan`. The old dimmed-map +
 lock-card overlay is gone.
-**Latent edge case (accepted, not fixed):** the Leaflet init effect has `[]` deps, so during
-the non-Gold `isLoading` frame the main return mounts the map div and inits a Leaflet map;
-the early return then unmounts that div, orphaning `mapRef`. If `can_access` later flips true
-via the 30s poll *while the user stays on /map* (e.g. upgrade in another tab), the init effect
-never re-runs → blank map. The normal upgrade path (CTA → /premium → back) remounts MapView
-fresh, so it rarely bites. Fix (if needed): tie map init lifecycle to `canAccess` (init/cleanup
-on `[canAccess]`) instead of `[]` — but that touches the core Gold map, so test carefully.
+**Map init lifecycle is tied to `[canAccess]`, NOT a one-time `[]` mount.** Because the early
+return means the map div only renders during the loading frame or for Gold users, a one-time
+`[]` init would build a Leaflet map during a non-Gold loading frame that the early return then
+orphans (`mapRef` → removed node) → blank map if `can_access` later flips true via the 30s poll
+while staying on /map (e.g. upgrade in another tab). So the init effect runs on `[canAccess]`
+(guarded `if (!canAccess) return`) with cleanup `map.remove()` + null on access loss/unmount.
+Do NOT revert to `[]` deps; and do NOT gate the `mapDivRef` div behind a post-load state flip
+while keeping `[]` init — the effect would never re-run after the flip (the original trap).
 
 ## Stats count cap
 `GET /profiles/stats` counts in JS (load-and-count) capped at 5000 rows — an early-stage
