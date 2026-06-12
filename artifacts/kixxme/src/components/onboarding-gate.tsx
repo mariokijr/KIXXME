@@ -128,6 +128,9 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   // Fail open: never trap a user behind onboarding because of an API error.
   if (profileError || photosError || !profile || !status) return <>{children}</>;
 
+  // Internal system/support account: never forced through onboarding.
+  if (profile.is_system) return <>{children}</>;
+
   if (status.complete) return <>{children}</>;
 
   // Incomplete → mandatory onboarding. Tutorial first (unless already finished).

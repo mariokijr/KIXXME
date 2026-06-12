@@ -581,6 +581,72 @@ export function passwordChangedEmail(appUrl?: string): {
   };
 }
 
+export const SUBSCRIPTION_CANCEL_CODE_SUBJECT =
+  "Confirma la cancelación de tu suscripción KixxMe";
+
+/** Verification-code email gating a subscription cancellation. */
+export function subscriptionCancelCodeEmail(code: string): {
+  subject: string;
+  html: string;
+} {
+  const body = [
+    `<p style="margin:0 0 14px 0;">Hola,</p>`,
+    `<p style="margin:0 0 14px 0;">Hemos recibido una solicitud para <strong style="color:#f4f1fb;">cancelar tu suscripción</strong> de KixxMe.</p>`,
+    `<p style="margin:0 0 4px 0;">Para confirmar que has sido tú, copia este código y pégalo en la aplicación:</p>`,
+    codeBlock(code),
+    `<p style="margin:14px 0 0 0;">Este código caduca en <strong style="color:#f4f1fb;">10 minutos</strong>.</p>`,
+    `<p style="margin:14px 0 0 0;color:#f3b14b;">\u26A0\uFE0F Si no has solicitado esto, ignora este correo y tu suscripción seguirá activa.</p>`,
+  ].join("\n            ");
+  return {
+    subject: SUBSCRIPTION_CANCEL_CODE_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu código para confirmar la cancelación.",
+      heading: "Confirma la cancelación \u{1F9FE}",
+      bodyHtml: body,
+    }),
+  };
+}
+
+export const SUBSCRIPTION_CANCELLED_SUBJECT =
+  "Tu suscripción KixxMe se cancelará";
+
+/**
+ * Confirmation sent AFTER scheduling cancel_at_period_end. The plan stays
+ * active until `endDate`; afterwards the account auto-downgrades to free.
+ */
+export function subscriptionCancelledEmail(
+  endDate: Date | null,
+  tier: string | null,
+  appUrl?: string,
+): { subject: string; html: string } {
+  const planName =
+    tier === "gold" ? "Gold" : tier === "plus" ? "Plus" : "premium";
+  const when = endDate
+    ? `Seguir\u00E1s disfrutando de todas las ventajas <strong style="color:#f4f1fb;">${escapeHtml(
+        planName,
+      )}</strong> hasta el <strong style="color:#f4f1fb;">${escapeHtml(
+        formatDateEs(endDate),
+      )}</strong>. Ese d\u00EDa tu cuenta pasar\u00E1 autom\u00E1ticamente al plan gratuito y no se realizar\u00E1n m\u00E1s cobros.`
+    : `Seguir\u00E1s disfrutando de todas las ventajas hasta el final de tu periodo de facturaci\u00F3n actual. Despu\u00E9s tu cuenta pasar\u00E1 autom\u00E1ticamente al plan gratuito y no se realizar\u00E1n m\u00E1s cobros.`;
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">Tu suscripci\u00F3n ${escapeHtml(
+      planName,
+    )} de KixxMe se ha programado para cancelarse.</strong>`,
+    when,
+    "Si cambias de opini\u00F3n, puedes volver a suscribirte cuando quieras desde la app.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: SUBSCRIPTION_CANCELLED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu suscripci\u00F3n se cancelar\u00E1 al final del periodo.",
+      heading: "Suscripci\u00F3n cancelada",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Abrir KixxMe", url: appUrl } : undefined,
+    }),
+  };
+}
+
 export const DEACTIVATED_SUBJECT = "Tu cuenta de KixxMe est\u00E1 desactivada";
 
 /** Confirmation sent after a successful deactivation. */

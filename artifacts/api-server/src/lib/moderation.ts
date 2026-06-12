@@ -11,6 +11,7 @@ import {
 import { supabase } from "./supabase.js";
 import { logger } from "./logger.js";
 import { getDeactivatedIds, isDeactivated } from "./account.js";
+import { getSystemAccountIds, isSystemAccount } from "./system-accounts.js";
 
 /**
  * Admin moderation: suspensions/bans plus the auto-flagging that surfaces
@@ -142,14 +143,19 @@ export async function getUserIdsInState(
  * suspended/banned. Replaces direct `isDeactivated` calls at exposure surfaces.
  */
 export async function isUnavailable(userId: string): Promise<boolean> {
-  const [deactivated, moderated] = await Promise.all([
+  const [deactivated, moderated, system] = await Promise.all([
     isDeactivated(userId),
     isSuspendedOrBanned(userId),
+    isSystemAccount(userId),
   ]);
-  return deactivated || moderated;
+  return deactivated || moderated || system;
 }
 
-/** Union of deactivated and moderated ids — hide all of these everywhere. */
+/**
+ * Union of deactivated, moderated and system-account ids — hide all of these
+ * everywhere. System ids are best-effort (populated as those accounts
+ * authenticate); list surfaces also exclude them via calidad mínima.
+ */
 export async function getUnavailableIds(): Promise<Set<string>> {
   const [deactivated, moderated] = await Promise.all([
     getDeactivatedIds(),
@@ -157,6 +163,7 @@ export async function getUnavailableIds(): Promise<Set<string>> {
   ]);
   const all = new Set<string>(deactivated);
   for (const id of moderated) all.add(id);
+  for (const id of getSystemAccountIds()) all.add(id);
   return all;
 }
 

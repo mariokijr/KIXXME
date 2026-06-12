@@ -136,6 +136,7 @@ export const GetMyProfileResponse = zod.object({
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -177,6 +178,7 @@ export const UpdateMyProfileResponse = zod.object({
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -202,6 +204,7 @@ export const CompleteTutorialResponse = zod.object({
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -568,6 +571,7 @@ export const UpdateMyLocationResponse = zod.object({
   "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
 })
@@ -1356,6 +1360,41 @@ export const ConfirmAccountActionBody = zod.object({
 export const ConfirmAccountActionResponse = zod.object({
   "success": zod.boolean(),
   "action": zod.enum(['deactivate', 'delete'])
+})
+
+
+/**
+ * @summary Current subscription status (plan + whether a real active Stripe subscription exists)
+ */
+export const GetSubscriptionResponse = zod.object({
+  "has_active_subscription": zod.boolean().describe('Whether a real, active paid Stripe subscription exists. False for free users and for GOLD_TEST_EMAILS overrides (no real subscription).\n'),
+  "plan": zod.enum(['free', 'plus', 'gold']).describe('Effective entitlement plan (honors test overrides).'),
+  "tier": zod.string().nullish().describe('Tier of the active subscription (plus|gold) when one exists.'),
+  "current_period_end": zod.string().nullish().describe('ISO timestamp when the current paid period ends.'),
+  "cancel_at_period_end": zod.boolean().describe('Whether the active subscription is already scheduled to cancel at period end.')
+})
+
+
+/**
+ * @summary Email a one-time code to confirm cancelling the active subscription
+ */
+export const RequestSubscriptionCancelCodeResponse = zod.object({
+  "sent": zod.boolean().describe('Whether the verification email was dispatched'),
+  "expiresAt": zod.string().nullish(),
+  "message": zod.string().nullish().describe('Human-readable status (e.g. when email delivery is unavailable)')
+})
+
+
+/**
+ * @summary Confirm cancellation with the emailed code (sets cancel_at_period_end)
+ */
+export const ConfirmSubscriptionCancelBody = zod.object({
+  "code": zod.string().describe('The 6-digit code from the cancellation email')
+})
+
+export const ConfirmSubscriptionCancelResponse = zod.object({
+  "success": zod.boolean(),
+  "current_period_end": zod.string().nullish().describe('ISO timestamp the access remains active until')
 })
 
 

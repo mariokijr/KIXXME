@@ -276,6 +276,100 @@ export async function cancelAllSubscriptionsForUser(
   }
 }
 
+// --- Self-service subscription status + cancellation -----------------------
+
+export interface ActiveSubscription {
+  id: string;
+  tier: string | null;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+/** Period end of a subscription (basil API: lives on the line item). */
+function periodEndOf(sub: Stripe.Subscription): Date | null {
+  const end = sub.items?.data?.[0]?.current_period_end;
+  return typeof end === "number" ? new Date(end * 1000) : null;
+}
+
+/**
+ * Load the user's entitled (active/trialing/past_due) subscriptions plus the
+ * "preferred" one — the locally-tracked current sub when still entitled, else
+ * the newest. Returns null (and makes ZERO Stripe calls) when the user has no
+ * billing_customers row, so free users' settings loads stay cheap.
+ */
+async function loadEntitledSubs(userId: string): Promise<{
+  stripe: Stripe;
+  entitled: Stripe.Subscription[];
+  preferred: Stripe.Subscription;
+} | null> {
+  const row = (
+    await db
+      .select()
+      .from(billingCustomersTable)
+      .where(eq(billingCustomersTable.userId, userId))
+      .limit(1)
+  )[0];
+  if (!row?.stripeCustomerId) return null;
+  const stripe = await getUncachableStripeClient();
+  const list = await stripe.subscriptions.list({
+    customer: row.stripeCustomerId,
+    status: "all",
+    limit: 100,
+  });
+  const entitled = list.data.filter((s) => ENTITLED_STATUSES.has(s.status));
+  if (entitled.length === 0) return null;
+  const preferred =
+    entitled.find((s) => s.id === row.stripeSubscriptionId) ??
+    entitled.reduce((a, b) => (b.created > a.created ? b : a));
+  return { stripe, entitled, preferred };
+}
+
+/** The user's real active subscription, or null. May call Stripe. */
+export async function getActiveSubscription(
+  userId: string,
+): Promise<ActiveSubscription | null> {
+  const loaded = await loadEntitledSubs(userId);
+  if (!loaded) return null;
+  const { preferred } = loaded;
+  return {
+    id: preferred.id,
+    tier: tierFromSubscription(preferred),
+    currentPeriodEnd: periodEndOf(preferred),
+    cancelAtPeriodEnd: preferred.cancel_at_period_end,
+  };
+}
+
+/**
+ * Schedule cancellation at period end for ALL of the user's entitled
+ * subscriptions (intent = stop billing; covers the rare double-sub case). The
+ * plan stays active until Stripe fires `customer.subscription.deleted` at period
+ * end, which the webhook downgrades to free. Returns the access end date + tier,
+ * or null when there is nothing to cancel.
+ */
+export async function cancelSubscriptionAtPeriodEnd(
+  userId: string,
+): Promise<{ currentPeriodEnd: Date | null; tier: string | null } | null> {
+  const loaded = await loadEntitledSubs(userId);
+  if (!loaded) return null;
+  const { stripe, entitled, preferred } = loaded;
+  let preferredFinal = preferred;
+  for (const sub of entitled) {
+    if (sub.cancel_at_period_end) continue; // already scheduled
+    const updated = await stripe.subscriptions.update(sub.id, {
+      cancel_at_period_end: true,
+    });
+    if (sub.id === preferred.id) preferredFinal = updated;
+  }
+  const endDate =
+    typeof preferredFinal.cancel_at === "number"
+      ? new Date(preferredFinal.cancel_at * 1000)
+      : periodEndOf(preferredFinal);
+  return {
+    currentPeriodEnd: endDate,
+    tier: tierFromSubscription(preferredFinal),
+  };
+}
+
 /**
  * Apply entitlement changes from a verified Stripe event. Throwing here makes
  * the webhook return 500 so Stripe retries (the upserts are idempotent).

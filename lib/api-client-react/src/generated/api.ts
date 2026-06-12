@@ -39,6 +39,8 @@ import type {
   CheckoutRequest,
   CheckoutResponse,
   ClaimRewardResponse,
+  ConfirmSubscriptionCancelRequest,
+  ConfirmSubscriptionCancelResponse,
   Conversation,
   CreateOrGetConversationBody,
   CreateReportRequest,
@@ -97,6 +99,7 @@ import type {
   SetPhotoAsAvatar200,
   SetTicketStatusRequest,
   SignUpRequest,
+  SubscriptionStatus,
   SuccessResponse,
   SupportMessageRequest,
   SupportReportRequest,
@@ -4969,6 +4972,224 @@ export const useConfirmAccountAction = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getConfirmAccountActionMutationOptions(options));
+    }
+
+export const getGetSubscriptionUrl = () => {
+
+
+
+
+  return `/api/subscription`
+}
+
+/**
+ * @summary Current subscription status (plan + whether a real active Stripe subscription exists)
+ */
+export const getSubscription = async ( options?: RequestInit): Promise<SubscriptionStatus> => {
+
+  return customFetch<SubscriptionStatus>(getGetSubscriptionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubscriptionQueryKey = () => {
+    return [
+    `/api/subscription`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionQueryOptions = <TData = Awaited<ReturnType<typeof getSubscription>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscription>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscription>>> = ({ signal }) => getSubscription({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscription>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscription>>>
+export type GetSubscriptionQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current subscription status (plan + whether a real active Stripe subscription exists)
+ */
+
+export function useGetSubscription<TData = Awaited<ReturnType<typeof getSubscription>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscription>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRequestSubscriptionCancelCodeUrl = () => {
+
+
+
+
+  return `/api/subscription/cancel/request`
+}
+
+/**
+ * @summary Email a one-time code to confirm cancelling the active subscription
+ */
+export const requestSubscriptionCancelCode = async ( options?: RequestInit): Promise<AccountActionCodeResponse> => {
+
+  return customFetch<AccountActionCodeResponse>(getRequestSubscriptionCancelCodeUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRequestSubscriptionCancelCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestSubscriptionCancelCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestSubscriptionCancelCode>>, TError,void, TContext> => {
+
+const mutationKey = ['requestSubscriptionCancelCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestSubscriptionCancelCode>>, void> = () => {
+
+
+          return  requestSubscriptionCancelCode(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestSubscriptionCancelCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestSubscriptionCancelCode>>>
+
+    export type RequestSubscriptionCancelCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Email a one-time code to confirm cancelling the active subscription
+ */
+export const useRequestSubscriptionCancelCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestSubscriptionCancelCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestSubscriptionCancelCode>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRequestSubscriptionCancelCodeMutationOptions(options));
+    }
+
+export const getConfirmSubscriptionCancelUrl = () => {
+
+
+
+
+  return `/api/subscription/cancel/confirm`
+}
+
+/**
+ * @summary Confirm cancellation with the emailed code (sets cancel_at_period_end)
+ */
+export const confirmSubscriptionCancel = async (confirmSubscriptionCancelRequest: ConfirmSubscriptionCancelRequest, options?: RequestInit): Promise<ConfirmSubscriptionCancelResponse> => {
+
+  return customFetch<ConfirmSubscriptionCancelResponse>(getConfirmSubscriptionCancelUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      confirmSubscriptionCancelRequest,)
+  }
+);}
+
+
+
+
+export const getConfirmSubscriptionCancelMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmSubscriptionCancel>>, TError,{data: BodyType<ConfirmSubscriptionCancelRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmSubscriptionCancel>>, TError,{data: BodyType<ConfirmSubscriptionCancelRequest>}, TContext> => {
+
+const mutationKey = ['confirmSubscriptionCancel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmSubscriptionCancel>>, {data: BodyType<ConfirmSubscriptionCancelRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmSubscriptionCancel(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmSubscriptionCancelMutationResult = NonNullable<Awaited<ReturnType<typeof confirmSubscriptionCancel>>>
+    export type ConfirmSubscriptionCancelMutationBody = BodyType<ConfirmSubscriptionCancelRequest>
+    export type ConfirmSubscriptionCancelMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Confirm cancellation with the emailed code (sets cancel_at_period_end)
+ */
+export const useConfirmSubscriptionCancel = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmSubscriptionCancel>>, TError,{data: BodyType<ConfirmSubscriptionCancelRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmSubscriptionCancel>>,
+        TError,
+        {data: BodyType<ConfirmSubscriptionCancelRequest>},
+        TContext
+      > => {
+      return useMutation(getConfirmSubscriptionCancelMutationOptions(options));
     }
 
 export const getRequestPasswordChangeCodeUrl = () => {

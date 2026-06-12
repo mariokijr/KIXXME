@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { supabase, supabaseAuth } from "./supabase.js";
 import { getModerationState } from "./moderation.js";
+import { recordIfSystem } from "./system-accounts.js";
 
 export interface AuthContext {
   userId: string;
@@ -66,7 +67,9 @@ export async function requireAuth(
   }
 
   touchLastActive(userId);
-  return { userId, token, email: data.user.email ?? null };
+  const email = data.user.email ?? null;
+  recordIfSystem(userId, email);
+  return { userId, token, email };
 }
 
 /**

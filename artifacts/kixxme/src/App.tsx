@@ -33,6 +33,7 @@ import Matches from "@/pages/matches";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ChangePassword from "@/pages/change-password";
+import CancelSubscription from "@/pages/cancel-subscription";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
 import BlockedUsers from "@/pages/blocked-users";
@@ -187,6 +188,7 @@ function Router() {
       <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
       <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
       <Route path="/settings/password">{() => <ProtectedMain component={ChangePassword} />}</Route>
+      <Route path="/settings/cancel-subscription">{() => <ProtectedMain component={CancelSubscription} />}</Route>
       <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
       <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>

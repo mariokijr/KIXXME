@@ -2001,6 +2001,99 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /subscription:
+    get:
+      operationId: getSubscription
+      tags: [subscription]
+      summary: Current subscription status (plan + whether a real active Stripe subscription exists)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subscription/cancel/request:
+    post:
+      operationId: requestSubscriptionCancelCode
+      tags: [subscription]
+      summary: Email a one-time code to confirm cancelling the active subscription
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Code request processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountActionCodeResponse"
+        "400":
+          description: No active subscription to cancel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Subscription already scheduled to cancel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests (cooldown)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subscription/cancel/confirm:
+    post:
+      operationId: confirmSubscriptionCancel
+      tags: [subscription]
+      summary: Confirm cancellation with the emailed code (sets cancel_at_period_end)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmSubscriptionCancelRequest"
+      responses:
+        "200":
+          description: Subscription scheduled to cancel at period end
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmSubscriptionCancelResponse"
+        "400":
+          description: Invalid or expired code, or no active subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/password/request:
     post:
       operationId: requestPasswordChangeCode
@@ -3471,6 +3564,11 @@ components:
           description: >
             Whether the user finished the mandatory onboarding tutorial. Private
             to the owner (never exposed on PublicProfile).
+        is_system:
+          type: boolean
+          description: >
+            Whether this is an internal system/support account. Private to the
+            owner (never exposed on PublicProfile); used to skip onboarding.
         created_at:
           type: string
         updated_at:
@@ -4130,6 +4228,50 @@ components:
       properties:
         success:
           type: boolean
+      required: [success]
+
+    SubscriptionStatus:
+      type: object
+      properties:
+        has_active_subscription:
+          type: boolean
+          description: >
+            Whether a real, active paid Stripe subscription exists. False for
+            free users and for GOLD_TEST_EMAILS overrides (no real subscription).
+        plan:
+          type: string
+          enum: [free, plus, gold]
+          description: Effective entitlement plan (honors test overrides).
+        tier:
+          type: string
+          nullable: true
+          description: Tier of the active subscription (plus|gold) when one exists.
+        current_period_end:
+          type: string
+          nullable: true
+          description: ISO timestamp when the current paid period ends.
+        cancel_at_period_end:
+          type: boolean
+          description: Whether the active subscription is already scheduled to cancel at period end.
+      required: [has_active_subscription, plan, cancel_at_period_end]
+
+    ConfirmSubscriptionCancelRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The 6-digit code from the cancellation email
+      required: [code]
+
+    ConfirmSubscriptionCancelResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        current_period_end:
+          type: string
+          nullable: true
+          description: ISO timestamp the access remains active until
       required: [success]
 
     CreateReportRequest:

@@ -1,0 +1,250 @@
+Quiero ajustar definitivamente la lógica de soporte, suscripciones, mensajes, videollamadas y cancelaciones.
+
+1. CUENTA DE SOPORTE / MODERACIÓN
+
+La cuenta supportkixxme@gmail.com no debe funcionar como un perfil normal de la aplicación.
+
+Requisitos:
+
+* No debe pedir completar perfil.
+* No debe pedir subir fotos.
+* No debe aparecer en Descubrir.
+* No debe aparecer en En línea.
+* No debe aparecer en Cuadrícula.
+* No debe aparecer en Empareja.
+* No debe aparecer en búsquedas de usuarios.
+* No debe poder recibir likes.
+* No debe poder recibir superlikes.
+* No debe generar matches.
+* No debe tener perfil público visible.
+* Debe poder acceder directamente a herramientas de soporte y moderación.
+
+La cuenta supportkixxme@gmail.com es una cuenta interna del sistema.
+
+2. SOPORTE TÉCNICO PARA USUARIOS GOLD
+
+Cuando un usuario tenga Gold activo:
+
+* Debe aparecer automáticamente una conversación anclada en la pestaña de Mensajes.
+* Esa conversación debe llamarse “Soporte Técnico” o “Soporte KixxMe”.
+* Debe permanecer siempre arriba del todo.
+* El usuario Gold puede escribir al soporte cuando quiera.
+* El soporte puede responder desde la cuenta supportkixxme@gmail.com.
+* Esta conversación debe estar marcada como conversación de soporte y no como match normal.
+
+Cuando un usuario NO tenga Gold:
+
+* No debe ver la conversación de soporte.
+* No debe poder abrir un chat directo con soporte.
+* Debe mostrarse un mensaje indicando que puede contactar por email:
+    supportkixxme@gmail.com
+
+3. DESAPARICIÓN DEL SOPORTE CUANDO TERMINA GOLD
+
+Si un usuario cancela Gold:
+
+* No pierde Gold inmediatamente.
+* Sigue teniendo Gold hasta el final del periodo ya pagado.
+* Mientras siga siendo Gold:
+    * Mantiene el soporte anclado.
+    * Mantiene videollamadas.
+    * Mantiene mensajes premium.
+    * Mantiene todas las ventajas Gold.
+
+Cuando llegue la fecha final de la suscripción:
+
+* Gold se desactiva automáticamente.
+* El chat anclado de soporte desaparece automáticamente.
+* Se eliminan los beneficios Gold.
+
+Ejemplo:
+
+* Usuario compra Gold el 1 de julio.
+* Cancela el 20 de julio.
+* Mantiene Gold hasta el 1 de agosto.
+* El 1 de agosto pierde Gold y desaparece el soporte anclado.
+
+4. BOTÓN CANCELAR SUSCRIPCIÓN
+
+En Ajustes debe existir un botón:
+
+“Cancelar suscripción”
+
+IMPORTANTE:
+
+No solo para Gold.
+
+Debe aparecer para cualquier usuario que tenga una suscripción activa:
+
+* Gold.
+* Plus.
+* Cualquier otro plan de pago actual o futuro.
+
+Si el usuario no tiene ninguna suscripción activa:
+
+* El botón no debe mostrarse.
+
+5. CANCELACIÓN MEDIANTE CÓDIGO POR EMAIL
+
+Al pulsar “Cancelar suscripción”:
+
+NO debe cancelarse inmediatamente.
+
+Proceso:
+
+1. Usuario solicita cancelar.
+2. Se envía un código al email asociado a la cuenta.
+3. El usuario recibe el código.
+4. Copia el código.
+5. Lo introduce en la aplicación.
+6. Solo entonces se confirma la cancelación.
+
+Requisitos:
+
+* Código temporal.
+* Caducidad de 10 minutos.
+* Posibilidad de reenviar código.
+* Mostrar error si el código es incorrecto.
+* Mostrar error si el código ha caducado.
+
+6. CANCELACIÓN AL FINAL DEL CICLO
+
+Cuando el usuario confirme la cancelación:
+
+NO se cancela al instante.
+
+Debe configurarse como:
+
+“Cancelar al final del periodo de facturación”.
+
+Ejemplos:
+
+Usuario Plus:
+
+* Compra Plus el 1 de julio.
+* Cancela el 20 de julio.
+* Sigue siendo Plus hasta el 1 de agosto.
+* El 1 de agosto pierde Plus.
+
+Usuario Gold:
+
+* Compra Gold el 1 de julio.
+* Cancela el 20 de julio.
+* Sigue siendo Gold hasta el 1 de agosto.
+* El 1 de agosto pierde Gold.
+
+7. MENSAJES Y MATCHES
+
+Usuarios normales:
+
+* Solo pueden hablar cuando existe match mutuo.
+* Si Pedro da like a Iván e Iván da like a Pedro:
+    * Se crea automáticamente un chat.
+    * Ambos pueden hablar.
+
+Usuarios Gold:
+
+* Pueden iniciar conversación con cualquier usuario aunque no exista match.
+
+8. VIDEOLLAMADAS
+
+La opción de videollamada aparece dentro del chat.
+
+Regla obligatoria:
+
+* Ambos usuarios deben tener Gold activo.
+
+Si uno de los dos no tiene Gold:
+
+* La videollamada no puede iniciarse.
+* Mostrar mensaje explicando que ambos usuarios necesitan Gold.
+
+9. APARTADO “EN LÍNEA”
+
+En la sección “En línea”:
+
+* Deben aparecer todos los usuarios conectados actualmente.
+* Se puede visitar cualquier perfil.
+
+Usuarios normales:
+
+* Pueden ver perfiles.
+* No pueden escribir sin match.
+
+Usuarios Gold:
+
+* Pueden escribir directamente desde En línea aunque no exista match.
+
+10. DESCUBRIR, LIKES Y CUADRÍCULA
+
+Cuando un usuario:
+
+* Da like.
+* Da superlike.
+* O pasa un perfil.
+
+Ese perfil no debe volver a aparecer en Descubrir.
+
+Además:
+
+* Los likes deben guardarse correctamente.
+* No deben recuperarse créditos al recargar.
+* No deben repetirse perfiles ya procesados.
+
+En Cuadrícula (dentro de Descubrir):
+
+* Deben mostrarse los perfiles a los que el usuario ha dado like o superlike.
+
+11. EMPAREJA
+
+Crear una sección independiente llamada:
+
+“Empareja”
+
+Ahí deben mostrarse exclusivamente los matches mutuos.
+
+Cuando existe un match:
+
+* Debe aparecer en Empareja.
+* Debe existir automáticamente una conversación entre ambos usuarios.
+
+12. CORREOS DE CANCELACIÓN
+
+Correo 1:
+
+Asunto:
+“Confirma la cancelación de tu suscripción en KixxMe”
+
+Contenido:
+
+* Se ha solicitado cancelar tu suscripción.
+* Introduce el código en la aplicación para confirmar.
+* El código caduca en 10 minutos.
+* Seguirás disfrutando de tu suscripción hasta el final del periodo pagado.
+
+Correo 2:
+
+Asunto:
+“Tu suscripción se cancelará al final del periodo”
+
+Contenido:
+
+* Cancelación confirmada.
+* Indicar fecha exacta de finalización.
+* Informar que los beneficios seguirán activos hasta dicha fecha.
+
+RESUMEN FINAL
+
+* Soporte oculto como cuenta interna.
+* Soporte anclado solo para usuarios Gold.
+* Usuarios gratis contactan por email.
+* Botón “Cancelar suscripción” para cualquier plan de pago.
+* Cancelación mediante código por email.
+* Cancelación efectiva al final del periodo pagado.
+* Gold puede escribir sin match.
+* Usuarios normales necesitan match.
+* Videollamadas solo si ambos tienen Gold.
+* En línea muestra usuarios conectados.
+* Cuadrícula muestra likes enviados.
+* Empareja muestra matches mutuos.
+* Los perfiles ya procesados no deben reaparecer en Descubrir.

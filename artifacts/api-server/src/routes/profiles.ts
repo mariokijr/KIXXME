@@ -15,6 +15,7 @@ import {
   removeBlock,
 } from "../lib/blocks.js";
 import { isUnavailable } from "../lib/moderation.js";
+import { isSystemAccount } from "../lib/system-accounts.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike, areMatched } from "../lib/likes.js";
 import { recordPass, getPassedIds } from "../lib/passes.js";
@@ -512,15 +513,22 @@ router.get("/profiles/me", async (req, res) => {
       role: null,
       looking_for: null,
       tutorial_completed: false,
+      is_system: await isSystemAccount(auth.userId),
     });
     return;
   }
 
-  const [details, tutorialCompletedAt] = await Promise.all([
+  const [details, tutorialCompletedAt, isSystem] = await Promise.all([
     getProfileDetails(auth.userId),
     getTutorialCompletedAt(auth.userId),
+    isSystemAccount(auth.userId),
   ]);
-  res.json({ ...data, ...details, tutorial_completed: tutorialCompletedAt != null });
+  res.json({
+    ...data,
+    ...details,
+    tutorial_completed: tutorialCompletedAt != null,
+    is_system: isSystem,
+  });
 });
 
 router.put("/profiles/me", async (req, res) => {

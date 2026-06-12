@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   useRequestAccountActionCode,
   useConfirmAccountAction,
+  useGetSubscription,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,7 @@ import {
   Ban,
   LogOut,
   KeyRound,
+  CreditCard,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -71,6 +73,13 @@ export default function Settings() {
 
   const requestCode = useRequestAccountActionCode();
   const confirmAction = useConfirmAccountAction();
+  const { data: subscription } = useGetSubscription();
+
+  // Only a real, not-yet-cancelled paid subscription can be cancelled here.
+  // GOLD_TEST_EMAILS overrides have no Stripe sub, so this stays false for them.
+  const showCancelSubscription =
+    !!subscription?.has_active_subscription &&
+    !subscription?.cancel_at_period_end;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -256,6 +265,33 @@ export default function Settings() {
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
+
+        {showCancelSubscription ? (
+          <>
+            <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
+              SUSCRIPCIÓN
+            </h2>
+            <p className="font-sans text-sm text-muted-foreground mb-5">
+              Gestiona tu plan premium.
+            </p>
+
+            <div className="space-y-3 mb-8">
+              <button
+                type="button"
+                onClick={() => setLocation("/settings/cancel-subscription")}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+                style={{ background: "rgba(13,11,26,0.7)" }}
+                data-testid="button-cancel-subscription"
+              >
+                <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+                  Cancelar suscripción
+                </span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+          </>
+        ) : null}
 
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           GESTIÓN DE CUENTA

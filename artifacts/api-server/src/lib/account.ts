@@ -42,7 +42,10 @@ export type AccountAction = "deactivate" | "delete";
  * hardened code lifecycle (hashed, single-use, attempts-capped, expiring). The
  * `action` column is free-text, so no migration is needed for new values.
  */
-export type CodeAction = AccountAction | "change_password";
+export type CodeAction =
+  | AccountAction
+  | "change_password"
+  | "cancel_subscription";
 
 const MONTHS: Record<Exclude<DeactivationType, "indefinite">, number> = {
   "1m": 1,

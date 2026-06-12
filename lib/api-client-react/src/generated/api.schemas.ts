@@ -422,6 +422,9 @@ export interface Profile {
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;
+  /** Whether this is an internal system/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.
+   */
+  is_system?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -962,6 +965,43 @@ export interface PasswordChangeConfirmRequest {
 
 export interface PasswordChangeConfirmResponse {
   success: boolean;
+}
+
+/**
+ * Effective entitlement plan (honors test overrides).
+ */
+export type SubscriptionStatusPlan = typeof SubscriptionStatusPlan[keyof typeof SubscriptionStatusPlan];
+
+
+export const SubscriptionStatusPlan = {
+  free: 'free',
+  plus: 'plus',
+  gold: 'gold',
+} as const;
+
+export interface SubscriptionStatus {
+  /** Whether a real, active paid Stripe subscription exists. False for free users and for GOLD_TEST_EMAILS overrides (no real subscription).
+   */
+  has_active_subscription: boolean;
+  /** Effective entitlement plan (honors test overrides). */
+  plan: SubscriptionStatusPlan;
+  /** Tier of the active subscription (plus|gold) when one exists. */
+  tier?: string | null;
+  /** ISO timestamp when the current paid period ends. */
+  current_period_end?: string | null;
+  /** Whether the active subscription is already scheduled to cancel at period end. */
+  cancel_at_period_end: boolean;
+}
+
+export interface ConfirmSubscriptionCancelRequest {
+  /** The 6-digit code from the cancellation email */
+  code: string;
+}
+
+export interface ConfirmSubscriptionCancelResponse {
+  success: boolean;
+  /** ISO timestamp the access remains active until */
+  current_period_end?: string | null;
 }
 
 export type CreateReportRequestReportType = typeof CreateReportRequestReportType[keyof typeof CreateReportRequestReportType];
