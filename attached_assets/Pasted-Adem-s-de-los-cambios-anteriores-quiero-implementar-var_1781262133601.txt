@@ -1,0 +1,133 @@
+Además de los cambios anteriores, quiero implementar varias mejoras para la experiencia de usuarios Gold, Plus y para la cuenta de soporte.
+
+1. CUENTA DE SOPORTE / MODERACIÓN
+
+La cuenta supportkixxme@gmail.com debe funcionar como una cuenta especial de soporte.
+
+En la pestaña Mensajes quiero ver:
+
+* Todos los usuarios registrados.
+* Todos los usuarios nuevos que se registren en el futuro.
+* Actualización en tiempo real.
+* Posibilidad de iniciar conversación con cualquier usuario.
+* Posibilidad de responder a cualquier usuario.
+
+Identificación visual
+
+👑 Gold
+
+💎 Plus
+
+Sin icono = Usuario gratuito
+
+Prioridad visual
+
+Mostrar primero:
+
+1. 👑 Gold
+2. 💎 Plus
+3. Usuarios gratuitos
+
+La cuenta de soporte NO debe:
+
+* Aparecer en Descubrir.
+* Aparecer en Mapa.
+* Aparecer en En línea.
+* Aparecer en Cuadrícula.
+* Aparecer en Empareja.
+* Recibir likes.
+* Recibir matches.
+* Tener perfil público.
+
+Es únicamente una cuenta administrativa y de soporte.
+
+⸻
+
+2. CHAT DE SOPORTE PARA USUARIOS GOLD
+
+Cuando un usuario compre Gold:
+
+* Debe aparecer automáticamente un chat anclado llamado “Soporte KixxMe”.
+* Debe quedar fijado en la parte superior de la pestaña Mensajes.
+* El usuario podrá escribir directamente al soporte desde la aplicación.
+
+Cuando termine o cancele Gold:
+
+* El chat de soporte debe desaparecer automáticamente.
+* Ya no podrá iniciar nuevas conversaciones con soporte.
+
+⸻
+
+3. CANCELACIÓN DE SUSCRIPCIONES
+
+Tanto los usuarios Gold como los usuarios Plus deben tener un botón:
+
+“Cancelar suscripción”
+
+dentro de Ajustes.
+
+Funcionamiento
+
+1. El usuario pulsa cancelar.
+2. Recibe un correo electrónico con un código de confirmación.
+3. Introduce ese código dentro de la aplicación.
+4. La suscripción queda marcada para cancelarse.
+
+Importante
+
+Aunque cancele:
+
+* Mantiene todos los beneficios hasta finalizar el periodo ya pagado.
+* No pierde funciones inmediatamente.
+
+Ejemplo:
+
+Si compra Gold el 1 de julio y cancela el 20 de julio:
+
+* Sigue siendo Gold hasta el 1 de agosto.
+* El 1 de agosto pierde los beneficios automáticamente.
+
+⸻
+
+4. MAPA GOLD (MEJORAR PANTALLA DE VENTA)
+
+Actualmente la pantalla del mapa está demasiado cerrada y no explica realmente lo que hace la función.
+
+Quiero que los usuarios gratuitos puedan ver una especie de demostración o tráiler visual.
+
+Objetivo
+
+Que entiendan claramente para qué sirve el mapa antes de pagar.
+
+Mostrar en la vista gratuita
+
+* Un mapa de ejemplo.
+* Marcadores de usuarios de demostración.
+* Explicación visual de cómo funciona.
+* Animaciones o capturas de ejemplo.
+
+Mensaje explicativo
+
+“Con Mapa Gold podrás ver en tiempo real qué usuarios están conectados cerca de ti.”
+
+“Descubre personas en tu ciudad o en cualquier parte del mundo que tengan activada la ubicación.”
+
+“Explora perfiles cercanos y conecta de forma instantánea.”
+
+Acceso real
+
+Los usuarios gratuitos:
+
+* Pueden ver la demostración.
+* Pueden entender la funcionalidad.
+* No pueden usar el mapa real.
+
+Los usuarios Gold:
+
+* Acceden al mapa real.
+* Ven usuarios en tiempo real.
+* Pueden interactuar con ellos.
+
+Objetivo comercial
+
+Que la pantalla del mapa funcione como una presentación premium de la función Gold y aumente las conversiones a suscripción.
