@@ -96,3 +96,28 @@ mapping. Entitlement itself lives in Supabase `profiles.plan` (`free`/`plus`/`go
   doesn't include the custom domain, checkout 502s again with `returnUrl host "..." is not
   allowed`. Set `APP_BASE_URL=https://kixxme.com` as a deployment secret to make it deterministic
   (same secret also fixes recovery-link + email base URLs).
+
+## Checkout 502 "No such customer: 'cus_…'" = stale test-mode customer under live keys
+
+- Symptom: `POST /api/stripe/checkout` 502s and `GET /subscription` warns, both with
+  `StripeInvalidRequestError` / `resource_missing` "No such customer: 'cus_…'". Root cause:
+  `billing_customers` cached a `cus_…` minted in **test** mode, but the account now runs **live**
+  keys (the prices were seeded live) — a test customer id does not resolve under live keys.
+- **The stored customer id must be VALIDATED before reuse**, never trusted blindly.
+  `findOrCreateCustomer` now reuses the row only if `customerIsUsable` (a `customers.retrieve`
+  that returns false on `resource_missing` **or** `{deleted:true}`, and re-throws anything else so
+  a transient/auth error never spawns a duplicate); otherwise it mints a fresh customer and
+  repoints the row (clearing the now-invalid `stripeSubscriptionId`). The same `resource_missing`
+  guard is applied to the read/cancel paths (`loadEntitledSubs`, `cancelAllSubscriptionsForUser`)
+  so a dead mapping degrades to "no sub"/"nothing to cancel" instead of 502.
+  **Why:** detect the wrong-mode/deleted customer at the API, not by guessing from the DB.
+  Duck-type the error on `err.code === "resource_missing"` — this module imports `Stripe` as a
+  TYPE only, so the runtime `Stripe.errors.*` classes are unavailable.
+- **Unlike the price-seed fix, this is CODE → it needs a redeploy** to reach production.
+- **Known residual data debt (separate from this fix):** `profiles.plan` may still hold a `gold`/
+  `plus` granted by an old TEST-mode webhook. Such a user has no live subscription, nothing will
+  ever fire `subscription.deleted` to downgrade them, so they keep premium for free. Reconciling
+  that = a one-time audit of non-free `plan_grants` (source=stripe) with no live sub; tell the user
+  first since it revokes visible entitlements. And a live→test→live key flip would orphan a live
+  customer (repointed to a test one) — `cancelSupersededSubscriptions` lists subs on one customer
+  only, so accept it as a documented edge.

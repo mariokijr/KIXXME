@@ -76,6 +76,41 @@ function customerId(
   return typeof ref === "string" ? ref : ref.id;
 }
 
+/**
+ * True when a Stripe error means the referenced object does not exist in the
+ * CURRENT Stripe account/mode (`resource_missing`). A stored `cus_…` becomes
+ * "missing" when the account is switched from test to live keys (test-mode ids
+ * do not resolve under live keys) or when the customer is deleted in the Stripe
+ * dashboard. We duck-type on `.code` rather than importing the runtime Stripe
+ * error class (this module imports `Stripe` as a type only).
+ */
+function isMissingResourceError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: string }).code === "resource_missing"
+  );
+}
+
+/**
+ * Whether the stored Stripe customer id still resolves to a live, non-deleted
+ * customer. Returns false for a stale/deleted id (`resource_missing`); re-throws
+ * any other error (network/auth/transient) so we never orphan a valid customer
+ * and silently create a duplicate.
+ */
+async function customerIsUsable(
+  stripe: Stripe,
+  stripeCustomerId: string,
+): Promise<boolean> {
+  try {
+    const customer = await stripe.customers.retrieve(stripeCustomerId);
+    return !(customer as Stripe.DeletedCustomer).deleted;
+  } catch (err) {
+    if (isMissingResourceError(err)) return false;
+    throw err;
+  }
+}
+
 function tierFromSubscription(sub: Stripe.Subscription): string | null {
   const price = sub.items?.data?.[0]?.price;
   if (!price) return null;
@@ -139,7 +174,17 @@ async function findOrCreateCustomer(
       .where(eq(billingCustomersTable.userId, userId))
       .limit(1)
   )[0];
-  if (existing?.stripeCustomerId) return existing.stripeCustomerId;
+  // Reuse the stored customer only if it still exists in the current Stripe
+  // account/mode. A stale id (test→live key switch, or a customer deleted in
+  // Stripe) would otherwise make `checkout.sessions.create` throw "No such
+  // customer" and 502 the purchase — so we transparently mint a fresh customer
+  // and repoint the mapping below, clearing the now-invalid subscription id.
+  if (
+    existing?.stripeCustomerId &&
+    (await customerIsUsable(stripe, existing.stripeCustomerId))
+  ) {
+    return existing.stripeCustomerId;
+  }
 
   const email = await getUserEmail(userId);
   const customer = await stripe.customers.create({
@@ -151,7 +196,11 @@ async function findOrCreateCustomer(
     .values({ userId, stripeCustomerId: customer.id })
     .onConflictDoUpdate({
       target: billingCustomersTable.userId,
-      set: { stripeCustomerId: customer.id, updatedAt: new Date() },
+      set: {
+        stripeCustomerId: customer.id,
+        stripeSubscriptionId: null,
+        updatedAt: new Date(),
+      },
     });
   return customer.id;
 }
@@ -291,11 +340,19 @@ export async function cancelAllSubscriptionsForUser(
   )[0];
   if (!row?.stripeCustomerId) return;
   const stripe = await getUncachableStripeClient();
-  const subs = await stripe.subscriptions.list({
-    customer: row.stripeCustomerId,
-    status: "all",
-    limit: 100,
-  });
+  let subs: Stripe.ApiList<Stripe.Subscription>;
+  try {
+    subs = await stripe.subscriptions.list({
+      customer: row.stripeCustomerId,
+      status: "all",
+      limit: 100,
+    });
+  } catch (err) {
+    // Stale customer (test→live switch / deleted in Stripe): nothing to cancel,
+    // and account deletion must never be blocked by a dead Stripe mapping.
+    if (isMissingResourceError(err)) return;
+    throw err;
+  }
   for (const sub of subs.data) {
     if (!CANCELABLE_STATUSES.has(sub.status)) continue;
     await stripe.subscriptions.cancel(sub.id);
@@ -338,11 +395,20 @@ async function loadEntitledSubs(userId: string): Promise<{
   )[0];
   if (!row?.stripeCustomerId) return null;
   const stripe = await getUncachableStripeClient();
-  const list = await stripe.subscriptions.list({
-    customer: row.stripeCustomerId,
-    status: "all",
-    limit: 100,
-  });
+  let list: Stripe.ApiList<Stripe.Subscription>;
+  try {
+    list = await stripe.subscriptions.list({
+      customer: row.stripeCustomerId,
+      status: "all",
+      limit: 100,
+    });
+  } catch (err) {
+    // Stale customer (test→live switch / deleted in Stripe): the user has no
+    // live subscription here, so treat as "no active sub" instead of 502ing
+    // every settings/subscription read. Checkout will repoint the mapping.
+    if (isMissingResourceError(err)) return null;
+    throw err;
+  }
   const entitled = list.data.filter((s) => ENTITLED_STATUSES.has(s.status));
   if (entitled.length === 0) return null;
   const preferred =
