@@ -76,3 +76,23 @@ mapping. Entitlement itself lives in Supabase `profiles.plan` (`free`/`plus`/`go
 - In dev, the managed webhook points at `REPLIT_DOMAINS[0]/api/stripe/webhook`, which is
   publicly reachable, so real Stripe test-mode events (trial subscriptions need no card) deliver
   to the dev server within ~2s — usable for true end-to-end entitlement tests.
+
+## Checkout 502 "No active Stripe price for lookup_key" = unseeded account, not an env bug
+
+- Symptom: `POST /api/stripe/checkout` returns 502 ("No se pudo iniciar el pago") for
+  EVERY tier/interval; prod log shows `resolvePriceId` throwing `No active Stripe price for
+  lookup_key "plus_month"/"gold_month"...`. Root cause is data, not config: the connected
+  Stripe account simply has no products/prices yet. Stripe IS connected (the code reached
+  `stripe.prices.list`, which needs a valid authenticated client) — so don't chase keys/CORS.
+- **Fix = run the idempotent seed** (`pnpm --filter @workspace/scripts run seed-stripe`). The
+  Stripe connector is ONE connection shared by dev + the deployment, so seeding once (from dev)
+  creates the prices the live deployment reads at request time — **no redeploy needed**, the fix
+  is live immediately. Confirm with `stripe.prices.list({lookup_keys,active})`; check `livemode`
+  to know test vs live (this account is live).
+- **Next failure point after prices exist = `buildReturnUrl` host allowlist.** It runs AFTER
+  `resolvePriceId`, so the price error masks it. The client sends `returnUrl = origin + BASE_URL
+  + "premium"` (e.g. `https://kixxme.com/premium`); the server only accepts hosts in
+  `allowedHosts()` = `APP_BASE_URL` host ∪ `REPLIT_DOMAINS`. If the deployment's `REPLIT_DOMAINS`
+  doesn't include the custom domain, checkout 502s again with `returnUrl host "..." is not
+  allowed`. Set `APP_BASE_URL=https://kixxme.com` as a deployment secret to make it deterministic
+  (same secret also fixes recovery-link + email base URLs).
