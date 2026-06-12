@@ -3934,7 +3934,20 @@ components:
           items:
             $ref: "#/components/schemas/PublicProfile"
           description: Other Gold users on the map (empty when can_access is false).
-      required: [can_access, show_on_map, users]
+        gold_total:
+          type: integer
+          description: >
+            Real total of Gold users in the community (includes the viewer,
+            excludes blocked/hidden). Global — independent of scope, coordinates,
+            and map visibility — so it always reflects the real data even when no
+            markers can be placed. 0 when can_access is false.
+        online_total:
+          type: integer
+          description: >
+            Real total of Gold users currently online (active within the online
+            window), counted globally with the same rules as gold_total. 0 when
+            can_access is false.
+      required: [can_access, show_on_map, users, gold_total, online_total]
 
     UpdateProfileRequest:
       type: object

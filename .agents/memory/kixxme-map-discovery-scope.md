@@ -67,15 +67,23 @@ single insertion point instead of editing every endpoint.
 **How to apply:** never re-implement block/deactivation filtering inline; call
 `getVisibilityContext`/`getHiddenIds`.
 
-## Stat cards: map derives from its own list; `useGetDiscoveryStats` lives on for live.tsx
-The Gold map's two stat cards (Usuarios Gold / En línea) are now derived from the loaded
-`GET /map/users` list (`users.length` + online count) — the map no longer calls
-`useGetDiscoveryStats`. The `GET /profiles/stats` endpoint + `useGetDiscoveryStats` hook are
-still used elsewhere (e.g. `live.tsx`), so do NOT delete them.
-**Why:** the map list is already Gold-scoped, so its own cards are the truthful counts; a
-separate worldwide stats call would over-count (non-Gold + opted-out users).
-**How to apply:** if you re-add headline counters to the map, derive from the map list, not
-a global stats call.
+## Stat cards = server-computed GLOBAL totals (`gold_total`/`online_total`), NOT the marker list
+The Gold map's two stat cards (Usuarios Gold / En línea ahora) read `mapData.gold_total` /
+`mapData.online_total` — new fields on the `GET /map/users` envelope, computed server-side by
+`mapCommunityStats(hidden)` in `profiles.ts`: count Supabase `plan='gold'` rows minus the
+viewer's `hidden` set, INCLUDING self (self is never in hidden); `online_total` = those with
+`isOnline(last_active_at)`. Global — independent of scope, coordinates, and `show_on_map`.
+Returned on all success paths (non-Gold → 0/0). `GET /profiles/stats`/`useGetDiscoveryStats`
+still exist for live.tsx; don't delete.
+**Why:** the OLD approach (derive from the scoped marker `users` array) showed **0/0** when
+the only Gold user was the viewer (markers exclude self via `.neq`) or had no coordinates
+(markers require lat/lng) — so the counters lied about real data. Markers legitimately need
+coords/scope/visibility; the headline counters must not. Counting an opted-out or location-less
+Gold user in the aggregate is intentional ("invisible on the map" ≠ "not a Gold user").
+**How to apply:** keep the counters decoupled from markers. Quirks (by design, not bugs): a
+`GOLD_TEST_EMAILS` override viewer is NOT in `gold_total` (real plan stays 'free'); "Cerca"
+can show 0 markers with non-zero counters; any actively-polling Gold viewer counts as ≥1 online
+(self). Auto-updates via the existing 30s `refetchInterval`.
 
 ## Non-Gold map = full early-return sales screen (not an in-map overlay)
 Non-Gold users get a whole-screen premium "trailer" (`components/map-demo.tsx`,

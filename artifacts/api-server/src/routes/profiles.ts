@@ -299,6 +299,31 @@ router.get("/profiles", async (req, res) => {
   res.json(profiles);
 });
 
+// Real community totals shown on the map stat cards ("Usuarios Gold" / "En línea
+// ahora"). Deliberately GLOBAL and decoupled from the markers: a marker requires
+// coordinates + scope + map-visibility, but the counters must reflect the REAL
+// data (e.g. the lone Gold user with no location still counts as 1). Includes the
+// viewer (self is never in `hidden`) and excludes blocked/hidden users. Computed
+// live per request, so it auto-updates when someone buys Gold (plan flips) or
+// goes online/offline (last_active_at within the online window).
+async function mapCommunityStats(
+  hidden: Set<string>,
+): Promise<{ goldTotal: number; onlineTotal: number }> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, last_active_at")
+    .eq("plan", "gold")
+    .limit(5000);
+  if (error || !data) return { goldTotal: 0, onlineTotal: 0 };
+  const rows = (
+    data as { id: string; last_active_at: string | null }[]
+  ).filter((r) => !hidden.has(r.id));
+  return {
+    goldTotal: rows.length,
+    onlineTotal: rows.filter((r) => isOnline(r.last_active_at)).length,
+  };
+}
+
 // Gold-only world map. Unlike GET /profiles (which is shared with the Descubrir
 // grid and must NOT be gated), this dedicated endpoint gates access to Gold and
 // only ever returns OTHER Gold users who opted into the map. The Gold gate is
@@ -316,9 +341,21 @@ router.get("/map/users", async (req, res) => {
   // Non-Gold viewers get the envelope with an empty list; the frontend shows the
   // premium lock instead of any markers. Identities never leave the API.
   if (!canAccess) {
-    res.json({ can_access: false, show_on_map: showOnMap, users: [] });
+    res.json({
+      can_access: false,
+      show_on_map: showOnMap,
+      users: [],
+      gold_total: 0,
+      online_total: 0,
+    });
     return;
   }
+
+  // Visibility context drives both the community stats and the marker filter, so
+  // compute it once. Stats are global (no scope) — they must hold even when the
+  // marker list is empty (radius scope with no viewer coords, no opted-in Golds).
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+  const stats = await mapCommunityStats(hidden);
 
   const scope = parseScope(req.query.scope);
 
@@ -330,12 +367,17 @@ router.get("/map/users", async (req, res) => {
 
   const box = scope ? scopeBoxFor(scope, me ?? null) : null;
   if (box === "empty") {
-    res.json({ can_access: true, show_on_map: showOnMap, users: [] });
+    res.json({
+      can_access: true,
+      show_on_map: showOnMap,
+      users: [],
+      gold_total: stats.goldTotal,
+      online_total: stats.onlineTotal,
+    });
     return;
   }
 
   const likedSet = await getLikedSet(auth.userId);
-  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
 
   // Only Gold users WITH coordinates that pass calidad mínima appear on the map.
   // Supabase columns (plan/coords/main photo/age/city/bio) are filtered DB-side
@@ -411,7 +453,13 @@ router.get("/map/users", async (req, res) => {
     return a.distance_km - b.distance_km;
   });
 
-  res.json({ can_access: true, show_on_map: showOnMap, users });
+  res.json({
+    can_access: true,
+    show_on_map: showOnMap,
+    users,
+    gold_total: stats.goldTotal,
+    online_total: stats.onlineTotal,
+  });
 });
 
 // NOTE: must be registered BEFORE `GET /profiles/:id` or "stats" is captured

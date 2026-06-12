@@ -330,7 +330,9 @@ export const ListMapUsersResponse = zod.object({
   "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
-})).describe('Other Gold users on the map (empty when can_access is false).')
+})).describe('Other Gold users on the map (empty when can_access is false).'),
+  "gold_total": zod.number().describe('Real total of Gold users in the community (includes the viewer, excludes blocked\/hidden). Global — independent of scope, coordinates, and map visibility — so it always reflects the real data even when no markers can be placed. 0 when can_access is false.\n'),
+  "online_total": zod.number().describe('Real total of Gold users currently online (active within the online window), counted globally with the same rules as gold_total. 0 when can_access is false.\n')
 })
 
 

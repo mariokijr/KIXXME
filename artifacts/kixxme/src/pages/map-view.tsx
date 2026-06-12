@@ -206,11 +206,12 @@ export default function MapView() {
   );
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
-  const goldCount = users.length;
-  const onlineCount = useMemo(
-    () => users.filter((u) => u.is_online).length,
-    [users]
-  );
+  // Real community totals computed server-side (global, not just the placeable
+  // markers): they reflect the true data even when nobody can be pinned — e.g. a
+  // lone Gold user with no location still counts. Auto-update via the 30s poll
+  // when someone buys Gold or goes online/offline.
+  const goldCount = mapData?.gold_total ?? 0;
+  const onlineCount = mapData?.online_total ?? 0;
 
   const handleMessage = (userId: string) => {
     startConversation(userId);

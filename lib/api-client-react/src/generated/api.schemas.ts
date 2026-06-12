@@ -585,6 +585,12 @@ export interface MapUsersResponse {
   show_on_map: boolean;
   /** Other Gold users on the map (empty when can_access is false). */
   users: PublicProfile[];
+  /** Real total of Gold users in the community (includes the viewer, excludes blocked/hidden). Global — independent of scope, coordinates, and map visibility — so it always reflects the real data even when no markers can be placed. 0 when can_access is false.
+   */
+  gold_total: number;
+  /** Real total of Gold users currently online (active within the online window), counted globally with the same rules as gold_total. 0 when can_access is false.
+   */
+  online_total: number;
 }
 
 export type UpdateProfileRequestRole = typeof UpdateProfileRequestRole[keyof typeof UpdateProfileRequestRole];
