@@ -1,0 +1,105 @@
+Quiero corregir y dejar perfecto el sistema de Descubrir, likes, dislikes, superlikes, créditos y filtros.
+
+1. Usuarios repetidos después de interactuar
+
+Ahora mismo, cuando doy like, superlike o dislike a una persona, la acción parece funcionar, pero al recargar la página esa misma persona vuelve a aparecer como si nunca hubiera interactuado con ella.
+
+Comportamiento correcto:
+
+- Si doy like a un usuario, no debe volver a aparecerme en Descubrir.
+- Si doy superlike a un usuario, no debe volver a aparecerme en Descubrir.
+- Si digo que no me interesa / dislike, no debe volver a aparecerme en Descubrir.
+- Esto debe mantenerse después de refrescar, cerrar sesión, volver a entrar o cambiar de móvil.
+
+La interacción debe guardarse en base de datos, no solo en memoria local.
+
+2. Créditos/puntos
+
+Ahora mismo parece que los puntos se regeneran al recargar.
+
+Comportamiento correcto:
+
+- Si una acción consume créditos, deben descontarse en base de datos.
+- Al recargar, debe verse el saldo real.
+- No debe ser posible recuperar puntos refrescando la página.
+- No debe ser posible gastar más puntos de los disponibles.
+- Si pulso dos veces rápido, no debe descontar mal ni duplicar acciones.
+
+3. Reglas anti-duplicado
+
+Quiero que el backend tenga protección real:
+
+- No duplicar likes.
+- No duplicar superlikes.
+- No duplicar dislikes.
+- No descontar créditos dos veces por la misma acción.
+- Si ya interactué con un perfil, el backend debe devolverlo como ya procesado.
+
+4. Filtros de Descubrir
+
+En Descubrir están los filtros:
+
+- Todos
+- Cerca
+- Online
+- Con foto
+
+Quiero que esos filtros estén disponibles para todos los usuarios, también gratis.
+
+Los usuarios gratis pueden:
+
+- Ver perfiles.
+- Usar filtros básicos.
+- Ver personas online.
+- Ver personas cerca.
+- Ver perfiles con foto.
+
+Pero las acciones premium deben seguir siendo Gold:
+
+- Enviar mensajes.
+- Funciones premium.
+- Ventajas Gold.
+
+5. Cuadrícula dentro de Descubrir
+
+Dentro de Descubrir hay una vista Cuadrícula.
+
+Quiero que esa vista muestre los usuarios a los que yo he dado like o superlike.
+
+Debe:
+
+- Cargarse desde base de datos.
+- No duplicar usuarios.
+- Persistir al recargar.
+- Si quito un like, desaparecer de la cuadrícula.
+- Si hay match mutuo, reflejarlo correctamente.
+
+6. Empareja / matches
+
+Empareja debe mostrar solo matches reales.
+
+Un match real ocurre cuando:
+
+- Yo doy like a alguien.
+- Esa persona también me da like.
+
+No deben aparecer usuarios con like unilateral.
+
+7. Pruebas obligatorias
+
+Antes de darlo por terminado quiero pruebas reales:
+
+- Usuario A da like a Usuario B → B no vuelve a salir en Descubrir de A.
+- Usuario A da dislike a Usuario C → C no vuelve a salir.
+- Usuario A da superlike a Usuario D → D no vuelve a salir.
+- Recargar página → no reaparecen.
+- Cerrar sesión y volver → no reaparecen.
+- Probar desde otro móvil → no reaparecen.
+- Créditos se descuentan y no se regeneran al refrescar.
+- Pulsar dos veces rápido no duplica likes ni descuentos.
+- Filtros Todos/Cerca/Online/Con foto funcionan para usuarios gratis.
+- Mensajes siguen bloqueados para no Gold.
+- Cuadrícula muestra likes/superlikes reales.
+- Empareja muestra solo matches mutuos.
+
+Quiero que lo arregles desde backend y frontend, no solo ocultándolo visualmente.
