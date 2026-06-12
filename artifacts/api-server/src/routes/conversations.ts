@@ -16,6 +16,12 @@ import {
 } from "../lib/chat-media.js";
 import { areMatched } from "../lib/likes.js";
 import { hasGold } from "../lib/entitlement.js";
+import {
+  notifyNewMessageByEmail,
+  notifyConversationInviteByEmail,
+  messageDedupKey,
+} from "../lib/message-notifications.js";
+import { clearEmailClaim } from "../lib/email-policy.js";
 
 const router = Router();
 
@@ -195,6 +201,16 @@ router.post("/conversations", async (req, res) => {
   }
 
   res.status(201).json({ ...created, other_user: otherUser, unread_count: 0, last_message: null });
+
+  // Gold cold-start (no prior match): nudge the recipient by email, once-ever
+  // per conversation. Fire-and-forget — never affects the response.
+  if (gold && !matched) {
+    void notifyConversationInviteByEmail({
+      conversationId: created.id,
+      senderId: auth.userId,
+      recipientId: other_user_id,
+    });
+  }
 });
 
 router.get("/conversations/:id/messages", async (req, res) => {
@@ -239,6 +255,10 @@ router.get("/conversations/:id/messages", async (req, res) => {
     .eq("conversation_id", id)
     .neq("sender_id", auth.userId)
     .is("read_at", null);
+
+  // Re-arm the "new messages" email for this conversation now that the user has
+  // caught up — the next offline message can notify again.
+  void clearEmailClaim("message", messageDedupKey(id, auth.userId));
 
   res.json(messages ?? []);
 });
@@ -309,6 +329,16 @@ router.post("/conversations/:id/messages", async (req, res) => {
   // or fails the send. Raises a `spam_pattern` review flag when the same body
   // is sent to several conversations in a short window.
   void detectSpamFromMessage(auth.userId, trimmed || null);
+
+  // Fire-and-forget email nudge to the recipient when they're offline. Covers
+  // text, photos, and voice notes (all created here). Rate-limited + dedup'd in
+  // notifyNewMessageByEmail; never blocks or fails the send.
+  void notifyNewMessageByEmail({
+    conversationId: id,
+    senderId: auth.userId,
+    recipientId: otherId,
+    mediaKind: image_url ? "photo" : audio_url ? "voice" : "text",
+  });
 });
 
 router.post("/conversations/:id/images", async (req, res) => {
@@ -439,6 +469,9 @@ router.post("/conversations/:id/read", async (req, res) => {
     .eq("conversation_id", id)
     .neq("sender_id", auth.userId)
     .is("read_at", null);
+
+  // Re-arm the "new messages" email now that the user has caught up.
+  void clearEmailClaim("message", messageDedupKey(id, auth.userId));
 
   res.json({ success: true });
 });

@@ -1,0 +1,224 @@
+Quiero revisar y mejorar todo el sistema de emails de KixxMe.
+
+Objetivo:
+Que todas las funciones importantes de la app envíen emails correctamente, con diseño profesional, branding KixxMe, enlaces correctos, buena entregabilidad y foto de perfil de la marca.
+
+1. Emails en todos los flujos importantes
+
+Quiero que se envíen emails en todos los eventos relevantes de la app.
+
+Revisar y añadir emails para:
+
+Cuenta y seguridad
+
+* Registro de usuario → email de bienvenida.
+* Verificación de cuenta si aplica.
+* Recuperación de contraseña.
+* Cambio de contraseña.
+* Confirmación de cambio de contraseña.
+* Inicio de sesión sospechoso si aplica.
+* Borrado de cuenta.
+* Confirmación de borrado de cuenta.
+
+Suscripciones y pagos
+
+* Suscripción a Plus.
+* Suscripción a Gold.
+* Confirmación de pago.
+* Email de agradecimiento por suscribirse.
+* Renovación de suscripción si aplica.
+* Fallo de pago si aplica.
+* Cancelación de suscripción solicitada.
+* Código de confirmación para cancelar.
+* Confirmación de cancelación.
+* Aviso de finalización del periodo premium.
+* Aviso de pérdida de beneficios premium.
+
+Matches y actividad social
+
+* Cuando dos personas hacen match mutuamente, enviar email a ambas personas:
+    “Has hecho match con alguien en KixxMe. Entra ahora para conocerlo.”
+* Cuando alguien recibe un nuevo mensaje, enviar email de notificación.
+* Cuando alguien recibe una foto en el chat, enviar email de notificación.
+* Cuando alguien recibe una nota de voz, enviar email de notificación.
+* Cuando alguien recibe un superlike, enviar email si aplica.
+* Cuando alguien recibe un like que se convierte en match, enviar email.
+* Cuando alguien inicia conversación premium sin match, enviar email al destinatario.
+* Cuando alguien recibe invitación o solicitud de videollamada, enviar email si aplica.
+* Cuando alguien pierde una llamada, enviar email si aplica.
+
+Soporte y moderación
+
+* Cuando un usuario Gold escribe a soporte.
+* Cuando soporte responde.
+* Cuando se abre un ticket.
+* Cuando se cierra un ticket.
+* Cuando se recibe un reporte.
+* Cuando se resuelve un reporte.
+* Advertencias de moderación.
+* Suspensiones o bloqueos de cuenta.
+* Reactivación de cuenta si aplica.
+
+2. Email de bienvenida
+
+Cuando una persona se registre en KixxMe, debe recibir un email de bienvenida.
+
+Debe incluir:
+
+* Logo KixxMe.
+* K morada/neón.
+* Mensaje de bienvenida.
+* Botón para entrar en KixxMe.
+* Explicación breve de la app.
+* Texto de seguridad y privacidad.
+
+3. Emails de suscripción
+
+Cuando una persona pague Plus o Gold, debe recibir un email de agradecimiento.
+
+Debe incluir:
+
+* Plan contratado.
+* Fecha de inicio.
+* Beneficios principales.
+* Botón para abrir KixxMe.
+* Texto indicando que puede gestionar la suscripción desde Ajustes.
+
+Ejemplo:
+“Gracias por suscribirte a KixxMe Gold. Ya puedes disfrutar de tus beneficios premium.”
+
+4. Emails de match
+
+Cuando dos usuarios se den like mutuamente y se cree un match:
+
+* Enviar email a ambos usuarios.
+* El email debe ser atractivo y profesional.
+* No revelar información sensible innecesaria.
+* Incluir botón para abrir la conversación en KixxMe.
+
+Ejemplo:
+“Asunto: ¡Has hecho match en KixxMe!”
+
+Contenido:
+“Alguien también está interesado en ti. Entra ahora en KixxMe y empieza la conversación.”
+
+Botón:
+“Ver mi match”
+
+5. Emails de mensajes
+
+Cuando un usuario reciba un mensaje nuevo:
+
+* Enviar email de notificación.
+* No incluir contenido sensible si no es necesario.
+* Incluir botón para abrir el chat.
+
+Ejemplo:
+“Asunto: Tienes un nuevo mensaje en KixxMe”
+
+Contenido:
+“Alguien te ha escrito en KixxMe. Entra ahora para responder.”
+
+Botón:
+“Abrir chat”
+
+Para fotos:
+“Has recibido una foto en KixxMe.”
+
+Para notas de voz:
+“Has recibido una nota de voz en KixxMe.”
+
+6. Emails de cancelación y borrado
+
+Cuando una persona solicite cancelar suscripción o borrar cuenta:
+
+* Enviar email con código si requiere confirmación.
+* Enviar email de confirmación después de completar la acción.
+* Explicar claramente qué ha ocurrido.
+* Mantener diseño profesional de KixxMe.
+
+7. Diseño de todos los emails
+
+Todos los emails deben tener:
+
+* Logo KixxMe.
+* La K morada/neón de la marca.
+* Cabecera profesional.
+* Botón principal claro.
+* Colores de KixxMe.
+* Pie legal.
+* Enlaces correctos a https://kixxme.com.
+* Diseño responsive para móvil.
+* Misma identidad visual en todas las plantillas.
+
+8. Evitar spam
+
+Esto es muy importante.
+
+Quiero que revises la entregabilidad de los emails para evitar que lleguen a Spam.
+
+Revisar:
+
+* Remitente profesional.
+* SPF.
+* DKIM.
+* DMARC.
+* Dominio de envío.
+* Headers.
+* Asuntos de los emails.
+* Contenido que pueda activar filtros de spam.
+* Que no se usen remitentes raros o genéricos.
+* Que los enlaces apunten correctamente a https://kixxme.com.
+* Que no se envíen demasiados emails duplicados.
+* Que se respete la configuración de notificaciones si existe.
+
+Si hace falta configurar DNS, indícame exactamente qué registros debo añadir en el dominio.
+
+9. Foto de perfil en Gmail
+
+Quiero que los emails de KixxMe aparezcan con imagen de perfil en Gmail.
+
+La imagen debe ser la K morada/neón de KixxMe.
+
+Revisar opciones:
+
+* Configurar foto de perfil en la cuenta remitente.
+* Configurar BIMI si es posible.
+* Preparar logo compatible para Gmail/BIMI.
+* Indicar si se necesita configuración externa.
+* Indicar si se necesita dominio verificado.
+* Indicar si se necesita VMC o certificado de marca.
+
+10. Preferencias y límites
+
+No quiero que el sistema envíe spam real a los usuarios.
+
+Importante:
+
+* Evitar emails duplicados.
+* No enviar 20 emails seguidos por la misma conversación.
+* Aplicar rate limit o agrupación si hace falta.
+* Si un usuario recibe muchos mensajes, agrupar notificaciones.
+* Mantener emails importantes siempre activos:
+    * Seguridad.
+    * Contraseña.
+    * Pagos.
+    * Suscripción.
+    * Soporte.
+* Para mensajes y actividad social, preparar lógica para futuras preferencias de notificación.
+
+11. Informe final
+
+Después de revisarlo, quiero un informe claro:
+
+* Emails que ya existían.
+* Emails nuevos añadidos.
+* Emails que faltan.
+* Qué proveedor de email está usando KixxMe.
+* Qué dominio se está usando para enviar.
+* Qué configuración DNS falta para evitar spam.
+* Qué tengo que hacer para que salga la foto de perfil en Gmail.
+* Qué pruebas se han hecho.
+* Confirmar que los enlaces apuntan a https://kixxme.com.
+
+No quiero que los emails queden a medias. Quiero que KixxMe tenga emails profesionales, fiables, con buena imagen de marca y que cubran todas las funciones importantes de la aplicación.

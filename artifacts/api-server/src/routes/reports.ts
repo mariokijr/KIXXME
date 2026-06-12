@@ -3,10 +3,13 @@ import { requireAuth, isAdminEmail } from "../lib/auth.js";
 import { db, supportReportsTable } from "@workspace/db";
 import {
   sendEmail,
+  appBaseUrl,
   SUPPORT_EMAIL,
   supportReportEmailHtml,
+  reportReceivedEmail,
 } from "../lib/email.js";
 import { getModerationState, maybeAutoFlagOnReport } from "../lib/moderation.js";
+import { claimEmailSend } from "../lib/email-policy.js";
 import { CreateReportBody, GetMyModerationResponse } from "@workspace/api-zod";
 
 const router = Router();
@@ -75,6 +78,26 @@ router.post("/reports", async (req, res) => {
 
     // Raise a review flag if this user has now crossed the report threshold.
     void maybeAutoFlagOnReport(body.targetUserId);
+
+    // Ack the reporter (always-on, privacy-safe). Rate-limited to once per 10
+    // minutes per reporter so filing several reports doesn't spam them.
+    if (auth.email) {
+      const reporterEmail = auth.email;
+      void (async () => {
+        const claimed = await claimEmailSend({
+          userId: auth.userId,
+          category: "report_received",
+          dedupKey: `reporter:${auth.userId}`,
+          cooldownMs: 10 * 60 * 1000,
+        });
+        if (!claimed) return;
+        const base = appBaseUrl();
+        const t = reportReceivedEmail({
+          appUrl: base ? `${base}/support` : undefined,
+        });
+        await sendEmail({ to: reporterEmail, subject: t.subject, html: t.html });
+      })();
+    }
 
     res.status(201).json({
       id: row.id,

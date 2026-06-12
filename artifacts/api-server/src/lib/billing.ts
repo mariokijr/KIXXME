@@ -9,7 +9,11 @@ import {
   appBaseUrl,
   allowedHosts,
   premiumWelcomeEmail,
+  subscriptionRenewedEmail,
+  paymentFailedEmail,
+  premiumEndedEmail,
 } from "./email.js";
+import { claimEmailSend } from "./email-policy.js";
 import { ensureOfficialTicket } from "./support-tickets.js";
 
 export type Tier = "plus" | "gold";
@@ -99,6 +103,29 @@ async function resolveUserId(sub: Stripe.Subscription): Promise<string | null> {
       .limit(1)
   )[0];
   return row?.userId ?? null;
+}
+
+/**
+ * Resolve the Supabase user + entitled tier for an INVOICE event from the
+ * customer mapping. Invoices don't carry our checkout metadata, so we look up
+ * the `billing_customers` row by Stripe customer id. Returns null when the
+ * customer isn't mapped yet (an event arriving before the cache row exists —
+ * Stripe retries, and the first invoice is covered by the welcome email).
+ */
+async function resolveUserFromCustomer(
+  custRef: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+): Promise<{ userId: string; tier: string | null } | null> {
+  const cust = customerId(custRef);
+  if (!cust) return null;
+  const row = (
+    await db
+      .select()
+      .from(billingCustomersTable)
+      .where(eq(billingCustomersTable.stripeCustomerId, cust))
+      .limit(1)
+  )[0];
+  if (!row) return null;
+  return { userId: row.userId, tier: row.plan === "free" ? null : row.plan };
 }
 
 async function findOrCreateCustomer(
@@ -483,7 +510,88 @@ export async function handleStripeWebhook(
       }
       await setUserPlan(userId, "free");
       await upsertBilling(userId, customerId(sub.customer), null, "free");
+      // Notify the user their premium has ended. Always-on; dedup on the
+      // subscription id so a retried webhook never double-sends.
+      const endedTier =
+        tierFromSubscription(sub) ??
+        (row?.plan && row.plan !== "free" ? row.plan : null);
+      void (async () => {
+        const claimed = await claimEmailSend({
+          userId,
+          category: "premium_ended",
+          dedupKey: `sub_deleted:${sub.id}`,
+        });
+        if (!claimed) return;
+        const email = await getUserEmail(userId);
+        if (!email) return;
+        const base = appBaseUrl();
+        const { subject, html } = premiumEndedEmail({
+          tier: endedTier,
+          appUrl: base ? `${base}/premium` : undefined,
+        });
+        await sendEmail({ to: email, subject, html });
+      })();
       log.info({ userId }, "Downgraded plan to free on subscription deletion");
+      return;
+    }
+
+    case "invoice.paid": {
+      const invoice = event.data.object;
+      // Only renewals — the first invoice (billing_reason "subscription_create")
+      // is already covered by the premium welcome email from checkout.
+      if (invoice.billing_reason !== "subscription_cycle") return;
+      const resolved = await resolveUserFromCustomer(invoice.customer);
+      if (!resolved) {
+        log.warn({ invoiceId: invoice.id }, "invoice.paid: could not resolve user");
+        return;
+      }
+      void (async () => {
+        const claimed = await claimEmailSend({
+          userId: resolved.userId,
+          category: "invoice_paid",
+          dedupKey: `invoice:${invoice.id}`,
+        });
+        if (!claimed) return;
+        const email = await getUserEmail(resolved.userId);
+        if (!email) return;
+        const periodEnd = invoice.lines?.data?.[0]?.period?.end ?? null;
+        const base = appBaseUrl();
+        const { subject, html } = subscriptionRenewedEmail({
+          tier: resolved.tier,
+          periodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+          appUrl: base ? `${base}/premium` : undefined,
+        });
+        await sendEmail({ to: email, subject, html });
+      })();
+      return;
+    }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object;
+      const resolved = await resolveUserFromCustomer(invoice.customer);
+      if (!resolved) {
+        log.warn(
+          { invoiceId: invoice.id },
+          "invoice.payment_failed: could not resolve user",
+        );
+        return;
+      }
+      void (async () => {
+        const claimed = await claimEmailSend({
+          userId: resolved.userId,
+          category: "payment_failed",
+          dedupKey: `invoice:${invoice.id}:failed`,
+        });
+        if (!claimed) return;
+        const email = await getUserEmail(resolved.userId);
+        if (!email) return;
+        const base = appBaseUrl();
+        const { subject, html } = paymentFailedEmail({
+          tier: resolved.tier,
+          appUrl: base ? `${base}/premium` : undefined,
+        });
+        await sendEmail({ to: email, subject, html });
+      })();
       return;
     }
 

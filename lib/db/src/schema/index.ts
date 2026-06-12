@@ -18,3 +18,5 @@ export * from "./profile-passes";
 export * from "./reward-credits";
 export * from "./user-streaks";
 export * from "./profile-details";
+export * from "./notification-preferences";
+export * from "./email-sends";

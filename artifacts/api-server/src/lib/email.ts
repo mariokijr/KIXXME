@@ -1,11 +1,12 @@
 import { logger } from "./logger.js";
-import { sendGmailMessage } from "./gmail.js";
+import { deliverEmail } from "./email-transport.js";
 
 /**
  * Email module. All mail is sent from (and replies go to) the KixxMe support
- * inbox. Sending is provider-agnostic via `gmail.ts`; if the Gmail integration
- * is not connected yet, `sendEmail` logs and returns false instead of throwing,
- * so signup, subscriptions, and support reports never break.
+ * inbox. Sending is provider-agnostic via `email-transport.ts` (Resend-first
+ * for custom-domain deliverability, Gmail fallback); if no provider is
+ * configured/connected yet, `sendEmail` logs and returns false instead of
+ * throwing, so signup, subscriptions, and support reports never break.
  */
 export const SUPPORT_EMAIL = "supportkixxme@gmail.com";
 const FROM = `KixxMe <${SUPPORT_EMAIL}>`;
@@ -81,7 +82,7 @@ export async function sendEmail(params: {
 }): Promise<boolean> {
   const { to, subject, html, replyTo } = params;
   try {
-    await sendGmailMessage({
+    await deliverEmail({
       to,
       from: FROM,
       replyTo: replyTo ?? SUPPORT_EMAIL,
@@ -905,5 +906,270 @@ export function supportNewMessageEmail(opts: {
   return {
     subject: `[KixxMe Soporte] ${tag}: ${opts.ticketSubject}`,
     html: supportNewMessageEmailHtml(opts),
+  };
+}
+
+// --- Engagement: new chat activity -----------------------------------------
+// Sent to the RECIPIENT of a message when they are offline, rate-limited to one
+// "tienes mensajes nuevos" email per conversation per cooldown (see
+// `email-policy.ts`). Deliberately carries NO message body — only a neutral
+// nudge back into the app (same privacy stance as the support emails).
+
+/** Human label for the friendly plan/tier name. */
+function tierLabel(tier: string | null | undefined): string {
+  return tier === "gold" ? "Gold" : tier === "plus" ? "Plus" : "premium";
+}
+
+export const NEW_MESSAGES_SUBJECT = "\u{1F4AC} Tienes mensajes nuevos en KixxMe";
+
+export function newMessagesEmail(opts: {
+  senderName: string;
+  mediaKind: "text" | "photo" | "voice";
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const { senderName, mediaKind, appUrl } = opts;
+  const name = escapeHtml(senderName);
+  const what =
+    mediaKind === "photo"
+      ? "te ha enviado una <strong style=\"color:#f4f1fb;\">foto</strong>"
+      : mediaKind === "voice"
+        ? "te ha enviado una <strong style=\"color:#f4f1fb;\">nota de voz</strong>"
+        : "te ha enviado un <strong style=\"color:#f4f1fb;\">mensaje nuevo</strong>";
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">${name}</strong> ${what} en KixxMe.`,
+    "Entra en la app para leerlo y seguir la conversaci\u00F3n \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: NEW_MESSAGES_SUBJECT,
+    html: renderEmail({
+      preheader: `${senderName} te ha escrito en KixxMe.`,
+      heading: "Tienes mensajes nuevos \u{1F4AC}",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Ver mensaje", url: appUrl } : undefined,
+    }),
+  };
+}
+
+export const CONVERSATION_INVITE_SUBJECT =
+  "\u{1F4AC} Alguien quiere conocerte en KixxMe";
+
+/**
+ * Sent to the recipient when a Gold user starts a brand-new conversation with
+ * them without a prior match. Reveals the sender's name (Gold messaging shows
+ * the sender in-app anyway), but no message body.
+ */
+export function premiumConversationStartedEmail(opts: {
+  senderName: string;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const name = escapeHtml(opts.senderName);
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">${name}</strong> te ha escrito en KixxMe y quiere empezar una conversaci\u00F3n contigo.`,
+    "Entra en la app para ver su mensaje y responder si te interesa \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: CONVERSATION_INVITE_SUBJECT,
+    html: renderEmail({
+      preheader: `${opts.senderName} quiere conocerte en KixxMe.`,
+      heading: "Alguien quiere conocerte \u{1F4AC}",
+      bodyHtml: body,
+      cta: opts.appUrl
+        ? { label: "Ver mensaje", url: opts.appUrl }
+        : undefined,
+    }),
+  };
+}
+
+// --- Subscription lifecycle (always-on, billing) ---------------------------
+
+export const SUBSCRIPTION_RENEWED_SUBJECT = "Tu suscripci\u00F3n KixxMe se ha renovado";
+
+export function subscriptionRenewedEmail(opts: {
+  tier: string | null;
+  periodEnd?: Date | null;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const plan = tierLabel(opts.tier);
+  const when = opts.periodEnd
+    ? `Tu suscripci\u00F3n <strong style="color:#f4f1fb;">${escapeHtml(
+        plan,
+      )}</strong> sigue activa y tu pr\u00F3xima renovaci\u00F3n ser\u00E1 el <strong style="color:#f4f1fb;">${escapeHtml(
+        formatDateEs(opts.periodEnd),
+      )}</strong>.`
+    : `Tu suscripci\u00F3n <strong style="color:#f4f1fb;">${escapeHtml(
+        plan,
+      )}</strong> sigue activa.`;
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Hemos renovado tu suscripci\u00F3n correctamente.</strong>",
+    when,
+    "Sigues disfrutando de todas las ventajas premium sin interrupciones. Puedes gestionar tu suscripci\u00F3n cuando quieras desde la app.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: SUBSCRIPTION_RENEWED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu suscripci\u00F3n KixxMe se ha renovado.",
+      heading: "Suscripci\u00F3n renovada \u2728",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Abrir KixxMe", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+export const PAYMENT_FAILED_SUBJECT = "\u26A0\uFE0F Problema con tu pago de KixxMe";
+
+export function paymentFailedEmail(opts: {
+  tier: string | null;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const plan = tierLabel(opts.tier);
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">No hemos podido procesar el pago de tu suscripci\u00F3n ${escapeHtml(
+      plan,
+    )}.</strong>`,
+    "Esto suele deberse a una tarjeta caducada o sin fondos. Volveremos a intentarlo autom\u00E1ticamente en los pr\u00F3ximos d\u00EDas.",
+    "Para no perder tus ventajas premium, actualiza tu m\u00E9todo de pago cuanto antes.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: PAYMENT_FAILED_SUBJECT,
+    html: renderEmail({
+      preheader: "No hemos podido procesar tu pago.",
+      heading: "Problema con tu pago \u26A0\uFE0F",
+      bodyHtml: body,
+      cta: opts.appUrl
+        ? { label: "Actualizar m\u00E9todo de pago", url: opts.appUrl }
+        : undefined,
+    }),
+  };
+}
+
+export const PREMIUM_ENDED_SUBJECT = "Tu suscripci\u00F3n KixxMe ha finalizado";
+
+export function premiumEndedEmail(opts: {
+  tier: string | null;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const plan = tierLabel(opts.tier);
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">Tu suscripci\u00F3n ${escapeHtml(
+      plan,
+    )} ha finalizado.</strong>`,
+    "Tu cuenta ha pasado al plan gratuito. Ya no tienes acceso a las ventajas premium (como el mapa en tiempo real, los SuperLikes ampliados o el soporte prioritario).",
+    "Puedes recuperar todas tus ventajas cuando quieras volviendo a suscribirte desde la app.",
+    "Te esperamos de vuelta \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: PREMIUM_ENDED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu suscripci\u00F3n KixxMe ha finalizado.",
+      heading: "Tu suscripci\u00F3n ha finalizado",
+      bodyHtml: body,
+      cta: opts.appUrl
+        ? { label: "Volver a Premium", url: opts.appUrl }
+        : undefined,
+    }),
+  };
+}
+
+// --- Support ticket lifecycle (always-on, user-facing) ----------------------
+
+export const SUPPORT_TICKET_OPENED_SUBJECT =
+  "Hemos recibido tu solicitud de soporte";
+
+export function supportTicketOpenedEmail(opts: {
+  isGold: boolean;
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const priority = opts.isGold
+    ? "Como usuario <strong style=\"color:#f4f1fb;\">Gold</strong>, tu solicitud tiene prioridad y la atenderemos lo antes posible."
+    : "Nuestro equipo la revisar\u00E1 y te responder\u00E1 lo antes posible.";
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Hemos recibido tu solicitud de soporte.</strong>",
+    priority,
+    "Te avisaremos cuando tengas una respuesta. Tambi\u00E9n puedes seguir la conversaci\u00F3n desde la app.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: SUPPORT_TICKET_OPENED_SUBJECT,
+    html: renderEmail({
+      preheader: "Hemos recibido tu solicitud de soporte.",
+      heading: "\u{1F4E9} Solicitud recibida",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Ver mi ticket", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+export const SUPPORT_TICKET_CLOSED_SUBJECT =
+  "Tu ticket de soporte se ha cerrado";
+
+export function supportTicketClosedEmail(opts: {
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Tu ticket de soporte se ha cerrado.</strong>",
+    "Esperamos haberte ayudado. Si sigues necesitando ayuda, puedes abrir un nuevo ticket desde la app cuando quieras.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: SUPPORT_TICKET_CLOSED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu ticket de soporte se ha cerrado.",
+      heading: "Ticket cerrado \u2705",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Abrir KixxMe", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+// --- Report lifecycle (always-on, user-facing) ------------------------------
+// Acknowledgement to the REPORTER. Never reveals the reported user or the
+// action taken (privacy + safety) — only that the report was received/reviewed.
+
+export const REPORT_RECEIVED_SUBJECT = "Hemos recibido tu reporte";
+
+export function reportReceivedEmail(opts: {
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Gracias por ayudarnos a mantener KixxMe seguro.</strong>",
+    "Hemos recibido tu reporte y nuestro equipo de moderaci\u00F3n lo revisar\u00E1. Por privacidad, no podemos compartir las medidas concretas que se tomen.",
+    "Si est\u00E1s en peligro inmediato, contacta con las autoridades locales.",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: REPORT_RECEIVED_SUBJECT,
+    html: renderEmail({
+      preheader: "Hemos recibido tu reporte.",
+      heading: "\u{1F6E1}\uFE0F Reporte recibido",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Abrir KixxMe", url: opts.appUrl } : undefined,
+    }),
+  };
+}
+
+export const REPORT_RESOLVED_SUBJECT = "Hemos revisado tu reporte";
+
+export function reportResolvedEmail(opts: {
+  appUrl?: string;
+}): { subject: string; html: string } {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Hemos revisado el reporte que nos enviaste.</strong>",
+    "Nuestro equipo ha tomado las medidas oportunas seg\u00FAn nuestras normas de la comunidad. Por privacidad, no podemos compartir los detalles.",
+    "Gracias por contribuir a que KixxMe sea un espacio seguro para todos \u{1F49C}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: REPORT_RESOLVED_SUBJECT,
+    html: renderEmail({
+      preheader: "Hemos revisado tu reporte.",
+      heading: "\u2705 Reporte revisado",
+      bodyHtml: body,
+      cta: opts.appUrl ? { label: "Abrir KixxMe", url: opts.appUrl } : undefined,
+    }),
   };
 }

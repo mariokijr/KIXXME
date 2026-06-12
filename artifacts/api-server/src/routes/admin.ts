@@ -61,7 +61,11 @@ import {
   getCanonicalThreadForUser,
   startThreadForUser,
 } from "../lib/support-tickets.js";
-import { notifySupportReplyByEmail } from "../lib/support-notifications.js";
+import {
+  notifySupportReplyByEmail,
+  notifySupportTicketClosedByEmail,
+  notifyReportResolvedByEmail,
+} from "../lib/support-notifications.js";
 import type { SupportTicketStatus } from "@workspace/db";
 
 const router = Router();
@@ -566,6 +570,9 @@ router.post("/admin/reports/:id/resolve", async (req, res) => {
     })
     .where(eq(supportReportsTable.id, report.id));
 
+  // Ack the reporter that their report was reviewed (privacy-safe; always-on).
+  void notifyReportResolvedByEmail(report.reporterId, report.id);
+
   res.json({ success: true });
 });
 
@@ -1032,6 +1039,11 @@ router.post("/admin/tickets/:id/status", async (req, res) => {
     return;
   }
   res.json(detail);
+
+  // Notify the owner when their ticket is closed (always-on, privacy-safe).
+  if (parsed.data.status === "closed") {
+    void notifySupportTicketClosedByEmail(detail.ticket.userId, detail.ticket.id);
+  }
 });
 
 // ---------------------------------------------------------------------------

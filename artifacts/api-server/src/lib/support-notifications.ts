@@ -5,8 +5,11 @@ import {
   sendEmail,
   supportReplyEmail,
   supportNewMessageEmail,
+  supportTicketClosedEmail,
+  reportResolvedEmail,
   SUPPORT_EMAIL,
 } from "./email.js";
+import { claimEmailSend } from "./email-policy.js";
 
 const PREVIEW_LEN = 140;
 
@@ -96,6 +99,86 @@ export async function notifySupportNewMessageByEmail(
     logger.error(
       { err: err instanceof Error ? err.message : String(err) },
       "notifySupportNewMessageByEmail failed",
+    );
+  }
+}
+
+/**
+ * Fire-and-forget ack to a ticket's owner when an operator closes their ticket.
+ * Always-on (no preference gate) — it is a direct response to the user's own
+ * support request, not engagement mail. Never throws.
+ */
+export async function notifySupportTicketClosedByEmail(
+  ownerId: string,
+  ticketId: string,
+): Promise<void> {
+  try {
+    // Idempotent (always-on): re-closing the same ticket never re-emails.
+    const claimed = await claimEmailSend({
+      userId: ownerId,
+      category: "ticket_closed",
+      dedupKey: `ticket_closed:${ticketId}`,
+    });
+    if (!claimed) return;
+    const { data, error } = await supabase.auth.admin.getUserById(ownerId);
+    if (error) {
+      logger.warn(
+        { err: error.message, ownerId },
+        "ticket closed email: getUserById failed",
+      );
+      return;
+    }
+    const email = data.user?.email ?? null;
+    if (!email) return;
+    const base = appBaseUrl();
+    const t = supportTicketClosedEmail({
+      appUrl: base ? `${base}/support` : undefined,
+    });
+    await sendEmail({ to: email, subject: t.subject, html: t.html });
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "notifySupportTicketClosedByEmail failed",
+    );
+  }
+}
+
+/**
+ * Fire-and-forget ack to a reporter when an admin resolves their report. Never
+ * reveals the reported user or the action taken (privacy + safety) — only that
+ * the report was reviewed. Always-on. Never throws.
+ */
+export async function notifyReportResolvedByEmail(
+  reporterId: string,
+  reportId: string,
+): Promise<void> {
+  try {
+    // Idempotent (always-on): re-resolving the same report never re-emails.
+    const claimed = await claimEmailSend({
+      userId: reporterId,
+      category: "report_resolved",
+      dedupKey: `report_resolved:${reportId}`,
+    });
+    if (!claimed) return;
+    const { data, error } = await supabase.auth.admin.getUserById(reporterId);
+    if (error) {
+      logger.warn(
+        { err: error.message, reporterId },
+        "report resolved email: getUserById failed",
+      );
+      return;
+    }
+    const email = data.user?.email ?? null;
+    if (!email) return;
+    const base = appBaseUrl();
+    const t = reportResolvedEmail({
+      appUrl: base ? `${base}/support` : undefined,
+    });
+    await sendEmail({ to: email, subject: t.subject, html: t.html });
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "notifyReportResolvedByEmail failed",
     );
   }
 }

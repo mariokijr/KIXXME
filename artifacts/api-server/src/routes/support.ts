@@ -3,8 +3,10 @@ import { requireAuth, isOperatorEmail } from "../lib/auth.js";
 import { db, supportReportsTable } from "@workspace/db";
 import {
   sendEmail,
+  appBaseUrl,
   SUPPORT_EMAIL,
   supportReportEmailHtml,
+  supportTicketOpenedEmail,
 } from "../lib/email.js";
 import { hasGold } from "../lib/entitlement.js";
 import {
@@ -252,6 +254,15 @@ router.post("/support/tickets", async (req, res) => {
       message.trim(),
       true,
     );
+    // Ack the user that we received their ticket (always-on; they're Gold here).
+    if (auth.email) {
+      const base = appBaseUrl();
+      const t = supportTicketOpenedEmail({
+        isGold: true,
+        appUrl: base ? `${base}/support` : undefined,
+      });
+      void sendEmail({ to: auth.email, subject: t.subject, html: t.html });
+    }
     res.status(201).json(detail);
   } catch (error) {
     req.log.error(

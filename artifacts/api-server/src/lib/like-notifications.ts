@@ -7,6 +7,11 @@ import {
   matchEmail,
   superLikeReceivedEmail,
 } from "./email.js";
+import {
+  isEmailCategoryEnabled,
+  recordEmailSent,
+  pairKey,
+} from "./email-policy.js";
 
 /**
  * Email notifications for likes. A like that becomes a mutual Match emails BOTH
@@ -56,16 +61,26 @@ export async function notifyMatchByEmail(
       getUsername(userAId),
       getUsername(userBId),
     ]);
+    const [wantA, wantB] = await Promise.all([
+      isEmailCategoryEnabled(userAId, "match"),
+      isEmailCategoryEnabled(userBId, "match"),
+    ]);
     const tasks: Promise<boolean>[] = [];
-    if (emailA) {
+    if (emailA && wantA) {
       const t = matchEmail(nameB ?? "alguien", appUrl);
       tasks.push(sendEmail({ to: emailA, subject: t.subject, html: t.html }));
     }
-    if (emailB) {
+    if (emailB && wantB) {
       const t = matchEmail(nameA ?? "alguien", appUrl);
       tasks.push(sendEmail({ to: emailB, subject: t.subject, html: t.html }));
     }
     await Promise.all(tasks);
+    // Mark the pair so a chat "tienes mensajes nuevos" email fired seconds later
+    // (the match auto-opens a conversation) is suppressed — but only when we
+    // actually sent a match email.
+    if (tasks.length > 0) {
+      await recordEmailSent(userAId, "match", pairKey(userAId, userBId));
+    }
   } catch (err) {
     logger.error(
       { err: err instanceof Error ? err.message : String(err) },
@@ -86,6 +101,7 @@ export async function notifySuperLikeByEmail(
   try {
     const email = await getEmail(recipientId);
     if (!email) return;
+    if (!(await isEmailCategoryEnabled(recipientId, "superlike"))) return;
     const plan = await getPlan(recipientId);
     const senderName = plan !== "free" ? await getUsername(senderId) : null;
     const t = superLikeReceivedEmail(senderName, appBaseUrl());
