@@ -99,12 +99,16 @@ export interface LiveKitCall {
   mediaErrorReason: MediaErrorReason | null;
   /** Remote audio is being received but the browser blocked autoplay. */
   needsAudioGesture: boolean;
+  /** A <video> element's play() was rejected (paused/black); needs a gesture. */
+  needsVideoGesture: boolean;
   /** Ref callback for the full-screen remote <video>. */
   attachRemoteVideo: (el: HTMLVideoElement | null) => void;
   /** Ref callback for the corner self-preview <video>. */
   attachLocalVideo: (el: HTMLVideoElement | null) => void;
   /** Resume audio after an autoplay block; call from a user gesture. */
   resumeAudio: () => void;
+  /** Re-issue play() on both <video> elements after an autoplay block, from a gesture. */
+  resumeVideo: () => void;
   /** True when more than one camera exists (mobile front/back switch). */
   canSwitchCamera: boolean;
   /** Flip between the front and back camera. */
@@ -260,6 +264,7 @@ export function useLiveKitCall({
   const [mediaErrorReason, setMediaErrorReason] =
     useState<MediaErrorReason | null>(null);
   const [needsAudioGesture, setNeedsAudioGesture] = useState(false);
+  const [needsVideoGesture, setNeedsVideoGesture] = useState(false);
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   // Flipped true once the connect flow has acquired local media; gates the
   // per-toggle effects so they never fire a second concurrent getUserMedia.
@@ -332,8 +337,22 @@ export function useLiveKitCall({
           // top-ranked iOS causes.
           const localEl = localElRef.current;
           const remoteEl = remoteElRef.current;
-          if (localEl) report.localVideoWidth = localEl.videoWidth;
-          if (remoteEl) report.remoteVideoWidth = remoteEl.videoWidth;
+          if (localEl) {
+            report.localVideoWidth = localEl.videoWidth;
+            report.localVideoPaused = localEl.paused;
+            report.localVideoCurrentTime = localEl.currentTime;
+            report.localVideoReadyState = localEl.readyState;
+            report.localClientWidth = localEl.clientWidth;
+            report.localClientHeight = localEl.clientHeight;
+          }
+          if (remoteEl) {
+            report.remoteVideoWidth = remoteEl.videoWidth;
+            report.remoteVideoPaused = remoteEl.paused;
+            report.remoteVideoCurrentTime = remoteEl.currentTime;
+            report.remoteVideoReadyState = remoteEl.readyState;
+            report.remoteClientWidth = remoteEl.clientWidth;
+            report.remoteClientHeight = remoteEl.clientHeight;
+          }
           const camPub = room?.localParticipant.getTrackPublication(
             Track.Source.Camera,
           );
@@ -394,15 +413,89 @@ export function useLiveKitCall({
     }
   }, [callId, token, url]);
 
-  const attachRemoteVideo = useCallback((el: HTMLVideoElement | null) => {
-    remoteElRef.current = el;
-    if (el && remoteVideoTrackRef.current) remoteVideoTrackRef.current.attach(el);
-  }, []);
+  // Explicitly (re)start playback on a <video>. LiveKit's track.attach() calls
+  // play() once and swallows rejection; on mobile (esp. iOS Safari) that single
+  // attempt can be refused while the element isn't laid out/visible yet, leaving
+  // it PAUSED (black) even though frames are decoding (videoWidth>0) and audio
+  // (a separate <audio>) plays fine. We re-issue play() on loadedmetadata/canplay
+  // and, for the remote view, surface a tap-to-play gesture if it still won't run.
+  const playVideo = useCallback(
+    (el: HTMLVideoElement | null, which: "local" | "remote") => {
+      if (!el) return;
+      const attempt = () => {
+        // iOS only allows un-gestured playback on a video that is muted AND
+        // inline. React sets `muted` as a property (not an attribute), which can
+        // lag render timing — pin both imperatively right before play() so the
+        // element is always in the autoplay-eligible state. Audio is unaffected
+        // (it rides a separate <audio>; these <video> els are muted by design).
+        el.muted = true;
+        el.playsInline = true;
+        const p = el.play() as Promise<void> | undefined;
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            if (which === "remote") setNeedsVideoGesture(false);
+          }).catch((err: unknown) => {
+            const name = (err as { name?: string } | undefined)?.name;
+            if (which === "remote") {
+              diagRef.current.remotePlayError = name;
+              setNeedsVideoGesture(true);
+            } else {
+              diagRef.current.localPlayError = name;
+            }
+          });
+        }
+      };
+      attempt();
+      el.addEventListener("loadedmetadata", attempt, { once: true });
+      el.addEventListener("canplay", attempt, { once: true });
+    },
+    [],
+  );
 
-  const attachLocalVideo = useCallback((el: HTMLVideoElement | null) => {
-    localElRef.current = el;
-    if (el && localTrackRef.current) localTrackRef.current.attach(el);
-  }, []);
+  // Every attach site must go through here so none forgets to (re)start playback.
+  const attachAndPlay = useCallback(
+    (
+      track: { attach: (el: HTMLMediaElement) => unknown } | null | undefined,
+      el: HTMLVideoElement | null,
+      which: "local" | "remote",
+    ) => {
+      if (!track || !el) return;
+      track.attach(el);
+      playVideo(el, which);
+    },
+    [playVideo],
+  );
+
+  const attachRemoteVideo = useCallback(
+    (el: HTMLVideoElement | null) => {
+      remoteElRef.current = el;
+      if (el && remoteVideoTrackRef.current)
+        attachAndPlay(remoteVideoTrackRef.current, el, "remote");
+    },
+    [attachAndPlay],
+  );
+
+  const attachLocalVideo = useCallback(
+    (el: HTMLVideoElement | null) => {
+      localElRef.current = el;
+      if (el && localTrackRef.current)
+        attachAndPlay(localTrackRef.current, el, "local");
+    },
+    [attachAndPlay],
+  );
+
+  // Re-issue play() on both <video> elements from a user gesture (clears the
+  // tap-to-play prompt once the remote view is actually running). Audio is
+  // independent and keeps working regardless.
+  const resumeVideo = useCallback(() => {
+    const els: Array<[HTMLVideoElement | null, "local" | "remote"]> = [
+      [remoteElRef.current, "remote"],
+      [localElRef.current, "local"],
+    ];
+    for (const [el, which] of els) {
+      if (el) playVideo(el, which);
+    }
+  }, [playVideo]);
 
   const resumeAudio = useCallback(() => {
     const room = roomRef.current;
@@ -439,13 +532,13 @@ export function useLiveKitCall({
       .restartTrack({ facingMode: next })
       .then(() => {
         facingModeRef.current = next;
-        if (localElRef.current) track.attach(localElRef.current);
+        attachAndPlay(track, localElRef.current, "local");
       })
       .catch((err) => {
         recordMediaError(err, "switch");
         postDiag("toggle-cam", mediaRef.current?.callId);
       });
-  }, [recordMediaError, postDiag]);
+  }, [recordMediaError, postDiag, attachAndPlay]);
 
   // Manual retry after a camera denial/failure. iOS Safari won't re-prompt
   // automatically once camera is denied per-site, but a fresh gesture-driven
@@ -458,8 +551,7 @@ export function useLiveKitCall({
       .setCameraEnabled(true, { facingMode: facingModeRef.current })
       .then((pub) => {
         appliedCamRef.current = true;
-        if (pub?.track && localElRef.current)
-          pub.track.attach(localElRef.current);
+        if (pub?.track) attachAndPlay(pub.track, localElRef.current, "local");
         setMediaError(false);
         setMediaErrorReason(null);
         void detectCameras();
@@ -469,7 +561,7 @@ export function useLiveKitCall({
         recordMediaError(err, "retry-camera");
         postDiag("acquire", mediaRef.current?.callId);
       });
-  }, [detectCameras, recordMediaError, postDiag]);
+  }, [detectCameras, recordMediaError, postDiag, attachAndPlay]);
 
   // --- Connect (only when the latch changes) -------------------------------
   useEffect(() => {
@@ -493,6 +585,7 @@ export function useLiveKitCall({
     setMediaErrorReason(null);
     setMediaReady(false);
     setNeedsAudioGesture(false);
+    setNeedsVideoGesture(false);
     appliedCamRef.current = null;
     appliedMicRef.current = null;
 
@@ -507,7 +600,7 @@ export function useLiveKitCall({
     const onTrackSubscribed = (track: RemoteTrack) => {
       if (track.kind === Track.Kind.Video) {
         remoteVideoTrackRef.current = track;
-        if (remoteElRef.current) track.attach(remoteElRef.current);
+        attachAndPlay(track, remoteElRef.current, "remote");
         setHasRemoteVideo(true);
       } else if (track.kind === Track.Kind.Audio) {
         remoteAudioTrackRef.current = track;
@@ -533,7 +626,7 @@ export function useLiveKitCall({
         diagRef.current.publishedCamera = true;
         if (pub.track) {
           localTrackRef.current = pub.track;
-          if (localElRef.current) pub.track.attach(localElRef.current);
+          attachAndPlay(pub.track, localElRef.current, "local");
         }
       } else if (pub.kind === Track.Kind.Audio) {
         diagRef.current.publishedMic = true;
@@ -579,7 +672,7 @@ export function useLiveKitCall({
         track
           .restartTrack({ facingMode: facingModeRef.current })
           .then(() => {
-            if (localElRef.current) track.attach(localElRef.current);
+            attachAndPlay(track, localElRef.current, "local");
           })
           .catch((err) => {
             recordMediaError(err, "visibility-restart");
@@ -699,8 +792,8 @@ export function useLiveKitCall({
         const camPub = room.localParticipant.getTrackPublication(
           Track.Source.Camera,
         );
-        if (camPub?.track && localElRef.current) {
-          camPub.track.attach(localElRef.current);
+        if (camPub?.track) {
+          attachAndPlay(camPub.track, localElRef.current, "local");
         }
       } catch (err) {
         diagRef.current.gumErrors = [
@@ -751,8 +844,9 @@ export function useLiveKitCall({
       setHasRemoteVideo(false);
       setMediaReady(false);
       setNeedsAudioGesture(false);
+      setNeedsVideoGesture(false);
     };
-  }, [media, detectCameras, postDiag, recordMediaError]);
+  }, [media, detectCameras, postDiag, recordMediaError, attachAndPlay]);
 
   // --- Per-toggle camera publish (only AFTER the initial acquisition) ------
   useEffect(() => {
@@ -764,7 +858,7 @@ export function useLiveKitCall({
     room.localParticipant
       .setCameraEnabled(camOn, { facingMode: facingModeRef.current })
       .then((pub) => {
-        if (pub?.track && localElRef.current) pub.track.attach(localElRef.current);
+        if (pub?.track) attachAndPlay(pub.track, localElRef.current, "local");
         setMediaError(false);
         setMediaErrorReason(null);
         if (camOn) void detectCameras();
@@ -773,7 +867,7 @@ export function useLiveKitCall({
         recordMediaError(err, "toggle-cam");
         postDiag("toggle-cam", mediaRef.current?.callId);
       });
-  }, [camOn, mediaReady, detectCameras, recordMediaError, postDiag]);
+  }, [camOn, mediaReady, detectCameras, recordMediaError, postDiag, attachAndPlay]);
 
   // --- Per-toggle microphone publish --------------------------------------
   useEffect(() => {
@@ -794,9 +888,11 @@ export function useLiveKitCall({
     mediaError,
     mediaErrorReason,
     needsAudioGesture,
+    needsVideoGesture,
     attachRemoteVideo,
     attachLocalVideo,
     resumeAudio,
+    resumeVideo,
     canSwitchCamera,
     switchCamera,
     retryCamera,

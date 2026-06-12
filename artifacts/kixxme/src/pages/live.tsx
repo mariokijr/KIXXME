@@ -1331,7 +1331,14 @@ function InCall({
           background:
             "radial-gradient(ellipse 90% 60% at 50% 30%, hsl(273 40% 16%) 0%, hsl(238 30% 6%) 70%)",
         }}
-        onClick={live.active ? live.resumeAudio : undefined}
+        onClick={
+          live.active
+            ? () => {
+                live.resumeAudio();
+                live.resumeVideo();
+              }
+            : undefined
+        }
       >
         {live.active ? (
           <>
@@ -1545,6 +1552,28 @@ function InCall({
               >
                 <Volume2 className="w-5 h-5" />
                 Toca para activar el sonido
+              </button>
+            )}
+
+            {/* Video autoplay unlock prompt — if the browser refused to play a
+                <video> (paused/black despite frames decoding) we surface a clear
+                tap target. Audio keeps working through its own element. */}
+            {live.needsVideoGesture && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  live.resumeVideo();
+                }}
+                data-testid="button-enable-video"
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 px-5 py-3 rounded-full text-white font-display tracking-wide animate-pulse"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(266 85% 58%), hsl(326 90% 52%))",
+                  boxShadow: "0 8px 28px rgba(147,51,234,0.45)",
+                }}
+              >
+                <Video className="w-5 h-5" />
+                Toca para ver el vídeo
               </button>
             )}
 

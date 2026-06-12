@@ -108,6 +108,27 @@ fixed in `useLiveKitCall`:
 (no camera; preview iframe lacks `allow="camera;microphone"`). The final
 see+hear validation always requires the user's two phones.
 
+## `track.attach()` swallows the single play() → a muted video can stay PAUSED (black)
+A SECOND, distinct "no video" mode from the four above: lifecycle works, frames
+even **decode** (`videoWidth>0`), audio works, yet BOTH self-view and remote are
+black. **Root cause:** LiveKit `track.attach(el)` calls `el.play()` exactly once
+and swallows the rejection; on iOS that lone attempt can be refused while the
+`<video>` isn't laid-out/visible yet, leaving it **PAUSED** forever. `videoWidth`
+proves the pipeline decoded a frame — it does NOT prove the element is playing or
+visible. **The tell:** `el.paused===true` / `currentTime` frozen / `clientHeight`
+0 while `videoWidth` is non-zero.
+**Fix (all attach sites route through one `attachAndPlay`→`playVideo` helper):**
+re-issue `el.play()` after attach AND again on `loadedmetadata`/`canplay`; pin
+`el.muted=true; el.playsInline=true` imperatively right before each `play()`
+(React applies `muted` as a property and can lag render → an unmuted-at-play()
+video is the #1 iOS `NotAllowedError`); on a remaining **remote** rejection set
+`needsVideoGesture` and show a "Toca para ver el vídeo" tap overlay (the
+full-screen surface tap also calls `resumeVideo()`). Local rejection only records
+a diag `localPlayError` (a black self-view already has the `mediaError`/retry UX;
+a prompt there would confuse). Diag must carry `paused`/`currentTime`/`readyState`
+/`clientWidth`/`clientHeight` (+`*PlayError`) for BOTH els — width alone can't
+distinguish "decoding but paused/black" from "playing".
+
 ## Corrupted LiveKit creds masquerade as the iOS bug (check creds FIRST)
 A glyph-swapped API key (LiveKit keys start `API`; an `I`→`l` swap gives `APl…`)
 or a truncated/wrong API secret produces the EXACT same symptom as the iOS bug:

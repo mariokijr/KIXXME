@@ -1083,7 +1083,19 @@ export const ReportLiveDiagBody = zod.object({
   "cameraTrackReadyState": zod.string().optional().describe('Local camera MediaStreamTrack.readyState (live|ended)'),
   "cameraTrackMuted": zod.boolean().optional().describe('Local camera MediaStreamTrack.muted (true = producing no frames)'),
   "cameraWidth": zod.number().optional().describe('Local camera getSettings().width'),
-  "cameraHeight": zod.number().optional().describe('Local camera getSettings().height')
+  "cameraHeight": zod.number().optional().describe('Local camera getSettings().height'),
+  "localVideoPaused": zod.boolean().optional().describe('self-view <video>.paused (true = not playing → black on mobile)'),
+  "localVideoCurrentTime": zod.number().optional().describe('self-view <video>.currentTime (stuck at 0 = never painted a frame)'),
+  "localVideoReadyState": zod.number().optional().describe('self-view <video>.readyState (0-4; <2 = no current frame)'),
+  "localClientWidth": zod.number().optional().describe('self-view <video>.clientWidth (0 = laid out with no size → invisible)'),
+  "localClientHeight": zod.number().optional().describe('self-view <video>.clientHeight'),
+  "localPlayError": zod.string().optional().describe('DOMException name if the self-view play() promise rejected'),
+  "remoteVideoPaused": zod.boolean().optional().describe('remote <video>.paused (true = not playing → black on mobile)'),
+  "remoteVideoCurrentTime": zod.number().optional().describe('remote <video>.currentTime (stuck at 0 = never painted a frame)'),
+  "remoteVideoReadyState": zod.number().optional().describe('remote <video>.readyState (0-4; <2 = no current frame)'),
+  "remoteClientWidth": zod.number().optional().describe('remote <video>.clientWidth (0 = laid out with no size → invisible)'),
+  "remoteClientHeight": zod.number().optional().describe('remote <video>.clientHeight'),
+  "remotePlayError": zod.string().optional().describe('DOMException name if the remote play() promise rejected')
 }).describe('Client-side media diagnostics for one Live call, used to debug why a device can\'t capture\/publish. Contains NO tokens and no PII beyond the userAgent string.')
 })
 

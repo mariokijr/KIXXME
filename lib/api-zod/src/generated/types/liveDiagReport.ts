@@ -61,4 +61,28 @@ export interface LiveDiagReport {
   cameraWidth?: number;
   /** Local camera getSettings().height */
   cameraHeight?: number;
+  /** self-view <video>.paused (true = not playing → black on mobile) */
+  localVideoPaused?: boolean;
+  /** self-view <video>.currentTime (stuck at 0 = never painted a frame) */
+  localVideoCurrentTime?: number;
+  /** self-view <video>.readyState (0-4; <2 = no current frame) */
+  localVideoReadyState?: number;
+  /** self-view <video>.clientWidth (0 = laid out with no size → invisible) */
+  localClientWidth?: number;
+  /** self-view <video>.clientHeight */
+  localClientHeight?: number;
+  /** DOMException name if the self-view play() promise rejected */
+  localPlayError?: string;
+  /** remote <video>.paused (true = not playing → black on mobile) */
+  remoteVideoPaused?: boolean;
+  /** remote <video>.currentTime (stuck at 0 = never painted a frame) */
+  remoteVideoCurrentTime?: number;
+  /** remote <video>.readyState (0-4; <2 = no current frame) */
+  remoteVideoReadyState?: number;
+  /** remote <video>.clientWidth (0 = laid out with no size → invisible) */
+  remoteClientWidth?: number;
+  /** remote <video>.clientHeight */
+  remoteClientHeight?: number;
+  /** DOMException name if the remote play() promise rejected */
+  remotePlayError?: string;
 }
