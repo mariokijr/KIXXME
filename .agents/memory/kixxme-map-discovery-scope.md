@@ -77,6 +77,20 @@ separate worldwide stats call would over-count (non-Gold + opted-out users).
 **How to apply:** if you re-add headline counters to the map, derive from the map list, not
 a global stats call.
 
+## Non-Gold map = full early-return sales screen (not an in-map overlay)
+Non-Gold users get a whole-screen premium "trailer" (`components/map-demo.tsx`,
+self-contained radar + fake crown markers + 3 marketing messages + "Hazte Gold" CTA)
+returned **early** from `map-view.tsx` — `if (!isLoading && !canAccess) return <MapDemo/>`,
+placed AFTER all hooks. Gate on `can_access`, never `profiles.plan`. The old dimmed-map +
+lock-card overlay is gone.
+**Latent edge case (accepted, not fixed):** the Leaflet init effect has `[]` deps, so during
+the non-Gold `isLoading` frame the main return mounts the map div and inits a Leaflet map;
+the early return then unmounts that div, orphaning `mapRef`. If `can_access` later flips true
+via the 30s poll *while the user stays on /map* (e.g. upgrade in another tab), the init effect
+never re-runs → blank map. The normal upgrade path (CTA → /premium → back) remounts MapView
+fresh, so it rarely bites. Fix (if needed): tie map init lifecycle to `canAccess` (init/cleanup
+on `[canAccess]`) instead of `[]` — but that touches the core Gold map, so test carefully.
+
 ## Stats count cap
 `GET /profiles/stats` counts in JS (load-and-count) capped at 5000 rows — an early-stage
 tradeoff, not exact at scale. "En línea ahora" has no client refetch interval, so it can be

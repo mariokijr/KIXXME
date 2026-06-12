@@ -31,6 +31,7 @@ import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { formatDistance, initialsFor } from "@/lib/profile-format";
 import { ReportDialog } from "@/components/report-dialog";
+import { MapDemo } from "@/components/map-demo";
 
 const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038]; // Madrid
 
@@ -330,6 +331,13 @@ export default function MapView() {
     }
   }, [placeable, canAccess, center[0], center[1]]);
 
+  // Non-Gold viewers get the premium demo/trailer instead of the real map. The
+  // gate is the server-computed `can_access` (never raw `profiles.plan`). Wait
+  // until the envelope has loaded so we don't flash the demo at a Gold user.
+  if (!isLoading && !canAccess) {
+    return <MapDemo onUpgrade={() => setLocation("/premium")} />;
+  }
+
   return (
     <div className="flex flex-col h-full">
       <header
@@ -536,50 +544,6 @@ export default function MapView() {
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        )}
-
-        {/* Premium lock — non-Gold users see the dimmed map behind a CTA. */}
-        {!isLoading && !canAccess && (
-          <div
-            className="absolute inset-0 z-[600] flex items-center justify-center p-6"
-            style={{
-              background: "rgba(8,7,18,0.72)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <div
-              className="max-w-xs w-full text-center rounded-2xl border border-amber-500/30 p-6"
-              style={{ background: "rgba(20,16,30,0.96)" }}
-            >
-              <div
-                className="mx-auto mb-4 w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(45,95%,60%), hsl(38,92%,50%))",
-                }}
-              >
-                <Crown className="w-7 h-7 text-black" />
-              </div>
-              <h2 className="font-display text-lg tracking-wide text-amber-300 mb-2">
-                Mapa en tiempo real
-              </h2>
-              <p className="font-sans text-sm text-muted-foreground mb-5 leading-snug">
-                El mapa en tiempo real es exclusivo para usuarios Gold. Descubre
-                quién está cerca de ti y conéctate al instante.
-              </p>
-              <button
-                onClick={() => setLocation("/premium")}
-                data-testid="button-map-upsell"
-                className="w-full py-2.5 rounded-xl text-black font-sans font-semibold"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(45,95%,60%), hsl(38,92%,50%))",
-                }}
-              >
-                Hazte Gold
-              </button>
-            </div>
           </div>
         )}
 
