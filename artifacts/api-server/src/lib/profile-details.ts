@@ -105,6 +105,61 @@ export async function upsertProfileDetails(
 }
 
 /**
+ * Whether the user appears on the Gold map ("Mostrarme en el mapa"). Defaults to
+ * true when there's no row yet. Kept as a dedicated accessor (not folded into
+ * getProfileDetails) because that helper's shape is spread verbatim into the
+ * public profile responses — this is a private setting and must never leak.
+ */
+export async function getShowOnMap(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ showOnMap: profileDetailsTable.showOnMap })
+    .from(profileDetailsTable)
+    .where(eq(profileDetailsTable.userId, userId))
+    .limit(1);
+  return row?.showOnMap ?? true;
+}
+
+/**
+ * Set the user's map visibility. Uses onConflictDoUpdate touching ONLY
+ * show_on_map, so a toggle never clobbers role/looking_for.
+ */
+export async function setShowOnMap(
+  userId: string,
+  value: boolean,
+): Promise<void> {
+  await db
+    .insert(profileDetailsTable)
+    .values({ userId, showOnMap: value })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: { showOnMap: value },
+    });
+}
+
+/**
+ * Among the given users, the set who have opted OUT of the map (show_on_map =
+ * false). Users without a row default to visible, so they are simply absent from
+ * the returned set. Batched over the candidate set — no N+1.
+ */
+export async function getMapOptOutIds(
+  userIds: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (userIds.length === 0) return out;
+  const rows = await db
+    .select({
+      userId: profileDetailsTable.userId,
+      showOnMap: profileDetailsTable.showOnMap,
+    })
+    .from(profileDetailsTable)
+    .where(inArray(profileDetailsTable.userId, userIds));
+  for (const row of rows) {
+    if (row.showOnMap === false) out.add(row.userId);
+  }
+  return out;
+}
+
+/**
  * Whether the user has finished the mandatory onboarding tutorial. Kept as a
  * dedicated accessor (not folded into getProfileDetails) because that helper's
  * shape is spread verbatim into the public profile responses — the tutorial flag

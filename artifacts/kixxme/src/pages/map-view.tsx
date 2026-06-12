@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-  Globe,
   Zap,
   Loader2,
   Navigation,
@@ -13,11 +12,13 @@ import {
   Heart,
   Check,
   Flag,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
-  useListProfiles,
-  getListProfilesQueryKey,
-  useGetDiscoveryStats,
+  useListMapUsers,
+  getListMapUsersQueryKey,
+  useUpdateMapVisibility,
   useGetMyProfile,
   getGetMyProfileQueryKey,
   PublicProfile,
@@ -114,18 +115,14 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Every marker on the Gold map is a Gold user, so they all wear the crown ring.
 function markerHtml(user: PublicProfile): string {
-  const isGold = user.plan === "gold";
   const ring = user.is_online
     ? "box-shadow:0 0 0 2px hsl(142,71%,45%),0 0 12px rgba(168,85,247,0.7);"
     : "box-shadow:0 0 10px rgba(168,85,247,0.5);";
-  const border = isGold
-    ? "2px solid hsl(45,90%,55%)"
-    : "2px solid rgba(168,85,247,0.7)";
+  const border = "2px solid hsl(45,90%,55%)";
   // Crown is a static glyph — no user input, so no escaping needed.
-  const crown = isGold
-    ? `<div style="position:absolute;top:-9px;right:-7px;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">👑</div>`
-    : "";
+  const crown = `<div style="position:absolute;top:-9px;right:-7px;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">👑</div>`;
   const inner = user.avatar_url
     ? `<img src="${escapeHtml(
         user.avatar_url
@@ -149,45 +146,56 @@ export default function MapView() {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const locRefreshed = useRef(false);
 
   const { data: profile } = useGetMyProfile({
     query: { queryKey: getGetMyProfileQueryKey() },
   });
-  const { data: profiles = [], isLoading } = useListProfiles({ scope });
-  // The headline stat cards ("Usuarios registrados" / "En línea ahora") show
-  // global totals, decoupled from the map scope chips below — otherwise picking
-  // a geo scope (e.g. España) with no users in range would misleadingly read 0.
-  const { data: stats } = useGetDiscoveryStats({ scope: "worldwide" });
+  // The map list is a Gold-gated envelope: `can_access` (computed server-side so
+  // it honors the GOLD_TEST_EMAILS override) decides full access vs paywall, and
+  // `users` only ever contains other Gold users who opted into the map. Polls so
+  // markers stay near-real-time. Explicit queryKey is required when passing query
+  // options to a generated hook.
+  const { data: mapData, isLoading } = useListMapUsers(
+    { scope },
+    {
+      query: {
+        queryKey: getListMapUsersQueryKey({ scope }),
+        refetchInterval: 30000,
+      },
+    }
+  );
   const createConv = useCreateOrGetConversation();
   const likeActions = useLikeActions();
   const geo = useGeolocation();
+  const updateVisibility = useUpdateMapVisibility();
 
-  const isGold = profile?.plan === "gold";
+  const canAccess = mapData?.can_access ?? false;
+  const showOnMap = mapData?.show_on_map ?? true;
+  const users = useMemo<PublicProfile[]>(() => mapData?.users ?? [], [mapData]);
+
   const hasLocation = profile?.latitude != null && profile?.longitude != null;
   const center: [number, number] = hasLocation
     ? [profile!.latitude as number, profile!.longitude as number]
     : DEFAULT_CENTER;
 
-  const invalidateProfiles = () =>
-    qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+  const invalidateMap = () =>
+    qc.invalidateQueries({ queryKey: getListMapUsersQueryKey() });
 
-  // Advanced filters only apply for Gold users; everyone else sees the full
-  // (server-scoped) list.
-  const activeFilters = isGold ? filters : DEFAULT_FILTERS;
   const filtered = useMemo(
     () =>
-      profiles.filter((p) => {
-        if (activeFilters.onlineOnly && !p.is_online) return false;
-        if (activeFilters.withPhoto && !p.avatar_url) return false;
-        if (activeFilters.verifiedOnly && !p.is_verified) return false;
+      users.filter((p) => {
+        if (filters.onlineOnly && !p.is_online) return false;
+        if (filters.withPhoto && !p.avatar_url) return false;
+        if (filters.verifiedOnly && !p.is_verified) return false;
         if (
           p.age != null &&
-          (p.age < activeFilters.ageMin || p.age > activeFilters.ageMax)
+          (p.age < filters.ageMin || p.age > filters.ageMax)
         )
           return false;
         return true;
       }),
-    [profiles, activeFilters]
+    [users, filters]
   );
 
   const placeable = useMemo(
@@ -196,10 +204,24 @@ export default function MapView() {
   );
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
+  const goldCount = users.length;
+  const onlineCount = useMemo(
+    () => users.filter((u) => u.is_online).length,
+    [users]
+  );
+
   const handleMessage = (userId: string) => {
     createConv.mutate(
       { data: { other_user_id: userId } },
       { onSuccess: (conv) => setLocation(`/chats/${conv.id}`) }
+    );
+  };
+
+  const toggleVisibility = () => {
+    if (updateVisibility.isPending) return;
+    updateVisibility.mutate(
+      { data: { show_on_map: !showOnMap } },
+      { onSuccess: () => invalidateMap() }
     );
   };
 
@@ -208,6 +230,33 @@ export default function MapView() {
     if (def?.needsLocation && !hasLocation) return;
     setScope(next);
   };
+
+  // Near-real-time: once the Gold map is accessible, silently refresh the user's
+  // own location if the browser permission is already granted (no extra prompt),
+  // so their position — and everyone's relative distances — are fresh on open.
+  useEffect(() => {
+    if (!canAccess || locRefreshed.current) return;
+    const nav = navigator as Navigator & {
+      permissions?: { query: (d: { name: PermissionName }) => Promise<{ state: string }> };
+    };
+    if (!nav.permissions?.query) {
+      if (hasLocation) {
+        locRefreshed.current = true;
+        geo.request();
+      }
+      return;
+    }
+    nav.permissions
+      .query({ name: "geolocation" as PermissionName })
+      .then((p) => {
+        if (p.state === "granted" && !locRefreshed.current) {
+          locRefreshed.current = true;
+          geo.request();
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAccess, hasLocation]);
 
   // Initialize the map once.
   useEffect(() => {
@@ -239,13 +288,15 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLocation, center[0], center[1]]);
 
-  // Render markers whenever data changes.
+  // Render markers whenever data changes (only for Gold viewers with access).
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
+
+    if (!canAccess) return;
 
     // Own marker.
     const meIcon = L.divIcon({
@@ -260,7 +311,7 @@ export default function MapView() {
     }).addTo(map);
     markersRef.current.push(meMarker);
 
-    // Other users — Gold markers float above the rest (priority visibility).
+    // Other Gold users.
     for (const user of placeable) {
       const pos = offsetPosition(
         center[0],
@@ -274,16 +325,12 @@ export default function MapView() {
         iconSize: [42, 42],
         iconAnchor: [21, 21],
       });
-      const zIndexOffset =
-        user.plan === "gold" ? 600 : user.is_online ? 200 : 0;
+      const zIndexOffset = user.is_online ? 600 : 200;
       const marker = L.marker(pos, { icon, zIndexOffset }).addTo(map);
       marker.on("click", () => setSelectedId(user.id));
       markersRef.current.push(marker);
     }
-  }, [placeable, center[0], center[1]]);
-
-  const registered = stats?.registered ?? null;
-  const online = stats?.online ?? null;
+  }, [placeable, canAccess, center[0], center[1]]);
 
   return (
     <div className="flex flex-col h-full">
@@ -291,169 +338,191 @@ export default function MapView() {
         className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-border/30"
         style={{ background: "rgba(8,7,18,0.9)", backdropFilter: "blur(20px)" }}
       >
-        <h1 className="font-display text-2xl tracking-wide">Mapa</h1>
-        <span className="font-sans text-sm text-muted-foreground">
-          {isLoading ? "..." : `${placeable.length} en el mapa`}
-        </span>
+        <h1 className="font-display text-2xl tracking-wide flex items-center gap-2">
+          Mapa
+          <Crown className="w-4 h-4 text-amber-400" />
+        </h1>
+        {canAccess && (
+          <span className="font-sans text-sm text-muted-foreground">
+            {isLoading ? "..." : `${placeable.length} en el mapa`}
+          </span>
+        )}
       </header>
 
-      {/* Scope chips */}
-      <div className="px-4 pt-3 flex gap-2 overflow-x-auto no-scrollbar">
-        {SCOPES.map((s) => {
-          const disabled = s.needsLocation && !hasLocation;
-          const active = scope === s.value;
-          return (
-            <button
-              key={s.value}
-              onClick={() => setScopeSafe(s.value)}
-              disabled={disabled}
-              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-sans font-medium border transition-colors ${
-                active
-                  ? "text-white border-transparent"
-                  : "text-muted-foreground border-border/40"
-              } ${disabled ? "opacity-40" : ""}`}
-              style={
-                active
-                  ? {
-                      background:
-                        "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                    }
-                  : { background: "rgba(13,11,26,0.7)" }
-              }
-              title={disabled ? "Activa tu ubicación para usar este filtro" : ""}
-            >
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Advanced filters toggle (Gold) */}
-      <div className="px-4 pt-2 flex items-center gap-2">
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border border-amber-500/30 text-amber-300"
-          style={{ background: "rgba(45,35,10,0.5)" }}
-        >
-          {isGold ? (
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-          ) : (
-            <Crown className="w-3.5 h-3.5" />
-          )}
-          Filtros avanzados
-          {isGold && filtersActive(filters) && (
-            <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
-          )}
-        </button>
-      </div>
-
-      {showFilters && isGold && (
-        <div
-          className="mx-4 mt-2 p-3 rounded-xl border border-amber-500/20 space-y-3"
-          style={{ background: "rgba(20,16,30,0.9)" }}
-        >
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: "onlineOnly" as const, label: "En línea" },
-              { key: "withPhoto" as const, label: "Con foto" },
-              { key: "verifiedOnly" as const, label: "Verificados" },
-            ].map(({ key, label }) => {
-              const on = filters[key];
+      {canAccess && (
+        <>
+          {/* Scope chips */}
+          <div className="px-4 pt-3 flex gap-2 overflow-x-auto no-scrollbar">
+            {SCOPES.map((s) => {
+              const disabled = s.needsLocation && !hasLocation;
+              const active = scope === s.value;
               return (
                 <button
-                  key={key}
-                  onClick={() =>
-                    setFilters((f) => ({ ...f, [key]: !f[key] }))
-                  }
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-sans font-medium border ${
-                    on
+                  key={s.value}
+                  onClick={() => setScopeSafe(s.value)}
+                  disabled={disabled}
+                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-sans font-medium border transition-colors ${
+                    active
                       ? "text-white border-transparent"
                       : "text-muted-foreground border-border/40"
-                  }`}
+                  } ${disabled ? "opacity-40" : ""}`}
                   style={
-                    on
-                      ? { background: "hsl(45,85%,45%)" }
+                    active
+                      ? {
+                          background:
+                            "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                        }
                       : { background: "rgba(13,11,26,0.7)" }
                   }
+                  title={
+                    disabled ? "Activa tu ubicación para usar este filtro" : ""
+                  }
                 >
-                  {on && <Check className="w-3 h-3" />}
-                  {label}
+                  {s.label}
                 </button>
               );
             })}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-xs text-muted-foreground">Edad</span>
-            <input
-              type="number"
-              min={18}
-              max={99}
-              value={filters.ageMin}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  ageMin: Math.min(
-                    Math.max(18, Number(e.target.value) || 18),
-                    f.ageMax
-                  ),
-                }))
-              }
-              className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
-            />
-            <span className="text-muted-foreground">–</span>
-            <input
-              type="number"
-              min={18}
-              max={99}
-              value={filters.ageMax}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  ageMax: Math.max(
-                    Math.min(99, Number(e.target.value) || 99),
-                    f.ageMin
-                  ),
-                }))
-              }
-              className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
-            />
-            {filtersActive(filters) && (
-              <button
-                onClick={() => setFilters(DEFAULT_FILTERS)}
-                className="ml-auto font-sans text-xs text-muted-foreground underline"
-              >
-                Limpiar
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
-      {showFilters && !isGold && (
-        <div
-          className="mx-4 mt-2 p-4 rounded-xl border border-amber-500/30 flex items-center gap-3"
-          style={{ background: "rgba(30,22,8,0.85)" }}
-        >
-          <Crown className="w-6 h-6 text-amber-400 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-display text-sm tracking-wide text-amber-300">
-              Filtros avanzados — Exclusivo Gold
-            </p>
-            <p className="font-sans text-[11px] text-muted-foreground leading-snug">
-              Filtra por edad, conexión, foto y verificación. Y aparece arriba
-              en el mapa.
-            </p>
+          {/* "Mostrarme en el mapa" privacy toggle */}
+          <div className="px-4 pt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              {showOnMap ? (
+                <Eye className="w-4 h-4 text-primary flex-shrink-0" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="font-sans text-sm text-foreground leading-tight">
+                  Mostrarme en el mapa
+                </p>
+                <p className="font-sans text-[11px] text-muted-foreground leading-tight">
+                  {showOnMap
+                    ? "Otros usuarios Gold pueden verte"
+                    : "Estás oculto para todos"}
+                </p>
+              </div>
+            </div>
+            <button
+              role="switch"
+              aria-checked={showOnMap}
+              aria-label="Mostrarme en el mapa"
+              data-testid="toggle-show-on-map"
+              onClick={toggleVisibility}
+              disabled={updateVisibility.isPending}
+              className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors disabled:opacity-60"
+              style={{
+                background: showOnMap
+                  ? "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))"
+                  : "rgba(120,120,140,0.35)",
+              }}
+            >
+              <span
+                className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all"
+                style={{ left: showOnMap ? "22px" : "2px" }}
+              />
+            </button>
           </div>
-          <button
-            onClick={() => setLocation("/premium")}
-            className="flex-shrink-0 px-3 py-2 rounded-lg text-black text-xs font-sans font-semibold"
-            style={{
-              background: "linear-gradient(135deg, hsl(45,95%,60%), hsl(38,92%,50%))",
-            }}
-          >
-            Hazte Gold
-          </button>
-        </div>
+
+          {/* Advanced filters toggle */}
+          <div className="px-4 pt-3 flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border border-amber-500/30 text-amber-300"
+              style={{ background: "rgba(45,35,10,0.5)" }}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filtros avanzados
+              {filtersActive(filters) && (
+                <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
+              )}
+            </button>
+          </div>
+
+          {showFilters && (
+            <div
+              className="mx-4 mt-2 p-3 rounded-xl border border-amber-500/20 space-y-3"
+              style={{ background: "rgba(20,16,30,0.9)" }}
+            >
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "onlineOnly" as const, label: "En línea" },
+                  { key: "withPhoto" as const, label: "Con foto" },
+                  { key: "verifiedOnly" as const, label: "Verificados" },
+                ].map(({ key, label }) => {
+                  const on = filters[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() =>
+                        setFilters((f) => ({ ...f, [key]: !f[key] }))
+                      }
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-sans font-medium border ${
+                        on
+                          ? "text-white border-transparent"
+                          : "text-muted-foreground border-border/40"
+                      }`}
+                      style={
+                        on
+                          ? { background: "hsl(45,85%,45%)" }
+                          : { background: "rgba(13,11,26,0.7)" }
+                      }
+                    >
+                      {on && <Check className="w-3 h-3" />}
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-sans text-xs text-muted-foreground">
+                  Edad
+                </span>
+                <input
+                  type="number"
+                  min={18}
+                  max={99}
+                  value={filters.ageMin}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      ageMin: Math.min(
+                        Math.max(18, Number(e.target.value) || 18),
+                        f.ageMax
+                      ),
+                    }))
+                  }
+                  className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
+                />
+                <span className="text-muted-foreground">–</span>
+                <input
+                  type="number"
+                  min={18}
+                  max={99}
+                  value={filters.ageMax}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      ageMax: Math.max(
+                        Math.min(99, Number(e.target.value) || 99),
+                        f.ageMin
+                      ),
+                    }))
+                  }
+                  className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
+                />
+                {filtersActive(filters) && (
+                  <button
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                    className="ml-auto font-sans text-xs text-muted-foreground underline"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div
@@ -472,7 +541,51 @@ export default function MapView() {
           </div>
         )}
 
-        {!hasLocation && (
+        {/* Premium lock — non-Gold users see the dimmed map behind a CTA. */}
+        {!isLoading && !canAccess && (
+          <div
+            className="absolute inset-0 z-[600] flex items-center justify-center p-6"
+            style={{
+              background: "rgba(8,7,18,0.72)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <div
+              className="max-w-xs w-full text-center rounded-2xl border border-amber-500/30 p-6"
+              style={{ background: "rgba(20,16,30,0.96)" }}
+            >
+              <div
+                className="mx-auto mb-4 w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(45,95%,60%), hsl(38,92%,50%))",
+                }}
+              >
+                <Crown className="w-7 h-7 text-black" />
+              </div>
+              <h2 className="font-display text-lg tracking-wide text-amber-300 mb-2">
+                Mapa en tiempo real
+              </h2>
+              <p className="font-sans text-sm text-muted-foreground mb-5 leading-snug">
+                El mapa en tiempo real es exclusivo para usuarios Gold. Descubre
+                quién está cerca de ti y conéctate al instante.
+              </p>
+              <button
+                onClick={() => setLocation("/premium")}
+                data-testid="button-map-upsell"
+                className="w-full py-2.5 rounded-xl text-black font-sans font-semibold"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(45,95%,60%), hsl(38,92%,50%))",
+                }}
+              >
+                Hazte Gold
+              </button>
+            </div>
+          </div>
+        )}
+
+        {canAccess && !hasLocation && (
           <div
             className="absolute top-3 left-3 right-3 z-[500] px-4 py-3 rounded-xl border border-primary/30 flex items-center gap-3"
             style={{
@@ -503,7 +616,7 @@ export default function MapView() {
           </div>
         )}
 
-        {(geo.state === "denied" || geo.state === "unsupported") && (
+        {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
           <div
             className="absolute top-20 left-3 right-3 z-[500] px-4 py-2 rounded-xl border border-red-500/30"
             style={{ background: "rgba(13,11,26,0.95)" }}
@@ -516,7 +629,7 @@ export default function MapView() {
           </div>
         )}
 
-        {selected && (
+        {canAccess && selected && (
           <div
             className="absolute bottom-3 left-3 right-3 z-[500] p-3 rounded-xl border border-primary/20 flex items-center gap-3"
             style={{
@@ -567,9 +680,7 @@ export default function MapView() {
                   {selected.is_verified && (
                     <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   )}
-                  {selected.plan === "gold" && (
-                    <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  )}
+                  <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 </p>
                 <p className="font-sans text-xs text-muted-foreground flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
@@ -585,7 +696,7 @@ export default function MapView() {
             <button
               onClick={() =>
                 !selected.liked_by_me &&
-                likeActions.like(selected, { onSettled: invalidateProfiles })
+                likeActions.like(selected, { onSettled: invalidateMap })
               }
               disabled={likeActions.isPending || selected.liked_by_me}
               aria-label="Me gusta"
@@ -624,7 +735,7 @@ export default function MapView() {
           </div>
         )}
 
-        {selected && (
+        {canAccess && selected && (
           <ReportDialog
             open={reportOpen}
             onOpenChange={setReportOpen}
@@ -635,26 +746,28 @@ export default function MapView() {
         )}
       </div>
 
-      <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-        {[
-          { icon: Globe, label: "Usuarios registrados", value: registered },
-          { icon: Zap, label: "En línea ahora", value: online },
-        ].map(({ icon: Icon, label, value }) => (
-          <div
-            key={label}
-            className="flex flex-col items-center py-3 rounded-xl border border-border/30"
-            style={{ background: "rgba(13,11,26,0.7)" }}
-          >
-            <Icon className="w-4 h-4 text-primary mb-1" />
-            <span className="font-display text-xl text-primary">
-              {value == null ? "…" : value}
-            </span>
-            <span className="font-sans text-[10px] text-muted-foreground mt-0.5 text-center px-1">
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
+      {canAccess && (
+        <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+          {[
+            { icon: Crown, label: "Usuarios Gold", value: goldCount },
+            { icon: Zap, label: "En línea ahora", value: onlineCount },
+          ].map(({ icon: Icon, label, value }) => (
+            <div
+              key={label}
+              className="flex flex-col items-center py-3 rounded-xl border border-border/30"
+              style={{ background: "rgba(13,11,26,0.7)" }}
+            >
+              <Icon className="w-4 h-4 text-primary mb-1" />
+              <span className="font-display text-xl text-primary">
+                {isLoading ? "…" : value}
+              </span>
+              <span className="font-sans text-[10px] text-muted-foreground mt-0.5 text-center px-1">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

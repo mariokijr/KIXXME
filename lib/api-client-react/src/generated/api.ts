@@ -56,6 +56,7 @@ import type {
   ListAdminReportsParams,
   ListAdminTicketsParams,
   ListAdminUsersParams,
+  ListMapUsersParams,
   ListProfilesParams,
   LiveCall,
   LiveCallEndRequest,
@@ -66,6 +67,8 @@ import type {
   LocationUpdateRequest,
   LoginRequest,
   Logout200,
+  MapUsersResponse,
+  MapVisibilityRequest,
   Message,
   MyModerationStatus,
   MyVerificationStatus,
@@ -1162,6 +1165,92 @@ export function useGetDiscoveryStats<TData = Awaited<ReturnType<typeof getDiscov
 
 
 
+export const getListMapUsersUrl = (params?: ListMapUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/map/users?${stringifiedParams}` : `/api/map/users`
+}
+
+/**
+ * The KixxMe Gold map. Returns an envelope with `can_access` (Gold gate, computed server-side so it honors the GOLD_TEST_EMAILS override) and the viewer's own `show_on_map` setting. `users` is populated only for Gold viewers and contains only OTHER Gold users who have coordinates, pass calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't blocked/hidden). Raw coordinates never leave the server — only a rounded distance_km is exposed.
+
+ * @summary Gold-only map of nearby Gold users
+ */
+export const listMapUsers = async (params?: ListMapUsersParams, options?: RequestInit): Promise<MapUsersResponse> => {
+
+  return customFetch<MapUsersResponse>(getListMapUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMapUsersQueryKey = (params?: ListMapUsersParams,) => {
+    return [
+    `/api/map/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListMapUsersQueryOptions = <TData = Awaited<ReturnType<typeof listMapUsers>>, TError = ErrorType<ErrorResponse>>(params?: ListMapUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMapUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMapUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMapUsers>>> = ({ signal }) => listMapUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMapUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMapUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listMapUsers>>>
+export type ListMapUsersQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Gold-only map of nearby Gold users
+ */
+
+export function useListMapUsers<TData = Awaited<ReturnType<typeof listMapUsers>>, TError = ErrorType<ErrorResponse>>(
+ params?: ListMapUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMapUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMapUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getListMyPhotosUrl = () => {
 
 
@@ -2032,6 +2121,77 @@ export const useUpdateMyLocation = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUpdateMyLocationMutationOptions(options));
+    }
+
+export const getUpdateMapVisibilityUrl = () => {
+
+
+
+
+  return `/api/profiles/me/map-visibility`
+}
+
+/**
+ * @summary Toggle "Mostrarme en el mapa" (map visibility)
+ */
+export const updateMapVisibility = async (mapVisibilityRequest: MapVisibilityRequest, options?: RequestInit): Promise<MapVisibilityRequest> => {
+
+  return customFetch<MapVisibilityRequest>(getUpdateMapVisibilityUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mapVisibilityRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateMapVisibilityMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMapVisibility>>, TError,{data: BodyType<MapVisibilityRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMapVisibility>>, TError,{data: BodyType<MapVisibilityRequest>}, TContext> => {
+
+const mutationKey = ['updateMapVisibility'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMapVisibility>>, {data: BodyType<MapVisibilityRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMapVisibility(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMapVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof updateMapVisibility>>>
+    export type UpdateMapVisibilityMutationBody = BodyType<MapVisibilityRequest>
+    export type UpdateMapVisibilityMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Toggle "Mostrarme en el mapa" (map visibility)
+ */
+export const useUpdateMapVisibility = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMapVisibility>>, TError,{data: BodyType<MapVisibilityRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMapVisibility>>,
+        TError,
+        {data: BodyType<MapVisibilityRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateMapVisibilityMutationOptions(options));
     }
 
 export const getListMyLikesUrl = () => {

@@ -417,6 +417,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /map/users:
+    get:
+      operationId: listMapUsers
+      tags: [profiles]
+      summary: Gold-only map of nearby Gold users
+      description: >
+        The KixxMe Gold map. Returns an envelope with `can_access` (Gold gate,
+        computed server-side so it honors the GOLD_TEST_EMAILS override) and the
+        viewer's own `show_on_map` setting. `users` is populated only for Gold
+        viewers and contains only OTHER Gold users who have coordinates, pass
+        calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't
+        blocked/hidden). Raw coordinates never leave the server — only a rounded
+        distance_km is exposed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [nearby, province, spain, europe, worldwide]
+      responses:
+        "200":
+          description: Map envelope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapUsersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /profiles/me/photos:
     get:
       operationId: listMyPhotos
@@ -788,6 +824,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Profile"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/map-visibility:
+    put:
+      operationId: updateMapVisibility
+      tags: [profiles]
+      summary: Toggle "Mostrarme en el mapa" (map visibility)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MapVisibilityRequest"
+      responses:
+        "200":
+          description: Updated map visibility
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapVisibilityRequest"
         "400":
           description: Bad request
           content:
@@ -3375,6 +3438,24 @@ components:
           description: Users in scope active within the online window.
       required: [registered, online]
 
+    MapUsersResponse:
+      type: object
+      properties:
+        can_access:
+          type: boolean
+          description: >
+            Whether the viewer can use the Gold map (Gold only, computed
+            server-side so it honors the GOLD_TEST_EMAILS override).
+        show_on_map:
+          type: boolean
+          description: The viewer's own "Mostrarme en el mapa" setting.
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicProfile"
+          description: Other Gold users on the map (empty when can_access is false).
+      required: [can_access, show_on_map, users]
+
     UpdateProfileRequest:
       type: object
       properties:
@@ -3514,6 +3595,13 @@ components:
         longitude:
           type: number
       required: [latitude, longitude]
+
+    MapVisibilityRequest:
+      type: object
+      properties:
+        show_on_map:
+          type: boolean
+      required: [show_on_map]
 
     ReorderPhotosRequest:
       type: object

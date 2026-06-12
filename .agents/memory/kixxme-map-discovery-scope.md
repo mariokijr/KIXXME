@@ -5,6 +5,25 @@ description: Scope-based discovery filtering (map), discovery stats, and the cen
 
 # Discovery scope, stats, and visibility
 
+## The map is Gold-exclusive on its OWN endpoint (not GET /profiles)
+The world map runs on a dedicated `GET /map/users?scope=` returning an envelope
+`{can_access, show_on_map, users}` — it is NOT the shared `GET /profiles` (which stays
+open for the Descubrir grid). Two hard rules:
+- **Gate on the server-computed `can_access`, never on raw `profiles.plan`.** `can_access`
+  comes from `hasGold(userId)`, so it honors the read-only `GOLD_TEST_EMAILS` override; a
+  client that checks `profile.plan === "gold"` would lock out test-Gold accounts.
+- **Candidates = OTHER users with `plan='gold'` AND coordinates AND `show_on_map=true`**
+  (opt-out via batched `getMapOptOutIds`), then the same calidad mínima +
+  `getVisibilityContext().hidden` filters as the grid. Privacy toggle writes via
+  `setShowOnMap` (`onConflictDoUpdate` touching ONLY `show_on_map` — never clobber
+  role/looking_for); `show_on_map` is kept OUT of `getProfileDetails` (private).
+**Why:** the map is a premium surface; mixing its gate into `GET /profiles` would have gated
+the open grid too. Coordinates never leave the server (`toPublic` → rounded `distance_km`
+only; client re-projects with the hashed-bearing offset for the approximate-location margin).
+**Known asymmetry (acceptable):** a `GOLD_TEST_EMAILS` viewer can *use* the map but won't
+*appear* as a marker to others — the candidate query reads real `profiles.plan='gold'` and
+the override never writes plan. Matches the documented read-only override semantics.
+
 ## Scope filtering ordering constraint
 The Supabase profile query is capped at `.limit(200)`. Any scope (radius or country)
 bounding-box pre-filter MUST be applied **inside the Supabase query, before `.limit`**,
@@ -48,10 +67,15 @@ single insertion point instead of editing every endpoint.
 **How to apply:** never re-implement block/deactivation filtering inline; call
 `getVisibilityContext`/`getHiddenIds`.
 
-## Headline stat cards are global, decoupled from the scope chips
-The map's "Usuarios registrados / En línea ahora" cards call `useGetDiscoveryStats({ scope: "worldwide" })` — a fixed global scope — while the scope chips only drive the profile list (`useListProfiles({ scope })`).
-**Why:** binding the headline to the active chip made it read `0` whenever a geo scope (e.g. España) had no users *in range*, which looked like a broken counter. Global totals are the intended product meaning of those cards.
-**How to apply:** keep the two hooks on independent scopes; don't "simplify" them back to a shared `scope`.
+## Stat cards: map derives from its own list; `useGetDiscoveryStats` lives on for live.tsx
+The Gold map's two stat cards (Usuarios Gold / En línea) are now derived from the loaded
+`GET /map/users` list (`users.length` + online count) — the map no longer calls
+`useGetDiscoveryStats`. The `GET /profiles/stats` endpoint + `useGetDiscoveryStats` hook are
+still used elsewhere (e.g. `live.tsx`), so do NOT delete them.
+**Why:** the map list is already Gold-scoped, so its own cards are the truthful counts; a
+separate worldwide stats call would over-count (non-Gold + opted-out users).
+**How to apply:** if you re-add headline counters to the map, derive from the map list, not
+a global stats call.
 
 ## Stats count cap
 `GET /profiles/stats` counts in JS (load-and-count) capped at 5000 rows — an early-stage

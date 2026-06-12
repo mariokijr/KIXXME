@@ -295,6 +295,40 @@ export const GetDiscoveryStatsResponse = zod.object({
 
 
 /**
+ * The KixxMe Gold map. Returns an envelope with `can_access` (Gold gate, computed server-side so it honors the GOLD_TEST_EMAILS override) and the viewer's own `show_on_map` setting. `users` is populated only for Gold viewers and contains only OTHER Gold users who have coordinates, pass calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't blocked/hidden). Raw coordinates never leave the server — only a rounded distance_km is exposed.
+
+ * @summary Gold-only map of nearby Gold users
+ */
+export const ListMapUsersQueryParams = zod.object({
+  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional()
+})
+
+export const ListMapUsersResponse = zod.object({
+  "can_access": zod.boolean().describe('Whether the viewer can use the Gold map (Gold only, computed server-side so it honors the GOLD_TEST_EMAILS override).\n'),
+  "show_on_map": zod.boolean().describe('The viewer\'s own \"Mostrarme en el mapa\" setting.'),
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'heterocurioso', 'flexible', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "created_at": zod.string().optional()
+})).describe('Other Gold users on the map (empty when can_access is false).')
+})
+
+
+/**
  * @summary List current user's profile photos
  */
 export const ListMyPhotosResponseItem = zod.object({
@@ -531,6 +565,18 @@ export const UpdateMyLocationResponse = zod.object({
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
+})
+
+
+/**
+ * @summary Toggle "Mostrarme en el mapa" (map visibility)
+ */
+export const UpdateMapVisibilityBody = zod.object({
+  "show_on_map": zod.boolean()
+})
+
+export const UpdateMapVisibilityResponse = zod.object({
+  "show_on_map": zod.boolean()
 })
 
 

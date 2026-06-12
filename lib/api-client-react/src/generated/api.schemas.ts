@@ -494,6 +494,16 @@ export interface DiscoveryStats {
   online: number;
 }
 
+export interface MapUsersResponse {
+  /** Whether the viewer can use the Gold map (Gold only, computed server-side so it honors the GOLD_TEST_EMAILS override).
+   */
+  can_access: boolean;
+  /** The viewer's own "Mostrarme en el mapa" setting. */
+  show_on_map: boolean;
+  /** Other Gold users on the map (empty when can_access is false). */
+  users: PublicProfile[];
+}
+
 export type UpdateProfileRequestRole = typeof UpdateProfileRequestRole[keyof typeof UpdateProfileRequestRole];
 
 
@@ -589,6 +599,10 @@ export interface Message {
 export interface LocationUpdateRequest {
   latitude: number;
   longitude: number;
+}
+
+export interface MapVisibilityRequest {
+  show_on_map: boolean;
 }
 
 export interface ReorderPhotosRequest {
@@ -1357,6 +1371,21 @@ export type GetDiscoveryStatsScope = typeof GetDiscoveryStatsScope[keyof typeof 
 
 
 export const GetDiscoveryStatsScope = {
+  nearby: 'nearby',
+  province: 'province',
+  spain: 'spain',
+  europe: 'europe',
+  worldwide: 'worldwide',
+} as const;
+
+export type ListMapUsersParams = {
+scope?: ListMapUsersScope;
+};
+
+export type ListMapUsersScope = typeof ListMapUsersScope[keyof typeof ListMapUsersScope];
+
+
+export const ListMapUsersScope = {
   nearby: 'nearby',
   province: 'province',
   spain: 'spain',

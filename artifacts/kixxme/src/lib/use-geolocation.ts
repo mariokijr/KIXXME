@@ -4,6 +4,7 @@ import {
   useUpdateMyLocation,
   getGetMyProfileQueryKey,
   getListProfilesQueryKey,
+  getListMapUsersQueryKey,
 } from "@workspace/api-client-react";
 
 export type GeoState = "idle" | "locating" | "done" | "error" | "denied" | "unsupported";
@@ -34,6 +35,7 @@ export function useGeolocation() {
                 setState("done");
                 qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
                 qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+                qc.invalidateQueries({ queryKey: getListMapUsersQueryKey() });
                 onDone?.();
               },
               onError: () => setState("error"),

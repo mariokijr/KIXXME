@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
 /**
  * Extra profile attributes that don't exist on the Supabase `profiles` table
@@ -23,6 +23,10 @@ export const profileDetailsTable = pgTable("profile_details", {
   // completed; set once (never re-shown). Lives here (not Supabase) because the
   // Supabase `profiles` schema is NOT DDL-modifiable from this repo.
   tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
+  // "Mostrarme en el mapa": whether the user appears as a marker on the Gold map.
+  // Default true (visible); the user can opt out to be invisible to everyone on
+  // the map. Private setting — never exposed on PublicProfile.
+  showOnMap: boolean("show_on_map").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

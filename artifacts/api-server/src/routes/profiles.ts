@@ -21,7 +21,7 @@ import {
   notifyMatchByEmail,
   notifySuperLikeByEmail,
 } from "../lib/like-notifications.js";
-import { getPlan } from "../lib/entitlement.js";
+import { getPlan, hasGold } from "../lib/entitlement.js";
 import {
   recordProfileVisit,
   countVisitors,
@@ -35,9 +35,12 @@ import {
   isValidLookingFor,
   getTutorialCompletedAt,
   markTutorialCompleted,
+  getShowOnMap,
+  setShowOnMap,
+  getMapOptOutIds,
 } from "../lib/profile-details.js";
 import { getPhotoCountsForUsers } from "../lib/photos.js";
-import { LikeProfileBody } from "@workspace/api-zod";
+import { LikeProfileBody, UpdateMapVisibilityBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -269,6 +272,121 @@ router.get("/profiles", async (req, res) => {
   }
 
   res.json(profiles);
+});
+
+// Gold-only world map. Unlike GET /profiles (which is shared with the Descubrir
+// grid and must NOT be gated), this dedicated endpoint gates access to Gold and
+// only ever returns OTHER Gold users who opted into the map. The Gold gate is
+// computed via hasGold (so it honors the GOLD_TEST_EMAILS read override) and
+// surfaced as `can_access` in the envelope — the frontend branches on that, not
+// on the raw profiles.plan. Raw coordinates never leave the server (toPublic
+// exposes only a rounded distance_km), preserving the approximate-location margin.
+router.get("/map/users", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const showOnMap = await getShowOnMap(auth.userId);
+  const canAccess = await hasGold(auth.userId);
+
+  // Non-Gold viewers get the envelope with an empty list; the frontend shows the
+  // premium lock instead of any markers. Identities never leave the API.
+  if (!canAccess) {
+    res.json({ can_access: false, show_on_map: showOnMap, users: [] });
+    return;
+  }
+
+  const scope = parseScope(req.query.scope);
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("latitude, longitude")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  const box = scope ? scopeBoxFor(scope, me ?? null) : null;
+  if (box === "empty") {
+    res.json({ can_access: true, show_on_map: showOnMap, users: [] });
+    return;
+  }
+
+  const likedSet = await getLikedSet(auth.userId);
+  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+
+  // Only Gold users WITH coordinates that pass calidad mínima appear on the map.
+  // Supabase columns (plan/coords/main photo/age/city/bio) are filtered DB-side
+  // before the limit; role/looking_for (repo-owned Postgres) are refined in JS.
+  let query = supabase
+    .from("profiles")
+    .select(PUBLIC_COLUMNS)
+    .neq("id", auth.userId)
+    .eq("plan", "gold")
+    .not("username", "is", null)
+    .not("avatar_url", "is", null)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .not("age", "is", null)
+    .gte("age", 18)
+    .not("city", "is", null)
+    .not("bio", "is", null);
+  if (box) {
+    query = query
+      .gte("latitude", box.latMin)
+      .lte("latitude", box.latMax)
+      .gte("longitude", box.lngMin)
+      .lte("longitude", box.lngMax);
+  }
+
+  const { data, error } = await query
+    .order("last_active_at", { ascending: false, nullsFirst: false })
+    .limit(200);
+
+  if (error) {
+    req.log.error({ error: error.message }, "map/users GET: error");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  let rows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
+
+  // Precise refinement for radius scopes (the box is an over-approximation).
+  if (scope) {
+    rows = rows.filter((row) =>
+      withinMapScope(me ?? null, row.latitude, row.longitude, scope),
+    );
+  }
+
+  // "Mostrarme en el mapa": drop anyone who opted out (invisible to everyone).
+  const optedOut = await getMapOptOutIds(rows.map((r) => r.id));
+  rows = rows.filter((row) => !optedOut.has(row.id));
+
+  // Calidad mínima (part 2): require role + "qué busca" and a minimum bio.
+  const detailsMap = await getProfileDetailsForUsers(rows.map((r) => r.id));
+  rows = rows.filter((row) => {
+    const d = detailsMap.get(row.id);
+    return (
+      !!row.avatar_url &&
+      row.age != null &&
+      row.age >= 18 &&
+      !!row.city?.trim() &&
+      (row.bio?.trim().length ?? 0) >= MIN_BIO_LENGTH &&
+      !!d?.role &&
+      !!d?.looking_for
+    );
+  });
+
+  const users = rows.map((row) =>
+    toPublic(row, me ?? null, likedSet, iBlocked),
+  );
+
+  // Closest first (strongest key), online users winning ties (stable sort).
+  users.sort((a, b) => Number(b.is_online) - Number(a.is_online));
+  users.sort((a, b) => {
+    if (a.distance_km == null) return 1;
+    if (b.distance_km == null) return -1;
+    return a.distance_km - b.distance_km;
+  });
+
+  res.json({ can_access: true, show_on_map: showOnMap, users });
 });
 
 // NOTE: must be registered BEFORE `GET /profiles/:id` or "stats" is captured
@@ -522,6 +640,23 @@ router.put("/profiles/me/location", async (req, res) => {
   }
 
   res.json(data);
+});
+
+// Toggle "Mostrarme en el mapa". When off, the user is excluded from every other
+// Gold user's map (getMapOptOutIds). Touches only show_on_map — never clobbers
+// role/looking_for. Registered before `/profiles/:id` (static path wins).
+router.put("/profiles/me/map-visibility", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const parsed = UpdateMapVisibilityBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "show_on_map must be a boolean" });
+    return;
+  }
+
+  await setShowOnMap(auth.userId, parsed.data.show_on_map);
+  res.json({ show_on_map: parsed.data.show_on_map });
 });
 
 router.get("/profiles/me/likes", async (req, res) => {
