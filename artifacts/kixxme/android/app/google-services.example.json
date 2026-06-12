@@ -1,0 +1,30 @@
+{
+  "__README__": "PLACEHOLDER ONLY. Download the real google-services.json from Firebase Console (Project settings -> Your apps -> Android app, package name com.kixxme.app) and save it as android/app/google-services.json (drop the .example). The Gradle google-services plugin auto-applies only when google-services.json is present; without it the Android build still succeeds but push is disabled. Do NOT rename or commit secrets in this example file.",
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "kixxme-REPLACE_ME",
+    "storage_bucket": "kixxme-REPLACE_ME.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.kixxme.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_REAL_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -20,3 +20,5 @@ export * from "./user-streaks";
 export * from "./profile-details";
 export * from "./notification-preferences";
 export * from "./email-sends";
+export * from "./plan-grants";
+export * from "./device-tokens";

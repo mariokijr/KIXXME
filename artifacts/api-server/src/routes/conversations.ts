@@ -21,6 +21,7 @@ import {
   notifyConversationInviteByEmail,
   messageDedupKey,
 } from "../lib/message-notifications.js";
+import { pushNewMessage } from "../lib/push-notifications.js";
 import { clearEmailClaim } from "../lib/email-policy.js";
 
 const router = Router();
@@ -334,6 +335,15 @@ router.post("/conversations/:id/messages", async (req, res) => {
   // text, photos, and voice notes (all created here). Rate-limited + dedup'd in
   // notifyNewMessageByEmail; never blocks or fails the send.
   void notifyNewMessageByEmail({
+    conversationId: id,
+    senderId: auth.userId,
+    recipientId: otherId,
+    mediaKind: image_url ? "photo" : audio_url ? "voice" : "text",
+  });
+
+  // Fire-and-forget native push (no-op until Firebase is configured). Unlike the
+  // email nudge this fires on every message — the OS suppresses it in-app.
+  void pushNewMessage({
     conversationId: id,
     senderId: auth.userId,
     recipientId: otherId,

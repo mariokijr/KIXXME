@@ -2068,6 +2068,33 @@ export const RequestVerificationResponse = zod.object({
 
 
 /**
+ * Registers an FCM device token for the current user so the server can send native push notifications. Idempotent: re-registering the same token just refreshes its owner and last-seen time.
+ * @summary Register (upsert) a push-notification device token
+ */
+export const RegisterDeviceBody = zod.object({
+  "token": zod.string().describe('FCM registration token from the device.'),
+  "platform": zod.enum(['ios', 'android', 'web'])
+})
+
+export const RegisterDeviceResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * The token is sent in the request body (not the URL) so it never lands in access logs. Removing an unknown token is a no-op success.
+ * @summary Remove a push-notification device token (on logout)
+ */
+export const UnregisterDeviceBody = zod.object({
+  "token": zod.string().describe('FCM registration token to remove.')
+})
+
+export const UnregisterDeviceResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Who viewed my profile (identities for Plus/Gold, count for free)
  */
 export const GetMyVisitorsResponse = zod.object({

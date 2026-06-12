@@ -87,6 +87,7 @@ import type {
   PublicProfile,
   RefreshSession200,
   RefreshSessionBody,
+  RegisterDeviceBody,
   RemoveUserRequest,
   ReorderPhotosRequest,
   ReplacePhotoRequest,
@@ -111,6 +112,7 @@ import type {
   SupportTicketDetail,
   SupportTicketList,
   SuspendUserRequest,
+  UnregisterDeviceBody,
   UpdateProfileRequest,
   UploadAvatar200,
   UploadChatAudio201,
@@ -7221,6 +7223,150 @@ export const useRequestVerification = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRequestVerificationMutationOptions(options));
+    }
+
+export const getRegisterDeviceUrl = () => {
+
+
+
+
+  return `/api/me/devices`
+}
+
+/**
+ * Registers an FCM device token for the current user so the server can send native push notifications. Idempotent: re-registering the same token just refreshes its owner and last-seen time.
+ * @summary Register (upsert) a push-notification device token
+ */
+export const registerDevice = async (registerDeviceBody: RegisterDeviceBody, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getRegisterDeviceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      registerDeviceBody,)
+  }
+);}
+
+
+
+
+export const getRegisterDeviceMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerDevice>>, TError,{data: BodyType<RegisterDeviceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerDevice>>, TError,{data: BodyType<RegisterDeviceBody>}, TContext> => {
+
+const mutationKey = ['registerDevice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerDevice>>, {data: BodyType<RegisterDeviceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerDevice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterDeviceMutationResult = NonNullable<Awaited<ReturnType<typeof registerDevice>>>
+    export type RegisterDeviceMutationBody = BodyType<RegisterDeviceBody>
+    export type RegisterDeviceMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Register (upsert) a push-notification device token
+ */
+export const useRegisterDevice = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerDevice>>, TError,{data: BodyType<RegisterDeviceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerDevice>>,
+        TError,
+        {data: BodyType<RegisterDeviceBody>},
+        TContext
+      > => {
+      return useMutation(getRegisterDeviceMutationOptions(options));
+    }
+
+export const getUnregisterDeviceUrl = () => {
+
+
+
+
+  return `/api/me/devices`
+}
+
+/**
+ * The token is sent in the request body (not the URL) so it never lands in access logs. Removing an unknown token is a no-op success.
+ * @summary Remove a push-notification device token (on logout)
+ */
+export const unregisterDevice = async (unregisterDeviceBody: UnregisterDeviceBody, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getUnregisterDeviceUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      unregisterDeviceBody,)
+  }
+);}
+
+
+
+
+export const getUnregisterDeviceMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unregisterDevice>>, TError,{data: BodyType<UnregisterDeviceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unregisterDevice>>, TError,{data: BodyType<UnregisterDeviceBody>}, TContext> => {
+
+const mutationKey = ['unregisterDevice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unregisterDevice>>, {data: BodyType<UnregisterDeviceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  unregisterDevice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnregisterDeviceMutationResult = NonNullable<Awaited<ReturnType<typeof unregisterDevice>>>
+    export type UnregisterDeviceMutationBody = BodyType<UnregisterDeviceBody>
+    export type UnregisterDeviceMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a push-notification device token (on logout)
+ */
+export const useUnregisterDevice = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unregisterDevice>>, TError,{data: BodyType<UnregisterDeviceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unregisterDevice>>,
+        TError,
+        {data: BodyType<UnregisterDeviceBody>},
+        TContext
+      > => {
+      return useMutation(getUnregisterDeviceMutationOptions(options));
     }
 
 export const getGetMyVisitorsUrl = () => {

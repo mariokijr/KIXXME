@@ -15,6 +15,7 @@ import {
 } from "./email.js";
 import { claimEmailSend } from "./email-policy.js";
 import { ensureOfficialTicket } from "./support-tickets.js";
+import { applyPlanGrant } from "./plan-grants.js";
 
 export type Tier = "plus" | "gold";
 export type Interval = "month" | "year";
@@ -28,17 +29,16 @@ const ENTITLED_STATUSES = new Set<Stripe.Subscription.Status>([
   "past_due",
 ]);
 
-/** Authoritative entitlement lives in Supabase `profiles.plan`. */
+/**
+ * Record Stripe's entitlement grant and recompute the effective plan.
+ *
+ * The authoritative `profiles.plan` is written by `applyPlanGrant` as the MAX
+ * tier across every payment source (Stripe + RevenueCat). Writing Stripe's grant
+ * here — instead of blind-writing `profiles.plan` — is what stops a Stripe
+ * downgrade from revoking an App Store (RevenueCat) Gold entitlement.
+ */
 async function setUserPlan(userId: string, plan: string): Promise<void> {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ plan })
-    .eq("id", userId);
-  if (error) {
-    throw new Error(
-      `Failed to update profiles.plan for ${userId}: ${error.message}`,
-    );
-  }
+  await applyPlanGrant(userId, "stripe", plan);
 }
 
 /** Local mapping cache in the repo-owned Replit Postgres. */

@@ -3,6 +3,7 @@ import { AuthUser, Session, setAuthTokenGetter, refreshSession, useLogin, useSig
 import { useLocation } from "wouter";
 import { setRealtimeAuth, supabase } from "./supabase";
 import { queryClient } from "./query-client";
+import { syncNativeAccount, unregisterNativeAccount } from "./native-account";
 
 interface AuthState {
   session: Session | null;
@@ -104,6 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Bridge the auth lifecycle to native-only concerns (RevenueCat identity +
+  // push token registration). No-op on the web build.
+  useEffect(() => {
+    syncNativeAccount(state.user?.id ?? null);
+  }, [state.user?.id]);
+
   // Restore persisted session on mount.
   useEffect(() => {
     try {
@@ -153,12 +160,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    logoutMut.mutate(undefined, {
-      onSettled: () => {
-        persist(null, null);
-        queryClient.clear();
-        setLocation("/login");
-      }
+    // On native, release the push token + RevenueCat identity while the session
+    // is still valid, so the authenticated DELETE /me/devices lands before we
+    // clear the token. Resolves immediately on web.
+    void unregisterNativeAccount().finally(() => {
+      logoutMut.mutate(undefined, {
+        onSettled: () => {
+          persist(null, null);
+          queryClient.clear();
+          setLocation("/login");
+        },
+      });
     });
   };
 

@@ -8,6 +8,16 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { isNativeApp } from "@/lib/native";
+import {
+  loadKixxmePackages,
+  purchasePackage as rcPurchasePackage,
+  restorePurchases as rcRestorePurchases,
+  isUserCancelled,
+  type KixxmePackages,
+  type PlanKey,
+} from "@/lib/revenuecat";
+import { RotateCcw } from "lucide-react";
 import {
   Star,
   Heart,
@@ -91,6 +101,10 @@ const GOLD_FEATURES = [
 export default function Premium() {
   const [billing, setBilling] = useState<Billing>("mensual");
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const [nativePkgs, setNativePkgs] = useState<KixxmePackages | null>(null);
+  const [nativeBusy, setNativeBusy] = useState<"plus" | "gold" | "restore" | null>(
+    null,
+  );
 
   const { session } = useAuth();
   const { toast } = useToast();
@@ -183,6 +197,87 @@ export default function Premium() {
     );
   }
 
+  // Load native IAP packages once on the native shell (no-op on web).
+  useEffect(() => {
+    if (!isNativeApp) return;
+    loadKixxmePackages()
+      .then(setNativePkgs)
+      .catch(() => setNativePkgs(null));
+  }, []);
+
+  // The RevenueCat webhook flips profiles.plan server-side; refetch a few times.
+  function pollPlanAfterPurchase() {
+    queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
+    [2000, 5000, 9000].forEach((ms) =>
+      setTimeout(
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: getGetMyProfileQueryKey(),
+          }),
+        ms,
+      ),
+    );
+  }
+
+  async function startNativePurchase(tier: "plus" | "gold") {
+    const interval = billing === "mensual" ? "monthly" : "annual";
+    const pkg = nativePkgs?.[`${tier}_${interval}` as PlanKey] ?? null;
+    if (!pkg) {
+      toast({
+        title: "Producto no disponible",
+        description: "Inténtalo de nuevo en unos segundos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setNativeBusy(tier);
+    try {
+      await rcPurchasePackage(pkg);
+      toast({
+        title: "¡Compra completada!",
+        description: "Tu plan se está activando…",
+      });
+      pollPlanAfterPurchase();
+    } catch (err: any) {
+      if (!isUserCancelled(err)) {
+        toast({
+          title: "No se pudo completar la compra",
+          description: err?.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setNativeBusy(null);
+    }
+  }
+
+  async function restoreNativePurchases() {
+    setNativeBusy("restore");
+    try {
+      const entitlements = await rcRestorePurchases();
+      if (entitlements.length > 0) {
+        toast({
+          title: "Compras restauradas",
+          description: "Tu plan se está activando…",
+        });
+        pollPlanAfterPurchase();
+      } else {
+        toast({
+          title: "Sin compras que restaurar",
+          description: "No encontramos suscripciones activas en esta cuenta.",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "No se pudo restaurar",
+        description: err?.message,
+        variant: "destructive",
+      });
+    } finally {
+      setNativeBusy(null);
+    }
+  }
+
   const PRICING = {
     plus: {
       monthly: "4,99",
@@ -197,6 +292,52 @@ export default function Premium() {
       yearSavings: "59,89",
     },
   } as const;
+
+  // On native we must show the store's own localized price (App Store / Play
+  // billing rules), never the hardcoded Stripe EUR figures or a fabricated
+  // savings %. Falls back to the web pricing card off-native.
+  function priceBlock(tier: "plus" | "gold") {
+    const p = PRICING[tier];
+    if (isNativeApp) {
+      const interval = billing === "mensual" ? "monthly" : "annual";
+      const pkg = nativePkgs?.[`${tier}_${interval}` as PlanKey] ?? null;
+      return (
+        <div className="text-right">
+          <div>
+            <span className="font-display text-3xl text-foreground">
+              {pkg?.product.priceString ?? "—"}
+            </span>
+            <span className="font-sans text-xs text-muted-foreground">
+              {billing === "mensual" ? "/mes" : "/año"}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="text-right">
+        <div>
+          <span className="font-display text-3xl text-foreground">
+            {billing === "mensual" ? p.monthly : p.yearMonthly}€
+          </span>
+          <span className="font-sans text-xs text-muted-foreground">/mes</span>
+        </div>
+        {billing === "anual" && (
+          <div className="mt-1 space-y-0.5">
+            <p className="font-sans text-[10px] text-muted-foreground/70">
+              Facturado anualmente · {p.yearTotal}€/año
+            </p>
+            <p
+              className="font-sans text-[10px] font-semibold"
+              style={{ color: "rgb(74,222,128)" }}
+            >
+              Ahorras {p.yearSavings}€ (50%)
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full pb-4">
@@ -217,12 +358,14 @@ export default function Premium() {
         </p>
 
         <div className="relative inline-block mt-5">
-        <div
-          className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 px-2.5 py-0.5 rounded-full text-[9px] font-display tracking-widest whitespace-nowrap"
-          style={{ background: "linear-gradient(135deg, hsl(142,70%,42%), hsl(160,72%,38%))", color: "white", boxShadow: "0 2px 10px rgba(34,197,94,0.35)" }}
-        >
-          MEJOR OFERTA · AHORRA 50%
-        </div>
+        {!isNativeApp && (
+          <div
+            className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 px-2.5 py-0.5 rounded-full text-[9px] font-display tracking-widest whitespace-nowrap"
+            style={{ background: "linear-gradient(135deg, hsl(142,70%,42%), hsl(160,72%,38%))", color: "white", boxShadow: "0 2px 10px rgba(34,197,94,0.35)" }}
+          >
+            MEJOR OFERTA · AHORRA 50%
+          </div>
+        )}
         <div
           className="inline-flex items-center gap-1 p-1 rounded-xl border border-border/30"
           style={{ background: "rgba(13,11,26,0.8)" }}
@@ -239,7 +382,7 @@ export default function Premium() {
               }
             >
               {b === "mensual" ? "Mensual" : "Anual"}
-              {b === "anual" && (
+              {b === "anual" && !isNativeApp && (
                 <span
                   className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
                   style={{ background: "rgba(34,197,94,0.2)", color: "rgb(74,222,128)" }}
@@ -270,32 +413,7 @@ export default function Premium() {
                 </div>
                 <p className="font-sans text-xs text-muted-foreground mt-0.5">Para empezar a brillar</p>
               </div>
-              <div className="text-right">
-                <div>
-                  <span className="font-display text-3xl text-foreground">
-                    {billing === "mensual"
-                      ? PRICING.plus.monthly
-                      : PRICING.plus.yearMonthly}
-                    €
-                  </span>
-                  <span className="font-sans text-xs text-muted-foreground">
-                    /mes
-                  </span>
-                </div>
-                {billing === "anual" && (
-                  <div className="mt-1 space-y-0.5">
-                    <p className="font-sans text-[10px] text-muted-foreground/70">
-                      Facturado anualmente · {PRICING.plus.yearTotal}€/año
-                    </p>
-                    <p
-                      className="font-sans text-[10px] font-semibold"
-                      style={{ color: "rgb(74,222,128)" }}
-                    >
-                      Ahorras {PRICING.plus.yearSavings}€ (50%)
-                    </p>
-                  </div>
-                )}
-              </div>
+              {priceBlock("plus")}
             </div>
           </div>
           <div className="px-5 py-4 space-y-3">
@@ -311,12 +429,17 @@ export default function Premium() {
               </div>
             ))}
             <button
-              onClick={() => startCheckout("plus")}
-              disabled={currentPlan === "plus" || checkout.isPending}
+              onClick={() =>
+                isNativeApp ? startNativePurchase("plus") : startCheckout("plus")
+              }
+              disabled={
+                currentPlan === "plus" ||
+                (isNativeApp ? nativeBusy !== null : checkout.isPending)
+              }
               className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
             >
-              {pendingTier === "plus" && (
+              {(isNativeApp ? nativeBusy === "plus" : pendingTier === "plus") && (
                 <Loader2 className="w-5 h-5 animate-spin" />
               )}
               {currentPlan === "plus" ? "Plan actual" : "Activar Plus"}
@@ -346,32 +469,7 @@ export default function Premium() {
                 </div>
                 <p className="font-sans text-xs text-muted-foreground mt-0.5">La experiencia completa</p>
               </div>
-              <div className="text-right">
-                <div>
-                  <span className="font-display text-3xl text-foreground">
-                    {billing === "mensual"
-                      ? PRICING.gold.monthly
-                      : PRICING.gold.yearMonthly}
-                    €
-                  </span>
-                  <span className="font-sans text-xs text-muted-foreground">
-                    /mes
-                  </span>
-                </div>
-                {billing === "anual" && (
-                  <div className="mt-1 space-y-0.5">
-                    <p className="font-sans text-[10px] text-muted-foreground/70">
-                      Facturado anualmente · {PRICING.gold.yearTotal}€/año
-                    </p>
-                    <p
-                      className="font-sans text-[10px] font-semibold"
-                      style={{ color: "rgb(74,222,128)" }}
-                    >
-                      Ahorras {PRICING.gold.yearSavings}€ (50%)
-                    </p>
-                  </div>
-                )}
-              </div>
+              {priceBlock("gold")}
             </div>
           </div>
           <div className="px-5 py-4 space-y-3">
@@ -387,18 +485,45 @@ export default function Premium() {
               </div>
             ))}
             <button
-              onClick={() => startCheckout("gold")}
-              disabled={currentPlan === "gold" || checkout.isPending}
+              onClick={() =>
+                isNativeApp ? startNativePurchase("gold") : startCheckout("gold")
+              }
+              disabled={
+                currentPlan === "gold" ||
+                (isNativeApp ? nativeBusy !== null : checkout.isPending)
+              }
               className="w-full mt-4 h-12 rounded-xl font-display text-xl tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))" }}
             >
-              {pendingTier === "gold" && (
+              {(isNativeApp ? nativeBusy === "gold" : pendingTier === "gold") && (
                 <Loader2 className="w-5 h-5 animate-spin" />
               )}
               {currentPlan === "gold" ? "Plan actual" : "Activar Gold"}
             </button>
           </div>
         </div>
+
+        {isNativeApp && (
+          <div className="space-y-2 pt-1">
+            <button
+              onClick={restoreNativePurchases}
+              disabled={nativeBusy !== null}
+              className="w-full h-11 rounded-xl font-sans text-sm font-medium text-foreground/80 border border-border/40 hover:bg-white/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{ background: "rgba(13,11,26,0.6)" }}
+              data-testid="button-restore-purchases"
+            >
+              {nativeBusy === "restore" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4" />
+              )}
+              Restaurar compras
+            </button>
+            <p className="text-center font-sans text-[11px] text-muted-foreground/60">
+              Las suscripciones se gestionan a través de la tienda de aplicaciones.
+            </p>
+          </div>
+        )}
 
         <div
           className="rounded-2xl border border-border/30 overflow-hidden"

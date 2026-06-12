@@ -15,6 +15,26 @@ export interface ErrorResponse {
   code?: string | null;
 }
 
+export type RegisterDeviceBodyPlatform = typeof RegisterDeviceBodyPlatform[keyof typeof RegisterDeviceBodyPlatform];
+
+
+export const RegisterDeviceBodyPlatform = {
+  ios: 'ios',
+  android: 'android',
+  web: 'web',
+} as const;
+
+export interface RegisterDeviceBody {
+  /** FCM registration token from the device. */
+  token: string;
+  platform: RegisterDeviceBodyPlatform;
+}
+
+export interface UnregisterDeviceBody {
+  /** FCM registration token to remove. */
+  token: string;
+}
+
 export type CheckoutRequestTier = typeof CheckoutRequestTier[keyof typeof CheckoutRequestTier];
 
 

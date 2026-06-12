@@ -6,6 +6,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { getStripeSync } from "./lib/stripe";
 import { handleStripeWebhook } from "./lib/billing";
+import { handleRevenueCatWebhook, verifyWebhookAuth } from "./lib/revenuecat";
 
 const app: Express = express();
 
@@ -103,6 +104,29 @@ app.post(
 // route validation runs. Per-route decoded-size caps stay the real limits.
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
+
+// RevenueCat webhook (native in-app purchase entitlements). Unlike Stripe there
+// is no HMAC body signature — RevenueCat authenticates with a shared secret in
+// the Authorization header — so this can run AFTER express.json(). Kept OUT of
+// the OpenAPI contract (machine-to-machine, like the Stripe webhook).
+app.post("/api/revenuecat/webhook", async (req, res) => {
+  const authHeader = req.headers["authorization"];
+  const header = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  if (!verifyWebhookAuth(header)) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    await handleRevenueCatWebhook(req.body, req.log);
+    res.status(200).json({ received: true });
+  } catch (error) {
+    req.log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "RevenueCat entitlement handling failed",
+    );
+    res.status(500).json({ error: "Entitlement handling failed" });
+  }
+});
 
 app.use("/api", router);
 

@@ -24,6 +24,7 @@ import {
   notifyMatchByEmail,
   notifySuperLikeByEmail,
 } from "../lib/like-notifications.js";
+import { pushMatch, pushSuperLike } from "../lib/push-notifications.js";
 import { getPlan, hasGold } from "../lib/entitlement.js";
 import {
   recordProfileVisit,
@@ -818,8 +819,10 @@ router.post("/profiles/:id/like", async (req, res) => {
   if (result.firstEdge) {
     if (result.matched) {
       void notifyMatchByEmail(auth.userId, id);
+      void pushMatch(auth.userId, id);
     } else if (result.isSuper) {
       void notifySuperLikeByEmail(id, auth.userId);
+      void pushSuperLike(id, auth.userId);
     }
   }
 

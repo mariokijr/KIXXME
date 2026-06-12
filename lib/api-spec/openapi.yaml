@@ -3026,6 +3026,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /me/devices:
+    post:
+      operationId: registerDevice
+      tags: [notifications]
+      summary: Register (upsert) a push-notification device token
+      description: >-
+        Registers an FCM device token for the current user so the server can send
+        native push notifications. Idempotent: re-registering the same token just
+        refreshes its owner and last-seen time.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceBody"
+      responses:
+        "200":
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid token or platform
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unregisterDevice
+      tags: [notifications]
+      summary: Remove a push-notification device token (on logout)
+      description: >-
+        The token is sent in the request body (not the URL) so it never lands in
+        access logs. Removing an unknown token is a no-op success.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnregisterDeviceBody"
+      responses:
+        "200":
+          description: Device removed (or was already absent)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /me/visitors:
     get:
       operationId: getMyVisitors
@@ -3140,6 +3205,25 @@ components:
             "gold_required_no_match") so the client can branch without parsing
             the human message.
       required: [error]
+
+    RegisterDeviceBody:
+      type: object
+      properties:
+        token:
+          type: string
+          description: FCM registration token from the device.
+        platform:
+          type: string
+          enum: [ios, android, web]
+      required: [token, platform]
+
+    UnregisterDeviceBody:
+      type: object
+      properties:
+        token:
+          type: string
+          description: FCM registration token to remove.
+      required: [token]
 
     CheckoutRequest:
       type: object
