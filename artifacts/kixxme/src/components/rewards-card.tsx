@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, Gift, Heart, Star, Loader2, Trophy } from "lucide-react";
 
-const MILESTONE_DAYS = 7;
+const WEEK_DAYS = 7;
 
 /**
  * Daily-reward + streak card. Claiming once per UTC day keeps the streak alive
@@ -41,9 +41,9 @@ export function RewardsCard() {
   const showLikeCredits = !!quota && !quota.likes.unlimited && credits.likes > 0;
   const showSuperCredits =
     !!quota && !quota.superlikes.unlimited && credits.superlikes > 0;
-  // Position within the current 7-day milestone cycle (1..7), 0 when no streak.
+  // Position within the current 7-day credit cycle (1..7), 0 when no streak.
   const weekProgress =
-    streak.current === 0 ? 0 : ((streak.current - 1) % MILESTONE_DAYS) + 1;
+    streak.current === 0 ? 0 : ((streak.current - 1) % WEEK_DAYS) + 1;
 
   const handleClaim = () => {
     claim.mutate(undefined, {
@@ -102,15 +102,16 @@ export function RewardsCard() {
       </div>
 
       <p className="font-sans text-sm text-muted-foreground mt-2">
-        Vuelve cada día para mantener tu racha y ganar Me gusta y SuperLikes
-        extra. ¡Al 7º día consigues un SuperLike!
+        Vuelve cada día para mantener tu racha. Los créditos de Me gusta
+        aumentan durante la semana (hasta 3 el 7º día), ganas un SuperLike cada
+        10 días y una recompensa especial cada 30.
       </p>
 
       {/* 7-day milestone progress */}
       <div className="flex items-center gap-1.5 mt-3" data-testid="streak-week-progress">
-        {Array.from({ length: MILESTONE_DAYS }).map((_, i) => {
+        {Array.from({ length: WEEK_DAYS }).map((_, i) => {
           const filled = i < weekProgress;
-          const isMilestone = i === MILESTONE_DAYS - 1;
+          const isMilestone = i === WEEK_DAYS - 1;
           return (
             <div
               key={i}

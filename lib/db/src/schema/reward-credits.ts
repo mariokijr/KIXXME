@@ -7,7 +7,8 @@ import { pgTable, uuid, text, integer, timestamp, index } from "drizzle-orm/pg-c
  * holds a Supabase auth UUID.
  *
  * The available credit balance for a (user, kind) is derived as SUM(delta):
- *   - a grant inserts a positive `delta` (reason 'daily_reward' | 'streak_milestone'),
+ *   - a grant inserts a positive `delta` (reason 'daily_reward' |
+ *     'streak_milestone' | 'special_milestone'),
  *   - a spend inserts `delta = -1` (reason 'spend') when a like/SuperLike is taken
  *     beyond the base rolling-window allowance (see `lib/likes.ts`).
  * Spends are only ever inserted inside the same per-user advisory-locked
@@ -26,7 +27,7 @@ export const rewardCreditsTable = pgTable(
     kind: text("kind").notNull(),
     // +N for a grant, -1 for a spend. Balance = SUM(delta).
     delta: integer("delta").notNull(),
-    // daily_reward | streak_milestone | spend
+    // daily_reward | streak_milestone | special_milestone | spend
     reason: text("reason").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

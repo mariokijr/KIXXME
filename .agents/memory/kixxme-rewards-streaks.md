@@ -36,7 +36,11 @@ partial failure can't leave the credit spent but the like un-recorded.
 Streak advances on **claim**, not arbitrary activity. Day key = `toISOString().slice(0,10)`
 (pure UTC). `lastClaimDate === today` → already-claimed → **409** (idempotent under the lock);
 `=== yesterday` (epoch +86,400,000ms) → `current+1`; otherwise reset to 1. Grant rule:
-**+5 like credits daily, +1 SuperLike credit every 7th-day milestone** (`current % 7 === 0`).
+like credits ramp on a **7-day cycle `[1,1,2,1,2,2,3]`** (`(current-1)%7`), **+1 SuperLike
+every 10th day** (`current % 10 === 0`), and a **30-day special** (`current % 30 === 0`) of
++1 SuperLike +3 like credits. The 30-day special **supersedes** the 10-day SuperLike on the
+shared day (every 30th is also a 10th) → exactly one SuperLike, never two. Amounts deliberately
+modest so daily rewards don't undercut Plus/Gold.
 
 ## Unlimited tiers accrue but cannot spend — hide, don't special-case
 Gold (both unlimited) and Plus (likes unlimited) accrue credits they can't spend; the

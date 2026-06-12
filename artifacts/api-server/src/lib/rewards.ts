@@ -18,12 +18,23 @@ import type { LikeKind } from "@workspace/db";
 
 // --- Reward configuration --------------------------------------------------
 
-/** Bonus regular likes granted on every successful daily claim. */
-const DAILY_LIKE_REWARD = 5;
-/** A bonus SuperLike is granted every Nth consecutive day. */
-const SUPERLIKE_MILESTONE_EVERY = 7;
-/** How many bonus SuperLikes a milestone grants. */
+/**
+ * Bonus regular-like credits granted per claim, indexed by position in the
+ * 7-day cycle (streak day 1..7 → index 0..6). The amounts ramp through the week
+ * and reset every 7 days. Kept deliberately modest so daily rewards motivate a
+ * daily return without undercutting the value of Plus/Gold.
+ */
+const WEEKLY_LIKE_REWARDS = [1, 1, 2, 1, 2, 2, 3] as const;
+/** A bonus SuperLike credit is granted every Nth consecutive day. */
+const SUPERLIKE_MILESTONE_EVERY = 10;
+/** How many bonus SuperLikes a (10-day) milestone grants. */
 const SUPERLIKE_MILESTONE_AMOUNT = 1;
+/** A richer "special" reward lands every Nth consecutive day. */
+const SPECIAL_MILESTONE_EVERY = 30;
+/** The 30-day special grants this many SuperLikes... */
+const SPECIAL_SUPERLIKE_AMOUNT = 1;
+/** ...plus this many extra like credits, on top of that day's weekly amount. */
+const SPECIAL_LIKE_BONUS = 3;
 
 // --- Shapes ----------------------------------------------------------------
 
@@ -177,20 +188,47 @@ export async function claimDailyReward(userId: string): Promise<ClaimResult> {
         },
       });
 
-    const milestone = newStreak % SUPERLIKE_MILESTONE_EVERY === 0;
+    // Daily like credits follow the 7-day ramp (resets every week).
+    const baseLikes = WEEKLY_LIKE_REWARDS[(newStreak - 1) % 7] ?? 1;
+
+    // Every 30th day is also a 10th day, so the 30-day "special" SUPERSEDES the
+    // 10-day SuperLike milestone on the shared day: a special grants exactly one
+    // SuperLike (plus its like bonus), never two.
+    const special = newStreak % SPECIAL_MILESTONE_EVERY === 0;
+    const superMilestone =
+      !special && newStreak % SUPERLIKE_MILESTONE_EVERY === 0;
+    const milestone = special || superMilestone;
+
     const granted: CreditBalance = {
-      likes: DAILY_LIKE_REWARD,
-      superlikes: milestone ? SUPERLIKE_MILESTONE_AMOUNT : 0,
+      likes: baseLikes + (special ? SPECIAL_LIKE_BONUS : 0),
+      superlikes: special
+        ? SPECIAL_SUPERLIKE_AMOUNT
+        : superMilestone
+          ? SUPERLIKE_MILESTONE_AMOUNT
+          : 0,
     };
 
     const grants: { userId: string; kind: LikeKind; delta: number; reason: string }[] = [
-      { userId, kind: "like", delta: granted.likes, reason: "daily_reward" },
+      { userId, kind: "like", delta: baseLikes, reason: "daily_reward" },
     ];
-    if (granted.superlikes > 0) {
+    if (special) {
+      grants.push({
+        userId,
+        kind: "like",
+        delta: SPECIAL_LIKE_BONUS,
+        reason: "special_milestone",
+      });
       grants.push({
         userId,
         kind: "superlike",
-        delta: granted.superlikes,
+        delta: SPECIAL_SUPERLIKE_AMOUNT,
+        reason: "special_milestone",
+      });
+    } else if (superMilestone) {
+      grants.push({
+        userId,
+        kind: "superlike",
+        delta: SUPERLIKE_MILESTONE_AMOUNT,
         reason: "streak_milestone",
       });
     }
