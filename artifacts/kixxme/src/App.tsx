@@ -50,7 +50,7 @@ import {
 function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-[100dvh] flex flex-col"
+      className="h-[100dvh] flex flex-col"
       style={{
         background:
           "radial-gradient(ellipse 100% 50% at 50% 0%, hsl(270 30% 8%) 0%, hsl(238 25% 4%) 60%)",

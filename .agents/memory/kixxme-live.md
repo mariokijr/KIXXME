@@ -129,6 +129,33 @@ a prompt there would confuse). Diag must carry `paused`/`currentTime`/`readyStat
 /`clientWidth`/`clientHeight` (+`*PlayError`) for BOTH els — width alone can't
 distinguish "decoding but paused/black" from "playing".
 
+## A healthy, PLAYING video can still be invisible: app-shell height chain collapses the surface
+Distinct from the paused-`<video>` bug above, and the one that actually bit two
+real phones: **audio works both ways, the call shows "connected", yet NEITHER the
+fullscreen remote NOR the corner self-view shows video.** The diag tell that
+separates it from EVERY other cause: the remote `<video>` is fully healthy —
+`remoteVideoWidth>0`, `remoteVideoReadyState===4`, `remoteVideoPaused===false`,
+`subscribedVideo===true`, and the server room view lists the partner's `camera`
+track — but `remoteClientHeight===0` while `remoteClientWidth` is full. The picture
+is decoding and PLAYING into a zero-height box. (The self-view survives only because
+it's a fixed `w-28 h-40` box, not flex-sized.)
+**Root cause:** the fullscreen remote video is `absolute inset-0` inside a `flex-1`
+surface, inside `InCall`'s flex column, inside the app shell's scroll container. If
+ANY ancestor up to a definite height uses `min-height` (the shell was
+`min-h-[100dvh]`) instead of a definite `height`, the percentage/`flex-1` height
+chain never resolves → the `flex-1` surface gets 0 free space → `clientHeight:0`.
+`flex: 1 1 0%` needs a *definite* parent height to have anything to distribute.
+**Fix:** make the chain definite from the top — app shell `h-[100dvh]` (NOT
+`min-h-[100dvh]`) + `InCall` root `h-full`. BottomNav is `position:fixed` (out of
+flow) and the scroll container already reserves it via `paddingBottom`, so a fixed
+`h-[100dvh]` shell does NOT double-count the nav. Pages that only center content
+(`min-h-full flex items-center`) are unaffected — only a `flex-1`-expanding child
+needs the definite chain.
+**Disambiguate from the paused bug:** the `track.attach()` section lists
+`clientHeight 0` as a sign of the PAUSED bug, but `clientHeight 0` with
+`paused:false` + `currentTime` advancing is THIS layout bug instead. Branch on
+`paused`/`currentTime`, never height alone.
+
 ## Corrupted LiveKit creds masquerade as the iOS bug (check creds FIRST)
 A glyph-swapped API key (LiveKit keys start `API`; an `I`→`l` swap gives `APl…`)
 or a truncated/wrong API secret produces the EXACT same symptom as the iOS bug:
@@ -181,8 +208,13 @@ evidence:** check that user's `GET /live/state` DTO for a null `mediaToken` and
 the partner's server snapshot (it will show only one participant). Don't read
 "no logs from one participant" as "diagnostics broken".
 
-## Where the real-device evidence lives: dev preview, NOT a deployment
-This repl has **no production deployment and no production Neon DB** (`executeSql
+## Where the real-device evidence lives: dev preview before publish, deployment logs after
+**Once the app IS published** (it now is), the two test phones hit the **published
+domain**, so real-device `live.diag` lines land in **`fetch_deployment_logs`** (RE2
+filter `liveDiag|live/diag`) — that's where the height-collapse evidence above was
+found. The note below is the PRE-publish situation; both can be true at different
+times, so check deployment logs first if the app is live, dev logs if it isn't.
+Before any deployment existed, this repl had **no production Neon DB** (`executeSql
 environment:"production"` → "does not have a production Neon database"; and
 `fetch_deployment_logs` → "No deployment logs found"). Yet the two Gold test
 phones' **real** `blocks`/`video_calls` rows are visible from the agent's

@@ -1323,7 +1323,7 @@ function InCall({
   };
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Video surface */}
       <div
         className="flex-1 relative flex flex-col items-center justify-center overflow-hidden"
