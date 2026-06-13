@@ -74,16 +74,17 @@ router.post("/auth/email/verify/send", async (req, res) => {
     return;
   }
 
-  // At most one code per 60s.
+  // Allow one resend every 30s (shorter than the default 60s so users blocked
+  // by a failed email send can retry quickly without a minute-long wait).
+  const VERIFY_COOLDOWN_MS = 30_000;
   const remaining = await requestCooldownRemaining(
     auth.userId,
     VERIFY_EMAIL_ACTION,
+    VERIFY_COOLDOWN_MS,
   );
   if (remaining > 0) {
     res.status(429).json({
-      error: `Espera ${Math.ceil(
-        remaining / 1000,
-      )} segundos antes de pedir otro código`,
+      error: `Espera ${Math.ceil(remaining / 1000)} segundos antes de pedir otro código`,
     });
     return;
   }

@@ -1833,6 +1833,7 @@ export const GetAdminUserResponse = zod.object({
   "suspendedUntil": zod.string().nullish()
 }),
   "email": zod.string().nullish(),
+  "emailVerified": zod.boolean().nullish().describe('Whether the user has confirmed their email (null = grandfathered \/ system account)'),
   "bio": zod.string().nullish(),
   "role": zod.string().nullish(),
   "lookingFor": zod.string().nullish(),
@@ -1906,6 +1907,19 @@ export const RestoreUserParams = zod.object({
 })
 
 export const RestoreUserResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Admin-only. Records `emailVerifiedAt` in profile_details so a user who never received the verification email can gain access. Idempotent — safe to call on an already-verified account.
+ * @summary Manually mark a user's email as verified (support bypass)
+ */
+export const AdminVerifyUserEmailParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const AdminVerifyUserEmailResponse = zod.object({
   "success": zod.boolean()
 })
 

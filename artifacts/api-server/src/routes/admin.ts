@@ -34,7 +34,11 @@ import {
   notifyRemovalByEmail,
   notifyRestoreByEmail,
 } from "../lib/moderation-notifications.js";
-import { getProfileDetailsForUsers } from "../lib/profile-details.js";
+import {
+  getProfileDetailsForUsers,
+  markEmailVerified,
+  getEmailVerifiedAt,
+} from "../lib/profile-details.js";
 import {
   ResolveAdminReportBody,
   ReviewAdminFlagBody,
@@ -756,7 +760,7 @@ router.get("/admin/users/:userId", async (req, res) => {
   }
   const p = profile as AdminUserProfileRow;
 
-  const [mod, history, details, photosRes, reportRows, userRes] =
+  const [mod, history, details, photosRes, reportRows, userRes, emailVerifiedAt] =
     await Promise.all([
       getModerationState(userId),
       listModerationHistory(userId),
@@ -776,9 +780,23 @@ router.get("/admin/users/:userId", async (req, res) => {
           ),
         ),
       supabase.auth.admin.getUserById(userId),
+      getEmailVerifiedAt(userId).catch(() => null),
     ]);
 
   const detail = details.get(userId);
+  const authUser = userRes.data?.user ?? null;
+
+  // Determine whether this account requires email verification (post-cutoff,
+  // non-system) and whether it has passed it. null = not subject to the gate.
+  const EMAIL_VERIFICATION_ENFORCED_FROM = Date.UTC(2026, 5, 12);
+  const createdMs = authUser?.created_at
+    ? new Date(authUser.created_at).getTime()
+    : NaN;
+  const requiresVerification =
+    !isNaN(createdMs) && createdMs >= EMAIL_VERIFICATION_ENFORCED_FROM;
+  const emailVerified: boolean | null = requiresVerification
+    ? emailVerifiedAt !== null
+    : null;
 
   res.json({
     user: {
@@ -796,7 +814,8 @@ router.get("/admin/users/:userId", async (req, res) => {
         ? mod.suspendedUntil.toISOString()
         : null,
     },
-    email: userRes.data?.user?.email ?? null,
+    email: authUser?.email ?? null,
+    emailVerified,
     bio: p.bio,
     role: detail?.role ?? null,
     lookingFor: detail?.looking_for ?? null,
@@ -812,6 +831,42 @@ router.get("/admin/users/:userId", async (req, res) => {
       createdAt: h.createdAt.toISOString(),
     })),
   });
+});
+
+// --- Admin manual email verification (support bypass) ---------------------
+
+router.post("/admin/users/:userId/verify-email", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const userId = req.params.userId;
+  if (!UUID_RE.test(userId)) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+
+  // Confirm the Supabase profile exists before touching Replit Postgres.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+
+  try {
+    await markEmailVerified(userId);
+    req.log.info({ userId, actedBy: auth.userId }, "admin: manual email verification");
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(
+      { err: err instanceof Error ? err.message : String(err), userId },
+      "admin: manual verify-email failed",
+    );
+    res.status(500).json({ error: "No se pudo verificar el correo" });
+  }
 });
 
 // --- User moderation actions ----------------------------------------------

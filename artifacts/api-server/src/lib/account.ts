@@ -177,6 +177,7 @@ function generateCode(): string {
 export async function requestCooldownRemaining(
   userId: string,
   action: CodeAction,
+  cooldownMs = REQUEST_COOLDOWN_MS,
 ): Promise<number> {
   const [recent] = await db
     .select({ createdAt: accountActionCodesTable.createdAt })
@@ -191,7 +192,7 @@ export async function requestCooldownRemaining(
     .limit(1);
   if (!recent) return 0;
   const elapsed = Date.now() - recent.createdAt.getTime();
-  return elapsed >= REQUEST_COOLDOWN_MS ? 0 : REQUEST_COOLDOWN_MS - elapsed;
+  return elapsed >= cooldownMs ? 0 : cooldownMs - elapsed;
 }
 
 /**

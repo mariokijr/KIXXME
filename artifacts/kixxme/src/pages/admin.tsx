@@ -26,6 +26,7 @@ import {
   useWarnUser,
   useRemoveUser,
   useRestoreUser,
+  useAdminVerifyUserEmail,
   useListAdminTickets,
   getListAdminTicketsQueryKey,
   useGetSupportTicket,
@@ -81,6 +82,7 @@ import {
   Users,
   RotateCcw,
   Mail,
+  MailCheck,
   Calendar,
   LifeBuoy,
   Send,
@@ -1703,6 +1705,7 @@ function UserDetailDialog({
   const ban = useBanUser();
   const remove = useRemoveUser();
   const restore = useRestoreUser();
+  const verifyEmail = useAdminVerifyUserEmail();
 
   const [reason, setReason] = useState("");
 
@@ -1715,7 +1718,8 @@ function UserDetailDialog({
     suspend.isPending ||
     ban.isPending ||
     remove.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    verifyEmail.isPending;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -1812,6 +1816,20 @@ function UserDetailDialog({
     );
   };
 
+  const onVerifyEmail = () => {
+    if (!userId) return;
+    verifyEmail.mutate(
+      { userId },
+      {
+        onSuccess: () => {
+          toast({ title: "Email verificado", description: "El usuario ya puede acceder a la app." });
+          if (userId) qc.invalidateQueries({ queryKey: getGetAdminUserQueryKey(userId) });
+        },
+        onError: onError("No se pudo verificar el email"),
+      },
+    );
+  };
+
   const user = data?.user;
   const state = user?.state ?? "active";
   const meta = [
@@ -1888,7 +1906,32 @@ function UserDetailDialog({
                 <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
                   <Mail className="w-3.5 h-3.5" />
                   <span className="truncate">{data.email}</span>
+                  {data.emailVerified === true && (
+                    <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                      verificado
+                    </span>
+                  )}
+                  {data.emailVerified === false && (
+                    <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30 flex-shrink-0">
+                      sin verificar
+                    </span>
+                  )}
                 </div>
+              )}
+              {data.emailVerified === false && (
+                <button
+                  type="button"
+                  onClick={onVerifyEmail}
+                  disabled={busy}
+                  className="w-full h-8 rounded-lg text-xs font-sans border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {verifyEmail.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <MailCheck className="w-3.5 h-3.5" />
+                  )}
+                  Verificar email manualmente
+                </button>
               )}
               {user.createdAt && (
                 <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">

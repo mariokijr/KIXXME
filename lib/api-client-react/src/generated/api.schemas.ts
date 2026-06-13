@@ -1352,6 +1352,8 @@ export interface ModerationActionItem {
 export interface AdminUserDetail {
   user: AdminUserItem;
   email?: string | null;
+  /** Whether the user has confirmed their email (null = grandfathered / system account) */
+  emailVerified?: boolean | null;
   bio?: string | null;
   role?: string | null;
   lookingFor?: string | null;

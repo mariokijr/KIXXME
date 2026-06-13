@@ -6913,6 +6913,77 @@ export const useRestoreUser = <TError = ErrorType<ErrorResponse>,
       return useMutation(getRestoreUserMutationOptions(options));
     }
 
+export const getAdminVerifyUserEmailUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/verify-email`
+}
+
+/**
+ * Admin-only. Records `emailVerifiedAt` in profile_details so a user who never received the verification email can gain access. Idempotent — safe to call on an already-verified account.
+ * @summary Manually mark a user's email as verified (support bypass)
+ */
+export const adminVerifyUserEmail = async (userId: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getAdminVerifyUserEmailUrl(userId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminVerifyUserEmailMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminVerifyUserEmail>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminVerifyUserEmail>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['adminVerifyUserEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminVerifyUserEmail>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  adminVerifyUserEmail(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminVerifyUserEmailMutationResult = NonNullable<Awaited<ReturnType<typeof adminVerifyUserEmail>>>
+
+    export type AdminVerifyUserEmailMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Manually mark a user's email as verified (support bypass)
+ */
+export const useAdminVerifyUserEmail = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminVerifyUserEmail>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminVerifyUserEmail>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getAdminVerifyUserEmailMutationOptions(options));
+    }
+
 export const getListSupportInboxUsersUrl = (params?: ListSupportInboxUsersParams,) => {
   const normalizedParams = new URLSearchParams();
 

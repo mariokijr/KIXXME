@@ -2846,6 +2846,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/users/{userId}/verify-email:
+    post:
+      operationId: adminVerifyUserEmail
+      tags: [admin]
+      summary: Manually mark a user's email as verified (support bypass)
+      description: >-
+        Admin-only. Records `emailVerifiedAt` in profile_details so a user who
+        never received the verification email can gain access. Idempotent — safe
+        to call on an already-verified account.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email marked as verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/support-users:
     get:
       operationId: listSupportInboxUsers
@@ -5108,6 +5145,10 @@ components:
         email:
           type: string
           nullable: true
+        emailVerified:
+          type: boolean
+          nullable: true
+          description: Whether the user has confirmed their email (null = grandfathered / system account)
         bio:
           type: string
           nullable: true
