@@ -6,20 +6,21 @@ import { sendGmailMessage } from "./gmail.js";
  * deliverability (SPF/DKIM/DMARC aligned to kixxme.com), with the existing
  * Gmail connector as an automatic fallback.
  *
- * Selection is purely env-driven and additive — nothing changes until the
- * secrets are set, so this is safe to ship before the domain is verified:
- *   - `RESEND_API_KEY`  — when present, Resend is used as the primary provider.
- *   - `EMAIL_FROM`      — verified custom-domain sender, e.g.
- *                         "KixxMe <no-reply@kixxme.com>". Resend is SKIPPED
- *                         when unset (sending from gmail.com always 403s on
- *                         Resend) and the Gmail connector is used directly.
+ * Selection is purely env-driven:
+ *   - `RESEND_API_KEY` + `EMAIL_FROM` → Resend (primary, recommended for prod).
+ *     EMAIL_FROM must be a verified custom-domain sender, e.g.
+ *     "KixxMe <no-reply@kixxme.com>". Without EMAIL_FROM, Resend is skipped
+ *     entirely — using a gmail.com From always 403s on Resend.
+ *   - Gmail connector → fallback (or primary when Resend is unconfigured).
+ *     Gmail sends are serialised through an in-process queue (one at a time,
+ *     600 ms inter-send gap) so concurrent registrations never saturate the
+ *     Gmail API user quota. Each failed send is retried up to 2 times, waiting
+ *     the exact "Retry after" timestamp that Gmail embeds in 429 responses.
  *
- * Fail-soft contract: if Resend errors at runtime we fall back to Gmail so a
- * provider hiccup never drops mail. Gmail sends are retried once on 429
- * (rate-limit) with a short backoff. This throws only when both paths are
- * exhausted; `sendEmail()` in email.ts wraps it so callers never see an
- * exception.
+ * Fail-soft contract: throws only when every path is exhausted; `sendEmail()`
+ * in email.ts wraps it so callers never see an exception.
  */
+
 export interface OutboundEmail {
   to: string;
   from: string;
@@ -29,12 +30,15 @@ export interface OutboundEmail {
 }
 
 function resendApiKey(): string | undefined {
-  const key = (process.env.RESEND_API_KEY ?? "").trim();
-  return key || undefined;
+  return (process.env.RESEND_API_KEY ?? "").trim() || undefined;
 }
 
 function resendFrom(): string | undefined {
   return (process.env.EMAIL_FROM ?? "").trim() || undefined;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function sendViaResend(key: string, from: string, email: OutboundEmail): Promise<void> {
@@ -58,15 +62,31 @@ async function sendViaResend(key: string, from: string, email: OutboundEmail): P
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * Parse the "Retry after <ISO timestamp>" that Gmail embeds in 429 bodies and
+ * return how many ms to wait (capped at 30 s to avoid blocking the queue
+ * indefinitely). Returns null when no parseable timestamp is found.
+ */
+function parseGmailRetryAfterMs(errorMessage: string): number | null {
+  const match = /Retry after (\d{4}-\d{2}-\d{2}T[\d:.]+Z)/i.exec(errorMessage);
+  if (!match) return null;
+  const retryAt = Date.parse(match[1]);
+  if (isNaN(retryAt)) return null;
+  const waitMs = retryAt - Date.now();
+  // Add 500 ms buffer; cap at 30 s so a misbehaving response never hangs forever.
+  return Math.min(Math.max(waitMs + 500, 500), 30_000);
 }
 
 /**
- * Deliver via Gmail with one retry on 429 (rate-limit burst). The Gmail API
- * has a per-user quota; a short backoff resolves momentary spikes.
+ * Attempt a single Gmail send, retrying up to `retriesLeft` times on 429.
+ * Each retry waits exactly as long as Gmail asks (parsed from the error body),
+ * falling back to an exponential guess when no timestamp is present.
  */
-async function sendViaGmail(email: OutboundEmail, retriesLeft = 1): Promise<void> {
+async function gmailSendWithRetry(
+  email: OutboundEmail,
+  retriesLeft = 2,
+  attempt = 1,
+): Promise<void> {
   try {
     await sendGmailMessage({
       to: email.to,
@@ -78,15 +98,57 @@ async function sendViaGmail(email: OutboundEmail, retriesLeft = 1): Promise<void
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (retriesLeft > 0 && msg.includes("429")) {
+      const waitMs = parseGmailRetryAfterMs(msg) ?? Math.min(2000 * 2 ** (attempt - 1), 30_000);
       logger.warn(
-        { to: email.to },
-        "Gmail 429 rate-limit hit; waiting 3 s before retry",
+        { to: email.to, waitMs, attempt },
+        "Gmail 429; waiting before retry",
       );
-      await sleep(3000);
-      return sendViaGmail(email, retriesLeft - 1);
+      await sleep(waitMs);
+      return gmailSendWithRetry(email, retriesLeft - 1, attempt + 1);
     }
     throw err;
   }
+}
+
+/**
+ * Serial Gmail queue — prevents concurrent Gmail API calls from colliding on
+ * the per-user rate limit. Sends are processed one at a time with a 600 ms
+ * gap between completions (≈ 1.5 sends/sec, well within the API quota).
+ *
+ * The queue is module-level (process-global), so all concurrent route handlers
+ * share the same serialisation.
+ */
+interface QueuedSend {
+  email: OutboundEmail;
+  resolve: () => void;
+  reject: (err: unknown) => void;
+}
+const gmailQueue: QueuedSend[] = [];
+let gmailProcessing = false;
+
+async function drainGmailQueue(): Promise<void> {
+  if (gmailProcessing) return;
+  gmailProcessing = true;
+  while (gmailQueue.length > 0) {
+    const item = gmailQueue.shift()!;
+    try {
+      await gmailSendWithRetry(item.email);
+      item.resolve();
+    } catch (err) {
+      item.reject(err);
+    }
+    if (gmailQueue.length > 0) {
+      await sleep(600); // rate-limit gap between sends
+    }
+  }
+  gmailProcessing = false;
+}
+
+function queuedGmailSend(email: OutboundEmail): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    gmailQueue.push({ email, resolve, reject });
+    void drainGmailQueue();
+  });
 }
 
 let warnedMissingEmailFrom = false;
@@ -95,13 +157,10 @@ let warnedMissingEmailFrom = false;
  * Deliver one email through the active provider.
  *
  * Priority:
- *   1. Resend — only when BOTH RESEND_API_KEY and EMAIL_FROM are set.
- *      Without EMAIL_FROM, Resend would use the Gmail From address which
- *      is always rejected (403) because gmail.com is not a Resend-verified
- *      domain. Skipping Resend in that case avoids a guaranteed failure
- *      before falling through to Gmail.
- *   2. Gmail (with one 429-retry) — used when Resend is unconfigured, EMAIL_FROM
- *      is missing, or Resend returns a transient error.
+ *   1. Resend — only when both RESEND_API_KEY and EMAIL_FROM are set.
+ *      Falls back to Gmail on any Resend error.
+ *   2. Gmail (serialised queue + retry-after-aware retries) — used when
+ *      Resend is unconfigured, EMAIL_FROM is missing, or Resend errors.
  */
 export async function deliverEmail(email: OutboundEmail): Promise<void> {
   const key = resendApiKey();
@@ -114,18 +173,17 @@ export async function deliverEmail(email: OutboundEmail): Promise<void> {
     } catch (err) {
       logger.warn(
         { err: err instanceof Error ? err.message : String(err), to: email.to },
-        "Resend send failed; falling back to Gmail",
+        "Resend send failed; falling back to Gmail queue",
       );
     }
   } else if (key && !from && !warnedMissingEmailFrom) {
     warnedMissingEmailFrom = true;
     logger.warn(
-      "RESEND_API_KEY is set but EMAIL_FROM is not — skipping Resend to avoid " +
-        "the guaranteed gmail.com 403. Set EMAIL_FROM to a verified kixxme.com " +
-        'sender (e.g. "KixxMe <no-reply@kixxme.com>") once the domain is ' +
-        "verified at https://resend.com/domains.",
+      "RESEND_API_KEY is set but EMAIL_FROM is not — skipping Resend (gmail.com From " +
+        'always 403s). Set EMAIL_FROM to "KixxMe <no-reply@kixxme.com>" once ' +
+        "kixxme.com is verified at https://resend.com/domains.",
     );
   }
 
-  await sendViaGmail(email);
+  await queuedGmailSend(email);
 }
