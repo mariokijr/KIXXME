@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { supabase, supabaseUserAuth } from "../lib/supabase.js";
 import { reactivateOnLogin } from "../lib/account.js";
-import { sendEmail, appBaseUrl, passwordResetEmail } from "../lib/email.js";
 import {
-  isValidEmail,
-  sendVerificationEmail,
-} from "../lib/email-verification.js";
+  sendEmail,
+  appBaseUrl,
+  passwordResetEmail,
+  WELCOME_SUBJECT,
+  welcomeEmailHtml,
+} from "../lib/email.js";
+import { isValidEmail } from "../lib/email-verification.js";
 
 const router = Router();
 
@@ -76,17 +79,16 @@ router.post("/auth/signup", async (req, res) => {
     return;
   }
 
-  // Mandatory email verification: email the 6-digit code immediately. The
-  // account is created but unusable (requireAuth gate) until it's verified.
-  // The WELCOME email is intentionally deferred to the moment verification
-  // first succeeds (see routes/email-verification.ts), so it only lands for a
-  // genuinely usable account.
+  // Send a welcome email immediately on signup. Email verification is no
+  // longer mandatory at registration (the gate is disabled), so users can
+  // access the app right away. The welcome email replaces the old deferred
+  // send that required the user to verify first.
   if (data.user?.id) {
-    void sendVerificationEmail(data.user.id, email).catch((err) => {
-      req.log.error(
-        { err: err instanceof Error ? err.message : String(err) },
-        "signup: failed to send verification email",
-      );
+    const base = appBaseUrl();
+    void sendEmail({
+      to: email,
+      subject: WELCOME_SUBJECT,
+      html: welcomeEmailHtml(base ? `${base}/` : undefined),
     });
   }
 

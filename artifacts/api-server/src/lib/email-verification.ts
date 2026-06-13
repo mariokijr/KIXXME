@@ -20,11 +20,18 @@ import { sendEmail, emailVerificationCodeEmail } from "./email.js";
 export const VERIFY_EMAIL_ACTION: CodeAction = "verify_email";
 
 /**
- * Accounts created BEFORE this instant are grandfathered (never gated), so the
- * feature only applies to new signups. Set to the day this feature ships so the
- * entire existing user base keeps working untouched.
+ * Accounts created BEFORE this instant are grandfathered (never gated).
+ *
+ * Set to a far-future date to effectively disable the mandatory verification
+ * gate for all users (current and future). The verification infrastructure
+ * (column, routes, code lifecycle) is preserved so this can be re-enabled
+ * by setting a past date here and redeploying.
+ *
+ * Original enforcement date was 2026-06-12, but the gate was disabled because
+ * Gmail quota issues caused verification emails to fail silently, blocking
+ * legitimate new users from accessing the app.
  */
-export const EMAIL_VERIFICATION_ENFORCED_FROM = Date.UTC(2026, 5, 12); // 2026-06-12T00:00:00Z
+export const EMAIL_VERIFICATION_ENFORCED_FROM = Date.UTC(2099, 11, 31); // effectively disabled
 
 /** Minimal shape of the Supabase auth user we need to decide verification. */
 interface VerifiableUser {
