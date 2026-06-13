@@ -1,0 +1,56 @@
+Implementa la prueba gratuita de Gold de 5 días para nuevos usuarios.
+
+Requisitos principales:
+
+* Todos los usuarios nuevos deben ver en Premium/Gold una opción para activar “5 días gratis de Gold”.
+* Al registrarse, el usuario debe recibir un email informando de que tiene disponible la prueba gratuita.
+* Para activar la prueba gratuita, el usuario debe introducir una tarjeta bancaria válida.
+* Durante 5 días tendrá acceso completo a Gold.
+* Al terminar los 5 días, si no cancela, se cobrará automáticamente el precio mensual de Gold.
+* Si cancela antes de que termine la prueba, no se le cobra nada y mantiene Gold hasta el final de los 5 días.
+
+Antifraude:
+
+* Cada persona solo puede usar la prueba gratuita una vez.
+* No permitir repetir prueba creando cuentas nuevas.
+* Registrar en base de datos que el usuario ya usó la prueba.
+* Usar Stripe para detectar método de pago/tarjeta ya usada si es posible.
+* Añadir lógica para evitar abuso por cuentas duplicadas.
+* Si hace falta, proponed o implementad verificación por teléfono/SMS antes de activar la prueba.
+* No basarlo solo en email.
+
+Emails:
+
+* Email al registrarse: “Tienes 5 días gratis de Gold disponibles”.
+* Email al activar la prueba.
+* Email 24 horas antes de que termine la prueba.
+* Email cuando la prueba se convierta en suscripción Gold de pago.
+* Email si cancela la renovación.
+
+Pantalla Premium:
+
+* Mostrar claramente:
+    * “5 días gratis de Gold”
+    * “Después 9,99€/mes”
+    * “Cancela cuando quieras antes de que termine la prueba”
+    * Fecha exacta del primer cobro
+* Añadir botón “Activar prueba gratuita”.
+* Si el usuario ya usó la prueba, no volver a mostrarla.
+
+Ajustes:
+
+* Añadir opción clara para cancelar la renovación durante la prueba.
+* Si cancela, mantener Gold hasta el final de los 5 días.
+
+Verificación:
+
+* Probar flujo completo:
+    * Registro nuevo.
+    * Email recibido.
+    * Activar prueba con tarjeta.
+    * Gold activo.
+    * Cancelación antes del cobro.
+    * Conversión a pago si no cancela.
+    * Bloqueo de segunda prueba con otra cuenta si se detecta abuso.
+
+Hazlo de forma segura, profesional y preparada para producción.

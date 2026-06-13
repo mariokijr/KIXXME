@@ -229,16 +229,28 @@ async function main() {
       page++;
     }
 
-    console.log(`Found ${ids.length} free-plan users. Fetching emails…`);
+    // Build a Set of free-plan user ids for fast lookup.
+    const freeIds = new Set(ids);
+    console.log(`Found ${freeIds.size} free-plan users. Fetching emails via listUsers…`);
 
-    // Fetch emails in batches from Supabase Auth admin API.
-    for (let i = 0; i < ids.length; i += 100) {
-      const batch = ids.slice(i, i + 100);
-      for (const id of batch) {
-        const { data: user, error } = await supabase.auth.admin.getUserById(id);
-        if (error || !user?.user?.email) continue;
-        recipients.push({ id, email: user.user.email });
+    // listUsers is paginated (up to 1000 per page) — far faster than N getUserById calls.
+    let authPage = 1;
+    while (true) {
+      const { data, error } = await supabase.auth.admin.listUsers({
+        page: authPage,
+        perPage: 1000,
+      });
+      if (error) {
+        console.error("listUsers error:", error.message);
+        break;
       }
+      for (const u of data.users) {
+        if (u.email && freeIds.has(u.id)) {
+          recipients.push({ id: u.id, email: u.email });
+        }
+      }
+      if (data.users.length < 1000) break;
+      authPage++;
     }
     console.log(`Retrieved ${recipients.length} emails.`);
   }
