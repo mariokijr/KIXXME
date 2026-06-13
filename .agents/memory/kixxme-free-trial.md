@@ -3,6 +3,11 @@ name: Free Gold trial campaign
 description: 5-day free Gold trial — eligibility, Stripe flow, lifecycle emails, campaign script.
 ---
 
+## Anti-fraud architecture
+- **Card fingerprint** (primary): `free_trial_uses.payment_fingerprint` (UNIQUE partial index WHERE NOT NULL). Fetched via `stripe.subscriptions.retrieve(subId, {expand:["default_payment_method"]})` inside `checkout.session.completed`. If fingerprint already exists under a DIFFERENT userId → cancel subscription + revert to free (no email). Zero friction for legitimate users.
+- **IP address**: stored in `free_trial_uses.ip_address` from `client_ip` Stripe metadata (set at checkout creation via `x-forwarded-for` / `req.ip`).
+- **One trial per account**: enforced by userId PK on `free_trial_uses` (onConflictDoNothing).
+
 ## Rule
 One free trial per user, enforced by `free_trial_uses` (Replit Postgres, userId PK). Attempting a second trial returns 409 from `createTrialCheckoutSession`.
 

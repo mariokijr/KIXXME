@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   MapPin,
@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   Flag,
   Sparkles,
+  X,
 } from "lucide-react";
 import {
   useListMyLikes,
@@ -18,17 +19,78 @@ import {
   useListOnlineProfiles,
   getListOnlineProfilesQueryKey,
   useUnlikeProfile,
+  useGetStripeTrialStatus,
+  getGetStripeTrialStatusQueryKey,
   PublicProfile,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
+import { useAuth } from "@/lib/auth";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
 import { ReportDialog } from "@/components/report-dialog";
+
+const TRIAL_BANNER_KEY = "kixxme:trial-banner-dismissed";
+
+function TrialBanner() {
+  const { session } = useAuth();
+  const [, setLocation] = useLocation();
+  const [dismissed, setDismissed] = useState(() => {
+    try { return !!localStorage.getItem(TRIAL_BANNER_KEY); } catch { return false; }
+  });
+
+  const { data: trialStatus } = useGetStripeTrialStatus({
+    query: {
+      enabled: !!session && !dismissed,
+      queryKey: getGetStripeTrialStatusQueryKey(),
+    },
+  });
+
+  if (dismissed || trialStatus?.eligible !== true) return null;
+
+  const dismiss = () => {
+    setDismissed(true);
+    try { localStorage.setItem(TRIAL_BANNER_KEY, "1"); } catch { /* ignore */ }
+  };
+
+  return (
+    <div
+      className="fixed bottom-20 left-3 right-3 z-30 rounded-2xl px-4 py-3 flex items-center gap-3 border shadow-lg"
+      style={{
+        background: "linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(236,72,153,0.14) 100%)",
+        borderColor: "rgba(139,92,246,0.45)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
+    >
+      <span className="text-2xl select-none" aria-hidden>👑</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm text-white leading-tight">5 días de Gold gratis</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+          Accede a todas las funciones premium sin coste
+        </p>
+      </div>
+      <button
+        onClick={() => setLocation("/trial")}
+        className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90 active:opacity-75"
+        style={{ background: "linear-gradient(135deg, #8b5cf6, #ec4899)" }}
+      >
+        Activar
+      </button>
+      <button
+        onClick={dismiss}
+        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors"
+        aria-label="Cerrar banner"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
 
 export { gradFor, formatDistance } from "@/lib/profile-format";
 
@@ -52,15 +114,19 @@ export default function Discover() {
     }
   };
 
-  if (mode === "tarjetas") {
-    return <SwipeView mode={mode} setMode={changeMode} />;
-  }
   return (
-    <GridDiscover
-      mode={mode}
-      setMode={changeMode}
-      source={mode === "cuadricula" ? "likes" : "online"}
-    />
+    <>
+      {mode === "tarjetas" ? (
+        <SwipeView mode={mode} setMode={changeMode} />
+      ) : (
+        <GridDiscover
+          mode={mode}
+          setMode={changeMode}
+          source={mode === "cuadricula" ? "likes" : "online"}
+        />
+      )}
+      <TrialBanner />
+    </>
   );
 }
 

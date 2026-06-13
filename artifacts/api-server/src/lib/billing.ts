@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import type { Logger } from "pino";
-import { eq } from "drizzle-orm";
+import { and, eq, not } from "drizzle-orm";
 import { db, billingCustomersTable, freeTrialUsesTable } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getUncachableStripeClient } from "./stripe.js";
@@ -499,8 +499,9 @@ export async function getTrialStatus(
 export async function createTrialCheckoutSession(params: {
   userId: string;
   returnUrl: string;
+  clientIp?: string;
 }): Promise<string> {
-  const { userId, returnUrl } = params;
+  const { userId, returnUrl, clientIp } = params;
 
   const status = await getTrialStatus(userId);
   if (!status.eligible) {
@@ -511,15 +512,22 @@ export async function createTrialCheckoutSession(params: {
   const priceId = await resolvePriceId(stripe, "gold", "month");
   const customer = await findOrCreateCustomer(stripe, userId);
 
+  const baseMeta: Record<string, string> = {
+    supabase_user_id: userId,
+    tier: "gold",
+    is_trial: "true",
+  };
+  if (clientIp) baseMeta.client_ip = clientIp;
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer,
     line_items: [{ price: priceId, quantity: 1 }],
     client_reference_id: userId,
-    metadata: { supabase_user_id: userId, tier: "gold", is_trial: "true" },
+    metadata: baseMeta,
     subscription_data: {
       trial_period_days: 5,
-      metadata: { supabase_user_id: userId, tier: "gold", is_trial: "true" },
+      metadata: baseMeta,
     },
     allow_promotion_codes: false,
     success_url: buildReturnUrl(returnUrl, "success"),
@@ -566,14 +574,85 @@ export async function handleStripeWebhook(
         const stripe = await getUncachableStripeClient();
         await cancelSupersededSubscriptions(stripe, cust, subId, log);
       }
-      // Record free-trial use (idempotent on webhook retry) and send the
-      // appropriate onboarding email. Fire-and-forget so a mail/DB failure
-      // never turns into a webhook 500 / Stripe retry.
+      // Record free-trial use with anti-fraud card-fingerprint check.
+      // Idempotent on webhook retry (onConflictDoNothing on userId PK).
       const isTrial = session.metadata?.is_trial === "true";
+      const clientIp = session.metadata?.client_ip ?? null;
       if (isTrial && subId) {
+        // Fetch the Stripe card fingerprint — unique per physical card number,
+        // even across different cardholders / email accounts.
+        let fingerprint: string | null = null;
+        try {
+          const stripeClient = await getUncachableStripeClient();
+          const sub = await stripeClient.subscriptions.retrieve(subId, {
+            expand: ["default_payment_method"],
+          });
+          const pm = sub.default_payment_method;
+          if (pm && typeof pm === "object" && !("deleted" in pm)) {
+            const pmObj = pm as {
+              card?: { fingerprint?: string | null };
+              sepa_debit?: { fingerprint?: string | null };
+            };
+            fingerprint =
+              pmObj.card?.fingerprint ?? pmObj.sepa_debit?.fingerprint ?? null;
+          }
+        } catch (fpErr) {
+          log.warn(
+            {
+              userId,
+              subId,
+              error: fpErr instanceof Error ? fpErr.message : String(fpErr),
+            },
+            "Could not fetch payment fingerprint for trial fraud check",
+          );
+        }
+
+        // If this fingerprint was already used by a DIFFERENT account, cancel
+        // the trial immediately and revert Gold — this is the main multi-account
+        // fraud signal (same physical card across multiple email accounts).
+        if (fingerprint) {
+          const dupeRows = await db
+            .select({ userId: freeTrialUsesTable.userId })
+            .from(freeTrialUsesTable)
+            .where(
+              and(
+                eq(freeTrialUsesTable.paymentFingerprint, fingerprint),
+                not(eq(freeTrialUsesTable.userId, userId)),
+              ),
+            )
+            .limit(1);
+
+          if (dupeRows.length > 0) {
+            log.warn(
+              {
+                userId,
+                fingerprint,
+                priorUserId: dupeRows[0].userId,
+              },
+              "Trial fraud: card fingerprint already used by another account — cancelling subscription and revoking Gold",
+            );
+            try {
+              const stripeClient = await getUncachableStripeClient();
+              await stripeClient.subscriptions.cancel(subId);
+            } catch (cancelErr) {
+              log.error(
+                { subId, error: cancelErr instanceof Error ? cancelErr.message : cancelErr },
+                "Failed to cancel fraudulent trial subscription",
+              );
+            }
+            await setUserPlan(userId, "free");
+            return; // Skip activation email — Gold was never legitimately granted
+          }
+        }
+
         await db
           .insert(freeTrialUsesTable)
-          .values({ userId, stripeSubscriptionId: subId })
+          .values({
+            userId,
+            stripeSubscriptionId: subId,
+            paymentFingerprint: fingerprint,
+            ipAddress: clientIp,
+          })
           .onConflictDoNothing({ target: freeTrialUsesTable.userId });
       }
       void (async () => {

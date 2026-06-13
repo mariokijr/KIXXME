@@ -85,9 +85,14 @@ router.post("/stripe/trial", async (req, res) => {
   }
 
   try {
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]
+        ?.trim() ?? req.ip;
     const url = await createTrialCheckoutSession({
       userId: auth.userId,
       returnUrl,
+      clientIp,
     });
     res.json({ url });
   } catch (error) {
