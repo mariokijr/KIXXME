@@ -69,6 +69,8 @@ router.get("/subscription", async (req, res) => {
       ? sub.currentPeriodEnd.toISOString()
       : null,
     cancel_at_period_end: sub?.cancelAtPeriodEnd ?? false,
+    is_trial: sub?.isTrialing ?? false,
+    trial_end: sub?.trialEnd ? sub.trialEnd.toISOString() : null,
   });
 });
 

@@ -90,8 +90,11 @@ export default function CancelSubscription() {
     }
   }, [isLoading, done, subscription, setLocation]);
 
+  const isTrial = subscription?.is_trial ?? false;
   const plan = planLabel(subscription?.tier, subscription?.plan);
-  const periodEnd = formatDateEs(subscription?.current_period_end);
+  const periodEnd = formatDateEs(
+    isTrial ? subscription?.trial_end : subscription?.current_period_end,
+  );
 
   const submitRequest = () => {
     requestCode.mutate(undefined, {
@@ -194,7 +197,7 @@ export default function CancelSubscription() {
         <div className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary" />
           <h1 className="font-display text-2xl tracking-wide">
-            Cancelar suscripción
+            {isTrial ? "Cancelar prueba gratuita" : "Cancelar suscripción"}
           </h1>
         </div>
       </header>
@@ -214,13 +217,14 @@ export default function CancelSubscription() {
               </div>
             </div>
             <h2 className="font-display text-xl tracking-wide text-foreground">
-              Suscripción cancelada
+              {isTrial ? "Prueba cancelada" : "Suscripción cancelada"}
             </h2>
             <p className="font-sans text-sm text-muted-foreground">
-              Tu plan {plan} no se renovará automáticamente.
-              {confirmedEnd
-                ? ` Conservarás todas las ventajas hasta el ${confirmedEnd}.`
-                : " Conservarás todas las ventajas hasta el final del periodo de facturación."}
+              {isTrial
+                ? confirmedEnd
+                  ? `Tu prueba gratuita ha sido cancelada. No se te cobrará nada. Tu Gold seguirá activo hasta el ${confirmedEnd}.`
+                  : "Tu prueba gratuita ha sido cancelada. No se te cobrará nada."
+                : `Tu plan ${plan} no se renovará automáticamente.${confirmedEnd ? ` Conservarás todas las ventajas hasta el ${confirmedEnd}.` : " Conservarás todas las ventajas hasta el final del periodo de facturación."}`}
             </p>
             <button
               type="button"
@@ -237,13 +241,13 @@ export default function CancelSubscription() {
             <div className="flex items-center gap-2 mb-1">
               <Crown className="w-5 h-5 text-primary" />
               <h2 className="font-display text-xl tracking-wide text-foreground">
-                Plan {plan}
+                {isTrial ? "Prueba gratuita Gold" : `Plan ${plan}`}
               </h2>
             </div>
             <p className="font-sans text-sm text-muted-foreground mb-6">
-              Vas a cancelar tu suscripción. No perderás nada de inmediato: tu
-              plan seguirá activo hasta el final del periodo ya pagado y después
-              pasará a gratuito sin volver a cobrarte.
+              {isTrial
+                ? "Vas a cancelar tu prueba gratuita. No se te cobrará nada. Tu acceso Gold seguirá activo hasta que expire el periodo de prueba."
+                : "Vas a cancelar tu suscripción. No perderás nada de inmediato: tu plan seguirá activo hasta el final del periodo ya pagado y después pasará a gratuito sin volver a cobrarte."}
             </p>
 
             <div
@@ -258,10 +262,13 @@ export default function CancelSubscription() {
                   <CalendarClock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="font-sans text-sm font-medium text-foreground">
-                      Acceso hasta el {periodEnd}
+                      {isTrial ? "Sin cobro · Acceso hasta el " : "Acceso hasta el "}
+                      {periodEnd}
                     </p>
                     <p className="font-sans text-xs text-muted-foreground">
-                      Mantienes todas las ventajas {plan} hasta esa fecha.
+                      {isTrial
+                        ? "Puedes seguir usando Gold hasta esa fecha."
+                        : `Mantienes todas las ventajas ${plan} hasta esa fecha.`}
                     </p>
                   </div>
                 </div>
@@ -295,7 +302,7 @@ export default function CancelSubscription() {
                 className="w-full h-10 rounded-xl border border-border/40 font-sans text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 data-testid="button-keep-subscription"
               >
-                Mantener mi suscripción
+                {isTrial ? "Mantener mi prueba" : "Mantener mi suscripción"}
               </button>
             </div>
           </>

@@ -19,4 +19,8 @@ export interface SubscriptionStatus {
   current_period_end?: string | null;
   /** Whether the active subscription is already scheduled to cancel at period end. */
   cancel_at_period_end: boolean;
+  /** Whether the active subscription is in the free trial period (status trialing). */
+  is_trial: boolean;
+  /** ISO timestamp when the trial period ends (null when not in a trial). */
+  trial_end?: string | null;
 }

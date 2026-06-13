@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   useCreateStripeCheckout,
   useGetMyProfile,
@@ -106,6 +107,7 @@ export default function Premium() {
     null,
   );
 
+  const [, setLocation] = useLocation();
   const { session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -397,6 +399,39 @@ export default function Premium() {
       </div>
 
       <div className="px-4 space-y-4 mt-2">
+        {!isNativeApp && currentPlan === "free" && (
+          <button
+            type="button"
+            onClick={() => setLocation("/trial")}
+            className="w-full rounded-2xl border border-yellow-500/40 overflow-hidden text-left hover:border-yellow-500/70 transition-colors"
+            style={{ background: "rgba(13,11,26,0.8)", boxShadow: "0 0 30px rgba(234,179,8,0.10)" }}
+            data-testid="button-start-trial"
+          >
+            <div
+              className="px-5 py-3 flex items-center justify-between gap-3"
+              style={{ background: "linear-gradient(135deg, rgba(234,179,8,0.12), rgba(249,115,22,0.06))" }}
+            >
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                <div>
+                  <p className="font-display text-base tracking-wide text-yellow-400">
+                    5 DÍAS DE GOLD GRATIS
+                  </p>
+                  <p className="font-sans text-xs text-muted-foreground">
+                    Sin compromiso · Cancela antes del día 5 y no pagas nada
+                  </p>
+                </div>
+              </div>
+              <span
+                className="flex-shrink-0 px-3 py-1.5 rounded-xl font-display text-xs tracking-widest text-white"
+                style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,100%,50%))" }}
+              >
+                GRATIS
+              </span>
+            </div>
+          </button>
+        )}
+
         <div
           className="rounded-2xl border border-primary/30 overflow-hidden"
           style={{ background: "rgba(13,11,26,0.8)", boxShadow: "0 0 40px rgba(168,85,247,0.15)" }}

@@ -893,6 +893,27 @@ export const CreateStripeCheckoutResponse = zod.object({
 
 
 /**
+ * @summary Check whether the authenticated user is eligible for the free Gold trial
+ */
+export const GetStripeTrialStatusResponse = zod.object({
+  "eligible": zod.boolean().describe('Whether this user may start a free trial (no prior trial used).'),
+  "reason": zod.string().nullish().describe('Reason for ineligibility when eligible is false (e.g. already_used).')
+})
+
+
+/**
+ * @summary Create a Stripe Checkout session for the free 5-day Gold trial
+ */
+export const StartStripeTrialBody = zod.object({
+  "returnUrl": zod.string().describe('Absolute URL on an allowed Replit domain to return to after checkout')
+})
+
+export const StartStripeTrialResponse = zod.object({
+  "url": zod.string().describe('Stripe-hosted Checkout URL to redirect the user to')
+})
+
+
+/**
  * @summary Submit a support request or report a problem
  */
 export const createSupportReportBodySubjectMax = 200;
@@ -1405,7 +1426,9 @@ export const GetSubscriptionResponse = zod.object({
   "plan": zod.enum(['free', 'plus', 'gold']).describe('Effective entitlement plan (honors test overrides).'),
   "tier": zod.string().nullish().describe('Tier of the active subscription (plus|gold) when one exists.'),
   "current_period_end": zod.string().nullish().describe('ISO timestamp when the current paid period ends.'),
-  "cancel_at_period_end": zod.boolean().describe('Whether the active subscription is already scheduled to cancel at period end.')
+  "cancel_at_period_end": zod.boolean().describe('Whether the active subscription is already scheduled to cancel at period end.'),
+  "is_trial": zod.boolean().describe('Whether the active subscription is in the free trial period (status trialing).'),
+  "trial_end": zod.string().nullish().describe('ISO timestamp when the trial period ends (null when not in a trial).')
 })
 
 

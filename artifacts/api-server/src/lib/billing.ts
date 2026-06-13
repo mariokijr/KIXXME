@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import type { Logger } from "pino";
 import { eq } from "drizzle-orm";
-import { db, billingCustomersTable } from "@workspace/db";
+import { db, billingCustomersTable, freeTrialUsesTable } from "@workspace/db";
 import { supabase } from "./supabase.js";
 import { getUncachableStripeClient } from "./stripe.js";
 import {
@@ -12,6 +12,9 @@ import {
   subscriptionRenewedEmail,
   paymentFailedEmail,
   premiumEndedEmail,
+  trialActivatedEmail,
+  trialEndingEmail,
+  trialConvertedEmail,
 } from "./email.js";
 import { claimEmailSend } from "./email-policy.js";
 import { ensureOfficialTicket } from "./support-tickets.js";
@@ -367,6 +370,8 @@ export interface ActiveSubscription {
   tier: string | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  isTrialing: boolean;
+  trialEnd: Date | null;
 }
 
 /** Period end of a subscription (basil API: lives on the line item). */
@@ -429,6 +434,11 @@ export async function getActiveSubscription(
     tier: tierFromSubscription(preferred),
     currentPeriodEnd: periodEndOf(preferred),
     cancelAtPeriodEnd: preferred.cancel_at_period_end,
+    isTrialing: preferred.status === "trialing",
+    trialEnd:
+      typeof preferred.trial_end === "number"
+        ? new Date(preferred.trial_end * 1000)
+        : null,
   };
 }
 
@@ -461,6 +471,65 @@ export async function cancelSubscriptionAtPeriodEnd(
     currentPeriodEnd: endDate,
     tier: tierFromSubscription(preferredFinal),
   };
+}
+
+/**
+ * Check whether a user is eligible for the one-time free trial.
+ * Eligibility = no row in free_trial_uses for this userId.
+ */
+export async function getTrialStatus(
+  userId: string,
+): Promise<{ eligible: boolean; reason?: string }> {
+  const existing = await db
+    .select({ userId: freeTrialUsesTable.userId })
+    .from(freeTrialUsesTable)
+    .where(eq(freeTrialUsesTable.userId, userId))
+    .limit(1);
+  if (existing.length > 0) {
+    return { eligible: false, reason: "already_used" };
+  }
+  return { eligible: true };
+}
+
+/**
+ * Create a Stripe Checkout session for the 5-day free Gold trial.
+ * Throws "TRIAL_NOT_ELIGIBLE:<reason>" when the user has already used theirs.
+ * The session uses trial_period_days:5 so no charge occurs until day 5.
+ */
+export async function createTrialCheckoutSession(params: {
+  userId: string;
+  returnUrl: string;
+}): Promise<string> {
+  const { userId, returnUrl } = params;
+
+  const status = await getTrialStatus(userId);
+  if (!status.eligible) {
+    throw new Error(`TRIAL_NOT_ELIGIBLE:${status.reason ?? "unknown"}`);
+  }
+
+  const stripe = await getUncachableStripeClient();
+  const priceId = await resolvePriceId(stripe, "gold", "month");
+  const customer = await findOrCreateCustomer(stripe, userId);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer,
+    line_items: [{ price: priceId, quantity: 1 }],
+    client_reference_id: userId,
+    metadata: { supabase_user_id: userId, tier: "gold", is_trial: "true" },
+    subscription_data: {
+      trial_period_days: 5,
+      metadata: { supabase_user_id: userId, tier: "gold", is_trial: "true" },
+    },
+    allow_promotion_codes: false,
+    success_url: buildReturnUrl(returnUrl, "success"),
+    cancel_url: buildReturnUrl(returnUrl, "cancel"),
+  });
+
+  if (!session.url) {
+    throw new Error("Stripe did not return a checkout session URL");
+  }
+  return session.url;
 }
 
 /**
@@ -497,19 +566,38 @@ export async function handleStripeWebhook(
         const stripe = await getUncachableStripeClient();
         await cancelSupersededSubscriptions(stripe, cust, subId, log);
       }
-      // Premium welcome email. Triggered ONLY here (checkout.session.completed
-      // fires once per successful purchase) to avoid duplicates from the
-      // subscription.* events. Fire-and-forget so a mail failure never turns
-      // into a webhook 500 / Stripe retry. sendEmail itself never throws.
+      // Record free-trial use (idempotent on webhook retry) and send the
+      // appropriate onboarding email. Fire-and-forget so a mail/DB failure
+      // never turns into a webhook 500 / Stripe retry.
+      const isTrial = session.metadata?.is_trial === "true";
+      if (isTrial && subId) {
+        await db
+          .insert(freeTrialUsesTable)
+          .values({ userId, stripeSubscriptionId: subId })
+          .onConflictDoNothing({ target: freeTrialUsesTable.userId });
+      }
       void (async () => {
         const email = await getUserEmail(userId);
         if (!email) return;
         const base = appBaseUrl();
-        const { subject, html } = premiumWelcomeEmail(
-          tier,
-          base ? `${base}/premium` : undefined,
-        );
-        await sendEmail({ to: email, subject, html });
+        if (isTrial) {
+          // Trial activated — send trial-specific welcome (not the paid welcome).
+          const trialEndDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+          const { subject, html } = trialActivatedEmail(
+            trialEndDate,
+            base ? `${base}/` : undefined,
+          );
+          await sendEmail({ to: email, subject, html });
+        } else {
+          // Paid purchase: standard premium welcome email. Triggered ONLY here
+          // (checkout.session.completed fires once per successful purchase) to
+          // avoid duplicates from the subscription.* events.
+          const { subject, html } = premiumWelcomeEmail(
+            tier,
+            base ? `${base}/premium` : undefined,
+          );
+          await sendEmail({ to: email, subject, html });
+        }
       })();
       // Gold members get the official "👑 Soporte KixxMe" welcome conversation,
       // auto-created (idempotent) on activation. Fire-and-forget so a failure
@@ -534,6 +622,27 @@ export async function handleStripeWebhook(
       if (!userId) {
         log.warn({ subId: sub.id }, "subscription event: could not resolve user");
         return;
+      }
+      // Detect trial → paid conversion (previous status was "trialing", now "active").
+      const prevAttrs = (
+        event.data as unknown as { previous_attributes?: { status?: string } }
+      ).previous_attributes;
+      if (prevAttrs?.status === "trialing" && sub.status === "active") {
+        void (async () => {
+          const claimed = await claimEmailSend({
+            userId,
+            category: "trial_converted",
+            dedupKey: `trial_converted:${sub.id}`,
+          });
+          if (!claimed) return;
+          const email = await getUserEmail(userId);
+          if (!email) return;
+          const base = appBaseUrl();
+          const { subject, html } = trialConvertedEmail(
+            base ? `${base}/premium` : undefined,
+          );
+          await sendEmail({ to: email, subject, html });
+        })();
       }
       const tier = tierFromSubscription(sub);
       const entitled = ENTITLED_STATUSES.has(sub.status) && Boolean(tier);
@@ -658,6 +767,37 @@ export async function handleStripeWebhook(
         });
         await sendEmail({ to: email, subject, html });
       })();
+      return;
+    }
+
+    case "customer.subscription.trial_will_end": {
+      const sub = event.data.object;
+      const userId = await resolveUserId(sub);
+      if (!userId) {
+        log.warn({ subId: sub.id }, "trial_will_end: could not resolve user");
+        return;
+      }
+      void (async () => {
+        const claimed = await claimEmailSend({
+          userId,
+          category: "trial_ending",
+          dedupKey: `trial_end:${sub.id}`,
+        });
+        if (!claimed) return;
+        const email = await getUserEmail(userId);
+        if (!email) return;
+        const trialEndDate =
+          typeof sub.trial_end === "number"
+            ? new Date(sub.trial_end * 1000)
+            : new Date();
+        const base = appBaseUrl();
+        const { subject, html } = trialEndingEmail(
+          trialEndDate,
+          base ? `${base}/premium` : undefined,
+        );
+        await sendEmail({ to: email, subject, html });
+      })();
+      log.info({ userId }, "Queued trial ending reminder email");
       return;
     }
 

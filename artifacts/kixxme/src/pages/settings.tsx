@@ -269,10 +269,12 @@ export default function Settings() {
         {showCancelSubscription ? (
           <>
             <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-              SUSCRIPCIÓN
+              {subscription?.is_trial ? "PRUEBA GRATUITA" : "SUSCRIPCIÓN"}
             </h2>
             <p className="font-sans text-sm text-muted-foreground mb-5">
-              Gestiona tu plan premium.
+              {subscription?.is_trial
+                ? "Cancela antes de que expire y no pagarás nada."
+                : "Gestiona tu plan premium."}
             </p>
 
             <div className="space-y-3 mb-8">
@@ -285,7 +287,9 @@ export default function Settings() {
               >
                 <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-                  Cancelar suscripción
+                  {subscription?.is_trial
+                    ? "Cancelar prueba gratuita"
+                    : "Cancelar suscripción"}
                 </span>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>

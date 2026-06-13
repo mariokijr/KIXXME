@@ -104,6 +104,7 @@ import type {
   SetTicketStatusRequest,
   SignUpRequest,
   StartSupportThreadBody,
+  StartTrialRequest,
   SubscriptionStatus,
   SuccessResponse,
   SupportInboxList,
@@ -114,6 +115,7 @@ import type {
   SupportTicketDetail,
   SupportTicketList,
   SuspendUserRequest,
+  TrialStatusResponse,
   UnregisterDeviceBody,
   UpdateProfileRequest,
   UploadAvatar200,
@@ -3452,6 +3454,154 @@ export const useCreateStripeCheckout = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getCreateStripeCheckoutMutationOptions(options));
+    }
+
+export const getGetStripeTrialStatusUrl = () => {
+
+
+
+
+  return `/api/stripe/trial/status`
+}
+
+/**
+ * @summary Check whether the authenticated user is eligible for the free Gold trial
+ */
+export const getStripeTrialStatus = async ( options?: RequestInit): Promise<TrialStatusResponse> => {
+
+  return customFetch<TrialStatusResponse>(getGetStripeTrialStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStripeTrialStatusQueryKey = () => {
+    return [
+    `/api/stripe/trial/status`
+    ] as const;
+    }
+
+
+export const getGetStripeTrialStatusQueryOptions = <TData = Awaited<ReturnType<typeof getStripeTrialStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStripeTrialStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStripeTrialStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStripeTrialStatus>>> = ({ signal }) => getStripeTrialStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStripeTrialStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStripeTrialStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getStripeTrialStatus>>>
+export type GetStripeTrialStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Check whether the authenticated user is eligible for the free Gold trial
+ */
+
+export function useGetStripeTrialStatus<TData = Awaited<ReturnType<typeof getStripeTrialStatus>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStripeTrialStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStripeTrialStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getStartStripeTrialUrl = () => {
+
+
+
+
+  return `/api/stripe/trial`
+}
+
+/**
+ * @summary Create a Stripe Checkout session for the free 5-day Gold trial
+ */
+export const startStripeTrial = async (startTrialRequest: StartTrialRequest, options?: RequestInit): Promise<CheckoutResponse> => {
+
+  return customFetch<CheckoutResponse>(getStartStripeTrialUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startTrialRequest,)
+  }
+);}
+
+
+
+
+export const getStartStripeTrialMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startStripeTrial>>, TError,{data: BodyType<StartTrialRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startStripeTrial>>, TError,{data: BodyType<StartTrialRequest>}, TContext> => {
+
+const mutationKey = ['startStripeTrial'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startStripeTrial>>, {data: BodyType<StartTrialRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startStripeTrial(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartStripeTrialMutationResult = NonNullable<Awaited<ReturnType<typeof startStripeTrial>>>
+    export type StartStripeTrialMutationBody = BodyType<StartTrialRequest>
+    export type StartStripeTrialMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a Stripe Checkout session for the free 5-day Gold trial
+ */
+export const useStartStripeTrial = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startStripeTrial>>, TError,{data: BodyType<StartTrialRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startStripeTrial>>,
+        TError,
+        {data: BodyType<StartTrialRequest>},
+        TContext
+      > => {
+      return useMutation(getStartStripeTrialMutationOptions(options));
     }
 
 export const getCreateSupportReportUrl = () => {

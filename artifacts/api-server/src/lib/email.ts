@@ -1283,3 +1283,80 @@ export function verificationRejectedEmail(opts: {
     }),
   };
 }
+
+// --- Free trial lifecycle ---------------------------------------------------
+// Sent when a user activates, is reminded about, or converts from a free trial.
+
+export const TRIAL_ACTIVATED_SUBJECT = "👑 Tu prueba gratuita de Gold ha comenzado";
+
+export function trialActivatedEmail(
+  trialEndDate: Date,
+  appUrl?: string,
+): { subject: string; html: string } {
+  const endStr = formatDateEs(trialEndDate);
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">\u00A1Tu prueba gratuita de 5 d\u00EDas de Gold ha comenzado!</strong>",
+    "Durante estos 5 d\u00EDas tienes acceso completo a todo lo que ofrece Gold:<br /><br />\u{1F5FA}\uFE0F Mapa en tiempo real \u00B7 \u{1F4F9} Videollamadas HD \u00B7 \u{1F4AC} Mensajes ilimitados<br />\u{1F440} Qui\u00E9n visita tu perfil \u00B7 \u{1F451} Soporte VIP \u00B7 \u{1F576}\uFE0F Modo inc\u00F3gnito \u00B7 \u26A1 Boost diario",
+    `Tu prueba termina el <strong style="color:#f4f1fb;">${escapeHtml(endStr)}</strong>. Si no cancelas antes de esa fecha, tu suscripci\u00F3n se renovar\u00E1 autom\u00E1ticamente por 9,99 \u20AC/mes.`,
+    "Puedes cancelar en cualquier momento desde Ajustes \u2192 Suscripci\u00F3n, sin ning\u00FAn coste.",
+    "\u00A1Disfruta de tu experiencia Gold \u{1F451}!",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: TRIAL_ACTIVATED_SUBJECT,
+    html: renderEmail({
+      preheader: `Tu prueba de 5 d\u00EDas de Gold ha comenzado. Termina el ${endStr}.`,
+      heading: "\u00A1Prueba gratuita activada! \u{1F451}",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Explorar Gold ahora", url: appUrl } : undefined,
+    }),
+  };
+}
+
+export const TRIAL_ENDING_SUBJECT = "\u23F0 Tu prueba de Gold termina pronto";
+
+export function trialEndingEmail(
+  trialEndDate: Date,
+  appUrl?: string,
+): { subject: string; html: string } {
+  const endStr = formatDateEs(trialEndDate);
+  const body = paragraphs([
+    `<strong style="color:#f4f1fb;">Tu prueba gratuita de Gold termina el ${escapeHtml(endStr)}.</strong>`,
+    "Si est\u00E1s disfrutando de las videollamadas, el mapa en tiempo real y todas las ventajas exclusivas, no tienes que hacer nada: tu suscripci\u00F3n se renovar\u00E1 autom\u00E1ticamente por 9,99 \u20AC/mes.",
+    `Si prefieres no continuar, cancela antes del <strong style="color:#f4f1fb;">${escapeHtml(endStr)}</strong> desde Ajustes \u2192 Suscripci\u00F3n. No se te cobrar\u00E1 nada.`,
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: TRIAL_ENDING_SUBJECT,
+    html: renderEmail({
+      preheader: `Tu prueba de Gold termina el ${endStr}. Cancela antes si no quieres continuar.`,
+      heading: "Tu prueba de Gold est\u00E1 a punto de terminar \u23F0",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Gestionar suscripci\u00F3n", url: appUrl } : undefined,
+    }),
+  };
+}
+
+export const TRIAL_CONVERTED_SUBJECT = "\u{1F451} Ya eres Gold de pleno derecho";
+
+export function trialConvertedEmail(appUrl?: string): {
+  subject: string;
+  html: string;
+} {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">Tu prueba gratuita de Gold ha finalizado y tu suscripci\u00F3n de pago ha comenzado.</strong>",
+    "Seguir\u00E1s disfrutando de todo Gold sin interrupciones: mapa en tiempo real, videollamadas, boost diario, modo inc\u00F3gnito y mucho m\u00E1s.",
+    "Puedes gestionar o cancelar tu suscripci\u00F3n desde Ajustes \u2192 Suscripci\u00F3n cuando quieras.",
+    "Gracias por confiar en KixxMe \u{1F451}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: TRIAL_CONVERTED_SUBJECT,
+    html: renderEmail({
+      preheader: "Tu suscripci\u00F3n Gold de pago ha comenzado.",
+      heading: "\u00A1Ya eres Gold! \u{1F451}",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Abrir KixxMe", url: appUrl } : undefined,
+    }),
+  };
+}

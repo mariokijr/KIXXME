@@ -40,7 +40,10 @@ export type EmailCategory =
   | "report_resolved"
   | "missed_call"
   | "verification_approved"
-  | "verification_rejected";
+  | "verification_rejected"
+  | "trial_activated"
+  | "trial_ending"
+  | "trial_converted";
 
 /**
  * Maps an engagement category to its preference column. Categories absent from

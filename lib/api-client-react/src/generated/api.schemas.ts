@@ -63,6 +63,18 @@ export interface CheckoutResponse {
   url: string;
 }
 
+export interface TrialStatusResponse {
+  /** Whether this user may start a free trial (no prior trial used). */
+  eligible: boolean;
+  /** Reason for ineligibility when eligible is false (e.g. already_used). */
+  reason?: string | null;
+}
+
+export interface StartTrialRequest {
+  /** Absolute URL on an allowed Replit domain to return to after checkout */
+  returnUrl: string;
+}
+
 /**
  * Where the report originated / its nature
  */
@@ -1083,6 +1095,10 @@ export interface SubscriptionStatus {
   current_period_end?: string | null;
   /** Whether the active subscription is already scheduled to cancel at period end. */
   cancel_at_period_end: boolean;
+  /** Whether the active subscription is in the free trial period (status trialing). */
+  is_trial: boolean;
+  /** ISO timestamp when the trial period ends (null when not in a trial). */
+  trial_end?: string | null;
 }
 
 export interface ConfirmSubscriptionCancelRequest {

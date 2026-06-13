@@ -1312,6 +1312,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /stripe/trial/status:
+    get:
+      operationId: getStripeTrialStatus
+      tags: [billing]
+      summary: Check whether the authenticated user is eligible for the free Gold trial
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Trial eligibility status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrialStatusResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stripe/trial:
+    post:
+      operationId: startStripeTrial
+      tags: [billing]
+      summary: Create a Stripe Checkout session for the free 5-day Gold trial
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartTrialRequest"
+      responses:
+        "200":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Missing returnUrl
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Trial already used
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Stripe error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /support/reports:
     post:
       operationId: createSupportReport
@@ -3334,6 +3406,26 @@ components:
           description: Stripe-hosted Checkout URL to redirect the user to
       required: [url]
 
+    TrialStatusResponse:
+      type: object
+      properties:
+        eligible:
+          type: boolean
+          description: Whether this user may start a free trial (no prior trial used).
+        reason:
+          type: string
+          nullable: true
+          description: Reason for ineligibility when eligible is false (e.g. already_used).
+      required: [eligible]
+
+    StartTrialRequest:
+      type: object
+      properties:
+        returnUrl:
+          type: string
+          description: Absolute URL on an allowed Replit domain to return to after checkout
+      required: [returnUrl]
+
     SupportReportRequest:
       type: object
       properties:
@@ -4643,7 +4735,14 @@ components:
         cancel_at_period_end:
           type: boolean
           description: Whether the active subscription is already scheduled to cancel at period end.
-      required: [has_active_subscription, plan, cancel_at_period_end]
+        is_trial:
+          type: boolean
+          description: Whether the active subscription is in the free trial period (status trialing).
+        trial_end:
+          type: string
+          nullable: true
+          description: ISO timestamp when the trial period ends (null when not in a trial).
+      required: [has_active_subscription, plan, cancel_at_period_end, is_trial]
 
     ConfirmSubscriptionCancelRequest:
       type: object

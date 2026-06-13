@@ -36,6 +36,7 @@ import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ChangePassword from "@/pages/change-password";
 import CancelSubscription from "@/pages/cancel-subscription";
+import Trial from "@/pages/trial";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
 import BlockedUsers from "@/pages/blocked-users";
@@ -186,6 +187,7 @@ function Router() {
       <Route path="/support-inbox/:userId">{() => <ProtectedMain component={SupportInboxThread} />}</Route>
       <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
       <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
+      <Route path="/trial">{() => <ProtectedMain component={Trial} />}</Route>
       <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
       <Route path="/matches">{() => <ProtectedMain component={Matches} />}</Route>
       <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
