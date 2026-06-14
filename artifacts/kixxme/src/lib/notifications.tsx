@@ -64,7 +64,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [location, setLocation] = useLocation();
 
   // --- New messages -------------------------------------------------------
-  const { data: conversations = [] } = useListConversations({
+  // convStatus is used to distinguish "loading (empty [])" from "loaded (0 convs)"
+  // so the FIRST successful fetch can baseline prevRef without firing toasts.
+  // Bug fix: without this guard, an empty prevRef from the loading state causes
+  // every unread message to re-toast on every login/page-reload.
+  const { data: conversations = [], status: convStatus } = useListConversations({
     query: {
       queryKey: getListConversationsQueryKey(),
       enabled: !!session,
@@ -76,6 +80,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const initRef = useRef(false);
 
   useEffect(() => {
+    // Skip while the query is still fetching — conversations defaults to []
+    // which would make prevRef think everyone has 0 unread, causing a spurious
+    // toast the moment real data arrives.
+    if (convStatus !== "success") return;
+
     const next = new Map<string, number>();
     for (const c of conversations) next.set(c.id, c.unread_count ?? 0);
 
@@ -95,7 +104,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
     prevRef.current = next;
     initRef.current = true;
-  }, [conversations, location, toast]);
+  }, [conversations, convStatus, location, toast]);
 
   // --- New likes & matches ------------------------------------------------
   const userId = user?.id ?? null;
@@ -141,7 +150,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const toastReportRef = useRef(0);
   const toastReportInitRef = useRef(false);
 
-  // On account change, reload that user's markers and reset session trackers.
+  // On account change, reload that user's markers and reset ALL session
+  // trackers — including the message baseline — so a different login never
+  // inherits the previous user's conversation state.
   useEffect(() => {
     baselineRef.current = false;
     toastInitRef.current = false;
@@ -149,6 +160,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     toastMatchRef.current = 0;
     toastReportInitRef.current = false;
     toastReportRef.current = 0;
+    initRef.current = false;
+    prevRef.current = new Map();
     setLastSeenLike(likeKey ? readStored(likeKey) : null);
     setLastSeenMatch(matchKey ? readStored(matchKey) : null);
   }, [likeKey, matchKey]);
@@ -239,7 +252,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             description: `A ${s.username} le encantas`,
           });
         } else {
-          // Free viewers learn a SuperLike arrived but not from whom.
           toast({
             title: "⭐ ¡Alguien te ha dado un SuperLike!",
             description: "Hazte Premium para ver quién ha sido",
@@ -270,16 +282,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     toastInitRef.current = true;
   }, [summary, toast]);
 
-  // Admin-only: announce newly filed moderation reports in real time. The
-  // `admin` block is only present in the summary for allowlisted admins, so
-  // this is inert for everyone else. Baselines on first load so existing open
-  // reports aren't re-announced on reload.
+  // Admin-only: announce newly filed moderation reports in real time.
   useEffect(() => {
     const admin = summary?.admin;
     if (!admin) return;
-    // Treat an empty queue (null latest) as ts=0 so the init flag is still set
-    // on first load — otherwise the very first report after a clean queue would
-    // only baseline and never toast.
     const ts = admin.latest_report_at ? Date.parse(admin.latest_report_at) : 0;
     if (toastReportInitRef.current && ts > toastReportRef.current) {
       toast({
