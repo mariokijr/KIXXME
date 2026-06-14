@@ -642,6 +642,16 @@ export default function Profile() {
             Permiso denegado. Actívalo en los ajustes del navegador.
           </p>
         )}
+        {geo.state === "error" && (
+          <p className="font-sans text-[11px] text-amber-400 text-center">
+            No se pudo obtener la ubicación. Comprueba que el GPS esté activo e inténtalo de nuevo.
+          </p>
+        )}
+        {geo.state === "unsupported" && (
+          <p className="font-sans text-[11px] text-amber-400 text-center">
+            Tu dispositivo no admite geolocalización.
+          </p>
+        )}
         <Button onClick={handleSave}
           disabled={(updateProfile.isPending || updateInterests.isPending) || (!isDirty && !interestsDirty)}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"

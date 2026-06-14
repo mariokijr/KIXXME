@@ -17,7 +17,7 @@ export function useGeolocation() {
   const [state, setState] = useState<GeoState>("idle");
 
   const request = useCallback(
-    (onDone?: () => void) => {
+    (onDone?: () => void, onError?: (state: GeoState) => void) => {
       const submit = (latitude: number, longitude: number) => {
         update.mutate(
           { data: { latitude, longitude } },
@@ -29,32 +29,45 @@ export function useGeolocation() {
               qc.invalidateQueries({ queryKey: getListMapUsersQueryKey() });
               onDone?.();
             },
-            onError: () => setState("error"),
+            onError: () => {
+              setState("error");
+              onError?.("error");
+            },
           }
         );
+      };
+
+      const handleGeoError = (code: number) => {
+        const newState: GeoState =
+          code === GeolocationPositionError.PERMISSION_DENIED
+            ? "denied"
+            : "error";
+        setState(newState);
+        onError?.(newState);
       };
 
       setState("locating");
 
       // iOS WKWebView does not support navigator.geolocation, so on the native
-      // shell we go through the Capacitor Geolocation plugin (it triggers the
-      // OS permission prompt and reads coordinates natively).
+      // shell we go through the Capacitor Geolocation plugin.
       if (Capacitor.isNativePlatform()) {
         void (async () => {
           try {
             const perm = await Geolocation.requestPermissions();
             if (perm.location === "denied" && perm.coarseLocation === "denied") {
               setState("denied");
+              onError?.("denied");
               return;
             }
             const pos = await Geolocation.getCurrentPosition({
               enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 60000,
+              timeout: 15000,
+              maximumAge: 300000,
             });
             submit(pos.coords.latitude, pos.coords.longitude);
           } catch {
             setState("error");
+            onError?.("error");
           }
         })();
         return;
@@ -62,14 +75,17 @@ export function useGeolocation() {
 
       if (!("geolocation" in navigator)) {
         setState("unsupported");
+        onError?.("unsupported");
         return;
       }
+
+      // On web we use enableHighAccuracy:false — it relies on WiFi/IP positioning
+      // which works on every device (desktop and mobile) without GPS hardware.
+      // GPS-level precision is not needed for a social app; WiFi/cell is sufficient.
       navigator.geolocation.getCurrentPosition(
         (pos) => submit(pos.coords.latitude, pos.coords.longitude),
-        (err) => {
-          setState(err.code === err.PERMISSION_DENIED ? "denied" : "error");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        (err) => handleGeoError(err.code),
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
       );
     },
     [update, qc]

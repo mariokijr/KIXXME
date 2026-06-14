@@ -602,7 +602,17 @@ export default function MapView() {
                   </p>
                 </div>
                 <button
-                  onClick={() => geo.request()}
+                  onClick={() =>
+                    geo.request(
+                      () => {/* success: banner hides automatically */},
+                      (s) => {
+                        // onError fires when location is unavailable / denied.
+                        // The error message block below will render automatically
+                        // based on geo.state — no extra handling needed here.
+                        void s;
+                      }
+                    )
+                  }
                   disabled={geo.isPending || geo.state === "locating"}
                   className="flex-shrink-0 px-3 py-2 rounded-xl text-white text-xs font-sans font-medium disabled:opacity-60"
                   style={{
@@ -616,8 +626,11 @@ export default function MapView() {
             </div>
           )}
 
-          {/* Location denied / unsupported */}
-          {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
+          {/* Location error / denied / unsupported */}
+          {canAccess &&
+            (geo.state === "denied" ||
+              geo.state === "unsupported" ||
+              geo.state === "error") && (
             <div className="px-4 pb-3 pointer-events-auto">
               <p
                 className="font-sans text-[11px] text-red-400 px-3 py-2 rounded-xl"
@@ -628,7 +641,9 @@ export default function MapView() {
               >
                 {geo.state === "denied"
                   ? "Permiso de ubicación denegado. Actívalo en los ajustes del navegador."
-                  : "Tu dispositivo no admite geolocalización."}
+                  : geo.state === "unsupported"
+                  ? "Tu dispositivo no admite geolocalización."
+                  : "No se pudo obtener la ubicación. Comprueba que el GPS esté activo e inténtalo de nuevo."}
               </p>
             </div>
           )}

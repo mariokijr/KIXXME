@@ -636,17 +636,41 @@ export function MandatoryProfile() {
                           onClick={() => geo.request()}
                           disabled={geo.isPending || geo.state === "locating"}
                           className="h-14 w-14 flex-shrink-0 flex items-center justify-center rounded-2xl border transition"
-                          style={{ background: "rgba(255,255,255,0.07)", borderColor: "rgba(255,255,255,0.12)" }}
+                          style={{
+                            background:
+                              geo.state === "error" || geo.state === "denied"
+                                ? "rgba(239,68,68,0.12)"
+                                : geo.state === "done"
+                                ? "rgba(74,222,128,0.12)"
+                                : "rgba(255,255,255,0.07)",
+                            borderColor:
+                              geo.state === "error" || geo.state === "denied"
+                                ? "rgba(239,68,68,0.35)"
+                                : geo.state === "done"
+                                ? "rgba(74,222,128,0.35)"
+                                : "rgba(255,255,255,0.12)",
+                          }}
                           title="Usar mi ubicación"
                           data-testid="button-use-location"
                         >
                           {geo.isPending || geo.state === "locating" ? (
                             <Loader2 className="w-5 h-5 animate-spin text-white/60" />
+                          ) : geo.state === "done" ? (
+                            <Navigation className="w-5 h-5 text-green-400" />
                           ) : (
                             <Navigation className="w-5 h-5 text-white/60" />
                           )}
                         </button>
                       </div>
+                      {(geo.state === "error" || geo.state === "denied" || geo.state === "unsupported") && (
+                        <p className="font-sans text-[11px] text-red-400 mt-1.5">
+                          {geo.state === "denied"
+                            ? "Permiso denegado. Actívalo en los ajustes del navegador."
+                            : geo.state === "unsupported"
+                            ? "Tu dispositivo no admite geolocalización."
+                            : "No se pudo obtener la ubicación. Escribe tu ciudad manualmente."}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="font-sans text-xs font-medium text-white/45 uppercase tracking-widest mb-2 block">
