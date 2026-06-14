@@ -76,6 +76,7 @@ export * from './listAdminUsersPlan';
 export * from './listAdminUsersStatus';
 export * from './listMapUsersParams';
 export * from './listMapUsersScope';
+export * from './listProfilesFeed';
 export * from './listProfilesParams';
 export * from './listProfilesScope';
 export * from './listProfilesSort';

@@ -5,13 +5,19 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListProfilesFeed } from './listProfilesFeed';
 import type { ListProfilesScope } from './listProfilesScope';
 import type { ListProfilesSort } from './listProfilesSort';
 
 export type ListProfilesParams = {
+/**
+ * Activity-based discovery feed. recommended=priority sort (verified+complete+active, default); online=currently online users sorted by proximity; new=recently registered; popular=most liked; compatible=matches viewer role/looking_for + shared interests.
+
+ */
+feed?: ListProfilesFeed;
 sort?: ListProfilesSort;
 /**
- * Geographic scope filter for the world map. nearby/province are relative to the viewer's location (return an empty list when the viewer has no coordinates); spain/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).
+ * Geographic scope filter (kept for map compatibility). nearby/province are relative to the viewer's location; spain/europe use bounding boxes; worldwide returns everyone.
 
  */
 scope?: ListProfilesScope;

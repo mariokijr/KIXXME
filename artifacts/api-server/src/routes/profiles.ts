@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { count as drizzleCount, inArray as drizzleIn, sql as drizzleSql } from "drizzle-orm";
+import { db, likeActionsTable } from "@workspace/db";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth, optionalAuth } from "../lib/auth.js";
 import {
@@ -122,6 +124,47 @@ function parseScope(value: unknown): MapScope | null {
     : null;
 }
 
+// ---------------------------------------------------------------------------
+// Activity-based discovery feeds
+// ---------------------------------------------------------------------------
+const VALID_FEEDS = [
+  "recommended",
+  "online",
+  "new",
+  "popular",
+  "compatible",
+] as const;
+type DiscoverFeed = (typeof VALID_FEEDS)[number];
+
+function parseFeed(value: unknown): DiscoverFeed {
+  return typeof value === "string" &&
+    (VALID_FEEDS as readonly string[]).includes(value)
+    ? (value as DiscoverFeed)
+    : "recommended";
+}
+
+/**
+ * Compatibility score for the "compatible" feed.
+ * Scores viewer↔candidate role/looking_for matches + shared interest overlap.
+ */
+function compatScore(
+  viewerRole: string | null,
+  viewerLookingFor: string | null,
+  viewerInterests: Set<string>,
+  candidateDetails:
+    | { role?: string | null; looking_for?: string | null }
+    | undefined,
+  candidateInterests: string[],
+): number {
+  let score = 0;
+  if (viewerRole && candidateDetails?.looking_for === viewerRole) score += 3;
+  if (viewerLookingFor && candidateDetails?.role === viewerLookingFor)
+    score += 3;
+  const overlap = candidateInterests.filter((i) => viewerInterests.has(i)).length;
+  score += Math.min(overlap, 4);
+  return score;
+}
+
 function toPublic(
   row: ProfileRow,
   viewer: { latitude: number | null; longitude: number | null } | null,
@@ -187,6 +230,7 @@ router.get("/profiles", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  const feed = parseFeed(req.query.feed);
   const sort = (req.query.sort as string) ?? "recent";
   const scope = parseScope(req.query.scope);
 
@@ -213,6 +257,20 @@ router.get("/profiles", async (req, res) => {
     .select("latitude, longitude")
     .eq("id", auth.userId)
     .maybeSingle();
+
+  // Pre-fetch viewer profile details for the "compatible" feed.
+  let viewerRole: string | null = null;
+  let viewerLookingFor: string | null = null;
+  let viewerInterestSet = new Set<string>();
+  if (feed === "compatible") {
+    const [vd, vi] = await Promise.all([
+      getProfileDetails(auth.userId),
+      getUserInterests(auth.userId),
+    ]);
+    viewerRole = vd?.role ?? null;
+    viewerLookingFor = vd?.looking_for ?? null;
+    viewerInterestSet = new Set(vi ?? []);
+  }
 
   // Resolve the scope's DB-side bounding box. A radius scope (nearby/province)
   // with no viewer coordinates yields an empty list rather than a 500.
@@ -271,9 +329,18 @@ router.get("/profiles", async (req, res) => {
       `(${Array.from(interacted).slice(0, 250).join(",")})`,
     );
   }
+  // "online" feed: DB-side filter so we don't waste the 200-row budget on offline users.
+  if (feed === "online") {
+    const onlineThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    query = query.gte("last_active_at", onlineThreshold);
+  }
+
+  // "new" feed uses registration date; all others use activity date.
+  const dbOrderCol: "created_at" | "last_active_at" =
+    feed === "new" ? "created_at" : "last_active_at";
 
   const { data, error } = await query
-    .order("last_active_at", { ascending: false, nullsFirst: false })
+    .order(dbOrderCol, { ascending: false, nullsFirst: false })
     .limit(200);
 
   if (error) {
@@ -343,24 +410,65 @@ router.get("/profiles", async (req, res) => {
     profiles = profiles.filter((p) => p.distance_km != null && p.distance_km <= distanceMaxKm);
   }
 
-  if (sort === "distance") {
+  // ---------------------------------------------------------------------------
+  // Feed-specific base sort (weakest key — will be refined by priority layers).
+  // ---------------------------------------------------------------------------
+  if (feed === "online") {
+    // Closest first; nulls go to the end.
     profiles.sort((a, b) => {
+      if (a.distance_km != null && b.distance_km != null)
+        return a.distance_km - b.distance_km;
       if (a.distance_km == null) return 1;
       if (b.distance_km == null) return -1;
-      return a.distance_km - b.distance_km;
+      return 0;
     });
-  } else if (sort === "online") {
-    profiles.sort((a, b) => Number(b.is_online) - Number(a.is_online));
+  } else if (feed === "popular") {
+    // Count likes received for each candidate from Replit Postgres like_actions.
+    const candidateIds = profiles.map((p) => p.id);
+    if (candidateIds.length > 0) {
+      const likeCounts = await db
+        .select({
+          likedId: likeActionsTable.likedId,
+          cnt: drizzleSql<number>`count(*)::int`,
+        })
+        .from(likeActionsTable)
+        .where(drizzleIn(likeActionsTable.likedId, candidateIds))
+        .groupBy(likeActionsTable.likedId);
+      const popMap = new Map(likeCounts.map((r) => [r.likedId, r.cnt]));
+      profiles.sort((a, b) => (popMap.get(b.id) ?? 0) - (popMap.get(a.id) ?? 0));
+    }
+  } else if (feed === "compatible") {
+    // Score by mutual role/looking_for match + shared interests.
+    profiles.sort((a, b) => {
+      const sB = compatScore(
+        viewerRole, viewerLookingFor, viewerInterestSet,
+        detailsMap.get(b.id), interestsMap.get(b.id) ?? [],
+      );
+      const sA = compatScore(
+        viewerRole, viewerLookingFor, viewerInterestSet,
+        detailsMap.get(a.id), interestsMap.get(a.id) ?? [],
+      );
+      return sB - sA;
+    });
+  } else if (!req.query.feed) {
+    // Backward-compat: honour the legacy `sort` param when no feed is given.
+    if (sort === "distance") {
+      profiles.sort((a, b) => {
+        if (a.distance_km == null) return 1;
+        if (b.distance_km == null) return -1;
+        return a.distance_km - b.distance_km;
+      });
+    } else if (sort === "online") {
+      profiles.sort((a, b) => Number(b.is_online) - Number(a.is_online));
+    }
   }
-  // recent: rows already arrive ordered by last_active_at desc from the DB.
+  // recommended + new: DB order (last_active_at / created_at) is already the base.
 
   // Descubrir priority layering. Array.sort is stable, so each pass preserves
   // the prior order as its tie-breaker; the LAST sort applied is the strongest
-  // key. Order of strength (weakest → strongest): base sort (above) < completitud
-  // < verified < plan/Gold (map only). Net result on the grid: verified profiles
-  // first, then more-complete profiles, then the chosen base sort; on the map the
-  // paid Gold/Plus priority still wins overall, with verified/completitud as
-  // secondaries.
+  // key. Order of strength (weakest → strongest): feed/sort < completitud < verified
+  // < plan/Gold (scope-only). Net result on the grid: verified profiles first,
+  // then more-complete profiles, then the feed-specific base sort.
   profiles.sort(
     (a, b) => (completeness.get(b.id) ?? 0) - (completeness.get(a.id) ?? 0),
   );

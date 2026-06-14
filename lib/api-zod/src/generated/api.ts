@@ -332,8 +332,9 @@ export const listProfilesQueryAgeMaxMax = 99;
 
 
 export const ListProfilesQueryParams = zod.object({
+  "feed": zod.enum(['recommended', 'online', 'new', 'popular', 'compatible']).optional().describe('Activity-based discovery feed. recommended=priority sort (verified+complete+active, default); online=currently online users sorted by proximity; new=recently registered; popular=most liked; compatible=matches viewer role\/looking_for + shared interests.\n'),
   "sort": zod.enum(['recent', 'distance', 'online']).optional(),
-  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional().describe('Geographic scope filter for the world map. nearby\/province are relative to the viewer\'s location (return an empty list when the viewer has no coordinates); spain\/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).\n'),
+  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional().describe('Geographic scope filter (kept for map compatibility). nearby\/province are relative to the viewer\'s location; spain\/europe use bounding boxes; worldwide returns everyone.\n'),
   "age_min": zod.coerce.number().min(listProfilesQueryAgeMinMin).max(listProfilesQueryAgeMinMax).optional().describe('Minimum age filter (inclusive). Free for all users.'),
   "age_max": zod.coerce.number().min(listProfilesQueryAgeMaxMin).max(listProfilesQueryAgeMaxMax).optional().describe('Maximum age filter (inclusive). Free for all users.'),
   "online_only": zod.coerce.boolean().optional().describe('When true, only return users active in the last 15 minutes. Free for all users.'),
