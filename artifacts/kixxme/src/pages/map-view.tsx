@@ -7,10 +7,7 @@ import {
   Navigation,
   BadgeCheck,
   MapPin,
-  Crown,
-  SlidersHorizontal,
   Heart,
-  Check,
   Flag,
   Eye,
   EyeOff,
@@ -39,40 +36,16 @@ import { ReportDialog } from "@/components/report-dialog";
 
 const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038];
 
-type Scope = "nearby" | "province" | "spain" | "europe" | "worldwide";
-
-const SCOPES: { value: Scope; label: string; needsLocation?: boolean }[] = [
-  { value: "nearby", label: "Cerca", needsLocation: true },
-  { value: "province", label: "Provincia", needsLocation: true },
-  { value: "spain", label: "España" },
-  { value: "europe", label: "Europa" },
-  { value: "worldwide", label: "Mundo" },
-];
-
+// Only age filtering remains — scope and status filters removed.
 interface MapFilters {
-  onlineOnly: boolean;
-  withPhoto: boolean;
-  verifiedOnly: boolean;
   ageMin: number;
   ageMax: number;
 }
 
-const DEFAULT_FILTERS: MapFilters = {
-  onlineOnly: false,
-  withPhoto: false,
-  verifiedOnly: false,
-  ageMin: 18,
-  ageMax: 99,
-};
+const DEFAULT_FILTERS: MapFilters = { ageMin: 18, ageMax: 99 };
 
 function filtersActive(f: MapFilters): boolean {
-  return (
-    f.onlineOnly ||
-    f.withPhoto ||
-    f.verifiedOnly ||
-    f.ageMin > DEFAULT_FILTERS.ageMin ||
-    f.ageMax < DEFAULT_FILTERS.ageMax
-  );
+  return f.ageMin > DEFAULT_FILTERS.ageMin || f.ageMax < DEFAULT_FILTERS.ageMax;
 }
 
 function hashId(id: string): number {
@@ -107,9 +80,8 @@ function offsetPosition(
   return [(φ2 * 180) / Math.PI, (λ2 * 180) / Math.PI];
 }
 
-// Dot marker: simple colored circle, no photo on the map.
-// Blue for regular users; amber/gold for Gold users.
-// Online = bigger + green outer ring.
+// Dot marker: small colored circle. Blue = regular, amber = Gold.
+// Online users get a larger dot + green outer ring.
 function dotMarkerHtml(user: PublicProfile): string {
   const isGoldUser = user.plan === "gold";
   const online = user.is_online;
@@ -131,8 +103,6 @@ export default function MapView() {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
-  const [scope, setScope] = useState<Scope>("worldwide");
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
 
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -143,11 +113,13 @@ export default function MapView() {
   const { data: profile } = useGetMyProfile({
     query: { queryKey: getGetMyProfileQueryKey() },
   });
+
+  // Always worldwide — no scope selector needed.
   const { data: mapData, isLoading } = useListMapUsers(
-    { scope },
+    { scope: "worldwide" },
     {
       query: {
-        queryKey: getListMapUsersQueryKey({ scope }),
+        queryKey: getListMapUsersQueryKey({ scope: "worldwide" }),
         refetchInterval: 30000,
       },
     }
@@ -176,13 +148,7 @@ export default function MapView() {
   const filtered = useMemo(
     () =>
       users.filter((p) => {
-        if (filters.onlineOnly && !p.is_online) return false;
-        if (filters.withPhoto && !p.avatar_url) return false;
-        if (filters.verifiedOnly && !p.is_verified) return false;
-        if (
-          p.age != null &&
-          (p.age < filters.ageMin || p.age > filters.ageMax)
-        )
+        if (p.age != null && (p.age < filters.ageMin || p.age > filters.ageMax))
           return false;
         return true;
       }),
@@ -199,20 +165,12 @@ export default function MapView() {
   const goldCount = mapData?.gold_total ?? 0;
   const onlineCount = mapData?.online_total ?? 0;
 
-  const handleMessage = (userId: string) => startConversation(userId);
-
   const toggleVisibility = () => {
     if (updateVisibility.isPending) return;
     updateVisibility.mutate(
       { data: { show_on_map: !showOnMap } },
       { onSuccess: () => invalidateMap() }
     );
-  };
-
-  const setScopeSafe = (next: Scope) => {
-    const def = SCOPES.find((s) => s.value === next);
-    if (def?.needsLocation && !hasLocation) return;
-    setScope(next);
   };
 
   // Silently refresh own location on first map open.
@@ -224,10 +182,7 @@ export default function MapView() {
       };
     };
     if (!nav.permissions?.query) {
-      if (hasLocation) {
-        locRefreshed.current = true;
-        geo.request();
-      }
+      if (hasLocation) { locRefreshed.current = true; geo.request(); }
       return;
     }
     nav.permissions
@@ -257,10 +212,7 @@ export default function MapView() {
     ).addTo(map);
     mapRef.current = map;
     setTimeout(() => map.invalidateSize(), 100);
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => { map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess]);
 
@@ -290,7 +242,7 @@ export default function MapView() {
       );
     }
 
-    // Other users — blue/gold dots.
+    // Other users — blue / amber dots.
     for (const user of placeable) {
       const pos = offsetPosition(
         center[0],
@@ -308,10 +260,7 @@ export default function MapView() {
         icon,
         zIndexOffset: user.is_online ? 600 : 200,
       }).addTo(map);
-      m.on("click", () => {
-        setSelectedId(user.id);
-        setReportOpen(false);
-      });
+      m.on("click", () => { setSelectedId(user.id); setReportOpen(false); });
       markersRef.current.push(m);
     }
   }, [placeable, canAccess, hasLocation, center[0], center[1]]);
@@ -331,206 +280,106 @@ export default function MapView() {
       <div className="relative flex-1 min-h-0">
         <div ref={mapDivRef} className="absolute inset-0" />
 
-        {/* Top gradient overlay — floating header + chips + filters */}
+        {/* Top gradient overlay — floating header */}
         <div
           className="absolute top-0 left-0 right-0 z-[400] pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(6,5,16,0.92) 0%, rgba(6,5,16,0.5) 55%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(6,5,16,0.92) 0%, rgba(6,5,16,0.5) 60%, transparent 100%)",
           }}
         >
-          {/* Header row */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 pointer-events-auto">
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-xl tracking-wide text-white">
-                Mapa
-              </h1>
-              {canAccess && (
-                <span
-                  className="text-xs font-sans px-2 py-0.5 rounded-full text-white/60"
-                  style={{ background: "rgba(255,255,255,0.08)" }}
+          {/* Header: title + counter + age filter + eye toggle */}
+          <div className="flex items-center gap-3 px-4 pt-3 pb-3 pointer-events-auto">
+            <h1 className="font-display text-xl tracking-wide text-white flex-shrink-0">
+              Mapa
+            </h1>
+            {canAccess && (
+              <span
+                className="text-xs font-sans px-2 py-0.5 rounded-full text-white/60 flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              >
+                {isLoading ? "…" : `${onMapCount} aquí`}
+              </span>
+            )}
+
+            {/* Age range — always visible, compact */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-xs text-white/35 flex-shrink-0">Edad</span>
+              <input
+                type="number"
+                min={18}
+                max={99}
+                value={filters.ageMin}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    ageMin: Math.min(
+                      Math.max(18, Number(e.target.value) || 18),
+                      f.ageMax
+                    ),
+                  }))
+                }
+                className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              />
+              <span className="text-white/25 text-xs">–</span>
+              <input
+                type="number"
+                min={18}
+                max={99}
+                value={filters.ageMax}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    ageMax: Math.max(
+                      Math.min(99, Number(e.target.value) || 99),
+                      f.ageMin
+                    ),
+                  }))
+                }
+                className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              />
+              {filtersActive(filters) && (
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="text-xs text-white/35 underline flex-shrink-0"
                 >
-                  {isLoading ? "…" : `${onMapCount} en el mapa`}
-                </span>
+                  ×
+                </button>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
-              {/* Filters button */}
-              <button
-                onClick={() => setShowFilters((v) => !v)}
-                className="relative w-8 h-8 rounded-full flex items-center justify-center transition-all"
-                style={{
-                  background: showFilters
-                    ? "rgba(168,85,247,0.3)"
-                    : "rgba(255,255,255,0.08)",
-                  border: showFilters
-                    ? "1px solid hsl(273,85%,55%)"
-                    : "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <SlidersHorizontal className="w-4 h-4 text-white/70" />
-                {filtersActive(filters) && (
-                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-purple-400" />
-                )}
-              </button>
-              {/* Visibility toggle */}
-              <button
-                onClick={toggleVisibility}
-                disabled={updateVisibility.isPending}
-                className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-50 transition-all"
-                style={{
-                  background: showOnMap
-                    ? "rgba(168,85,247,0.2)"
-                    : "rgba(255,255,255,0.06)",
-                  border: showOnMap
-                    ? "1px solid hsl(273,85%,55%)"
-                    : "1px solid rgba(255,255,255,0.1)",
-                }}
-                title={
-                  showOnMap
-                    ? "Estás visible en el mapa"
-                    : "Estás oculto del mapa"
-                }
-              >
-                {showOnMap ? (
-                  <Eye className="w-4 h-4 text-purple-300" />
-                ) : (
-                  <EyeOff className="w-4 h-4 text-white/40" />
-                )}
-              </button>
-            </div>
-          </div>
 
-          {/* Scope chips */}
-          <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto">
-            {SCOPES.map((s) => {
-              const disabled = s.needsLocation && !hasLocation;
-              const active = scope === s.value;
-              return (
-                <button
-                  key={s.value}
-                  onClick={() => setScopeSafe(s.value)}
-                  disabled={disabled}
-                  className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-sans font-medium transition-all ${
-                    disabled ? "opacity-30" : ""
-                  }`}
-                  style={{
-                    color: active ? "#fff" : "rgba(255,255,255,0.5)",
-                    background: active
-                      ? "rgba(168,85,247,0.35)"
-                      : "rgba(255,255,255,0.06)",
-                    border: active
-                      ? "1px solid hsl(273,85%,55%)"
-                      : "1px solid rgba(255,255,255,0.08)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                  title={
-                    disabled ? "Activa tu ubicación para usar este filtro" : ""
-                  }
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Advanced filters panel */}
-          {showFilters && (
-            <div
-              className="mx-4 mb-3 p-3 rounded-2xl pointer-events-auto"
+            {/* Visibility toggle */}
+            <button
+              onClick={toggleVisibility}
+              disabled={updateVisibility.isPending}
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all"
               style={{
-                background: "rgba(8,7,18,0.94)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.07)",
+                background: showOnMap
+                  ? "rgba(168,85,247,0.2)"
+                  : "rgba(255,255,255,0.06)",
+                border: showOnMap
+                  ? "1px solid hsl(273,85%,55%)"
+                  : "1px solid rgba(255,255,255,0.1)",
               }}
+              title={showOnMap ? "Estás visible en el mapa" : "Estás oculto del mapa"}
             >
-              <div className="flex flex-wrap gap-2 mb-2.5">
-                {[
-                  { key: "onlineOnly" as const, label: "En línea" },
-                  { key: "withPhoto" as const, label: "Con foto" },
-                  { key: "verifiedOnly" as const, label: "Verificados" },
-                ].map(({ key, label }) => {
-                  const on = filters[key];
-                  return (
-                    <button
-                      key={key}
-                      onClick={() =>
-                        setFilters((f) => ({ ...f, [key]: !f[key] }))
-                      }
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-sans font-medium"
-                      style={{
-                        background: on
-                          ? "rgba(168,85,247,0.3)"
-                          : "rgba(255,255,255,0.06)",
-                        border: on
-                          ? "1px solid hsl(273,85%,55%)"
-                          : "1px solid rgba(255,255,255,0.1)",
-                        color: on ? "#fff" : "rgba(255,255,255,0.5)",
-                      }}
-                    >
-                      {on && <Check className="w-3 h-3" />}
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-sans text-xs text-white/40">Edad</span>
-                <input
-                  type="number"
-                  min={18}
-                  max={99}
-                  value={filters.ageMin}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      ageMin: Math.min(
-                        Math.max(18, Number(e.target.value) || 18),
-                        f.ageMax
-                      ),
-                    }))
-                  }
-                  className="w-16 px-2 py-1 rounded-lg text-sm text-white"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                />
-                <span className="text-white/30">–</span>
-                <input
-                  type="number"
-                  min={18}
-                  max={99}
-                  value={filters.ageMax}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      ageMax: Math.max(
-                        Math.min(99, Number(e.target.value) || 99),
-                        f.ageMin
-                      ),
-                    }))
-                  }
-                  className="w-16 px-2 py-1 rounded-lg text-sm text-white"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                />
-                {filtersActive(filters) && (
-                  <button
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
-                    className="ml-auto font-sans text-xs text-white/40 underline"
-                  >
-                    Limpiar
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+              {showOnMap ? (
+                <Eye className="w-4 h-4 text-purple-300" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-white/40" />
+              )}
+            </button>
+          </div>
 
-          {/* Activate location banner — lives inside the overlay so it always
-              sits below the chips/filter panel, never overlapping them. */}
+          {/* Activate location banner — below header, always below age row */}
           {canAccess && !hasLocation && (
             <div className="px-4 pb-3 pointer-events-auto">
               <div
@@ -565,7 +414,7 @@ export default function MapView() {
             </div>
           )}
 
-          {/* Location denied / unsupported — same treatment */}
+          {/* Location denied / unsupported */}
           {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
             <div className="px-4 pb-3 pointer-events-auto">
               <p
@@ -602,7 +451,7 @@ export default function MapView() {
                 "0 -8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(168,85,247,0.07)",
             }}
           >
-            {/* Close + report buttons */}
+            {/* Close + report */}
             <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
               <button
                 onClick={() => setReportOpen(true)}
@@ -621,9 +470,8 @@ export default function MapView() {
               </button>
             </div>
 
-            {/* Photo + info row */}
+            {/* Photo + info */}
             <div className="flex items-start gap-4 px-4 pt-4 pb-3 pr-20">
-              {/* Avatar */}
               <div className="relative flex-shrink-0">
                 {selected.avatar_url ? (
                   <img
@@ -655,16 +503,13 @@ export default function MapView() {
                 {selected.plan === "gold" && (
                   <span
                     className="absolute -top-2 -right-2 text-sm leading-none"
-                    style={{
-                      filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.8))",
-                    }}
+                    style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.8))" }}
                   >
                     👑
                   </span>
                 )}
               </div>
 
-              {/* Text info */}
               <div className="flex-1 min-w-0 pt-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-display text-lg text-white leading-tight">
@@ -689,9 +534,7 @@ export default function MapView() {
                   {(selected.distance_km != null || selected.city) && (
                     <span className="flex items-center gap-0.5 text-xs text-white/40">
                       <MapPin className="w-3 h-3 flex-shrink-0" />
-                      {formatDistance(selected.distance_km) ??
-                        selected.city ??
-                        "Cerca"}
+                      {formatDistance(selected.distance_km) ?? selected.city ?? "Cerca"}
                     </span>
                   )}
                 </div>
@@ -766,7 +609,7 @@ export default function MapView() {
               {/* Message — Gold only */}
               {isGold ? (
                 <button
-                  onClick={() => handleMessage(selected.id)}
+                  onClick={() => startConversation(selected.id)}
                   disabled={convPending}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-sans font-medium disabled:opacity-60"
                   style={{
@@ -821,13 +664,13 @@ export default function MapView() {
               <span className="font-display text-lg text-white block leading-none">
                 {isLoading ? "…" : goldCount}
               </span>
-              <span className="font-sans text-[10px] text-white/35 mt-0.5">
+              <span className="font-sans text-[10px] text-white/35">
                 En el mapa
               </span>
             </div>
           </div>
           <div
-            className="w-px h-7 self-center"
+            className="w-px h-7"
             style={{ background: "rgba(255,255,255,0.06)" }}
           />
           <div className="flex items-center gap-2.5">
@@ -836,7 +679,7 @@ export default function MapView() {
               <span className="font-display text-lg text-white block leading-none">
                 {isLoading ? "…" : onlineCount}
               </span>
-              <span className="font-sans text-[10px] text-white/35 mt-0.5">
+              <span className="font-sans text-[10px] text-white/35">
                 En línea ahora
               </span>
             </div>
