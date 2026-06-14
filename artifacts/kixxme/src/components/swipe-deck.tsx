@@ -119,7 +119,7 @@ function ProfileMedia({
   );
 }
 
-/** A static card rendered behind the active card to suggest a stack. */
+/** Side card rendered in a fan layout — peeks left or right of the active card. */
 function BackgroundCard({
   profile,
   depth,
@@ -127,25 +127,47 @@ function BackgroundCard({
   profile: PublicProfile;
   depth: number;
 }) {
-  const scale = depth === 1 ? 0.95 : 0.9;
-  const translateY = depth === 1 ? 14 : 28;
+  // depth=2 → LEFT fan, depth=1 → RIGHT fan
+  const isLeft = depth === 2;
+  const tx = isLeft ? "-60%" : "60%";
+  const rot = isLeft ? -7 : 7;
+
   return (
     <div
-      className="absolute inset-0 rounded-3xl overflow-hidden border border-white/5 pointer-events-none"
+      className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none"
       style={{
-        transform: `scale(${scale}) translateY(${translateY}px)`,
-        opacity: depth === 1 ? 0.85 : 0.6,
+        transform: `translateX(${tx}) scale(0.87) rotate(${rot}deg)`,
+        opacity: 0.86,
         background: "rgba(13,11,26,0.9)",
-        transition: "transform 0.3s ease, opacity 0.3s ease",
+        border: "1px solid rgba(255,255,255,0.07)",
+        transition: "transform 0.3s ease",
+        zIndex: depth === 1 ? 1 : 0,
       }}
     >
       <ProfileMedia profile={profile} />
       <div
         className="absolute inset-x-0 bottom-0 h-2/5"
-        style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)",
-        }}
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)" }}
       />
+      <div className="absolute inset-x-0 bottom-0 p-3">
+        <p className="font-display text-[15px] text-white leading-tight truncate">
+          {profile.username}{profile.age ? `, ${profile.age}` : ""}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {profile.is_online && (
+            <span className="flex items-center gap-1 text-[9px] font-sans text-white/90">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+              En línea
+            </span>
+          )}
+          {profile.distance_km != null && (
+            <span className="flex items-center gap-0.5 text-[9px] font-sans text-white/60">
+              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+              a {Math.round(profile.distance_km)} km
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -232,12 +254,6 @@ const SwipeCard = forwardRef<
             En línea
           </span>
         )}
-        {profile.is_verified && (
-          <BadgeCheck
-            className="w-5 h-5 text-sky-400"
-            style={{ filter: "drop-shadow(0 0 4px rgba(56,189,248,0.6))" }}
-          />
-        )}
       </div>
 
       <button
@@ -271,12 +287,20 @@ const SwipeCard = forwardRef<
       </motion.div>
 
       <div className="absolute inset-x-0 bottom-0 p-5 pointer-events-none">
-        <h3 className="font-display text-3xl text-white leading-tight tracking-wide truncate">
-          {profile.username}
-          {profile.age ? (
-            <span className="text-white/80">, {profile.age}</span>
-          ) : null}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-display text-3xl text-white leading-tight tracking-wide truncate">
+            {profile.username}
+            {profile.age ? (
+              <span className="text-white/80">, {profile.age}</span>
+            ) : null}
+          </h3>
+          {profile.is_verified && (
+            <BadgeCheck
+              className="w-6 h-6 text-sky-400 flex-shrink-0"
+              style={{ filter: "drop-shadow(0 0 5px rgba(56,189,248,0.7))" }}
+            />
+          )}
+        </div>
         <div className="flex items-center gap-3 mt-1.5 text-white/85 font-sans text-sm">
           {profile.city && <span className="truncate">{profile.city}</span>}
           {distance && (
@@ -857,10 +881,10 @@ export function SwipeView({
             onClick={() => act("superlike")}
             label="SuperLike"
             size="sm"
-            gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))"
+            gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))"
             testid="button-superlike"
           >
-            <Star className="w-6 h-6 text-white" fill="white" />
+            <KixxMeLogo size={22} glow={false} />
           </ActionButton>
           <ActionButton
             onClick={() => act("like")}
@@ -885,6 +909,12 @@ export function SwipeView({
   );
 }
 
+const FEATURE_CARDS = [
+  { emoji: "📹", label: "Videollamadas Gold", desc: "Conecta cara a cara con total seguridad.", gold: true },
+  { emoji: "📍", label: "Mapa en tiempo real", desc: "Descubre usuarios cerca de ti.", gold: false },
+  { emoji: "🛡️", label: "Perfiles verificados", desc: "Perfiles reales para conexiones reales.", gold: false },
+];
+
 function DeckEmpty({
   title,
   subtitle,
@@ -899,48 +929,74 @@ function DeckEmpty({
   onGrid: () => void;
 }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 text-center px-6">
-      <div
-        className="w-24 h-24 rounded-2xl flex items-center justify-center border border-primary/20"
-        style={{ background: "rgba(168,85,247,0.08)" }}
-      >
-        <Sparkles
-          className="w-12 h-12 text-primary"
-          style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.5))" }}
-        />
-      </div>
-      <div className="space-y-2">
-        <h3 className="font-display text-2xl tracking-wide text-foreground">
-          {title}
-        </h3>
-        <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-          {subtitle}
-        </p>
-      </div>
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <button
-          onClick={onRestart}
-          disabled={isFetching}
-          className="flex items-center justify-center gap-2 h-12 rounded-xl font-display text-lg tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60"
-          style={{
-            background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-          }}
-          data-testid="button-deck-restart"
+    <div className="absolute inset-0 overflow-y-auto">
+      <div className="min-h-full flex flex-col items-center justify-center gap-5 text-center px-5 py-8">
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center border border-primary/20"
+          style={{ background: "rgba(168,85,247,0.1)" }}
         >
-          {isFetching ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-5 h-5" />
-          )}
-          Buscar de nuevo
-        </button>
-        <button
-          onClick={onGrid}
-          className="h-11 rounded-xl font-sans text-sm text-muted-foreground border border-border/40 hover:text-foreground transition-colors"
-          data-testid="button-deck-grid"
-        >
-          Ver en cuadrícula
-        </button>
+          <Sparkles
+            className="w-10 h-10 text-primary"
+            style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.55))" }}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="font-display text-2xl tracking-wide text-foreground">
+            {title}
+          </h3>
+          <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+            {subtitle}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={onRestart}
+            disabled={isFetching}
+            className="flex items-center justify-center gap-2 h-12 rounded-2xl font-display text-base tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,52%))" }}
+            data-testid="button-deck-restart"
+          >
+            {isFetching ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+            Buscar de nuevo
+          </button>
+          <button
+            onClick={onGrid}
+            className="h-11 rounded-2xl font-sans text-sm text-muted-foreground border border-border/40 hover:text-foreground transition-colors"
+            data-testid="button-deck-grid"
+          >
+            Ver en cuadrícula
+          </button>
+        </div>
+
+        {/* Feature cards */}
+        <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs mt-1">
+          {FEATURE_CARDS.map((card) => (
+            <div
+              key={card.label}
+              className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center"
+              style={{
+                background: "rgba(168,85,247,0.07)",
+                border: "1px solid rgba(168,85,247,0.18)",
+              }}
+            >
+              <div
+                className="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.55), rgba(236,72,153,0.45))" }}
+              >
+                <span className="text-lg leading-none">{card.emoji}</span>
+                {card.gold && (
+                  <span className="absolute -top-1.5 -right-1.5 text-sm leading-none">👑</span>
+                )}
+              </div>
+              <p className="text-[9px] font-sans font-semibold text-white/85 leading-tight">
+                {card.label}
+              </p>
+              <p className="text-[8px] font-sans text-white/40 leading-tight">
+                {card.desc}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

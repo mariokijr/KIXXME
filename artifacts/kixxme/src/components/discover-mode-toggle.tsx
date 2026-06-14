@@ -1,11 +1,11 @@
-import { Layers, Heart, Radio } from "lucide-react";
+import { Layers, LayoutGrid, Radio } from "lucide-react";
 
 export type DiscoverMode = "tarjetas" | "cuadricula" | "enlinea";
 
-const OPTIONS: { key: DiscoverMode; label: string; Icon: typeof Layers }[] = [
-  { key: "tarjetas", label: "Tarjetas", Icon: Layers },
-  { key: "cuadricula", label: "Cuadrícula", Icon: Heart },
-  { key: "enlinea", label: "En línea", Icon: Radio },
+const OPTIONS: { key: DiscoverMode; label: string; Icon: typeof Layers; dot?: boolean }[] = [
+  { key: "tarjetas",   label: "Tarjetas",   Icon: Layers },
+  { key: "cuadricula", label: "Cuadrícula", Icon: LayoutGrid },
+  { key: "enlinea",    label: "En línea",   Icon: Radio, dot: true },
 ];
 
 /**
@@ -28,7 +28,7 @@ export function ModeToggle({
       role="tablist"
       aria-label="Modo de descubrimiento"
     >
-      {OPTIONS.map(({ key, label, Icon }) => {
+      {OPTIONS.map(({ key, label, Icon, dot }) => {
         const active = mode === key;
         return (
           <button
@@ -48,7 +48,9 @@ export function ModeToggle({
             }
             data-testid={`toggle-mode-${key}`}
           >
-            <Icon className="w-3.5 h-3.5" />
+            {dot
+              ? <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+              : <Icon className="w-3.5 h-3.5" />}
             {label}
           </button>
         );
