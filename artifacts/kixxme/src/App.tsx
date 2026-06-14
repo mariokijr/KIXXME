@@ -25,7 +25,6 @@ import ResetPassword from "@/pages/reset-password";
 import Profile from "@/pages/profile";
 import PublicProfile from "@/pages/public-profile";
 import Discover from "@/pages/discover";
-import Explore from "@/pages/explore";
 import MapView from "@/pages/map-view";
 import Chats from "@/pages/chats";
 import ChatPage from "@/pages/chat";
@@ -181,7 +180,6 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
-      <Route path="/explore">{() => <ProtectedMain component={Explore} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>
       <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
