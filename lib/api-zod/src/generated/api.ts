@@ -927,6 +927,48 @@ export const GetLikeQuotaResponse = zod.object({
 
 
 /**
+ * Free users receive only the count. Plus/Gold users also receive the profile list. Filters out blocked, deactivated, and moderated users. SuperLike senders are identified with is_super=true.
+
+ * @summary Profiles that have liked the current user (pending, not yet mutual)
+ */
+export const GetReceivedLikesResponse = zod.object({
+  "count": zod.number().describe('Total number of pending likes received (always returned).'),
+  "can_see": zod.boolean().describe('True for Plus\/Gold — profiles array is populated.'),
+  "profiles": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "avatar_url": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "is_verified": zod.boolean(),
+  "plan": zod.string(),
+  "is_super": zod.boolean().describe('True if this was a SuperLike.'),
+  "liked_at": zod.string().describe('ISO timestamp of the like action.')
+}).describe('A profile that liked the current user.'))
+})
+
+
+/**
+ * @summary Current boost status for the authenticated user
+ */
+export const GetBoostStatusResponse = zod.object({
+  "active": zod.boolean().describe('True if a boost is currently running.'),
+  "expires_at": zod.string().nullish().describe('ISO timestamp when the current boost expires. Null when not active.'),
+  "credits_available": zod.number().describe('Current like-credit balance available to spend on a boost.')
+})
+
+
+/**
+ * @summary Activate a 30-minute profile boost (costs 5 like-credits)
+ */
+export const ActivateBoostResponse = zod.object({
+  "active": zod.boolean().describe('True if a boost is currently running.'),
+  "expires_at": zod.string().nullish().describe('ISO timestamp when the current boost expires. Null when not active.'),
+  "credits_available": zod.number().describe('Current like-credit balance available to spend on a boost.')
+})
+
+
+/**
  * @summary Current streak, daily-reward claim state, and reward credits
  */
 export const GetRewardsResponse = zod.object({

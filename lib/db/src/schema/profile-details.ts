@@ -51,6 +51,9 @@ export const profileDetailsTable = pgTable("profile_details", {
   tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   showOnMap: boolean("show_on_map").notNull().default(true),
+  // Boost: when set (and in the future), this user appears first in Descubrir.
+  // Expires automatically — no cleanup needed, the sort just checks > now().
+  boostExpiresAt: timestamp("boost_expires_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

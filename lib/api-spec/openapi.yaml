@@ -1208,6 +1208,83 @@ paths:
               schema:
                 $ref: "#/components/schemas/LikeQuota"
 
+  /likes/received:
+    get:
+      operationId: getReceivedLikes
+      tags: [likes]
+      summary: Profiles that have liked the current user (pending, not yet mutual)
+      description: >
+        Free users receive only the count. Plus/Gold users also receive the
+        profile list. Filters out blocked, deactivated, and moderated users.
+        SuperLike senders are identified with is_super=true.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Received likes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceivedLikesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/boost:
+    get:
+      operationId: getBoostStatus
+      tags: [profiles]
+      summary: Current boost status for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Boost status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoostStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: activateBoost
+      tags: [profiles]
+      summary: Activate a 30-minute profile boost (costs 5 like-credits)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Boost activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoostStatus"
+        "402":
+          description: Not enough credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Boost already active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /me/rewards:
     get:
       operationId: getRewards
@@ -5555,3 +5632,62 @@ components:
           type: string
           maxLength: 2000
       required: [decision]
+
+    ReceivedLikeProfile:
+      type: object
+      description: A profile that liked the current user.
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        is_verified:
+          type: boolean
+        plan:
+          type: string
+        is_super:
+          type: boolean
+          description: True if this was a SuperLike.
+        liked_at:
+          type: string
+          description: ISO timestamp of the like action.
+      required: [id, username, is_verified, plan, is_super, liked_at]
+
+    ReceivedLikesResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Total number of pending likes received (always returned).
+        can_see:
+          type: boolean
+          description: True for Plus/Gold — profiles array is populated.
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReceivedLikeProfile"
+      required: [count, can_see, profiles]
+
+    BoostStatus:
+      type: object
+      properties:
+        active:
+          type: boolean
+          description: True if a boost is currently running.
+        expires_at:
+          type: string
+          nullable: true
+          description: ISO timestamp when the current boost expires. Null when not active.
+        credits_available:
+          type: integer
+          description: Current like-credit balance available to spend on a boost.
+      required: [active, credits_available]

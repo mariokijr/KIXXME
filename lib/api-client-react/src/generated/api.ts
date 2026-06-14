@@ -36,6 +36,7 @@ import type {
   AuthResponse,
   AvatarUploadRequest,
   BanUserRequest,
+  BoostStatus,
   CheckoutRequest,
   CheckoutResponse,
   ClaimRewardResponse,
@@ -88,6 +89,7 @@ import type {
   Profile,
   ProfilePhoto,
   PublicProfile,
+  ReceivedLikesResponse,
   RefreshSession200,
   RefreshSessionBody,
   RegisterDeviceBody,
@@ -3030,6 +3032,232 @@ export function useGetLikeQuota<TData = Awaited<ReturnType<typeof getLikeQuota>>
 
 
 
+
+export const getGetReceivedLikesUrl = () => {
+
+
+
+
+  return `/api/likes/received`
+}
+
+/**
+ * Free users receive only the count. Plus/Gold users also receive the profile list. Filters out blocked, deactivated, and moderated users. SuperLike senders are identified with is_super=true.
+
+ * @summary Profiles that have liked the current user (pending, not yet mutual)
+ */
+export const getReceivedLikes = async ( options?: RequestInit): Promise<ReceivedLikesResponse> => {
+
+  return customFetch<ReceivedLikesResponse>(getGetReceivedLikesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReceivedLikesQueryKey = () => {
+    return [
+    `/api/likes/received`
+    ] as const;
+    }
+
+
+export const getGetReceivedLikesQueryOptions = <TData = Awaited<ReturnType<typeof getReceivedLikes>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReceivedLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReceivedLikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReceivedLikes>>> = ({ signal }) => getReceivedLikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReceivedLikes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReceivedLikesQueryResult = NonNullable<Awaited<ReturnType<typeof getReceivedLikes>>>
+export type GetReceivedLikesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Profiles that have liked the current user (pending, not yet mutual)
+ */
+
+export function useGetReceivedLikes<TData = Awaited<ReturnType<typeof getReceivedLikes>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReceivedLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReceivedLikesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBoostStatusUrl = () => {
+
+
+
+
+  return `/api/profiles/me/boost`
+}
+
+/**
+ * @summary Current boost status for the authenticated user
+ */
+export const getBoostStatus = async ( options?: RequestInit): Promise<BoostStatus> => {
+
+  return customFetch<BoostStatus>(getGetBoostStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBoostStatusQueryKey = () => {
+    return [
+    `/api/profiles/me/boost`
+    ] as const;
+    }
+
+
+export const getGetBoostStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBoostStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBoostStatus>>> = ({ signal }) => getBoostStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBoostStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBoostStatus>>>
+export type GetBoostStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current boost status for the authenticated user
+ */
+
+export function useGetBoostStatus<TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBoostStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getActivateBoostUrl = () => {
+
+
+
+
+  return `/api/profiles/me/boost`
+}
+
+/**
+ * @summary Activate a 30-minute profile boost (costs 5 like-credits)
+ */
+export const activateBoost = async ( options?: RequestInit): Promise<BoostStatus> => {
+
+  return customFetch<BoostStatus>(getActivateBoostUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getActivateBoostMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext> => {
+
+const mutationKey = ['activateBoost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activateBoost>>, void> = () => {
+
+
+          return  activateBoost(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActivateBoostMutationResult = NonNullable<Awaited<ReturnType<typeof activateBoost>>>
+
+    export type ActivateBoostMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Activate a 30-minute profile boost (costs 5 like-credits)
+ */
+export const useActivateBoost = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof activateBoost>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getActivateBoostMutationOptions(options));
+    }
 
 export const getGetRewardsUrl = () => {
 

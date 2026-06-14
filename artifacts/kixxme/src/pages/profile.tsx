@@ -62,6 +62,8 @@ import { SupportDialog } from "@/components/support-dialog";
 import { VerificationCard } from "@/components/verification-card";
 import { VisitorsCard } from "@/components/visitors-card";
 import { RewardsCard } from "@/components/rewards-card";
+import { BoostCard } from "@/components/boost-card";
+import { LesGustasCard } from "@/components/les-gustas-card";
 import { ProfileCompletionCard } from "@/components/profile-completion-card";
 
 export default function Profile() {
@@ -641,8 +643,10 @@ export default function Profile() {
         <>
           <ProfileCompletionCard />
           <RewardsCard />
+          <BoostCard />
           <VerificationCard />
           <VisitorsCard />
+          <LesGustasCard />
         </>
       )}
 

@@ -40,6 +40,7 @@ import Trial from "@/pages/trial";
 import Live from "@/pages/live";
 import Admin from "@/pages/admin";
 import BlockedUsers from "@/pages/blocked-users";
+import LesGustas from "@/pages/les-gustas";
 import Welcome from "@/pages/welcome";
 import AuthCallback from "@/pages/auth-callback";
 import LegalPage from "@/pages/legal-page";
@@ -195,6 +196,7 @@ function Router() {
       <Route path="/settings/password">{() => <ProtectedMain component={ChangePassword} />}</Route>
       <Route path="/settings/cancel-subscription">{() => <ProtectedMain component={CancelSubscription} />}</Route>
       <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
+      <Route path="/les-gustas">{() => <ProtectedMain component={LesGustas} />}</Route>
       <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
       <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
       <Route component={NotFound} />

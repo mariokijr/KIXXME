@@ -20,6 +20,8 @@ import { isUnavailable } from "../lib/moderation.js";
 import { isSystemAccount } from "../lib/system-accounts.js";
 import { getVisibilityContext, getHiddenIds } from "../lib/visibility.js";
 import { recordLike, areMatched } from "../lib/likes.js";
+import { getReceivedLikes } from "../lib/received-likes.js";
+import { getBoostStatus, activateBoost, getActiveBoostedIds } from "../lib/boosts.js";
 import { recordPass, getPassedIds } from "../lib/passes.js";
 import { ensureConversation } from "../lib/conversations.js";
 import {
@@ -468,14 +470,20 @@ router.get("/profiles", async (req, res) => {
   // Descubrir priority layering. Array.sort is stable, so each pass preserves
   // the prior order as its tie-breaker; the LAST sort applied is the strongest
   // key. Order of strength (weakest → strongest): feed/sort < completitud < verified
-  // < plan/Gold (scope-only). Net result on the grid: verified profiles first,
-  // then more-complete profiles, then the feed-specific base sort.
+  // < plan/Gold (scope-only) < boost. Net result on the grid: boosted profiles
+  // float to the very top, then verified, then more-complete, then feed sort.
   profiles.sort(
     (a, b) => (completeness.get(b.id) ?? 0) - (completeness.get(a.id) ?? 0),
   );
   profiles.sort((a, b) => Number(b.is_verified) - Number(a.is_verified));
   if (scope) {
     profiles.sort((a, b) => PLAN_RANK[b.plan] - PLAN_RANK[a.plan]);
+  }
+
+  // Boost: strongest sort key — boosted profiles always appear first.
+  const boostedIds = await getActiveBoostedIds(profiles.map((p) => p.id));
+  if (boostedIds.size > 0) {
+    profiles.sort((a, b) => Number(boostedIds.has(b.id)) - Number(boostedIds.has(a.id)));
   }
 
   res.json(profiles);
@@ -1056,6 +1064,38 @@ router.get("/profiles/me/likes", async (req, res) => {
       matched: matchedSet.has(row.id),
     })),
   );
+});
+
+router.get("/likes/received", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const { hidden } = await getVisibilityContext(auth.userId);
+  const result = await getReceivedLikes(auth.userId, hidden);
+  res.json(result);
+});
+
+router.get("/profiles/me/boost", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const status = await getBoostStatus(auth.userId);
+  res.json(status);
+});
+
+router.post("/profiles/me/boost", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const result = await activateBoost(auth.userId);
+  if (!result.ok) {
+    if (result.reason === "already_active") {
+      res.status(409).json({ error: "Ya tienes un boost activo." });
+      return;
+    }
+    res
+      .status(402)
+      .json({ error: `Necesitas ${5} créditos de like para activar un boost.` });
+    return;
+  }
+  res.json(result.status);
 });
 
 router.get("/profiles/:id/photos", async (req, res) => {

@@ -1794,6 +1794,40 @@ export interface ReviewVerificationRequest {
   note?: string;
 }
 
+/**
+ * A profile that liked the current user.
+ */
+export interface ReceivedLikeProfile {
+  id: string;
+  username: string;
+  avatar_url?: string | null;
+  age?: number | null;
+  city?: string | null;
+  is_verified: boolean;
+  plan: string;
+  /** True if this was a SuperLike. */
+  is_super: boolean;
+  /** ISO timestamp of the like action. */
+  liked_at: string;
+}
+
+export interface ReceivedLikesResponse {
+  /** Total number of pending likes received (always returned). */
+  count: number;
+  /** True for Plus/Gold — profiles array is populated. */
+  can_see: boolean;
+  profiles: ReceivedLikeProfile[];
+}
+
+export interface BoostStatus {
+  /** True if a boost is currently running. */
+  active: boolean;
+  /** ISO timestamp when the current boost expires. Null when not active. */
+  expires_at?: string | null;
+  /** Current like-credit balance available to spend on a boost. */
+  credits_available: number;
+}
+
 export type Logout200 = {
   message: string;
 };
