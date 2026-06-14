@@ -367,20 +367,22 @@ export default function Profile() {
   );
 
   return (
-    <div>
-      <header className="px-4 py-3 flex items-center justify-between border-b border-border/30"
+    <div className="pb-10">
+
+      {/* ── Header ── */}
+      <header className="px-4 py-3 flex items-center justify-between border-b border-border/20"
         style={{ background: "rgba(8,7,18,0.6)", backdropFilter: "blur(12px)" }}>
         <h1 className="font-display text-2xl tracking-wide">
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
         <div className="flex items-center gap-2">
           <button onClick={copyLink}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
             style={{ background: "rgba(255,255,255,0.04)" }}>
             <Share2 className="w-4 h-4" />
           </button>
           <button onClick={() => setLocation("/settings")}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
             style={{ background: "rgba(255,255,255,0.04)" }}
             data-testid="button-open-settings"
             aria-label="Ajustes">
@@ -389,54 +391,25 @@ export default function Profile() {
         </div>
       </header>
 
+      {/* ── Onboarding hint ── */}
       {isOnboarding && (
         <div className="mx-4 mt-4 px-4 py-3 rounded-xl border border-primary/20 flex items-center gap-3"
           style={{ background: "rgba(168,85,247,0.07)" }}>
-          <KixxMeLogo size={22} glow={false} />
+          <KixxMeLogo size={20} glow={false} />
           <p className="font-sans text-sm text-foreground/80 leading-snug">
             Completa tu perfil para aparecer en el mapa y conectar con gente cerca de ti.
           </p>
         </div>
       )}
 
-      <div className="px-4 pt-6 pb-4 flex flex-col items-center gap-3">
-        <div className="relative" data-testid="avatar-container">
-          <Avatar className="w-28 h-28 border-2 border-primary/40 rounded-2xl"
-            style={{ boxShadow: "0 0 30px rgba(168,85,247,0.25)" }}>
-            {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
-            <AvatarFallback className="font-display text-4xl uppercase bg-card text-primary">
-              {profile.username?.slice(0, 2) || "KX"}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-        {profile.is_verified ? (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium text-sky-400 border border-sky-500/30"
-            style={{ background: "rgba(14,165,233,0.1)" }}>
-            <BadgeCheck className="w-3.5 h-3.5" />
-            Verificado
-          </span>
-        ) : (
-          <p className="font-sans text-xs text-muted-foreground text-center">
-            Foto de perfil principal · Gym, playa o casual
-          </p>
-        )}
-      </div>
-
+      {/* ── Admin panel shortcut ── */}
       {isAdmin && (
-        <div className="mx-4 mb-4 border border-amber-500/40 rounded-2xl p-5 space-y-3"
-          style={{ background: "rgba(245,158,11,0.07)", boxShadow: "0 0 24px rgba(245,158,11,0.12)" }}>
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
-            <h3 className="font-display text-lg tracking-widest text-foreground">Moderación</h3>
-          </div>
-          <p className="font-sans text-xs text-muted-foreground">
-            Tienes acceso de administrador. Revisa reportes, alertas automáticas y aplica sanciones.
-          </p>
+        <div className="mx-4 mt-4">
           <button
             type="button"
             onClick={() => setLocation("/admin")}
-            className="w-full h-11 rounded-xl border border-amber-500/40 flex items-center justify-center gap-2 font-sans text-sm font-medium text-amber-300 hover:bg-amber-500/10 transition-colors"
-            style={{ background: "rgba(245,158,11,0.08)" }}
+            className="w-full h-11 rounded-xl border border-amber-500/30 flex items-center justify-center gap-2 font-sans text-sm font-medium text-amber-300 hover:bg-amber-500/10 transition-colors"
+            style={{ background: "rgba(245,158,11,0.07)" }}
             data-testid="button-open-admin"
           >
             <ShieldAlert className="w-4 h-4" />
@@ -445,9 +418,39 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="px-4 pb-4">
+      {/* ── Avatar ── */}
+      <div className="flex items-center gap-4 px-4 pt-5 pb-4">
+        <div data-testid="avatar-container" className="flex-shrink-0">
+          <Avatar className="w-20 h-20 border-2 border-primary/40 rounded-2xl"
+            style={{ boxShadow: "0 0 24px rgba(168,85,247,0.2)" }}>
+            {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
+            <AvatarFallback className="font-display text-3xl uppercase bg-card text-primary">
+              {profile.username?.slice(0, 2) || "KX"}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="min-w-0">
+          <p className="font-display text-lg leading-tight truncate text-foreground">
+            {profile.username || "Sin nombre aún"}
+          </p>
+          {profile.is_verified ? (
+            <span className="inline-flex items-center gap-1 text-xs font-sans text-sky-400 mt-0.5">
+              <BadgeCheck className="w-3.5 h-3.5" />
+              Verificado
+            </span>
+          ) : (
+            <p className="font-sans text-xs text-muted-foreground mt-0.5">
+              {profile.city ? `${profile.city} · ` : ""}
+              {profile.age ? `${profile.age} años` : "Edita tu perfil abajo"}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Fotos ── */}
+      <div className="px-4 pb-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg tracking-wide text-foreground/80">Mis fotos</h2>
+          <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest">Fotos</p>
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -467,54 +470,57 @@ export default function Profile() {
             />
           ))}
         </div>
-        <p className="font-sans text-[11px] text-muted-foreground/80 mt-3 leading-relaxed">
-          Sube solo fotos tuyas y mantén la cara visible en la principal. No se
-          permiten desnudos explícitos, contenido sexual, menores de edad,
-          violencia ni datos de contacto. Las fotos que incumplan las normas se
-          eliminarán y pueden conllevar la suspensión de la cuenta.
+        <p className="font-sans text-[11px] text-muted-foreground/50 mt-2">
+          Solo fotos tuyas · cara visible en la principal · sin contenido explícito ni datos de contacto.
         </p>
       </div>
 
-      <div className="mx-4 mb-4 border border-border/40 rounded-2xl p-5 space-y-5"
-        style={{ background: "rgba(13,11,26,0.7)" }}>
+      {/* ── Sección: Básico ── */}
+      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
-            className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+            className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
             data-testid="input-edit-username" />
         </Field>
         <Field label="Bio">
           <Textarea value={bio} onChange={(e) => setBio(e.target.value)}
-            className="rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[90px] resize-none bg-input/40 text-sm"
+            className="rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans min-h-[80px] resize-none bg-input/30 text-sm"
             placeholder="Cuéntale al mundo tus metas, marcas personales y pasiones..."
             data-testid="input-edit-bio" />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Edad">
             <Input type="number" min={18} max={120} value={age} onChange={(e) => setAge(e.target.value)}
-              className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+              className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
               placeholder="25" data-testid="input-edit-age" />
           </Field>
           <Field label="Género">
             <Input value={gender} onChange={(e) => setGender(e.target.value)}
-              className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+              className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
               placeholder="Hombre" data-testid="input-edit-gender" />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Ciudad">
             <Input value={city} onChange={(e) => setCity(e.target.value)}
-              className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+              className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
               placeholder="Madrid" data-testid="input-edit-city" />
           </Field>
           <Field label="País">
             <Input value={location} onChange={(e) => setLocation2(e.target.value)}
-              className="h-11 rounded-xl border border-border/60 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/40 text-sm"
+              className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
               placeholder="España" data-testid="input-edit-location" />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+      </div>
+
+      {/* ── Sección: Preferencias ── */}
+      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Preferencias</p>
+        <div className="grid grid-cols-2 gap-3">
           <SelectField
-            label="Rol/Preferencia"
+            label="Rol"
             value={role}
             onChange={(v) => setRole(v as RoleValue | "")}
             options={ROLE_OPTIONS}
@@ -538,7 +544,12 @@ export default function Profile() {
           placeholder="Selecciona tu orientación"
           testId="select-edit-orientation"
         />
-        <div className="grid grid-cols-2 gap-4">
+      </div>
+
+      {/* ── Sección: Sobre mí ── */}
+      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Sobre mí</p>
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
             <input
               type="number"
@@ -546,7 +557,7 @@ export default function Profile() {
               max={250}
               value={heightCm}
               onChange={(e) => setHeightCm(e.target.value)}
-              className="flex h-11 w-full rounded-xl border border-border/60 bg-input/40 px-3 py-2 text-sm font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary"
+              className="flex h-11 w-full rounded-xl border border-border/50 bg-input/30 px-3 py-2 text-sm font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary"
               placeholder="175"
               data-testid="input-edit-height"
             />
@@ -560,78 +571,79 @@ export default function Profile() {
             testId="select-edit-zodiac"
           />
         </div>
-        <div className="space-y-1">
-          <p className="font-sans text-xs font-medium text-foreground/60 uppercase tracking-widest">Hábitos</p>
-          <div className="grid grid-cols-2 gap-3">
-            <SelectField
-              label="Alcohol"
-              value={alcohol}
-              onChange={(v) => setAlcohol(v as AlcoholValue | "")}
-              options={ALCOHOL_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
-              placeholder="Selecciona"
-              testId="select-edit-alcohol"
-            />
-            <SelectField
-              label="Tabaco"
-              value={tobacco}
-              onChange={(v) => setTobacco(v as TobaccoValue | "")}
-              options={TOBACCO_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
-              placeholder="Selecciona"
-              testId="select-edit-tobacco"
-            />
-            <SelectField
-              label="Ejercicio"
-              value={exercise}
-              onChange={(v) => setExercise(v as ExerciseValue | "")}
-              options={EXERCISE_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
-              placeholder="Selecciona"
-              testId="select-edit-exercise"
-            />
-            <SelectField
-              label="Mascotas"
-              value={pets}
-              onChange={(v) => setPets(v as PetsValue | "")}
-              options={PETS_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
-              placeholder="Selecciona"
-              testId="select-edit-pets"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label="Alcohol"
+            value={alcohol}
+            onChange={(v) => setAlcohol(v as AlcoholValue | "")}
+            options={ALCOHOL_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            placeholder="Selecciona"
+            testId="select-edit-alcohol"
+          />
+          <SelectField
+            label="Tabaco"
+            value={tobacco}
+            onChange={(v) => setTobacco(v as TobaccoValue | "")}
+            options={TOBACCO_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            placeholder="Selecciona"
+            testId="select-edit-tobacco"
+          />
+          <SelectField
+            label="Ejercicio"
+            value={exercise}
+            onChange={(v) => setExercise(v as ExerciseValue | "")}
+            options={EXERCISE_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            placeholder="Selecciona"
+            testId="select-edit-exercise"
+          />
+          <SelectField
+            label="Mascotas"
+            value={pets}
+            onChange={(v) => setPets(v as PetsValue | "")}
+            options={PETS_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            placeholder="Selecciona"
+            testId="select-edit-pets"
+          />
         </div>
-        <div className="space-y-2">
-          <p className="font-sans text-xs font-medium text-foreground/60 uppercase tracking-widest">
-            Intereses · selecciona hasta 20
-          </p>
-          <TagPicker selected={interests} onChange={setInterests} max={20} />
-        </div>
+      </div>
 
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={handleUseLocation}
-            disabled={geo.isPending || geo.state === "locating"}
-            className="w-full h-11 rounded-xl border border-primary/30 flex items-center justify-center gap-2 font-sans text-sm text-primary transition-colors hover:bg-primary/5 disabled:opacity-60"
-            style={{ background: "rgba(168,85,247,0.06)" }}
-            data-testid="button-use-location"
-          >
-            {geo.isPending || geo.state === "locating" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Navigation className="w-4 h-4" />
-            )}
-            {profile.latitude != null ? "Actualizar mi ubicación" : "Usar mi ubicación actual"}
-          </button>
-          {profile.latitude != null && geo.state !== "denied" && (
-            <p className="font-sans text-[11px] text-green-400 mt-1.5 text-center">
-              Ubicación activa · apareces en el mapa
-            </p>
+      {/* ── Sección: Intereses ── */}
+      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-3">
+        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest">
+          Intereses · hasta 20
+        </p>
+        <TagPicker selected={interests} onChange={setInterests} max={20} />
+      </div>
+
+      {/* ── Ubicación + Guardar ── */}
+      <div className="px-4 border-t border-border/15 pt-5 pb-6 space-y-3">
+        <button
+          type="button"
+          onClick={handleUseLocation}
+          disabled={geo.isPending || geo.state === "locating"}
+          className="w-full h-11 rounded-xl border border-primary/25 flex items-center justify-center gap-2 font-sans text-sm text-primary transition-colors hover:bg-primary/5 disabled:opacity-60"
+          style={{ background: "rgba(168,85,247,0.05)" }}
+          data-testid="button-use-location"
+        >
+          {geo.isPending || geo.state === "locating" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4" />
           )}
-          {geo.state === "denied" && (
-            <p className="font-sans text-[11px] text-red-400 mt-1.5 text-center">
-              Permiso denegado. Actívalo en los ajustes del navegador.
-            </p>
-          )}
-        </div>
-        <Button onClick={handleSave} disabled={(updateProfile.isPending || updateInterests.isPending) || (!isDirty && !interestsDirty)}
+          {profile.latitude != null ? "Actualizar mi ubicación" : "Usar mi ubicación actual"}
+        </button>
+        {profile.latitude != null && geo.state !== "denied" && (
+          <p className="font-sans text-[11px] text-green-400 text-center">
+            Ubicación activa · apareces en el mapa
+          </p>
+        )}
+        {geo.state === "denied" && (
+          <p className="font-sans text-[11px] text-red-400 text-center">
+            Permiso denegado. Actívalo en los ajustes del navegador.
+          </p>
+        )}
+        <Button onClick={handleSave}
+          disabled={(updateProfile.isPending || updateInterests.isPending) || (!isDirty && !interestsDirty)}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
           data-testid="button-save-profile">
@@ -639,6 +651,7 @@ export default function Profile() {
         </Button>
       </div>
 
+      {/* ── Cards (solo fuera del onboarding) ── */}
       {!isOnboarding && (
         <>
           <ProfileCompletionCard />
@@ -650,48 +663,39 @@ export default function Profile() {
         </>
       )}
 
-      <div className="mx-4 mb-6 border border-border/40 rounded-2xl p-5 space-y-3"
-        style={{ background: "rgba(255,255,255,0.02)" }}>
-        <div className="flex items-center gap-2 mb-1">
-          <LifeBuoy className="w-4 h-4 text-primary" />
-          <h3 className="font-display text-lg tracking-widest text-foreground">Soporte y ayuda</h3>
+      {/* ── Soporte ── */}
+      <div className="px-4 pt-2 pb-8 border-t border-border/15 mt-2">
+        <p className="font-sans text-xs font-medium text-foreground/30 uppercase tracking-widest mb-3 pt-4">Soporte</p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            data-testid="button-contact-support"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Contactar
+          </button>
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            data-testid="button-report-problem"
+          >
+            <MessageSquareWarning className="w-4 h-4" />
+            Reportar
+          </button>
+          <button
+            type="button"
+            onClick={() => setLocation("/support")}
+            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            data-testid="link-support-center"
+          >
+            <LifeBuoy className="w-4 h-4" />
+            Ayuda
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setContactOpen(true)}
-          className="w-full h-11 rounded-xl border border-primary/30 flex items-center justify-center gap-2 font-sans text-sm text-primary hover:bg-primary/5 transition-colors"
-          style={{ background: "rgba(168,85,247,0.06)" }}
-          data-testid="button-contact-support"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Contactar soporte
-        </button>
-        <button
-          type="button"
-          onClick={() => setReportOpen(true)}
-          className="w-full h-11 rounded-xl border border-border/50 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-          data-testid="button-report-problem"
-        >
-          <MessageSquareWarning className="w-4 h-4" />
-          Reportar un problema
-        </button>
-        <button
-          type="button"
-          onClick={() => setLocation("/support")}
-          className="w-full text-center font-sans text-xs text-primary/80 hover:text-primary pt-1"
-          data-testid="link-support-center"
-        >
-          Centro de ayuda
-        </button>
-        <a
-          href="mailto:supportkixxme@gmail.com"
-          className="block text-center font-sans text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          data-testid="link-support-email"
-        >
-          ¿Necesitas ayuda? supportkixxme@gmail.com
-        </a>
       </div>
-
 
       <SupportDialog
         open={contactOpen}
