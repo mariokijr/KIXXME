@@ -16,6 +16,9 @@ import {
   EyeOff,
   Lock,
   Users,
+  X,
+  User,
+  MessageCircle,
 } from "lucide-react";
 import {
   useListMapUsers,
@@ -34,7 +37,7 @@ import { useStartConversation } from "@/lib/use-start-conversation";
 import { formatDistance, initialsFor } from "@/lib/profile-format";
 import { ReportDialog } from "@/components/report-dialog";
 
-const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038]; // Madrid
+const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038];
 
 type Scope = "nearby" | "province" | "spain" | "europe" | "worldwide";
 
@@ -81,8 +84,6 @@ function hashId(id: string): number {
   return Math.abs(h);
 }
 
-// Place a user at a real distance with a stable, privacy-preserving bearing
-// derived from their id (the API never exposes raw coordinates).
 function offsetPosition(
   lat: number,
   lng: number,
@@ -106,40 +107,22 @@ function offsetPosition(
   return [(φ2 * 180) / Math.PI, (λ2 * 180) / Math.PI];
 }
 
-// Escape values before they go into raw marker HTML (Leaflet divIcon bypasses
-// React escaping, so unsanitized profile fields would be a stored-XSS vector).
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-// Gold users get a gold border + crown badge; other users get the purple ring.
-function markerHtml(user: PublicProfile): string {
+// Dot marker: simple colored circle, no photo on the map.
+// Blue for regular users; amber/gold for Gold users.
+// Online = bigger + green outer ring.
+function dotMarkerHtml(user: PublicProfile): string {
   const isGoldUser = user.plan === "gold";
-  const ring = user.is_online
-    ? "box-shadow:0 0 0 2px hsl(142,71%,45%),0 0 12px rgba(168,85,247,0.7);"
-    : isGoldUser
-      ? "box-shadow:0 0 10px rgba(251,191,36,0.5);"
-      : "box-shadow:0 0 10px rgba(168,85,247,0.5);";
-  const border = isGoldUser
-    ? "2px solid hsl(45,90%,55%)"
-    : "2px solid hsl(273,85%,55%)";
-  // Crown badge only for Gold — static glyph, no escaping needed.
-  const crown = isGoldUser
-    ? `<div style="position:absolute;top:-9px;right:-7px;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">👑</div>`
-    : "";
-  const inner = user.avatar_url
-    ? `<img src="${escapeHtml(
-        user.avatar_url
-      )}" style="width:42px;height:42px;border-radius:9999px;object-fit:cover;border:${border};${ring}" />`
-    : `<div style="width:42px;height:42px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;background:linear-gradient(135deg,hsl(273,85%,55%),hsl(330,85%,52%));border:${border};${ring}">${escapeHtml(
-        initialsFor(user.username)
-      )}</div>`;
-  return `<div style="position:relative;width:42px;height:42px;">${inner}${crown}</div>`;
+  const online = user.is_online;
+  const dotSize = online ? 14 : 10;
+  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(210,100%,68%)";
+  const shadow = online
+    ? `0 0 0 2.5px rgba(74,222,128,0.55),0 0 10px ${
+        isGoldUser ? "rgba(251,191,36,0.8)" : "rgba(59,130,246,0.8)"
+      }`
+    : `0 0 6px ${
+        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(59,130,246,0.45)"
+      }`;
+  return `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${color};box-shadow:${shadow};"></div></div>`;
 }
 
 export default function MapView() {
@@ -160,11 +143,6 @@ export default function MapView() {
   const { data: profile } = useGetMyProfile({
     query: { queryKey: getGetMyProfileQueryKey() },
   });
-  // The map list is a Gold-gated envelope: `can_access` (computed server-side so
-  // it honors the GOLD_TEST_EMAILS override) decides full access vs paywall, and
-  // `users` only ever contains other Gold users who opted into the map. Polls so
-  // markers stay near-real-time. Explicit queryKey is required when passing query
-  // options to a generated hook.
   const { data: mapData, isLoading } = useListMapUsers(
     { scope },
     {
@@ -184,9 +162,7 @@ export default function MapView() {
   const showOnMap = mapData?.show_on_map ?? true;
   const users = useMemo<PublicProfile[]>(() => mapData?.users ?? [], [mapData]);
 
-  // Viewer's Gold status — gates the "Mensaje" button in the selected card.
-  // Uses the raw profile.plan field; GOLD_TEST_EMAILS users can still message
-  // via the chat tab even if this shows the lock (test-env acceptable trade-off).
+  // Both Like and Message from the map require the viewer to be Gold.
   const isGold = profile?.plan === "gold";
 
   const hasLocation = profile?.latitude != null && profile?.longitude != null;
@@ -217,23 +193,13 @@ export default function MapView() {
     () => filtered.filter((p) => p.distance_km != null),
     [filtered]
   );
-  // Pins actually visible on the map = other placeable Gold users + the viewer's
-  // own marker, which only renders when they have a real location. Keeps the
-  // header counter in sync with what's drawn (a lone Gold viewer who is pinned
-  // now reads "1 en el mapa", not "0").
   const onMapCount = placeable.length + (hasLocation ? 1 : 0);
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
-  // Real community totals computed server-side (global, not just the placeable
-  // markers): they reflect the true data even when nobody can be pinned — e.g. a
-  // lone Gold user with no location still counts. Auto-update via the 30s poll
-  // when someone buys Gold or goes online/offline.
   const goldCount = mapData?.gold_total ?? 0;
   const onlineCount = mapData?.online_total ?? 0;
 
-  const handleMessage = (userId: string) => {
-    startConversation(userId);
-  };
+  const handleMessage = (userId: string) => startConversation(userId);
 
   const toggleVisibility = () => {
     if (updateVisibility.isPending) return;
@@ -249,13 +215,13 @@ export default function MapView() {
     setScope(next);
   };
 
-  // Near-real-time: once the Gold map is accessible, silently refresh the user's
-  // own location if the browser permission is already granted (no extra prompt),
-  // so their position — and everyone's relative distances — are fresh on open.
+  // Silently refresh own location on first map open.
   useEffect(() => {
     if (!canAccess || locRefreshed.current) return;
     const nav = navigator as Navigator & {
-      permissions?: { query: (d: { name: PermissionName }) => Promise<{ state: string }> };
+      permissions?: {
+        query: (d: { name: PermissionName }) => Promise<{ state: string }>;
+      };
     };
     if (!nav.permissions?.query) {
       if (hasLocation) {
@@ -276,10 +242,7 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess, hasLocation]);
 
-  // Initialize the map when the API data has arrived (`canAccess` flips true)
-  // and the container is mounted. Tying init to `canAccess` — instead of a
-  // one-time `[]` mount — prevents building a Leaflet instance before the
-  // container is in the DOM during the initial loading frame.
+  // Initialize Leaflet map once data has arrived.
   useEffect(() => {
     if (!canAccess || !mapDivRef.current || mapRef.current) return;
     const map = L.map(mapDivRef.current, {
@@ -301,40 +264,33 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess]);
 
-  // Recenter when the user's own location becomes available.
+  // Recenter when viewer's location becomes available.
   useEffect(() => {
-    if (mapRef.current && hasLocation) {
-      mapRef.current.setView(center, 12);
-    }
+    if (mapRef.current && hasLocation) mapRef.current.setView(center, 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLocation, center[0], center[1]]);
 
-  // Render markers whenever data changes (only for Gold viewers with access).
+  // Render dot markers.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Own "you are here" marker — only when the viewer has a real location, so we
-    // never pin a phantom self at the national-centroid fallback (DEFAULT_CENTER).
-    // This keeps the header counter (onMapCount) in sync with what's actually drawn.
+    // Self — bright pink dot.
     if (hasLocation) {
       const meIcon = L.divIcon({
-        html: `<div style="width:20px;height:20px;border-radius:9999px;background:hsl(330,85%,55%);border:3px solid #fff;box-shadow:0 0 14px rgba(236,72,153,0.9);"></div>`,
+        html: `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:9999px;background:hsl(330,85%,55%);box-shadow:0 0 0 3px rgba(255,255,255,0.2),0 0 14px rgba(236,72,153,0.9);"></div></div>`,
         className: "",
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
       });
-      const meMarker = L.marker(center, {
-        icon: meIcon,
-        zIndexOffset: 1000,
-      }).addTo(map);
-      markersRef.current.push(meMarker);
+      markersRef.current.push(
+        L.marker(center, { icon: meIcon, zIndexOffset: 1000 }).addTo(map)
+      );
     }
 
-    // Other users with location enabled.
+    // Other users — blue/gold dots.
     for (const user of placeable) {
       const pos = offsetPosition(
         center[0],
@@ -343,41 +299,110 @@ export default function MapView() {
         user.id
       );
       const icon = L.divIcon({
-        html: markerHtml(user),
+        html: dotMarkerHtml(user),
         className: "",
-        iconSize: [42, 42],
-        iconAnchor: [21, 21],
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
       });
-      const zIndexOffset = user.is_online ? 600 : 200;
-      const marker = L.marker(pos, { icon, zIndexOffset }).addTo(map);
-      marker.on("click", () => setSelectedId(user.id));
-      markersRef.current.push(marker);
+      const m = L.marker(pos, {
+        icon,
+        zIndexOffset: user.is_online ? 600 : 200,
+      }).addTo(map);
+      m.on("click", () => {
+        setSelectedId(user.id);
+        setReportOpen(false);
+      });
+      markersRef.current.push(m);
     }
   }, [placeable, canAccess, hasLocation, center[0], center[1]]);
 
-  // Map is open to all authenticated users — no gate needed here.
+  // Tap on map background closes the selected card.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handler = () => setSelectedId(null);
+    map.on("click", handler);
+    return () => { map.off("click", handler); };
+  }, [canAccess]);
 
   return (
-    <div className="flex flex-col h-full">
-      <header
-        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.9)", backdropFilter: "blur(20px)" }}
-      >
-        <h1 className="font-display text-2xl tracking-wide flex items-center gap-2">
-          Mapa
-          <Crown className="w-4 h-4 text-amber-400" />
-        </h1>
-        {canAccess && (
-          <span className="font-sans text-sm text-muted-foreground">
-            {isLoading ? "..." : `${onMapCount} en el mapa`}
-          </span>
-        )}
-      </header>
+    <div className="flex flex-col h-full" style={{ background: "hsl(238,30%,3%)" }}>
+      {/* Map fills all available space */}
+      <div className="relative flex-1 min-h-0">
+        <div ref={mapDivRef} className="absolute inset-0" />
 
-      {canAccess && (
-        <>
+        {/* Top gradient overlay — floating header + chips + filters */}
+        <div
+          className="absolute top-0 left-0 right-0 z-[400] pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(6,5,16,0.92) 0%, rgba(6,5,16,0.5) 55%, transparent 100%)",
+          }}
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 pointer-events-auto">
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-xl tracking-wide text-white">
+                Mapa
+              </h1>
+              {canAccess && (
+                <span
+                  className="text-xs font-sans px-2 py-0.5 rounded-full text-white/60"
+                  style={{ background: "rgba(255,255,255,0.08)" }}
+                >
+                  {isLoading ? "…" : `${onMapCount} en el mapa`}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {/* Filters button */}
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className="relative w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{
+                  background: showFilters
+                    ? "rgba(168,85,247,0.3)"
+                    : "rgba(255,255,255,0.08)",
+                  border: showFilters
+                    ? "1px solid hsl(273,85%,55%)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                <SlidersHorizontal className="w-4 h-4 text-white/70" />
+                {filtersActive(filters) && (
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-purple-400" />
+                )}
+              </button>
+              {/* Visibility toggle */}
+              <button
+                onClick={toggleVisibility}
+                disabled={updateVisibility.isPending}
+                className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-50 transition-all"
+                style={{
+                  background: showOnMap
+                    ? "rgba(168,85,247,0.2)"
+                    : "rgba(255,255,255,0.06)",
+                  border: showOnMap
+                    ? "1px solid hsl(273,85%,55%)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                }}
+                title={
+                  showOnMap
+                    ? "Estás visible en el mapa"
+                    : "Estás oculto del mapa"
+                }
+              >
+                {showOnMap ? (
+                  <Eye className="w-4 h-4 text-purple-300" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-white/40" />
+                )}
+              </button>
+            </div>
+          </div>
+
           {/* Scope chips */}
-          <div className="px-4 pt-3 flex gap-2 overflow-x-auto no-scrollbar">
+          <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto">
             {SCOPES.map((s) => {
               const disabled = s.needsLocation && !hasLocation;
               const active = scope === s.value;
@@ -386,19 +411,19 @@ export default function MapView() {
                   key={s.value}
                   onClick={() => setScopeSafe(s.value)}
                   disabled={disabled}
-                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-sans font-medium border transition-colors ${
-                    active
-                      ? "text-white border-transparent"
-                      : "text-muted-foreground border-border/40"
-                  } ${disabled ? "opacity-40" : ""}`}
-                  style={
-                    active
-                      ? {
-                          background:
-                            "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                        }
-                      : { background: "rgba(13,11,26,0.7)" }
-                  }
+                  className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-sans font-medium transition-all ${
+                    disabled ? "opacity-30" : ""
+                  }`}
+                  style={{
+                    color: active ? "#fff" : "rgba(255,255,255,0.5)",
+                    background: active
+                      ? "rgba(168,85,247,0.35)"
+                      : "rgba(255,255,255,0.06)",
+                    border: active
+                      ? "1px solid hsl(273,85%,55%)"
+                      : "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
                   title={
                     disabled ? "Activa tu ubicación para usar este filtro" : ""
                   }
@@ -409,67 +434,17 @@ export default function MapView() {
             })}
           </div>
 
-          {/* "Mostrarme en el mapa" privacy toggle */}
-          <div className="px-4 pt-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              {showOnMap ? (
-                <Eye className="w-4 h-4 text-primary flex-shrink-0" />
-              ) : (
-                <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              )}
-              <div className="min-w-0">
-                <p className="font-sans text-sm text-foreground leading-tight">
-                  Mostrarme en el mapa
-                </p>
-                <p className="font-sans text-[11px] text-muted-foreground leading-tight">
-                  {showOnMap
-                    ? "Otros usuarios pueden verte en el mapa"
-                    : "Estás oculto para todos"}
-                </p>
-              </div>
-            </div>
-            <button
-              role="switch"
-              aria-checked={showOnMap}
-              aria-label="Mostrarme en el mapa"
-              data-testid="toggle-show-on-map"
-              onClick={toggleVisibility}
-              disabled={updateVisibility.isPending}
-              className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors disabled:opacity-60"
-              style={{
-                background: showOnMap
-                  ? "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))"
-                  : "rgba(120,120,140,0.35)",
-              }}
-            >
-              <span
-                className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all"
-                style={{ left: showOnMap ? "22px" : "2px" }}
-              />
-            </button>
-          </div>
-
-          {/* Advanced filters toggle */}
-          <div className="px-4 pt-3 flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border border-amber-500/30 text-amber-300"
-              style={{ background: "rgba(45,35,10,0.5)" }}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filtros avanzados
-              {filtersActive(filters) && (
-                <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
-              )}
-            </button>
-          </div>
-
+          {/* Advanced filters panel */}
           {showFilters && (
             <div
-              className="mx-4 mt-2 p-3 rounded-xl border border-amber-500/20 space-y-3"
-              style={{ background: "rgba(20,16,30,0.9)" }}
+              className="mx-4 mb-3 p-3 rounded-2xl pointer-events-auto"
+              style={{
+                background: "rgba(8,7,18,0.94)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
             >
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-2.5">
                 {[
                   { key: "onlineOnly" as const, label: "En línea" },
                   { key: "withPhoto" as const, label: "Con foto" },
@@ -482,16 +457,16 @@ export default function MapView() {
                       onClick={() =>
                         setFilters((f) => ({ ...f, [key]: !f[key] }))
                       }
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-sans font-medium border ${
-                        on
-                          ? "text-white border-transparent"
-                          : "text-muted-foreground border-border/40"
-                      }`}
-                      style={
-                        on
-                          ? { background: "hsl(45,85%,45%)" }
-                          : { background: "rgba(13,11,26,0.7)" }
-                      }
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-sans font-medium"
+                      style={{
+                        background: on
+                          ? "rgba(168,85,247,0.3)"
+                          : "rgba(255,255,255,0.06)",
+                        border: on
+                          ? "1px solid hsl(273,85%,55%)"
+                          : "1px solid rgba(255,255,255,0.1)",
+                        color: on ? "#fff" : "rgba(255,255,255,0.5)",
+                      }}
                     >
                       {on && <Check className="w-3 h-3" />}
                       {label}
@@ -500,9 +475,7 @@ export default function MapView() {
                 })}
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-sans text-xs text-muted-foreground">
-                  Edad
-                </span>
+                <span className="font-sans text-xs text-white/40">Edad</span>
                 <input
                   type="number"
                   min={18}
@@ -517,9 +490,13 @@ export default function MapView() {
                       ),
                     }))
                   }
-                  className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
+                  className="w-16 px-2 py-1 rounded-lg text-sm text-white"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
                 />
-                <span className="text-muted-foreground">–</span>
+                <span className="text-white/30">–</span>
                 <input
                   type="number"
                   min={18}
@@ -534,12 +511,16 @@ export default function MapView() {
                       ),
                     }))
                   }
-                  className="w-16 px-2 py-1 rounded-lg bg-background/60 border border-border/40 text-sm text-foreground"
+                  className="w-16 px-2 py-1 rounded-lg text-sm text-white"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
                 />
                 {filtersActive(filters) && (
                   <button
                     onClick={() => setFilters(DEFAULT_FILTERS)}
-                    className="ml-auto font-sans text-xs text-muted-foreground underline"
+                    className="ml-auto font-sans text-xs text-white/40 underline"
                   >
                     Limpiar
                   </button>
@@ -547,62 +528,66 @@ export default function MapView() {
               </div>
             </div>
           )}
-        </>
-      )}
+        </div>
 
-      <div
-        className="relative flex-1 mx-4 my-3 rounded-2xl overflow-hidden border border-border/30"
-        style={{ minHeight: "340px" }}
-      >
-        <div
-          ref={mapDivRef}
-          className="absolute inset-0"
-          style={{ background: "hsl(238 30% 4%)" }}
-        />
-
+        {/* Loading spinner */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[450]">
+            <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
           </div>
         )}
 
+        {/* Activate location banner */}
         {canAccess && !hasLocation && (
           <div
-            className="absolute top-3 left-3 right-3 z-[500] px-4 py-3 rounded-xl border border-primary/30 flex items-center gap-3"
-            style={{
-              background: "rgba(13,11,26,0.95)",
-              backdropFilter: "blur(10px)",
-            }}
+            className="absolute left-4 right-4 z-[500]"
+            style={{ top: "108px" }}
           >
-            <Navigation className="w-5 h-5 text-primary flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-sm tracking-wide text-primary">
-                Activa tu ubicación
-              </p>
-              <p className="font-sans text-[11px] text-muted-foreground leading-snug">
-                Comparte tu GPS para ver quién está cerca de ti.
-              </p>
-            </div>
-            <button
-              onClick={() => geo.request()}
-              disabled={geo.isPending || geo.state === "locating"}
-              className="flex-shrink-0 px-3 py-2 rounded-lg text-white text-xs font-sans font-medium disabled:opacity-60"
+            <div
+              className="px-4 py-3 rounded-2xl flex items-center gap-3"
               style={{
-                background:
-                  "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                background: "rgba(8,7,18,0.97)",
+                backdropFilter: "blur(16px)",
+                border: "1px solid rgba(168,85,247,0.2)",
               }}
             >
-              {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
-            </button>
+              <Navigation className="w-5 h-5 text-purple-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-sm tracking-wide text-purple-300">
+                  Activa tu ubicación
+                </p>
+                <p className="font-sans text-[11px] text-white/40 leading-snug">
+                  Comparte tu GPS para ver quién está cerca de ti.
+                </p>
+              </div>
+              <button
+                onClick={() => geo.request()}
+                disabled={geo.isPending || geo.state === "locating"}
+                className="flex-shrink-0 px-3 py-2 rounded-xl text-white text-xs font-sans font-medium disabled:opacity-60"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                }}
+              >
+                {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
+              </button>
+            </div>
           </div>
         )}
 
+        {/* Location denied / unsupported */}
         {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
           <div
-            className="absolute top-20 left-3 right-3 z-[500] px-4 py-2 rounded-xl border border-red-500/30"
-            style={{ background: "rgba(13,11,26,0.95)" }}
+            className="absolute left-4 right-4 z-[500]"
+            style={{ top: hasLocation ? "108px" : "170px" }}
           >
-            <p className="font-sans text-[11px] text-red-400">
+            <p
+              className="font-sans text-[11px] text-red-400 px-3 py-2 rounded-xl"
+              style={{
+                background: "rgba(20,5,5,0.92)",
+                border: "1px solid rgba(239,68,68,0.2)",
+              }}
+            >
               {geo.state === "denied"
                 ? "Permiso de ubicación denegado. Actívalo en los ajustes del navegador."
                 : "Tu dispositivo no admite geolocalización."}
@@ -610,28 +595,51 @@ export default function MapView() {
           </div>
         )}
 
+        {/* ── Selected user card — bottom sheet ── */}
         {canAccess && selected && (
           <div
-            className="absolute bottom-3 left-3 right-3 z-[500] p-3 rounded-xl border border-primary/20 flex items-center gap-3"
+            className="absolute bottom-4 left-4 right-4 z-[500] rounded-2xl overflow-hidden"
             style={{
-              background: "rgba(13,11,26,0.97)",
-              backdropFilter: "blur(12px)",
+              background: "rgba(7,6,18,0.97)",
+              backdropFilter: "blur(24px)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              boxShadow:
+                "0 -8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(168,85,247,0.07)",
             }}
           >
-            <button
-              onClick={() => setLocation(`/profile/${selected.id}`)}
-              className="flex items-center gap-3 flex-1 min-w-0 text-left"
-            >
+            {/* Close + report buttons */}
+            <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+              <button
+                onClick={() => setReportOpen(true)}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+                title="Reportar"
+              >
+                <Flag className="w-3.5 h-3.5 text-white/25" />
+              </button>
+              <button
+                onClick={() => setSelectedId(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <X className="w-3.5 h-3.5 text-white/50" />
+              </button>
+            </div>
+
+            {/* Photo + info row */}
+            <div className="flex items-start gap-4 px-4 pt-4 pb-3 pr-20">
+              {/* Avatar */}
               <div className="relative flex-shrink-0">
                 {selected.avatar_url ? (
                   <img
                     src={selected.avatar_url}
                     alt=""
-                    className="w-12 h-12 rounded-xl object-cover border border-border/40"
+                    className="w-20 h-20 rounded-2xl object-cover"
+                    style={{ border: "1px solid rgba(255,255,255,0.08)" }}
                   />
                 ) : (
                   <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-display"
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display text-2xl"
                     style={{
                       background:
                         "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
@@ -642,91 +650,153 @@ export default function MapView() {
                 )}
                 {selected.is_online && (
                   <span
-                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+                    className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 rounded-full border-2"
                     style={{
                       background: "hsl(142,71%,45%)",
-                      borderColor: "hsl(238,25%,6%)",
+                      borderColor: "rgba(7,6,18,0.97)",
                     }}
                   />
                 )}
+                {selected.plan === "gold" && (
+                  <span
+                    className="absolute -top-2 -right-2 text-sm leading-none"
+                    style={{
+                      filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.8))",
+                    }}
+                  >
+                    👑
+                  </span>
+                )}
               </div>
-              <div className="min-w-0">
-                <p className="font-display text-base text-foreground tracking-wide truncate flex items-center gap-1">
-                  {selected.username}
+
+              {/* Text info */}
+              <div className="flex-1 min-w-0 pt-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-display text-lg text-white leading-tight">
+                    {selected.username}
+                  </span>
                   {selected.age != null && (
-                    <span className="font-sans text-sm text-muted-foreground">
+                    <span className="font-sans text-base text-white/50">
                       {selected.age}
                     </span>
                   )}
                   {selected.is_verified && (
                     <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   )}
-                  {selected.plan === "gold" && (
-                    <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  )}
-                </p>
-                <p className="font-sans text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {formatDistance(selected.distance_km) ??
-                    selected.city ??
-                    "Cerca"}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
                   {selected.is_online && (
-                    <span className="text-green-400 ml-1">· En línea</span>
+                    <span className="flex items-center gap-1 text-xs text-green-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                      En línea
+                    </span>
                   )}
-                </p>
+                  {(selected.distance_km != null || selected.city) && (
+                    <span className="flex items-center gap-0.5 text-xs text-white/40">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      {formatDistance(selected.distance_km) ??
+                        selected.city ??
+                        "Cerca"}
+                    </span>
+                  )}
+                </div>
+                {selected.city && selected.distance_km != null && (
+                  <p className="text-xs text-white/30 mt-0.5 truncate">
+                    {selected.city}
+                  </p>
+                )}
               </div>
-            </button>
-            <button
-              onClick={() =>
-                !selected.liked_by_me &&
-                likeActions.like(selected, { onSettled: invalidateMap })
-              }
-              disabled={likeActions.isPending || selected.liked_by_me}
-              aria-label="Me gusta"
-              className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border border-border/40 disabled:opacity-70"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-            >
-              <Heart
-                className={`w-5 h-5 ${
-                  selected.liked_by_me
-                    ? "fill-pink-500 text-pink-500"
-                    : "text-pink-400"
-                }`}
-              />
-            </button>
-            <button
-              onClick={() => setReportOpen(true)}
-              aria-label="Reportar"
-              title="Reportar"
-              data-testid="button-map-report"
-              className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border border-border/40 text-muted-foreground hover:text-red-400"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-            >
-              <Flag className="w-5 h-5" />
-            </button>
-            {isGold ? (
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2 px-4 pb-4">
+              {/* Ver perfil — always free */}
               <button
-                onClick={() => handleMessage(selected.id)}
-                disabled={convPending}
-                className="flex-shrink-0 px-4 py-2 rounded-lg text-white text-sm font-sans font-medium disabled:opacity-60"
+                onClick={() => setLocation(`/profile/${selected.id}`)}
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-sans font-medium"
                 style={{
-                  background:
-                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.7)",
+                  minWidth: "88px",
                 }}
               >
-                Mensaje
+                <User className="w-4 h-4" />
+                Perfil
               </button>
-            ) : (
-              <button
-                onClick={() => setLocation("/premium")}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-sans font-medium border border-amber-500/40 text-amber-300"
-                style={{ background: "rgba(45,35,10,0.7)" }}
-                title="Necesitas Gold para enviar mensajes"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                Mensaje
-              </button>
-            )}
+
+              {/* Like — Gold only */}
+              {isGold ? (
+                <button
+                  onClick={() =>
+                    !selected.liked_by_me &&
+                    likeActions.like(selected, { onSettled: invalidateMap })
+                  }
+                  disabled={likeActions.isPending || selected.liked_by_me}
+                  className="w-11 flex-shrink-0 rounded-xl flex items-center justify-center disabled:opacity-60"
+                  style={{
+                    background: selected.liked_by_me
+                      ? "rgba(236,72,153,0.18)"
+                      : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${
+                      selected.liked_by_me
+                        ? "rgba(236,72,153,0.35)"
+                        : "rgba(255,255,255,0.08)"
+                    }`,
+                  }}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${
+                      selected.liked_by_me
+                        ? "fill-pink-500 text-pink-500"
+                        : "text-pink-400"
+                    }`}
+                  />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setLocation("/premium")}
+                  className="w-11 flex-shrink-0 rounded-xl flex items-center justify-center relative"
+                  style={{
+                    background: "rgba(251,191,36,0.06)",
+                    border: "1px solid rgba(251,191,36,0.18)",
+                  }}
+                  title="Necesitas Gold para dar Me gusta"
+                >
+                  <Heart className="w-4 h-4 text-amber-500/50" />
+                  <Lock className="w-2.5 h-2.5 text-amber-400/80 absolute bottom-1 right-1" />
+                </button>
+              )}
+
+              {/* Message — Gold only */}
+              {isGold ? (
+                <button
+                  onClick={() => handleMessage(selected.id)}
+                  disabled={convPending}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-sans font-medium disabled:opacity-60"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Mensaje
+                </button>
+              ) : (
+                <button
+                  onClick={() => setLocation("/premium")}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-sans font-medium"
+                  style={{
+                    background: "rgba(251,191,36,0.07)",
+                    border: "1px solid rgba(251,191,36,0.22)",
+                    color: "hsl(45,85%,65%)",
+                  }}
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Mensaje · Gold
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -741,26 +811,41 @@ export default function MapView() {
         )}
       </div>
 
+      {/* Stats bar below the map */}
       {canAccess && (
-        <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-          {[
-            { icon: Users, label: "En el mapa", value: goldCount },
-            { icon: Zap, label: "En línea ahora", value: onlineCount },
-          ].map(({ icon: Icon, label, value }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center py-3 rounded-xl border border-border/30"
-              style={{ background: "rgba(13,11,26,0.7)" }}
-            >
-              <Icon className="w-4 h-4 text-primary mb-1" />
-              <span className="font-display text-xl text-primary">
-                {isLoading ? "…" : value}
+        <div
+          className="flex-shrink-0 flex items-center justify-around px-6 py-3"
+          style={{
+            background: "rgba(6,5,16,0.97)",
+            borderTop: "1px solid rgba(255,255,255,0.05)",
+          }}
+        >
+          <div className="flex items-center gap-2.5">
+            <Users className="w-4 h-4 text-purple-400" />
+            <div>
+              <span className="font-display text-lg text-white block leading-none">
+                {isLoading ? "…" : goldCount}
               </span>
-              <span className="font-sans text-[10px] text-muted-foreground mt-0.5 text-center px-1">
-                {label}
+              <span className="font-sans text-[10px] text-white/35 mt-0.5">
+                En el mapa
               </span>
             </div>
-          ))}
+          </div>
+          <div
+            className="w-px h-7 self-center"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          />
+          <div className="flex items-center gap-2.5">
+            <Zap className="w-4 h-4 text-purple-400" />
+            <div>
+              <span className="font-display text-lg text-white block leading-none">
+                {isLoading ? "…" : onlineCount}
+              </span>
+              <span className="font-sans text-[10px] text-white/35 mt-0.5">
+                En línea ahora
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>
