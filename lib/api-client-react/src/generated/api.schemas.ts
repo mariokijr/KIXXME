@@ -618,6 +618,10 @@ export interface Profile {
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;
+  /** Whether the user has acknowledged the map privacy notice (shown once on first visit). */
+  map_privacy_acked?: boolean;
+  /** Whether the user has acknowledged the Live privacy notice (shown once on first visit). */
+  live_privacy_acked?: boolean;
   /** Whether this is an internal system/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.
    */
   is_system?: boolean;

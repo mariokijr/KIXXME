@@ -144,6 +144,8 @@ export const GetMyProfileResponse = zod.object({
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
   "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
+  "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -204,6 +206,8 @@ export const UpdateMyProfileResponse = zod.object({
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
   "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
+  "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -262,6 +266,8 @@ export const CompleteTutorialResponse = zod.object({
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
   "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
+  "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -704,6 +710,8 @@ export const UpdateMyLocationResponse = zod.object({
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
   "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
+  "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
+  "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()

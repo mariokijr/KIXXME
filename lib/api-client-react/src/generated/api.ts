@@ -1012,6 +1012,146 @@ export const useCompleteTutorial = <TError = ErrorType<ErrorResponse>,
       return useMutation(getCompleteTutorialMutationOptions(options));
     }
 
+export const getAckMapPrivacyUrl = () => {
+
+
+
+
+  return `/api/profiles/me/map-privacy-ack`
+}
+
+/**
+ * @summary Mark that the user has seen the map privacy notice (idempotent)
+ */
+export const ackMapPrivacy = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getAckMapPrivacyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAckMapPrivacyMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackMapPrivacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ackMapPrivacy>>, TError,void, TContext> => {
+
+const mutationKey = ['ackMapPrivacy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ackMapPrivacy>>, void> = () => {
+
+
+          return  ackMapPrivacy(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AckMapPrivacyMutationResult = NonNullable<Awaited<ReturnType<typeof ackMapPrivacy>>>
+
+    export type AckMapPrivacyMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark that the user has seen the map privacy notice (idempotent)
+ */
+export const useAckMapPrivacy = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackMapPrivacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ackMapPrivacy>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAckMapPrivacyMutationOptions(options));
+    }
+
+export const getAckLivePrivacyUrl = () => {
+
+
+
+
+  return `/api/profiles/me/live-privacy-ack`
+}
+
+/**
+ * @summary Mark that the user has seen the Live privacy notice (idempotent)
+ */
+export const ackLivePrivacy = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getAckLivePrivacyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAckLivePrivacyMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackLivePrivacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ackLivePrivacy>>, TError,void, TContext> => {
+
+const mutationKey = ['ackLivePrivacy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ackLivePrivacy>>, void> = () => {
+
+
+          return  ackLivePrivacy(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AckLivePrivacyMutationResult = NonNullable<Awaited<ReturnType<typeof ackLivePrivacy>>>
+
+    export type AckLivePrivacyMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark that the user has seen the Live privacy notice (idempotent)
+ */
+export const useAckLivePrivacy = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackLivePrivacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ackLivePrivacy>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAckLivePrivacyMutationOptions(options));
+    }
+
 export const getGetProfileUrl = (id: string,) => {
 
 

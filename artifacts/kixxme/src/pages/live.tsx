@@ -13,6 +13,9 @@ import {
   useEndLiveCall,
   useBlockProfile,
   useCreateReport,
+  useGetMyProfile,
+  getGetMyProfileQueryKey,
+  useAckLivePrivacy,
   type LiveState,
   type LiveCall,
   type LiveQueueRequestScope,
@@ -88,6 +91,21 @@ export default function Live() {
   // Tracks which active call we've already played the pre-call countdown for, so
   // it only runs once per call (purely cosmetic, local-only).
   const [countdownDoneFor, setCountdownDoneFor] = useState<string | null>(null);
+
+  const { data: myProfile } = useGetMyProfile({
+    query: { queryKey: getGetMyProfileQueryKey() },
+  });
+  const ackLiveMutation = useAckLivePrivacy();
+  const [livePrivacyAckedLocally, setLivePrivacyAckedLocally] = useState(false);
+  const showLivePrivacyModal =
+    myProfile !== undefined &&
+    myProfile?.live_privacy_acked === false &&
+    !livePrivacyAckedLocally;
+
+  const handleLivePrivacyAck = () => {
+    setLivePrivacyAckedLocally(true);
+    ackLiveMutation.mutate(undefined);
+  };
 
   const { data, isLoading } = useGetLiveState({
     query: {
@@ -256,6 +274,67 @@ export default function Live() {
   }
 
   const call = data.call ?? null;
+
+  // --- Live privacy notice (first visit, only when no active/ringing call) --
+  if (showLivePrivacyModal && !call) {
+    return (
+      <div className="min-h-full flex flex-col items-center justify-end pb-8 px-5 pt-12">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div
+              className="w-20 h-20 rounded-3xl flex items-center justify-center mb-1"
+              style={{
+                background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                boxShadow: "0 0 50px rgba(168,85,247,0.4)",
+              }}
+            >
+              <Video className="w-9 h-9 text-white" />
+            </div>
+            <h1 className="font-display text-3xl tracking-tight text-white">KIXXME LIVE</h1>
+            <p className="font-sans text-sm text-white/55 leading-relaxed max-w-xs">
+              Videollamadas en directo, cara a cara, con usuarios cercanos.
+            </p>
+          </div>
+
+          <div
+            className="rounded-2xl p-5 space-y-3"
+            style={{
+              background: "rgba(13,11,26,0.95)",
+              border: "1px solid rgba(168,85,247,0.2)",
+            }}
+          >
+            <p className="font-display text-sm tracking-widest text-primary/80 uppercase mb-3">Antes de continuar</p>
+            {[
+              { icon: "🎥", text: "Las videollamadas no se graban ni se almacenan por KixxMe." },
+              { icon: "🔞", text: "Solo mayores de 18 años. Contenido inapropiado puede dar lugar a una sanción." },
+              { icon: "🛡️", text: "Puedes reportar o bloquear a cualquier usuario en cualquier momento." },
+              { icon: "📍", text: "Se usa tu ubicación aproximada para emparejar con usuarios cercanos." },
+            ].map((item) => (
+              <div key={item.icon} className="flex items-start gap-3">
+                <span className="text-base leading-none pt-0.5 flex-shrink-0">{item.icon}</span>
+                <p className="font-sans text-sm text-white/70 leading-snug">{item.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={handleLivePrivacyAck}
+            disabled={ackLiveMutation.isPending}
+            className="w-full h-14 rounded-2xl font-display text-xl tracking-widest text-white disabled:opacity-60"
+            style={{
+              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+              boxShadow: "0 6px 30px rgba(168,85,247,0.4)",
+            }}
+          >
+            {ackLiveMutation.isPending ? "…" : "Entendido, continuar"}
+          </button>
+          <p className="font-sans text-xs text-center text-white/30 pb-2">
+            Al continuar aceptas los Términos de Uso de KixxMe.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // An in-progress call always renders first — even if the plan lapsed
   // mid-call (e.g. a webhook downgrade) the user must keep the End Call UI.

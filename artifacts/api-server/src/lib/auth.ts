@@ -72,19 +72,16 @@ export async function requireAuth(
     }
   }
 
-  // Email verification temporarily disabled — re-enable when email delivery
-  // is stable (upgrade Resend plan, then uncomment the block below).
-  //
-  // if (!opts?.allowUnverified) {
-  //   const verified = await isEmailVerified(data.user, req.log);
-  //   if (!verified) {
-  //     res.status(403).json({
-  //       error: "Confirma tu correo electrónico para continuar usando KixxMe.",
-  //       code: "email_unverified",
-  //     });
-  //     return null;
-  //   }
-  // }
+  if (!opts?.allowUnverified) {
+    const verified = await isEmailVerified(data.user, req.log);
+    if (!verified) {
+      res.status(403).json({
+        error: "Confirma tu correo electrónico para continuar usando KixxMe.",
+        code: "email_unverified",
+      });
+      return null;
+    }
+  }
 
   touchLastActive(userId);
   const email = data.user.email ?? null;

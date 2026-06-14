@@ -450,7 +450,7 @@ export default function Profile() {
       {/* ── Fotos ── */}
       <div className="px-4 pb-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest">Fotos</p>
+          <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,60%,70%)" }}>Fotos</p>
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -477,7 +477,7 @@ export default function Profile() {
 
       {/* ── Sección: Básico ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Básico</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
             className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
@@ -517,7 +517,7 @@ export default function Profile() {
 
       {/* ── Sección: Preferencias ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Preferencias</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Preferencias</p>
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             label="Rol"
@@ -548,7 +548,7 @@ export default function Profile() {
 
       {/* ── Sección: Sobre mí ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest -mb-1">Sobre mí</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Sobre mí</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
             <input
@@ -609,7 +609,7 @@ export default function Profile() {
 
       {/* ── Sección: Intereses ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-3">
-        <p className="font-sans text-xs font-medium text-foreground/40 uppercase tracking-widest">
+        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,60%,70%)" }}>
           Intereses · hasta 20
         </p>
         <TagPicker selected={interests} onChange={setInterests} max={20} />
@@ -675,7 +675,7 @@ export default function Profile() {
 
       {/* ── Soporte ── */}
       <div className="px-4 pt-2 pb-8 border-t border-border/15 mt-2">
-        <p className="font-sans text-xs font-medium text-foreground/30 uppercase tracking-widest mb-3 pt-4">Soporte</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest mb-3 pt-4" style={{ color: "hsl(273,60%,70%)" }}>Soporte</p>
         <div className="flex gap-3">
           <button
             type="button"

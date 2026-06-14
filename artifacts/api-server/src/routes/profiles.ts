@@ -41,6 +41,9 @@ import {
 import {
   getProfileDetails,
   getProfileDetailsForUsers,
+  getPrivacyAcks,
+  ackMapPrivacy,
+  ackLivePrivacy,
   upsertProfileDetails,
   isValidRole,
   isValidLookingFor,
@@ -786,16 +789,19 @@ router.get("/profiles/me", async (req, res) => {
       role: null,
       looking_for: null,
       tutorial_completed: false,
+      map_privacy_acked: false,
+      live_privacy_acked: false,
       is_system: await isSystemAccount(auth.userId),
     });
     return;
   }
 
-  const [details, tutorialCompletedAt, isSystem, interests] = await Promise.all([
+  const [details, tutorialCompletedAt, isSystem, interests, privacyAcks] = await Promise.all([
     getProfileDetails(auth.userId),
     getTutorialCompletedAt(auth.userId),
     isSystemAccount(auth.userId),
     getUserInterests(auth.userId),
+    getPrivacyAcks(auth.userId),
   ]);
   res.json({
     ...data,
@@ -803,6 +809,8 @@ router.get("/profiles/me", async (req, res) => {
     interests,
     tutorial_completed: tutorialCompletedAt != null,
     is_system: isSystem,
+    map_privacy_acked: privacyAcks.mapAcked,
+    live_privacy_acked: privacyAcks.liveAcked,
   });
 });
 
@@ -1035,6 +1043,20 @@ router.put("/profiles/me/map-visibility", async (req, res) => {
 
   await setShowOnMap(auth.userId, parsed.data.show_on_map);
   res.json({ show_on_map: parsed.data.show_on_map });
+});
+
+router.post("/profiles/me/map-privacy-ack", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  await ackMapPrivacy(auth.userId);
+  res.status(204).end();
+});
+
+router.post("/profiles/me/live-privacy-ack", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  await ackLivePrivacy(auth.userId);
+  res.status(204).end();
 });
 
 router.get("/profiles/me/likes", async (req, res) => {

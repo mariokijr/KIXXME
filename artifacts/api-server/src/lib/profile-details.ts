@@ -318,6 +318,61 @@ export async function getEmailVerifiedAt(userId: string): Promise<Date | null> {
 }
 
 /**
+ * Returns whether the user has acknowledged the map and/or live privacy notices.
+ * Defaults to false when there's no row yet (new user, never visited).
+ */
+export async function getPrivacyAcks(
+  userId: string,
+): Promise<{ mapAcked: boolean; liveAcked: boolean }> {
+  const [row] = await db
+    .select({
+      mapPrivacyAcknowledgedAt: profileDetailsTable.mapPrivacyAcknowledgedAt,
+      livePrivacyAcknowledgedAt: profileDetailsTable.livePrivacyAcknowledgedAt,
+    })
+    .from(profileDetailsTable)
+    .where(eq(profileDetailsTable.userId, userId))
+    .limit(1);
+  return {
+    mapAcked: row?.mapPrivacyAcknowledgedAt != null,
+    liveAcked: row?.livePrivacyAcknowledgedAt != null,
+  };
+}
+
+/**
+ * Record that the user has seen and accepted the map privacy notice.
+ * Idempotent: COALESCE keeps the original timestamp.
+ */
+export async function ackMapPrivacy(userId: string): Promise<void> {
+  const ts = new Date();
+  await db
+    .insert(profileDetailsTable)
+    .values({ userId, mapPrivacyAcknowledgedAt: ts })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: {
+        mapPrivacyAcknowledgedAt: sql`coalesce(${profileDetailsTable.mapPrivacyAcknowledgedAt}, ${ts})`,
+      },
+    });
+}
+
+/**
+ * Record that the user has seen and accepted the Live privacy notice.
+ * Idempotent: COALESCE keeps the original timestamp.
+ */
+export async function ackLivePrivacy(userId: string): Promise<void> {
+  const ts = new Date();
+  await db
+    .insert(profileDetailsTable)
+    .values({ userId, livePrivacyAcknowledgedAt: ts })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: {
+        livePrivacyAcknowledgedAt: sql`coalesce(${profileDetailsTable.livePrivacyAcknowledgedAt}, ${ts})`,
+      },
+    });
+}
+
+/**
  * Mark the email as verified exactly once. Uses an EXPLICIT timestamp (not
  * now()) so we can detect a first-set: the COALESCE keeps the original value on
  * a repeat call, so when the row we get back equals the timestamp we passed in,

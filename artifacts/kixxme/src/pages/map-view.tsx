@@ -24,6 +24,7 @@ import {
   useUpdateMapVisibility,
   useGetMyProfile,
   getGetMyProfileQueryKey,
+  useAckMapPrivacy,
   PublicProfile,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -177,6 +178,18 @@ export default function MapView() {
   const likeActions = useLikeActions();
   const geo = useGeolocation();
   const updateVisibility = useUpdateMapVisibility();
+  const ackMapMutation = useAckMapPrivacy();
+  const [privacyAckedLocally, setPrivacyAckedLocally] = useState(false);
+
+  const showPrivacyModal =
+    profile !== undefined &&
+    profile?.map_privacy_acked === false &&
+    !privacyAckedLocally;
+
+  const handleMapPrivacyAck = () => {
+    setPrivacyAckedLocally(true);
+    ackMapMutation.mutate(undefined);
+  };
 
   const canAccess = mapData?.can_access ?? false;
   const showOnMap = mapData?.show_on_map ?? true;
@@ -399,6 +412,84 @@ export default function MapView() {
     <div className="flex flex-col h-full" style={{ background: "hsl(238,30%,3%)" }}>
       <div className="relative flex-1 min-h-0">
         <div ref={mapDivRef} className="absolute inset-0" />
+
+        {/* ── Privacy notice (first visit only) ── */}
+        {showPrivacyModal && (
+          <div
+            className="absolute inset-0 z-[600] flex flex-col items-center justify-end p-4 pb-6"
+            style={{ background: "rgba(6,5,16,0.94)", backdropFilter: "blur(20px)" }}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl p-6 space-y-4"
+              style={{
+                background: "rgba(13,11,26,0.98)",
+                border: "1px solid rgba(168,85,247,0.25)",
+                boxShadow: "0 -8px 60px rgba(168,85,247,0.15), 0 0 0 1px rgba(168,85,247,0.08)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 0 20px rgba(168,85,247,0.4)" }}
+                >
+                  <Navigation className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-display text-xl tracking-wide text-white">Mapa · Privacidad</h2>
+                  <p className="font-sans text-xs text-white/45">Antes de continuar</p>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { icon: "📍", text: "Tu ubicación aparece aproximada (±2 km) — nunca con exactitud." },
+                  { icon: "👁️", text: "Puedes ocultarte del mapa en cualquier momento con el botón del ojo." },
+                  { icon: "🔒", text: "Solo usuarios registrados y verificados pueden verte." },
+                ].map((item) => (
+                  <div key={item.icon} className="flex items-start gap-3">
+                    <span className="text-base leading-none pt-0.5 flex-shrink-0">{item.icon}</span>
+                    <p className="font-sans text-sm text-white/70 leading-snug">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleMapPrivacyAck}
+                disabled={ackMapMutation.isPending}
+                className="w-full h-12 rounded-2xl font-display text-lg tracking-widest text-white disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 4px 20px rgba(168,85,247,0.35)" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── show_on_map=false gate: symmetric privacy (can't see others either) ── */}
+        {!showPrivacyModal && !showOnMap && (
+          <div
+            className="absolute inset-0 z-[500] flex flex-col items-center justify-center p-6 text-center"
+            style={{ background: "rgba(6,5,16,0.97)", backdropFilter: "blur(16px)" }}
+          >
+            <div
+              className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <EyeOff className="w-7 h-7 text-white/30" />
+            </div>
+            <h2 className="font-display text-2xl tracking-wide text-white mb-3">Estás oculto</h2>
+            <p className="font-sans text-sm text-white/50 leading-relaxed max-w-xs mb-8">
+              Mientras tu visibilidad esté desactivada, tampoco podrás ver a otros usuarios en el mapa.
+              Actívala para explorar quién está cerca.
+            </p>
+            <button
+              onClick={toggleVisibility}
+              disabled={updateVisibility.isPending}
+              className="h-12 px-8 rounded-2xl font-display text-base tracking-widest text-white disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 4px 20px rgba(168,85,247,0.35)" }}
+            >
+              {updateVisibility.isPending ? "…" : "Mostrarme en el mapa"}
+            </button>
+          </div>
+        )}
 
         {/* Top gradient overlay — floating header */}
         <div

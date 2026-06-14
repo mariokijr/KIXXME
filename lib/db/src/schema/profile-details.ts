@@ -51,6 +51,11 @@ export const profileDetailsTable = pgTable("profile_details", {
   tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   showOnMap: boolean("show_on_map").notNull().default(true),
+
+  // One-time privacy notice acknowledgements (set on first visit to each section).
+  mapPrivacyAcknowledgedAt: timestamp("map_privacy_acknowledged_at", { withTimezone: true }),
+  livePrivacyAcknowledgedAt: timestamp("live_privacy_acknowledged_at", { withTimezone: true }),
+
   // Boost: when set (and in the future), this user appears first in Descubrir.
   // Expires automatically — no cleanup needed, the sort just checks > now().
   boostExpiresAt: timestamp("boost_expires_at", { withTimezone: true }),

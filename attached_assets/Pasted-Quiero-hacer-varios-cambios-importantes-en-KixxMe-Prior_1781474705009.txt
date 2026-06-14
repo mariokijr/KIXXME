@@ -1,0 +1,126 @@
+Quiero hacer varios cambios importantes en KixxMe. Prioridad alta.
+
+1. MAPA — aviso de privacidad obligatorio
+
+En el apartado Mapa quiero que, la primera vez que cada usuario entre, aparezca un aviso de privacidad explicando claramente:
+
+“Si activas tu ubicación, otros usuarios podrán verte en el mapa de forma aproximada. Nunca mostraremos tu ubicación exacta, solo una zona cercana.”
+
+Este aviso debe salir solo 1 vez por cuenta.
+
+Debe guardarse en base de datos que el usuario ya lo ha visto.
+
+2. MAPA — activar/desactivar ubicación
+
+Quiero un botón claro para activar o desactivar la ubicación.
+
+Regla:
+
+* Si el usuario activa ubicación → puede ver usuarios en el mapa y otros usuarios pueden verlo a él de forma aproximada.
+* Si el usuario desactiva ubicación → no aparece en el mapa y tampoco puede ver usuarios en el mapa.
+
+Esto debe estar muy claro visualmente.
+
+3. REGISTRO — verificar emails reales
+
+Hay un problema grave: he creado una cuenta con un Gmail que no existía y me ha dejado entrar.
+
+Eso hay que corregirlo.
+
+Nadie debe poder usar la app sin verificar su email.
+
+Flujo correcto:
+
+* Usuario se registra.
+* Se envía email de verificación.
+* Hasta que no verifique el email, no puede entrar ni usar la app.
+* Si el email no existe o no recibe el código, no debe poder activar la cuenta.
+* Añadir opción de reenviar código.
+* Revisar que Resend/support@kixxme.com funciona correctamente para todos los emails.
+
+4. LIVE — filtro por ciudad o país
+
+En la zona Live quiero algo parecido al mapa, pero pensado para emparejamiento.
+
+Añadir búsqueda/filtro para:
+
+* Ciudad
+* País
+* Zona
+
+Objetivo: que el usuario pueda elegir con quién quiere conectar por videollamada según zona.
+
+Mantener también:
+
+* Opción “Todo el mundo”
+* Barra de edad
+* Filtros actuales que ya existan
+
+5. LIVE — aviso de privacidad
+
+Igual que en Mapa, quiero un aviso la primera vez que cada usuario entre en Live.
+
+Debe explicar:
+
+“En Live puedes conectar con otros usuarios por videollamada. Usa esta función con respeto. No compartas datos personales sensibles y reporta cualquier comportamiento inapropiado.”
+
+Este aviso también debe salir solo 1 vez por cuenta y guardarse.
+
+6. Nueva pestaña AJUSTES
+
+Quiero añadir una zona/pestaña exclusiva de Ajustes.
+
+Ahora mismo está:
+
+* Descubrir
+* Mapa
+* Live
+* Chats
+* Perfil
+* Premium
+
+Quiero añadir una sección clara de Ajustes para:
+
+* Contactar soporte
+* Reportar un problema
+* Ayuda / preguntas frecuentes
+* Usuarios bloqueados
+* Cerrar sesión
+* Gestionar suscripción
+* Tomar un descanso
+* Zona de peligro
+* Eliminar cuenta
+
+Cada opción debe tener su función real. No quiero botones decorativos.
+
+7. Más alegría visual en la app
+
+La app sigue viéndose muy oscura y seria.
+
+Quiero más vida visual:
+
+* Más degradados rosa/morado.
+* Más luz.
+* Más efectos glow.
+* Más sensación de app social viva.
+* Menos pantallas negras vacías.
+* Más tarjetas visuales.
+* Más sensación premium y moderna.
+
+Mantener la identidad de KixxMe, pero hacerla más alegre, atractiva y menos apagada.
+
+8. Importante
+
+No eliminar funciones existentes.
+
+No tocar ventajas de Gold y Plus sin permiso.
+
+No romper Premium, Mapa, Live, Chats, Perfil ni Descubrir.
+
+Antes de seguir con nuevas funciones, arreglar primero:
+
+1. Emails/verificación.
+2. Aviso y control de ubicación en Mapa.
+3. Aviso y filtros de Live.
+4. Nueva sección de Ajustes.
+5. Mejoras visuales.

@@ -34,6 +34,10 @@ import {
   LogOut,
   KeyRound,
   CreditCard,
+  HelpCircle,
+  MessageSquare,
+  Star,
+  HeadphonesIcon,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -266,62 +270,115 @@ export default function Settings() {
           </button>
         </div>
 
-        <>
-          <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-            {subscription?.is_trial ? "PRUEBA GRATUITA" : "SUSCRIPCIÓN"}
-          </h2>
-          <p className="font-sans text-sm text-muted-foreground mb-5">
-            {subscription?.is_trial
-              ? "Cancela antes de que expire y no pagarás nada."
-              : subscription?.has_active_subscription
-              ? "Gestiona tu plan premium."
-              : "Accede a más funciones con un plan de pago."}
-          </p>
+        {/* Premium section */}
+        <h2
+          className="font-display text-xl tracking-widest mb-1"
+          style={{ background: "linear-gradient(90deg, hsl(45,90%,60%), hsl(38,95%,55%))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+        >
+          {subscription?.is_trial ? "PRUEBA GRATUITA" : "PREMIUM"}
+        </h2>
+        <p className="font-sans text-sm text-muted-foreground mb-5">
+          {subscription?.is_trial
+            ? "Cancela antes de que expire y no pagarás nada."
+            : subscription?.has_active_subscription
+            ? "Gestiona tu plan premium."
+            : "Desbloquea funciones exclusivas y vive la experiencia completa."}
+        </p>
+        <div className="space-y-3 mb-8">
+          {showCancelSubscription ? (
+            <button
+              type="button"
+              onClick={() => setLocation("/settings/cancel-subscription")}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+              style={{ background: "rgba(13,11,26,0.7)" }}
+              data-testid="button-cancel-subscription"
+            >
+              <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
+              <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+                {subscription?.is_trial ? "Cancelar prueba gratuita" : "Cancelar suscripción"}
+              </span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          ) : subscription?.has_active_subscription && subscription?.cancel_at_period_end ? (
+            <div
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40"
+              style={{ background: "rgba(13,11,26,0.7)" }}
+            >
+              <CreditCard className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <span className="flex-1 text-left font-sans text-sm text-muted-foreground">
+                Suscripción activa · se cancela al final del período
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setLocation("/premium")}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border transition-colors"
+              style={{
+                background: "linear-gradient(135deg, rgba(234,179,8,0.08), rgba(168,85,247,0.06))",
+                borderColor: "rgba(234,179,8,0.25)",
+              }}
+              data-testid="button-go-premium"
+            >
+              <Star className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+              <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+                Ver planes Gold y Plus
+              </span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
 
-          <div className="space-y-3 mb-8">
-            {showCancelSubscription ? (
-              <button
-                type="button"
-                onClick={() => setLocation("/settings/cancel-subscription")}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
-                style={{ background: "rgba(13,11,26,0.7)" }}
-                data-testid="button-cancel-subscription"
-              >
-                <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-                  {subscription?.is_trial
-                    ? "Cancelar prueba gratuita"
-                    : "Cancelar suscripción"}
-                </span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-            ) : subscription?.has_active_subscription && subscription?.cancel_at_period_end ? (
-              <div
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40"
-                style={{ background: "rgba(13,11,26,0.7)" }}
-              >
-                <CreditCard className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                <span className="flex-1 text-left font-sans text-sm text-muted-foreground">
-                  Suscripción activa · se cancela al final del período
-                </span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setLocation("/premium")}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
-                style={{ background: "rgba(13,11,26,0.7)" }}
-                data-testid="button-view-premium"
-              >
-                <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-                  Ver planes Premium
-                </span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-        </>
+        {/* Soporte section */}
+        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
+          SOPORTE
+        </h2>
+        <p className="font-sans text-sm text-muted-foreground mb-5">
+          ¿Tienes alguna duda o problema? Estamos aquí para ayudarte.
+        </p>
+        <div className="space-y-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setLocation("/support")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-contact-support"
+          >
+            <HeadphonesIcon className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Contactar soporte
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLocation("/support")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-report-problem"
+          >
+            <MessageSquare className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Reportar un problema
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLocation("/legal")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-faq"
+          >
+            <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Términos y privacidad
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
 
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           GESTIÓN DE CUENTA

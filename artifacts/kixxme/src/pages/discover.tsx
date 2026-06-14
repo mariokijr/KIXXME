@@ -266,7 +266,15 @@ function GridDiscover({
       </div>
 
       <div className="px-4 pt-4 pb-2">
-        <h2 className="font-display text-3xl tracking-wide leading-tight">
+        <h2
+          className="font-display text-3xl tracking-wide leading-tight"
+          style={{
+            background: "linear-gradient(90deg, hsl(273,85%,78%), hsl(330,85%,70%))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.3))",
+          }}
+        >
           {heading}
         </h2>
         {!isLoading && !isError && profiles.length > 0 && (

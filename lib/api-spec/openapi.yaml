@@ -334,6 +334,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /profiles/me/map-privacy-ack:
+    post:
+      operationId: ackMapPrivacy
+      tags: [profiles]
+      summary: Mark that the user has seen the map privacy notice (idempotent)
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Acknowledged
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/me/live-privacy-ack:
+    post:
+      operationId: ackLivePrivacy
+      tags: [profiles]
+      summary: Mark that the user has seen the Live privacy notice (idempotent)
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Acknowledged
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /profiles/{id}:
     get:
       operationId: getProfile
@@ -4298,6 +4332,12 @@ components:
           description: >
             Whether the user finished the mandatory onboarding tutorial. Private
             to the owner (never exposed on PublicProfile).
+        map_privacy_acked:
+          type: boolean
+          description: Whether the user has acknowledged the map privacy notice (shown once on first visit).
+        live_privacy_acked:
+          type: boolean
+          description: Whether the user has acknowledged the Live privacy notice (shown once on first visit).
         is_system:
           type: boolean
           description: >

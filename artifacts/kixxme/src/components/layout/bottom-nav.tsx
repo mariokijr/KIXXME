@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Sparkles, Globe, MessageCircle, User, Star, Video } from "lucide-react";
+import { Sparkles, Globe, MessageCircle, User, Settings, Video } from "lucide-react";
 import { useNotifications } from "@/lib/notifications";
 
 const tabs = [
@@ -8,7 +8,7 @@ const tabs = [
   { href: "/live", Icon: Video, label: "Live" },
   { href: "/chats", Icon: MessageCircle, label: "Chats" },
   { href: "/profile", Icon: User, label: "Perfil" },
-  { href: "/premium", Icon: Star, label: "Premium" },
+  { href: "/settings", Icon: Settings, label: "Ajustes" },
 ];
 
 export default function BottomNav() {
@@ -27,9 +27,7 @@ export default function BottomNav() {
       <div className="flex justify-around items-center h-16 max-w-xl mx-auto px-2">
         {tabs.map(({ href, Icon, label }) => {
           const active = location === href;
-          const isPremium = href === "/premium";
           const showBadge = href === "/chats" && totalUnread > 0;
-          const showSoon = href === "/live";
           return (
             <Link
               key={href}
@@ -40,9 +38,8 @@ export default function BottomNav() {
                 <span
                   className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
                   style={{
-                    background: isPremium
-                      ? "linear-gradient(90deg, hsl(38,95%,55%), hsl(25,100%,55%))"
-                      : "linear-gradient(90deg, hsl(273,85%,65%), hsl(330,85%,60%))",
+                    background: "linear-gradient(90deg, hsl(273,85%,65%), hsl(330,85%,60%))",
+                    boxShadow: "0 0 8px rgba(168,85,247,0.5)",
                   }}
                 />
               )}
@@ -55,37 +52,17 @@ export default function BottomNav() {
                   {totalUnread > 99 ? "99+" : totalUnread}
                 </span>
               )}
-              {showSoon && (
-                <span
-                  className="absolute top-1.5 left-1/2 translate-x-2 w-[7px] h-[7px] rounded-full border border-background"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(38,95%,55%), hsl(25,100%,55%))",
-                    boxShadow: "0 0 6px rgba(234,179,8,0.7)",
-                  }}
-                  data-testid="badge-live-soon"
-                  aria-label="Próximamente"
-                />
-              )}
               <Icon
                 className="w-5 h-5 transition-all duration-200"
                 style={{
-                  color: active
-                    ? isPremium
-                      ? "hsl(38,95%,58%)"
-                      : "hsl(273,85%,70%)"
-                    : "hsl(240,10%,50%)",
-                  filter: active && !isPremium ? "drop-shadow(0 0 6px rgba(168,85,247,0.6))" : undefined,
+                  color: active ? "hsl(273,85%,72%)" : "hsl(240,10%,50%)",
+                  filter: active ? "drop-shadow(0 0 8px rgba(168,85,247,0.55))" : undefined,
                 }}
               />
               <span
                 className="text-[10px] font-sans font-medium transition-all duration-200 leading-none"
                 style={{
-                  color: active
-                    ? isPremium
-                      ? "hsl(38,95%,58%)"
-                      : "hsl(273,85%,70%)"
-                    : "hsl(240,10%,45%)",
+                  color: active ? "hsl(273,85%,72%)" : "hsl(240,10%,45%)",
                 }}
               >
                 {label}
