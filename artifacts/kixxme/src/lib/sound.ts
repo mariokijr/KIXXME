@@ -31,10 +31,8 @@ const VOLUME: Record<SoundName, number> = {
 
 const supported = typeof window !== "undefined" && typeof Audio !== "undefined";
 const els: Partial<Record<SoundName, HTMLAudioElement>> = {};
-let interacted = false;
 
 function urlFor(name: SoundName): string {
-  // BASE_URL already ends with "/"; public assets are served from there.
   const base = import.meta.env.BASE_URL ?? "/";
   return `${base}${FILES[name]}`;
 }
@@ -50,56 +48,14 @@ function element(name: SoundName): HTMLAudioElement {
   return a;
 }
 
-// Prime every cue within the first user gesture so subsequent (possibly async)
-// playback is permitted by mobile autoplay policies. Each element is played at
-// volume 0 (a real, silent playback — unlike `muted`, this reliably unlocks
-// later unmuted playback on iOS Safari) then immediately reset.
-function unlock(): void {
-  (Object.keys(FILES) as SoundName[]).forEach((name) => {
-    try {
-      const a = element(name);
-      const target = VOLUME[name];
-      a.volume = 0;
-      const p = a.play();
-      if (p && typeof p.then === "function") {
-        p.then(() => {
-          a.pause();
-          a.currentTime = 0;
-          a.volume = target;
-        }).catch(() => {
-          a.volume = target;
-        });
-      } else {
-        a.volume = target;
-      }
-    } catch {
-      /* ignore */
-    }
-  });
-}
-
-function onFirstInteraction(): void {
-  if (interacted) return;
-  interacted = true;
-  unlock();
-  window.removeEventListener("pointerdown", onFirstInteraction);
-  window.removeEventListener("touchstart", onFirstInteraction);
-  window.removeEventListener("keydown", onFirstInteraction);
-}
-
-if (supported) {
-  window.addEventListener("pointerdown", onFirstInteraction, { passive: true });
-  window.addEventListener("touchstart", onFirstInteraction, { passive: true });
-  window.addEventListener("keydown", onFirstInteraction);
-}
-
 /**
- * Play a one-shot sound effect. Safe to call from any user-action handler:
- * it does nothing (silently) before the first interaction, when audio is
- * unsupported, or if the browser blocks playback.
+ * Play a one-shot sound effect. Safe to call from any user-action handler.
+ * Plays only within real user gestures (like / superlike / match buttons) so
+ * no sound fires on page navigation clicks. Fail-silent when unsupported or
+ * blocked by the browser.
  */
 export function playSound(name: SoundName): void {
-  if (!supported || !interacted) return;
+  if (!supported) return;
   try {
     const a = element(name);
     a.currentTime = 0;
