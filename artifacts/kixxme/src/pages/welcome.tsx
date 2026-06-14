@@ -49,11 +49,11 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
         <Video style={{ width: 12, height: 12, color: "rgba(168,85,247,0.8)" }} />
       </div>
 
-      {/* Caller 1 — Carlos */}
+      {/* Caller 1 — Marcelo */}
       <div style={{ flex: 1, position: "relative", margin: "4px 4px 2px 4px", borderRadius: r, overflow: "hidden" }}>
         <img
           src={FACE_CARLOS}
-          alt="Carlos"
+          alt="Marcelo"
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
         />
         {/* purple tint overlay */}
@@ -61,7 +61,7 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8, display: "flex", alignItems: "center", gap: 4 }}>
           <BadgeCheck style={{ width: 10, height: 10, color: "hsl(199,89%,65%)" }} />
-          <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Carlos, 24</span>
+          <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcelo, 26</span>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(180,20,120,0.2) 0%, transparent 60%)" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8 }}>
-          <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcos, 29</span>
+          <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcos, 24</span>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ function ProfileCardScreen({ w }: { w: number }) {
         <p style={{
           fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.13),
           color: "white", lineHeight: 1.1, letterSpacing: "0.03em",
-        }}>Alejandro, 26</p>
+        }}>Alejandro, 22</p>
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
           <span style={{
             padding: "1px 6px", borderRadius: 99, fontSize: 8,
@@ -200,20 +200,32 @@ function ProfileCardScreen({ w }: { w: number }) {
    SCREEN: Real-time map
 ───────────────────────────────────────────────────────────── */
 const MAP_DOTS = [
-  // right-half dots (visible in the 390px strip beyond the center phone)
-  { x: 52, y: 15, gold: true,  pulse: true  },
-  { x: 68, y: 26, gold: false, pulse: false },
-  { x: 80, y: 18, gold: true,  pulse: false },
-  { x: 60, y: 40, gold: true,  pulse: true  },
-  { x: 75, y: 50, gold: false, pulse: false },
-  { x: 88, y: 34, gold: true,  pulse: false },
-  { x: 64, y: 62, gold: false, pulse: true  },
-  { x: 84, y: 65, gold: true,  pulse: false },
-  { x: 55, y: 74, gold: false, pulse: false },
-  // left-half (visible on wider screens / full-view)
-  { x: 20, y: 30, gold: true,  pulse: false },
-  { x: 32, y: 52, gold: false, pulse: true  },
-  { x: 14, y: 68, gold: true,  pulse: false },
+  // right-half — main visible strip
+  { x: 52, y: 12, gold: true,  pulse: true  },
+  { x: 68, y: 22, gold: false, pulse: false },
+  { x: 80, y: 15, gold: true,  pulse: false },
+  { x: 60, y: 36, gold: true,  pulse: true  },
+  { x: 75, y: 46, gold: false, pulse: false },
+  { x: 88, y: 30, gold: true,  pulse: false },
+  { x: 64, y: 58, gold: false, pulse: true  },
+  { x: 84, y: 62, gold: true,  pulse: false },
+  { x: 55, y: 72, gold: false, pulse: false },
+  { x: 70, y: 78, gold: true,  pulse: true  },
+  { x: 90, y: 52, gold: false, pulse: false },
+  { x: 58, y: 48, gold: true,  pulse: false },
+  { x: 78, y: 38, gold: false, pulse: true  },
+  { x: 93, y: 70, gold: true,  pulse: false },
+  { x: 62, y: 85, gold: false, pulse: false },
+  { x: 82, y: 20, gold: true,  pulse: true  },
+  // left-half
+  { x: 20, y: 25, gold: true,  pulse: false },
+  { x: 32, y: 48, gold: false, pulse: true  },
+  { x: 14, y: 65, gold: true,  pulse: false },
+  { x: 42, y: 20, gold: false, pulse: false },
+  { x: 28, y: 68, gold: true,  pulse: true  },
+  { x: 10, y: 40, gold: false, pulse: false },
+  { x: 38, y: 75, gold: true,  pulse: false },
+  { x: 22, y: 85, gold: false, pulse: true  },
 ];
 
 function MapScreen({ w }: { w: number }) {
@@ -305,22 +317,17 @@ function MapScreen({ w }: { w: number }) {
         </div>
       ))}
 
-      {/* Bottom stats */}
+      {/* Bottom location pill */}
       <div style={{
-        position: "absolute", bottom: 8, left: 6, right: 6,
-        padding: "5px 8px", borderRadius: 10,
-        background: "rgba(5,4,18,0.88)", border: "1px solid rgba(139,92,246,0.25)",
+        position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+        padding: "3px 10px", borderRadius: 99,
+        background: "rgba(5,4,18,0.80)", border: "1px solid rgba(139,92,246,0.28)",
         backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+        display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "hsl(273,85%,65%)" }} />
-          <span style={{ fontSize: 8, color: "rgba(255,255,255,0.75)", fontFamily: "Inter,sans-serif" }}>
-            142 usuarios Gold
-          </span>
-        </div>
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontFamily: "Inter,sans-serif" }}>
-          En línea: 38
+        <MapPin style={{ width: 8, height: 8, color: "hsl(273,85%,70%)", flexShrink: 0 }} />
+        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.70)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
+          Madrid · España
         </span>
       </div>
     </div>
