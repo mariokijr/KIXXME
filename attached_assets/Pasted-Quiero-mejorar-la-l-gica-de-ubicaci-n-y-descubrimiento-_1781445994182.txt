@@ -1,0 +1,101 @@
+Quiero mejorar la lógica de ubicación y descubrimiento de KixxMe.
+
+Ahora mismo en Tarjetas / Cuadrícula / En línea aparecen usuarios de cualquier país, y eso rompe la experiencia. La app debe priorizar gente cercana al usuario, como hacen las apps de citas reales.
+
+Quiero implementar esto:
+
+1. Mostrar distancia en cada perfil
+    En las tarjetas, cuadrícula y usuarios en línea debe aparecer algo como:
+
+* A 2 km de ti
+* A 8 km de ti
+* A 25 km de ti
+* Madrid, España
+* Alicante, España
+
+Si no hay ubicación exacta, mostrar ciudad/país.
+
+2. Filtro de zona
+    Añadir una opción visible tipo:
+
+* Cerca de mí
+* Mi ciudad
+* Mi país
+* Todo el mundo
+
+Por defecto debe estar seleccionado:
+“Cerca de mí”
+
+3. Orden de descubrimiento
+    El orden debe ser:
+
+* Primero usuarios más cercanos.
+* Después usuarios de la misma ciudad/zona.
+* Después usuarios del mismo país.
+* Solo al final usuarios internacionales.
+
+4. Distancia máxima
+    Añadir un filtro de distancia:
+
+* 5 km
+* 10 km
+* 25 km
+* 50 km
+* 100 km
+* Todo el país
+
+Por defecto usar algo razonable como 50 km.
+
+5. Aplicar a todas las vistas
+    Esta lógica debe aplicarse a:
+
+* Tarjetas.
+* Cuadrícula.
+* En línea.
+* Mapa.
+* Recomendaciones.
+
+6. Permiso de ubicación
+    Si el usuario no ha dado ubicación:
+
+* Pedir permiso de ubicación de forma clara.
+* Si no acepta, usar ciudad/país del perfil o IP como fallback.
+* Mostrar un aviso: “Activa tu ubicación para ver personas cerca de ti.”
+
+7. Privacidad
+    No mostrar dirección exacta.
+    No mostrar ubicación precisa.
+    Solo mostrar distancia aproximada o ciudad.
+
+Ejemplos visibles:
+
+* “A 3 km de ti”
+* “Cerca de Alicante”
+* “Madrid, España”
+* “Mismo país”
+
+8. Internacional opcional
+    Añadir una opción:
+
+“Ver perfiles internacionales”
+
+Por defecto: desactivada.
+
+Si está desactivada, no mostrar perfiles de otros países salvo que no haya absolutamente nadie local.
+
+9. Revisar backend y frontend
+    Audita dónde se cargan los usuarios en descubrimiento y actualiza:
+
+* Query del backend.
+* Ordenación por distancia.
+* Filtros de país/ciudad.
+* UI de las tarjetas.
+* UI de cuadrícula.
+* UI de usuarios en línea.
+
+10. Objetivo
+    El objetivo es que cuando un usuario entre piense:
+
+“Esta app me está mostrando gente real cerca de mí.”
+
+No quiero que de primeras un usuario de España vea perfiles de Chile, México, Colombia u otros países si hay usuarios cercanos o del mismo país disponibles.

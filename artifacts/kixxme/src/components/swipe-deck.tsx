@@ -24,6 +24,8 @@ import {
   RefreshCw,
   Sparkles,
   Flag,
+  Globe2,
+  Navigation,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -32,6 +34,8 @@ import {
   getListProfilePhotosQueryKey,
   useGetLikeQuota,
   getGetLikeQuotaQueryKey,
+  useGetMyProfile,
+  getGetMyProfileQueryKey,
   type PublicProfile,
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications";
@@ -42,6 +46,34 @@ import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
+import { useGeolocation } from "@/lib/use-geolocation";
+import { useAuth } from "@/lib/auth";
+
+// ---------------------------------------------------------------------------
+// Scope filter (persisted in localStorage)
+// ---------------------------------------------------------------------------
+const SWIPE_SCOPE_KEY = "kixxme:swipe-scope";
+type DiscoverScope = "nearby" | "province" | "spain" | "worldwide";
+
+const SCOPE_LABELS: Record<DiscoverScope, string> = {
+  nearby: "Cerca",
+  province: "Provincia",
+  spain: "España",
+  worldwide: "Mundo",
+};
+
+function readScope(): DiscoverScope {
+  try {
+    const v = localStorage.getItem(SWIPE_SCOPE_KEY);
+    if (v === "nearby" || v === "province" || v === "spain" || v === "worldwide")
+      return v;
+  } catch { /* ignore */ }
+  return "nearby";
+}
+
+function saveScope(s: DiscoverScope) {
+  try { localStorage.setItem(SWIPE_SCOPE_KEY, s); } catch { /* ignore */ }
+}
 
 type Decision = "like" | "pass" | "superlike";
 
@@ -494,25 +526,46 @@ export function SwipeView({
   const likeActions = useLikeActions();
   const passMut = usePassProfile();
 
+  // --- Scope & location ---------------------------------------------------
+  const [scope, setScopeState] = useState<DiscoverScope>(readScope);
+  const [index, setIndex] = useState(0);
+  const [detail, setDetail] = useState<PublicProfile | null>(null);
+
+  const { session } = useAuth();
+  const geo = useGeolocation();
+
+  const { data: ownProfile } = useGetMyProfile({
+    query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
+  });
+  const hasCoords = ownProfile?.latitude != null;
+
+  const setScope = (s: DiscoverScope) => {
+    setScopeState(s);
+    saveScope(s);
+    setIndex(0);
+  };
+
+  // Sort by distance whenever a geographic scope is active; fall back to
+  // recent for worldwide so the deck stays fresh on low-density installs.
+  const sort: "recent" | "distance" =
+    scope === "worldwide" ? "recent" : "distance";
+  const queryParams = { sort, scope };
+  const queryKey = getListProfilesQueryKey(queryParams);
+
+  // -------------------------------------------------------------------------
   const {
     data: profiles = [],
     isLoading,
     isError,
     refetch,
     isFetching,
-  } = useListProfiles(
-    { sort: "recent" },
-    {
-      query: {
-        queryKey: getListProfilesQueryKey({ sort: "recent" }),
-        staleTime: Infinity,
-        refetchOnWindowFocus: false,
-      },
+  } = useListProfiles(queryParams, {
+    query: {
+      queryKey,
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
     },
-  );
-
-  const [index, setIndex] = useState(0);
-  const [detail, setDetail] = useState<PublicProfile | null>(null);
+  });
   const cardRef = useRef<SwipeCardHandle>(null);
 
   const deck = profiles.slice(index, index + 3);
@@ -530,16 +583,12 @@ export function SwipeView({
         likeActions.superLike(profile, { onSettled: invalidateQuota });
       } else {
         playSound("pass");
-        // Persist the dislike so this profile is excluded from Descubrir next time.
         passMut.mutate({ id: profile.id });
       }
       // Mark the candidate list stale so a later remount refetches (excluding
       // this now liked/superliked/passed profile) WITHOUT disrupting the
       // current in-session deck order (refetchType "none").
-      qc.invalidateQueries({
-        queryKey: getListProfilesQueryKey({ sort: "recent" }),
-        refetchType: "none",
-      });
+      qc.invalidateQueries({ queryKey, refetchType: "none" });
     }
     setIndex((i) => i + 1);
   };
@@ -593,6 +642,68 @@ export function SwipeView({
       <div className="pt-3 flex justify-center">
         <ModeToggle mode={mode} setMode={setMode} />
       </div>
+
+      {/* Scope filter chips */}
+      <div className="px-4 pt-2 flex items-center justify-center gap-1.5 flex-wrap">
+        {(Object.keys(SCOPE_LABELS) as DiscoverScope[]).map((s) => {
+          const active = scope === s;
+          return (
+            <button
+              key={s}
+              onClick={() => setScope(s)}
+              className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all duration-150"
+              style={
+                active
+                  ? {
+                      background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                      color: "white",
+                      boxShadow: "0 0 12px rgba(168,85,247,0.35)",
+                    }
+                  : {
+                      background: "rgba(255,255,255,0.05)",
+                      color: "hsl(240,10%,60%)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }
+              }
+            >
+              {s === "nearby" && <Navigation className="w-3 h-3" />}
+              {s === "worldwide" && <Globe2 className="w-3 h-3" />}
+              {s === "spain" && <span className="text-[10px] leading-none">🇪🇸</span>}
+              {SCOPE_LABELS[s]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Location permission banner — only when scope requires coords and we don't have them */}
+      {(scope === "nearby" || scope === "province") && !hasCoords && (
+        <div
+          className="mx-4 mt-2 px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-sans"
+          style={{
+            background: "rgba(168,85,247,0.1)",
+            border: "1px solid rgba(168,85,247,0.25)",
+          }}
+        >
+          <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+          <span className="flex-1 text-foreground/70 leading-tight">
+            Activa tu ubicación para ver personas cerca de ti
+          </span>
+          <button
+            onClick={() => geo.request(() => setIndex(0))}
+            disabled={geo.isPending || geo.state === "locating"}
+            className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium text-white disabled:opacity-50 transition-opacity"
+            style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+          >
+            {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
+          </button>
+        </div>
+      )}
+      {(scope === "nearby" || scope === "province") && geo.state === "denied" && (
+        <p className="mx-4 mt-1 text-center text-[10px] font-sans text-muted-foreground/60">
+          Permiso denegado · Selecciona "España" para ver perfiles nacionales
+        </p>
+      )}
+
       <QuotaChip />
 
       <div className="flex-1 min-h-0 px-4 py-3">
@@ -614,8 +725,18 @@ export function SwipeView({
             />
           ) : !top ? (
             <DeckEmpty
-              title="¡Has visto todos los perfiles!"
-              subtitle="Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
+              title={
+                profiles.length === 0 &&
+                (scope === "nearby" || scope === "province")
+                  ? "Nadie cerca de ti ahora"
+                  : "¡Has visto todos los perfiles!"
+              }
+              subtitle={
+                profiles.length === 0 &&
+                (scope === "nearby" || scope === "province")
+                  ? "Amplía el alcance con los filtros de arriba para ver más perfiles."
+                  : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
+              }
               onRestart={restart}
               isFetching={isFetching}
               onGrid={() => setMode("cuadricula")}

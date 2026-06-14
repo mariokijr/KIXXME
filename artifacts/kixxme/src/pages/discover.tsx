@@ -155,10 +155,22 @@ function GridDiscover({
     },
   });
   const {
-    data: profiles = [],
+    data: rawProfiles = [],
     isLoading,
     isError,
   } = source === "likes" ? likesQuery : onlineQuery;
+
+  // Sort "En línea" profiles by distance (closest first, nulls last).
+  // The backend already returns distance_km for each profile; sorting
+  // client-side is safe here because the online list is relatively small.
+  const profiles =
+    source === "online"
+      ? [...rawProfiles].sort((a, b) => {
+          if (a.distance_km == null) return 1;
+          if (b.distance_km == null) return -1;
+          return a.distance_km - b.distance_km;
+        })
+      : rawProfiles;
 
   const { start } = useStartConversation();
   const likeActions = useLikeActions();
