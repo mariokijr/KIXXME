@@ -9,6 +9,8 @@ import { deliverEmail } from "./email-transport.js";
  * throwing, so signup, subscriptions, and support reports never break.
  */
 export const SUPPORT_EMAIL = "supportkixxme@gmail.com";
+/** Public-facing contact address shown inside email templates. */
+export const CONTACT_EMAIL = "support@kixxme.com";
 const FROM = `KixxMe <${SUPPORT_EMAIL}>`;
 
 /**
@@ -239,7 +241,7 @@ function renderEmail(opts: EmailLayoutOptions): string {
             ${legalNav}
             <div style="margin-bottom:10px;">
               &iquest;Necesitas ayuda? Escr&iacute;benos a
-              <a href="mailto:${SUPPORT_EMAIL}" style="color:${LINK};text-decoration:none;">${SUPPORT_EMAIL}</a>.
+              <a href="mailto:${CONTACT_EMAIL}" style="color:${LINK};text-decoration:none;">${CONTACT_EMAIL}</a>.
             </div>
             <div style="color:#5b5478;">
               &copy; ${year} KixxMe &middot; Conexiones que encienden.<br />
