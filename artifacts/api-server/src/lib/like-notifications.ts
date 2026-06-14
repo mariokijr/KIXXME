@@ -6,8 +6,10 @@ import {
   sendEmail,
   matchEmail,
   superLikeReceivedEmail,
+  likeReceivedEmail,
 } from "./email.js";
 import {
+  claimEmailSend,
   isEmailCategoryEnabled,
   recordEmailSent,
   pairKey,
@@ -85,6 +87,38 @@ export async function notifyMatchByEmail(
     logger.error(
       { err: err instanceof Error ? err.message : String(err) },
       "notifyMatchByEmail failed",
+    );
+  }
+}
+
+/**
+ * Email the recipient of a regular (non-super) like. Rate-limited to once per
+ * 24 h per (sender, recipient) pair so repeated likes from the same person
+ * don't spam the inbox. Suppressed when the pair has already matched (a match
+ * email covers it) or when the recipient opted out.
+ */
+export async function notifyLikeByEmail(
+  recipientId: string,
+  senderId: string,
+): Promise<void> {
+  try {
+    const email = await getEmail(recipientId);
+    if (!email) return;
+    // Once-per-24h per sender→recipient; the dedupKey encodes the direction
+    // so A liking B and B liking A each get their own email slot.
+    const claimed = await claimEmailSend({
+      userId: recipientId,
+      category: "like",
+      dedupKey: `like:${senderId}:${recipientId}`,
+      cooldownMs: 24 * 60 * 60 * 1000,
+    });
+    if (!claimed) return;
+    const t = likeReceivedEmail(appBaseUrl());
+    await sendEmail({ to: email, subject: t.subject, html: t.html });
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "notifyLikeByEmail failed",
     );
   }
 }

@@ -140,7 +140,7 @@ export default function AdminPage() {
   const { session } = useAuth();
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<
-    "reports" | "flags" | "verifications" | "users" | "support"
+    "reports" | "flags" | "verifications" | "users" | "support" | "email"
   >("reports");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
@@ -220,12 +220,12 @@ export default function AdminPage() {
         <div className="flex gap-2 p-1 rounded-xl border border-border/40 overflow-x-auto no-scrollbar"
           style={{ background: "rgba(255,255,255,0.03)" }}>
           {(
-            ["reports", "flags", "verifications", "users", "support"] as const
+            ["reports", "flags", "verifications", "users", "support", "email"] as const
           ).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 min-w-[84px] h-10 px-2 rounded-lg font-sans text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex-1 min-w-[72px] h-10 px-2 rounded-lg font-sans text-sm font-medium whitespace-nowrap transition-colors ${
                 tab === t
                   ? "text-white"
                   : "text-muted-foreground hover:text-foreground"
@@ -245,7 +245,9 @@ export default function AdminPage() {
                     ? "Verif."
                     : t === "users"
                       ? "Usuarios"
-                      : "Soporte"}
+                      : t === "support"
+                        ? "Soporte"
+                        : "Email"}
             </button>
           ))}
         </div>
@@ -259,8 +261,10 @@ export default function AdminPage() {
         <VerificationsTab />
       ) : tab === "users" ? (
         <UsersTab />
-      ) : (
+      ) : tab === "support" ? (
         <SupportTab />
+      ) : (
+        <EmailTestTab />
       )}
 
       <ReportDetailDialog
@@ -2171,6 +2175,118 @@ function TicketStatusChip({ status }: { status: SupportTicketStatus }) {
     >
       {meta.label}
     </span>
+  );
+}
+
+const EMAIL_TEMPLATES = [
+  { value: "welcome", label: "Bienvenida (welcome)" },
+  { value: "email_verification", label: "Verificación de email (OTP 123456)" },
+  { value: "match", label: "Match mutuo" },
+  { value: "superlike", label: "SuperLike recibido" },
+  { value: "like", label: "Like recibido" },
+  { value: "new_message", label: "Nuevo mensaje" },
+  { value: "password_change_code", label: "Cambio de contraseña (OTP 654321)" },
+  { value: "premium_gold", label: "Bienvenida Gold" },
+  { value: "premium_plus", label: "Bienvenida Plus" },
+] as const;
+
+function EmailTestTab() {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const [to, setTo] = useState("");
+  const [template, setTemplate] = useState<string>("welcome");
+  const [sending, setSending] = useState(false);
+
+  async function send() {
+    if (!to || !template) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/admin/email/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ to, template }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Email enviado", description: `[TEST] → ${to}` });
+      } else {
+        toast({
+          title: "Error al enviar",
+          description: data?.error ?? "Algo falló",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Error de red", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="px-4 py-6 max-w-md mx-auto space-y-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Mail className="w-5 h-5 text-purple-400" />
+        <h2 className="font-display text-lg font-semibold">Prueba de Email</h2>
+      </div>
+      <p className="font-sans text-sm text-muted-foreground">
+        Envía un email de prueba real (prefijado con [TEST]) a cualquier dirección.
+        No afecta cuotas de dedup ni preferencias del usuario.
+      </p>
+
+      <div className="space-y-1">
+        <label className="font-sans text-xs text-muted-foreground block">
+          Destinatario
+        </label>
+        <Input
+          type="email"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="tucorreo@ejemplo.com"
+          data-testid="input-email-test-to"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="font-sans text-xs text-muted-foreground block">
+          Plantilla
+        </label>
+        <select
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          className="w-full h-10 rounded-xl border border-border/40 bg-background px-3 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+          data-testid="select-email-test-template"
+        >
+          {EMAIL_TEMPLATES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        type="button"
+        onClick={send}
+        disabled={sending || !to}
+        className="w-full h-11 rounded-xl font-display tracking-wide text-white flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+        }}
+        data-testid="button-email-test-send"
+      >
+        {sending ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Send className="w-4 h-4" />
+        )}
+        {sending ? "Enviando…" : "Enviar email de prueba"}
+      </button>
+    </div>
   );
 }
 

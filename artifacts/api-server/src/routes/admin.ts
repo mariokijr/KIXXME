@@ -57,6 +57,18 @@ import {
   signSelfieUrl,
 } from "../lib/verification.js";
 import {
+  sendEmail,
+  welcomeEmailHtml,
+  matchEmailHtml,
+  superLikeReceivedEmailHtml,
+  likeReceivedEmail,
+  emailVerificationCodeEmail,
+  passwordChangeCodeEmail,
+  newMessagesEmail,
+  premiumWelcomeEmail,
+  appBaseUrl,
+} from "../lib/email.js";
+import {
   listAdmin as listAdminTickets,
   adminCreateTicket,
   setTicketStatus,
@@ -1293,6 +1305,77 @@ router.post("/admin/support-users/:userId/thread", async (req, res) => {
       "support inbox: thread start failed",
     );
     res.status(500).json({ error: "No se pudo iniciar la conversación" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin email test — send a real email from any template to any address.
+// ---------------------------------------------------------------------------
+router.post("/admin/email/test", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+
+  const { to, template } = req.body as { to?: string; template?: string };
+  if (!to || typeof to !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    res.status(400).json({ error: "Dirección 'to' inválida" });
+    return;
+  }
+  if (!template || typeof template !== "string") {
+    res.status(400).json({ error: "Plantilla requerida" });
+    return;
+  }
+
+  const base = appBaseUrl();
+  let subject: string;
+  let html: string;
+
+  switch (template) {
+    case "welcome":
+      subject = "🔥 Bienvenido a KixxMe [TEST]";
+      html = welcomeEmailHtml(base);
+      break;
+    case "email_verification":
+      ({ subject, html } = emailVerificationCodeEmail("123456"));
+      break;
+    case "match":
+      subject = "🎉 ¡Es un Match en KixxMe! [TEST]";
+      html = matchEmailHtml("Carlos", base);
+      break;
+    case "superlike":
+      subject = "💜 Has recibido un SuperLike en KixxMe [TEST]";
+      html = superLikeReceivedEmailHtml("Marcos", base);
+      break;
+    case "like":
+      ({ subject, html } = likeReceivedEmail(base));
+      break;
+    case "new_message":
+      ({ subject, html } = newMessagesEmail({ senderName: "Alejandro", mediaKind: "text", appUrl: base }));
+      break;
+    case "password_change_code":
+      ({ subject, html } = passwordChangeCodeEmail("654321"));
+      break;
+    case "premium_gold":
+      ({ subject, html } = premiumWelcomeEmail("gold", base));
+      break;
+    case "premium_plus":
+      ({ subject, html } = premiumWelcomeEmail("plus", base));
+      break;
+    default:
+      res.status(400).json({
+        error: "Plantilla desconocida",
+        available: [
+          "welcome", "email_verification", "match", "superlike", "like",
+          "new_message", "password_change_code", "premium_gold", "premium_plus",
+        ],
+      });
+      return;
+  }
+
+  const ok = await sendEmail({ to, subject: `[TEST] ${subject}`, html });
+  if (ok) {
+    res.json({ ok: true, to, template });
+  } else {
+    res.status(503).json({ ok: false, error: "El proveedor de email falló. Revisa los logs." });
   }
 });
 

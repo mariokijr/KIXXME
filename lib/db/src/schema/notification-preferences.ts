@@ -24,6 +24,8 @@ export const notificationPreferencesTable = pgTable("notification_preferences", 
   emailMatches: boolean("email_matches").notNull().default(true),
   // Received SuperLikes.
   emailSuperlikes: boolean("email_superlikes").notNull().default(true),
+  // Received regular likes (non-mutual; once per sender per 24h).
+  emailLikes: boolean("email_likes").notNull().default(true),
   // A Gold user started a conversation with you without a prior match.
   emailConversationInvites: boolean("email_conversation_invites")
     .notNull()

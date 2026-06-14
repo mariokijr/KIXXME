@@ -438,6 +438,31 @@ export function superLikeReceivedEmail(
   };
 }
 
+// --- New like notification (engagement) -------------------------------------
+
+export const LIKE_RECEIVED_SUBJECT = "\u2764\uFE0F Alguien te ha dado un like en KixxMe";
+
+export function likeReceivedEmail(appUrl?: string): {
+  subject: string;
+  html: string;
+} {
+  const body = paragraphs([
+    "<strong style=\"color:#f4f1fb;\">\u00A1Tienes un nuevo like!</strong>",
+    "\u2764\uFE0F Alguien ha mostrado inter\u00E9s en ti. Si t\u00FA tambi\u00E9n les das like, \u00A1es un Match!",
+    "Entra en KixxMe y descubre qui\u00E9n es \u{1F525}",
+    "Equipo KixxMe",
+  ]);
+  return {
+    subject: LIKE_RECEIVED_SUBJECT,
+    html: renderEmail({
+      preheader: "Alguien te ha dado un like en KixxMe.",
+      heading: "\u2764\uFE0F \u00A1Nuevo like!",
+      bodyHtml: body,
+      cta: appUrl ? { label: "Ver en KixxMe", url: appUrl } : undefined,
+    }),
+  };
+}
+
 // --- Support report notification (to the support inbox) ---------------------
 
 export function supportReportEmailHtml(report: {

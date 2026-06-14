@@ -24,6 +24,7 @@ import { recordPass, getPassedIds } from "../lib/passes.js";
 import { ensureConversation } from "../lib/conversations.js";
 import {
   notifyMatchByEmail,
+  notifyLikeByEmail,
   notifySuperLikeByEmail,
 } from "../lib/like-notifications.js";
 import { pushMatch, pushSuperLike } from "../lib/push-notifications.js";
@@ -1136,6 +1137,9 @@ router.post("/profiles/:id/like", async (req, res) => {
     } else if (result.isSuper) {
       void notifySuperLikeByEmail(id, auth.userId);
       void pushSuperLike(id, auth.userId);
+    } else {
+      // Regular like — notify the recipient (rate-limited to once per 24 h per sender).
+      void notifyLikeByEmail(id, auth.userId);
     }
   }
 

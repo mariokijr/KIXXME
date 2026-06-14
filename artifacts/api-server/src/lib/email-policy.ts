@@ -29,6 +29,7 @@ export type EmailCategory =
   | "message"
   | "match"
   | "superlike"
+  | "like"
   | "conversation_invite"
   // Always-on (bypass preferences; ledger used only for idempotency)
   | "invoice_paid"
@@ -55,12 +56,14 @@ const PREFERENCE_COLUMN: Partial<
     | "emailMessages"
     | "emailMatches"
     | "emailSuperlikes"
+    | "emailLikes"
     | "emailConversationInvites"
   >
 > = {
   message: "emailMessages",
   match: "emailMatches",
   superlike: "emailSuperlikes",
+  like: "emailLikes",
   conversation_invite: "emailConversationInvites",
 };
 
