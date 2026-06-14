@@ -1346,9 +1346,9 @@ export const getListMapUsersUrl = (params?: ListMapUsersParams,) => {
 }
 
 /**
- * The KixxMe Gold map. Returns an envelope with `can_access` (Gold gate, computed server-side so it honors the GOLD_TEST_EMAILS override) and the viewer's own `show_on_map` setting. `users` is populated only for Gold viewers and contains only OTHER Gold users who have coordinates, pass calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't blocked/hidden). Raw coordinates never leave the server — only a rounded distance_km is exposed.
+ * The KixxMe world map. Returns an envelope with `can_access` (always true for authenticated users) and the viewer's own `show_on_map` setting. `users` contains OTHER users who have coordinates, pass calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't blocked/hidden). Raw coordinates never leave the server — only a rounded distance_km is exposed. When `search_lat`/`search_lng`/`search_radius_km` are provided the map is centered on that point for both filtering and distance calculation (geocoding search mode).
 
- * @summary Gold-only map of nearby Gold users
+ * @summary Real-time map of nearby users
  */
 export const listMapUsers = async (params?: ListMapUsersParams, options?: RequestInit): Promise<MapUsersResponse> => {
 
@@ -1395,7 +1395,7 @@ export type ListMapUsersQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Gold-only map of nearby Gold users
+ * @summary Real-time map of nearby users
  */
 
 export function useListMapUsers<TData = Awaited<ReturnType<typeof listMapUsers>>, TError = ErrorType<ErrorResponse>>(

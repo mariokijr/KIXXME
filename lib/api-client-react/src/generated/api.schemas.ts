@@ -1942,6 +1942,9 @@ export const GetDiscoveryStatsScope = {
 
 export type ListMapUsersParams = {
 scope?: ListMapUsersScope;
+search_lat?: number;
+search_lng?: number;
+search_radius_km?: number;
 };
 
 export type ListMapUsersScope = typeof ListMapUsersScope[keyof typeof ListMapUsersScope];

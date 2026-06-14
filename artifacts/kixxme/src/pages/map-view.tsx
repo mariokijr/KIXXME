@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -16,6 +16,7 @@ import {
   X,
   User,
   MessageCircle,
+  Search,
 } from "lucide-react";
 import {
   useListMapUsers,
@@ -36,16 +37,51 @@ import { ReportDialog } from "@/components/report-dialog";
 
 const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038];
 
-// Only age filtering remains — scope and status filters removed.
 interface MapFilters {
   ageMin: number;
   ageMax: number;
 }
-
 const DEFAULT_FILTERS: MapFilters = { ageMin: 18, ageMax: 99 };
 
 function filtersActive(f: MapFilters): boolean {
   return f.ageMin > DEFAULT_FILTERS.ageMin || f.ageMax < DEFAULT_FILTERS.ageMax;
+}
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  boundingbox: [string, string, string, string];
+}
+
+interface SearchCenter {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  label: string;
+}
+
+/** Approximate km radius that contains a Nominatim bounding box. */
+function bboxToRadius(bb: [string, string, string, string]): number {
+  const latMin = parseFloat(bb[0]);
+  const latMax = parseFloat(bb[1]);
+  const lngMin = parseFloat(bb[2]);
+  const lngMax = parseFloat(bb[3]);
+  const latMid = (latMin + latMax) / 2;
+  const cosLat = Math.max(Math.abs(Math.cos((latMid * Math.PI) / 180)), 0.01);
+  const halfH = ((latMax - latMin) / 2) * 111;
+  const halfW = ((lngMax - lngMin) / 2) * 111 * cosLat;
+  return Math.max(10, Math.min(1000, Math.max(halfH, halfW) * 1.4));
+}
+
+function radiusToZoom(r: number): number {
+  if (r < 8) return 14;
+  if (r < 25) return 12;
+  if (r < 80) return 10;
+  if (r < 250) return 8;
+  if (r < 700) return 6;
+  return 5;
 }
 
 function hashId(id: string): number {
@@ -80,8 +116,6 @@ function offsetPosition(
   return [(φ2 * 180) / Math.PI, (λ2 * 180) / Math.PI];
 }
 
-// Dot marker: small colored circle. Blue = regular, amber = Gold.
-// Online users get a larger dot + green outer ring.
 function dotMarkerHtml(user: PublicProfile): string {
   const isGoldUser = user.plan === "gold";
   const online = user.is_online;
@@ -105,6 +139,14 @@ export default function MapView() {
   const [reportOpen, setReportOpen] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
 
+  // ── Geocoding search ──────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchCenter, setSearchCenter] = useState<SearchCenter | null>(null);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -114,16 +156,22 @@ export default function MapView() {
     query: { queryKey: getGetMyProfileQueryKey() },
   });
 
-  // Always worldwide — no scope selector needed.
-  const { data: mapData, isLoading } = useListMapUsers(
-    { scope: "worldwide" },
-    {
-      query: {
-        queryKey: getListMapUsersQueryKey({ scope: "worldwide" }),
-        refetchInterval: 30000,
-      },
-    }
-  );
+  // Pass search center coords to the API when active.
+  const mapQueryParams = searchCenter
+    ? {
+        scope: "worldwide" as const,
+        search_lat: searchCenter.lat,
+        search_lng: searchCenter.lng,
+        search_radius_km: searchCenter.radiusKm,
+      }
+    : { scope: "worldwide" as const };
+
+  const { data: mapData, isLoading } = useListMapUsers(mapQueryParams, {
+    query: {
+      queryKey: getListMapUsersQueryKey(mapQueryParams),
+      refetchInterval: 30000,
+    },
+  });
   const { start: startConversation, isPending: convPending } =
     useStartConversation();
   const likeActions = useLikeActions();
@@ -134,13 +182,18 @@ export default function MapView() {
   const showOnMap = mapData?.show_on_map ?? true;
   const users = useMemo<PublicProfile[]>(() => mapData?.users ?? [], [mapData]);
 
-  // Both Like and Message from the map require the viewer to be Gold.
   const isGold = profile?.plan === "gold";
 
   const hasLocation = profile?.latitude != null && profile?.longitude != null;
   const center: [number, number] = hasLocation
     ? [profile!.latitude as number, profile!.longitude as number]
     : DEFAULT_CENTER;
+
+  // When searching, use the search point as the dot-placement origin.
+  // When not searching, use the viewer's own location (or default).
+  const mapOrigin: [number, number] = searchCenter
+    ? [searchCenter.lat, searchCenter.lng]
+    : center;
 
   const invalidateMap = () =>
     qc.invalidateQueries({ queryKey: getListMapUsersQueryKey() });
@@ -159,7 +212,12 @@ export default function MapView() {
     () => filtered.filter((p) => p.distance_km != null),
     [filtered]
   );
-  const onMapCount = placeable.length + (hasLocation ? 1 : 0);
+
+  // In search mode, the viewer isn't necessarily in the search area.
+  const onMapCount = searchCenter
+    ? placeable.length
+    : placeable.length + (hasLocation ? 1 : 0);
+
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
   const goldCount = mapData?.gold_total ?? 0;
@@ -172,6 +230,66 @@ export default function MapView() {
       { onSuccess: () => invalidateMap() }
     );
   };
+
+  // ── Geocoding helpers ────────────────────────────────────────────────────
+
+  const geocode = useCallback(async (q: string) => {
+    setIsSearching(true);
+    try {
+      const url =
+        `https://nominatim.openstreetmap.org/search` +
+        `?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=es`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "KixxMe/1.0 (kixxme.app)" },
+      });
+      const data: NominatimResult[] = await res.json();
+      setSuggestions(data);
+      setShowSuggestions(data.length > 0);
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const onSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value;
+    setSearchQuery(q);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (q.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(() => geocode(q.trim()), 400);
+  };
+
+  const selectSuggestion = (r: NominatimResult) => {
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    const radiusKm = bboxToRadius(r.boundingbox);
+    const zoom = radiusToZoom(radiusKm);
+    const label = r.display_name.split(",").slice(0, 2).join(", ");
+    setSearchCenter({ lat, lng, radiusKm, label });
+    setSearchQuery(label);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    mapRef.current?.flyTo([lat, lng], zoom, { duration: 1.4 });
+  };
+
+  const clearSearch = () => {
+    setSearchCenter(null);
+    setSearchQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (mapRef.current) {
+      mapRef.current.flyTo(center, hasLocation ? 12 : 5, { duration: 1.2 });
+    }
+  };
+
+  // ── Map lifecycle ────────────────────────────────────────────────────────
 
   // Silently refresh own location on first map open.
   useEffect(() => {
@@ -216,11 +334,13 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess]);
 
-  // Recenter when viewer's location becomes available.
+  // Recenter when viewer's location becomes available (only when not in search mode).
   useEffect(() => {
-    if (mapRef.current && hasLocation) mapRef.current.setView(center, 12);
+    if (mapRef.current && hasLocation && !searchCenter) {
+      mapRef.current.setView(center, 12);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLocation, center[0], center[1]]);
+  }, [hasLocation, center[0], center[1], searchCenter]);
 
   // Render dot markers.
   useEffect(() => {
@@ -229,7 +349,7 @@ export default function MapView() {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Self — bright pink dot.
+    // Self — bright pink dot. Always at the viewer's real GPS position.
     if (hasLocation) {
       const meIcon = L.divIcon({
         html: `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:9999px;background:hsl(330,85%,55%);box-shadow:0 0 0 3px rgba(255,255,255,0.2),0 0 14px rgba(236,72,153,0.9);"></div></div>`,
@@ -242,11 +362,11 @@ export default function MapView() {
       );
     }
 
-    // Other users — blue / amber dots.
+    // Other users — offset from the mapOrigin (search center or viewer GPS).
     for (const user of placeable) {
       const pos = offsetPosition(
-        center[0],
-        center[1],
+        mapOrigin[0],
+        mapOrigin[1],
         user.distance_km as number,
         user.id
       );
@@ -263,20 +383,20 @@ export default function MapView() {
       m.on("click", () => { setSelectedId(user.id); setReportOpen(false); });
       markersRef.current.push(m);
     }
-  }, [placeable, canAccess, hasLocation, center[0], center[1]]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placeable, canAccess, hasLocation, center[0], center[1], mapOrigin[0], mapOrigin[1]]);
 
-  // Tap on map background closes the selected card.
+  // Tap on map background closes the selected card and the search dropdown.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const handler = () => setSelectedId(null);
+    const handler = () => { setSelectedId(null); setShowSuggestions(false); };
     map.on("click", handler);
     return () => { map.off("click", handler); };
   }, [canAccess]);
 
   return (
     <div className="flex flex-col h-full" style={{ background: "hsl(238,30%,3%)" }}>
-      {/* Map fills all available space */}
       <div className="relative flex-1 min-h-0">
         <div ref={mapDivRef} className="absolute inset-0" />
 
@@ -285,11 +405,11 @@ export default function MapView() {
           className="absolute top-0 left-0 right-0 z-[400] pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(6,5,16,0.92) 0%, rgba(6,5,16,0.5) 60%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(6,5,16,0.92) 0%, rgba(6,5,16,0.5) 65%, transparent 100%)",
           }}
         >
-          {/* Header: title + counter + age filter + eye toggle */}
-          <div className="flex items-center gap-3 px-4 pt-3 pb-3 pointer-events-auto">
+          {/* Row 1: title + counter + age filter + eye toggle */}
+          <div className="flex items-center gap-3 px-4 pt-3 pb-2 pointer-events-auto">
             <h1 className="font-display text-xl tracking-wide text-white flex-shrink-0">
               Mapa
             </h1>
@@ -301,8 +421,20 @@ export default function MapView() {
                 {isLoading ? "…" : `${onMapCount} aquí`}
               </span>
             )}
+            {searchCenter && (
+              <span
+                className="text-xs font-sans px-2 py-0.5 rounded-full truncate max-w-[120px]"
+                style={{
+                  background: "rgba(168,85,247,0.15)",
+                  border: "1px solid rgba(168,85,247,0.3)",
+                  color: "hsl(273,85%,75%)",
+                }}
+              >
+                {searchCenter.label}
+              </span>
+            )}
 
-            {/* Age range — always visible, compact */}
+            {/* Age range */}
             <div className="flex items-center gap-1.5 ml-auto">
               <span className="text-xs text-white/35 flex-shrink-0">Edad</span>
               <input
@@ -379,7 +511,77 @@ export default function MapView() {
             </button>
           </div>
 
-          {/* Activate location banner — below header, always below age row */}
+          {/* Row 2: geocoding search bar */}
+          {canAccess && (
+            <div className="px-4 pb-2 pointer-events-auto relative">
+              <div className="relative">
+                {isSearching ? (
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 animate-spin pointer-events-none" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                )}
+                <input
+                  type="text"
+                  placeholder="Buscar ciudad, país…"
+                  value={searchQuery}
+                  onChange={onSearchInput}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 160)}
+                  className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-white font-sans transition-all"
+                  style={{
+                    background: searchCenter
+                      ? "rgba(168,85,247,0.12)"
+                      : "rgba(255,255,255,0.07)",
+                    border: searchCenter
+                      ? "1px solid rgba(168,85,247,0.35)"
+                      : "1px solid rgba(255,255,255,0.09)",
+                    outline: "none",
+                    caretColor: "hsl(273,85%,75%)",
+                  }}
+                />
+                {searchQuery.length > 0 && (
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); clearSearch(); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full transition-colors"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  >
+                    <X className="w-3 h-3 text-white/50" />
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestions dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  className="absolute left-4 right-4 mt-1 z-[410] rounded-xl overflow-hidden"
+                  style={{
+                    background: "rgba(8,7,20,0.98)",
+                    backdropFilter: "blur(24px)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
+                  }}
+                >
+                  {suggestions.map((r, i) => (
+                    <button
+                      key={r.place_id}
+                      onMouseDown={(e) => { e.preventDefault(); selectSuggestion(r); }}
+                      className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]"
+                      style={{
+                        borderTop: i > 0 ? "1px solid rgba(255,255,255,0.05)" : undefined,
+                      }}
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-white/80 leading-snug font-sans">
+                        {r.display_name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Activate location banner */}
           {canAccess && !hasLocation && (
             <div className="px-4 pb-3 pointer-events-auto">
               <div

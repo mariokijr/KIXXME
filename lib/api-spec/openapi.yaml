@@ -533,15 +533,16 @@ paths:
     get:
       operationId: listMapUsers
       tags: [profiles]
-      summary: Gold-only map of nearby Gold users
+      summary: Real-time map of nearby users
       description: >
-        The KixxMe Gold map. Returns an envelope with `can_access` (Gold gate,
-        computed server-side so it honors the GOLD_TEST_EMAILS override) and the
-        viewer's own `show_on_map` setting. `users` is populated only for Gold
-        viewers and contains only OTHER Gold users who have coordinates, pass
-        calidad mínima, and have "Mostrarme en el mapa" enabled (and aren't
-        blocked/hidden). Raw coordinates never leave the server — only a rounded
-        distance_km is exposed.
+        The KixxMe world map. Returns an envelope with `can_access` (always true
+        for authenticated users) and the viewer's own `show_on_map` setting.
+        `users` contains OTHER users who have coordinates, pass calidad mínima,
+        and have "Mostrarme en el mapa" enabled (and aren't blocked/hidden). Raw
+        coordinates never leave the server — only a rounded distance_km is
+        exposed. When `search_lat`/`search_lng`/`search_radius_km` are provided
+        the map is centered on that point for both filtering and distance
+        calculation (geocoding search mode).
       security:
         - bearerAuth: []
       parameters:
@@ -551,6 +552,21 @@ paths:
           schema:
             type: string
             enum: [nearby, province, spain, europe, worldwide]
+        - name: search_lat
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: search_lng
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: search_radius_km
+          in: query
+          required: false
+          schema:
+            type: number
       responses:
         "200":
           description: Map envelope

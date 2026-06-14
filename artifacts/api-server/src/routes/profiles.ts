@@ -5,9 +5,11 @@ import { supabase } from "../lib/supabase.js";
 import { requireAuth, optionalAuth } from "../lib/auth.js";
 import {
   distanceKm,
+  haversineKm,
   isOnline,
   scopeBoxFor,
   withinMapScope,
+  boxAround,
   type MapScope,
 } from "../lib/geo.js";
 import {
@@ -538,12 +540,35 @@ router.get("/map/users", async (req, res) => {
       .maybeSingle(),
   ]);
 
-  // Stats are global (no scope) — hold even when the marker list is empty.
+  // Stats are global (no scope/search) — hold even when the marker list is empty.
   const stats = await mapCommunityStats(hidden);
+
+  // Optional geocoding search center — when provided by the client (user typed a
+  // location in the search bar), distances are computed from that point and only
+  // users within `search_radius_km` are returned, regardless of the viewer's GPS.
+  const rawSearchLat = req.query.search_lat;
+  const rawSearchLng = req.query.search_lng;
+  const rawSearchRadius = req.query.search_radius_km;
+  const searchLat = rawSearchLat != null ? parseFloat(rawSearchLat as string) : null;
+  const searchLng = rawSearchLng != null ? parseFloat(rawSearchLng as string) : null;
+  const searchRadiusKm = rawSearchRadius != null ? parseFloat(rawSearchRadius as string) : null;
+  const searchCenter =
+    searchLat != null &&
+    searchLng != null &&
+    !isNaN(searchLat) &&
+    !isNaN(searchLng)
+      ? { latitude: searchLat, longitude: searchLng }
+      : null;
 
   const scope = parseScope(req.query.scope);
 
-  const box = scope ? scopeBoxFor(scope, me ?? null) : null;
+  // Determine bounding box: search center overrides scope when present.
+  let box: ReturnType<typeof scopeBoxFor> | ReturnType<typeof boxAround> =
+    scope ? scopeBoxFor(scope, me ?? null) : null;
+  if (searchCenter && searchRadiusKm != null && !isNaN(searchRadiusKm)) {
+    box = boxAround(searchCenter.latitude, searchCenter.longitude, searchRadiusKm);
+  }
+
   if (box === "empty") {
     res.json({
       can_access: true,
@@ -592,8 +617,22 @@ router.get("/map/users", async (req, res) => {
 
   let rows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
 
-  // Precise refinement for radius scopes (the box is an over-approximation).
-  if (scope) {
+  // Precise haversine refinement:
+  // - For a geocoding search: filter by exact radius around the search center.
+  // - For a scope-based request: use the existing withinMapScope helper.
+  if (searchCenter && searchRadiusKm != null && !isNaN(searchRadiusKm)) {
+    rows = rows.filter(
+      (row) =>
+        row.latitude != null &&
+        row.longitude != null &&
+        haversineKm(
+          searchCenter.latitude,
+          searchCenter.longitude,
+          row.latitude,
+          row.longitude,
+        ) <= searchRadiusKm,
+    );
+  } else if (scope) {
     rows = rows.filter((row) =>
       withinMapScope(me ?? null, row.latitude, row.longitude, scope),
     );
@@ -618,9 +657,13 @@ router.get("/map/users", async (req, res) => {
     );
   });
 
+  // Distance origin: use the geocoding search center when active, otherwise
+  // fall back to the viewer's own location (or null for relative-less display).
+  const distanceOrigin = searchCenter ?? me ?? null;
+
   const mapInterestsMap = await getUserInterestsForUsers(rows.map((r) => r.id));
   const users = rows.map((row) =>
-    toPublic(row, me ?? null, likedSet, iBlocked, {
+    toPublic(row, distanceOrigin, likedSet, iBlocked, {
       ...detailsMap.get(row.id),
       interests: mapInterestsMap.get(row.id) ?? [],
     }),

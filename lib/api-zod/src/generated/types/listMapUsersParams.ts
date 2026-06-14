@@ -9,4 +9,7 @@ import type { ListMapUsersScope } from './listMapUsersScope';
 
 export type ListMapUsersParams = {
 scope?: ListMapUsersScope;
+search_lat?: number;
+search_lng?: number;
+search_radius_km?: number;
 };
