@@ -72,19 +72,19 @@ export async function requireAuth(
     }
   }
 
-  // Mandatory email verification for new accounts (grandfathers legacy users and
-  // exempts system accounts internally). Fails OPEN on a DB error.
-  if (!opts?.allowUnverified) {
-    const verified = await isEmailVerified(data.user, req.log);
-    if (!verified) {
-      res.status(403).json({
-        error:
-          "Confirma tu correo electrónico para continuar usando KixxMe.",
-        code: "email_unverified",
-      });
-      return null;
-    }
-  }
+  // Email verification temporarily disabled — re-enable when email delivery
+  // is stable (upgrade Resend plan, then uncomment the block below).
+  //
+  // if (!opts?.allowUnverified) {
+  //   const verified = await isEmailVerified(data.user, req.log);
+  //   if (!verified) {
+  //     res.status(403).json({
+  //       error: "Confirma tu correo electrónico para continuar usando KixxMe.",
+  //       code: "email_unverified",
+  //     });
+  //     return null;
+  //   }
+  // }
 
   touchLastActive(userId);
   const email = data.user.email ?? null;

@@ -76,7 +76,9 @@ export function EmailVerificationGate({
   // Fail open: never trap a user behind verification on an API error.
   if (isError || !data) return <>{children}</>;
 
-  if (data.verified) return <>{children}</>;
+  // Email verification temporarily disabled — uncomment the line below when
+  // email delivery is stable (after upgrading the Resend plan).
+  // if (!data.verified) return <VerifyEmailScreen email={data.email} />;
 
-  return <VerifyEmailScreen email={data.email} />;
+  return <>{children}</>;
 }
