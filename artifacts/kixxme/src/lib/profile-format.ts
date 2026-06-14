@@ -29,6 +29,27 @@ export function formatDistance(km: number | null | undefined): string | null {
   return `${Math.round(km)} km`;
 }
 
+/**
+ * Human-readable "last seen" string for a last_active_at ISO timestamp.
+ * Returns null when the user is online (callers should check is_online first).
+ */
+export function formatLastSeen(lastActiveAt: string | null | undefined): string | null {
+  if (!lastActiveAt) return null;
+  const ts = new Date(lastActiveAt).getTime();
+  if (Number.isNaN(ts)) return null;
+  const diffMs = Date.now() - ts;
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 10) return "hace un momento";
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `hace ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return "ayer";
+  if (diffD < 7) return `hace ${diffD} días`;
+  if (diffD < 30) return `hace ${Math.floor(diffD / 7)} sem`;
+  return `hace ${Math.floor(diffD / 30)} mes`;
+}
+
 export const ROLE_LABELS: Record<string, string> = {
   activo: "Activo",
   pasivo: "Pasivo",

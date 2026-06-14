@@ -156,6 +156,7 @@ function toPublic(
       row.latitude,
       row.longitude,
     ),
+    last_active_at: row.last_active_at ?? null,
     is_online: isOnline(row.last_active_at),
     is_verified: Boolean(row.is_verified),
     liked_by_me: likedSet.has(row.id),

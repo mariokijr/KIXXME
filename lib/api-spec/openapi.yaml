@@ -4255,6 +4255,10 @@ components:
             True when there is a mutual like with the viewer. Populated by the
             likes grid (Cuadrícula) and the matches list (Empareja); omitted on
             generic discovery responses.
+        last_active_at:
+          type: string
+          nullable: true
+          description: ISO timestamp of the user's last activity (used to compute last-seen copy).
         created_at:
           type: string
       required: [id, username]

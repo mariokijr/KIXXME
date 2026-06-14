@@ -799,6 +799,8 @@ export interface PublicProfile {
   interests?: string[] | null;
   /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
   matched?: boolean;
+  /** ISO timestamp of the user's last activity (used to compute last-seen copy). */
+  last_active_at?: string | null;
   created_at?: string;
 }
 

@@ -26,6 +26,7 @@ import {
   Flag,
   Globe2,
   Navigation,
+  MessageCircle,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -44,12 +45,13 @@ import { usePassProfile } from "@workspace/api-client-react";
 import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import {
-  gradFor, initialsFor, formatDistance,
+  gradFor, initialsFor, formatDistance, formatLastSeen,
   ROLE_LABELS, LOOKING_FOR_LABELS, ORIENTATION_LABELS,
   ZODIAC_LABELS, ALCOHOL_LABELS, EXERCISE_LABELS, PETS_LABELS,
   formatHeightCm,
   interestLabel,
 } from "@/lib/profile-format";
+import { useStartConversation } from "@/lib/use-start-conversation";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
 import { useGeolocation } from "@/lib/use-geolocation";
@@ -59,19 +61,26 @@ import { useAuth } from "@/lib/auth";
 // Scope filter (persisted in localStorage)
 // ---------------------------------------------------------------------------
 const SWIPE_SCOPE_KEY = "kixxme:swipe-scope";
-type DiscoverScope = "nearby" | "province" | "spain" | "worldwide";
+type DiscoverScope = "nearby" | "province" | "spain" | "europe" | "worldwide";
 
 const SCOPE_LABELS: Record<DiscoverScope, string> = {
   nearby: "Cerca",
   province: "Provincia",
   spain: "España",
+  europe: "Europa",
   worldwide: "Mundo",
 };
 
 function readScope(): DiscoverScope {
   try {
     const v = localStorage.getItem(SWIPE_SCOPE_KEY);
-    if (v === "nearby" || v === "province" || v === "spain" || v === "worldwide")
+    if (
+      v === "nearby" ||
+      v === "province" ||
+      v === "spain" ||
+      v === "europe" ||
+      v === "worldwide"
+    )
       return v;
   } catch { /* ignore */ }
   return "nearby";
@@ -277,15 +286,40 @@ const SwipeCard = forwardRef<
             <span className="text-white/80">, {profile.age}</span>
           ) : null}
         </h3>
-        <div className="flex items-center gap-3 mt-1.5 text-white/85 font-sans text-sm">
-          {profile.city && <span className="truncate">{profile.city}</span>}
+        <div className="flex items-center gap-2 mt-1.5 text-white/85 font-sans text-sm flex-wrap">
+          {profile.city && (
+            <span className="flex items-center gap-1 truncate">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+              {profile.city}
+            </span>
+          )}
           {distance && (
-            <span className="flex items-center gap-1 flex-shrink-0">
-              <MapPin className="w-3.5 h-3.5" />
+            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium text-white/90"
+              style={{ background: "rgba(0,0,0,0.45)" }}>
               {distance}
             </span>
           )}
+          {profile.looking_for && LOOKING_FOR_LABELS[profile.looking_for] && (
+            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium"
+              style={{ background: "rgba(236,72,153,0.6)", color: "#fff" }}>
+              {LOOKING_FOR_LABELS[profile.looking_for]}
+            </span>
+          )}
         </div>
+        {/* Top interests as chips */}
+        {Array.isArray(profile.interests) && profile.interests.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {profile.interests.slice(0, 3).map((slug) => (
+              <span
+                key={slug}
+                className="px-2 py-0.5 rounded-full text-[10px] font-sans"
+                style={{ background: "rgba(168,85,247,0.55)", color: "#fff" }}
+              >
+                {interestLabel(slug)}
+              </span>
+            ))}
+          </div>
+        )}
         {profile.bio && (
           <p className="mt-2 text-white/70 font-sans text-sm line-clamp-2">
             {profile.bio}
@@ -370,7 +404,9 @@ function ProfileDetailSheet({
         ? [profile.avatar_url]
         : [];
   const distance = formatDistance(profile.distance_km);
+  const lastSeen = !profile.is_online ? formatLastSeen(profile.last_active_at) : null;
   const [reportOpen, setReportOpen] = useState(false);
+  const { start: startConversation, isPending: startingChat } = useStartConversation();
 
   return (
     <div
@@ -433,13 +469,17 @@ function ProfileDetailSheet({
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {profile.is_online && (
+          {profile.is_online ? (
             <span
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-sans text-white"
               style={{ background: "rgba(34,197,94,0.85)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-white" />
               En línea
+            </span>
+          ) : lastSeen && (
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              🕐 {lastSeen}
             </span>
           )}
           {profile.is_verified && (
@@ -534,7 +574,7 @@ function ProfileDetailSheet({
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-5 px-6 py-4 border-t border-border/30">
+      <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-border/30">
         <ActionButton
           onClick={() => onAction("pass")}
           label="No me interesa"
@@ -561,6 +601,17 @@ function ProfileDetailSheet({
           testid="button-detail-like"
         >
           <Heart className="w-7 h-7 text-white" fill="white" />
+        </ActionButton>
+        <ActionButton
+          onClick={() => startConversation(profile.id)}
+          label="Mensaje"
+          size="sm"
+          gradient="rgba(40,38,56,0.95)"
+          testid="button-detail-message"
+        >
+          {startingChat
+            ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            : <MessageCircle className="w-5 h-5 text-primary" />}
         </ActionButton>
       </div>
 
@@ -735,6 +786,7 @@ export function SwipeView({
             >
               {s === "nearby" && <Navigation className="w-3 h-3" />}
               {s === "worldwide" && <Globe2 className="w-3 h-3" />}
+              {s === "europe" && <Globe2 className="w-3 h-3" />}
               {s === "spain" && <span className="text-[10px] leading-none">🇪🇸</span>}
               {SCOPE_LABELS[s]}
             </button>
