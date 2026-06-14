@@ -286,6 +286,26 @@ const SwipeCard = forwardRef<
             </span>
           )}
         </div>
+        {(profile.role || profile.looking_for) && (
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            {profile.role && (
+              <span
+                className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
+                style={{ background: "rgba(168,85,247,0.4)", border: "1px solid rgba(168,85,247,0.5)" }}
+              >
+                {ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS]}
+              </span>
+            )}
+            {profile.looking_for && (
+              <span
+                className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
+                style={{ background: "rgba(236,72,153,0.35)", border: "1px solid rgba(236,72,153,0.45)" }}
+              >
+                {LOOKING_FOR_LABELS[profile.looking_for as keyof typeof LOOKING_FOR_LABELS]}
+              </span>
+            )}
+          </div>
+        )}
         {profile.bio && (
           <p className="mt-2 text-white/70 font-sans text-sm line-clamp-2">
             {profile.bio}
@@ -297,7 +317,7 @@ const SwipeCard = forwardRef<
 });
 SwipeCard.displayName = "SwipeCard";
 
-function QuotaChip() {
+function QuotaBar() {
   const { data: quota } = useGetLikeQuota();
   if (!quota) return null;
   const likeLabel = quota.likes.unlimited ? "∞" : String(quota.likes.remaining);
@@ -305,16 +325,12 @@ function QuotaChip() {
     ? "∞"
     : String(quota.superlikes.remaining);
   return (
-    <div className="flex items-center justify-center gap-3 pt-2 text-[11px] font-sans text-muted-foreground">
-      <span className="flex items-center gap-1">
-        <Heart className="w-3 h-3 text-pink-400" fill="currentColor" />
-        {likeLabel}
-      </span>
-      <span className="opacity-30">·</span>
-      <span className="flex items-center gap-1">
-        <Star className="w-3 h-3 text-sky-400" fill="currentColor" />
-        {superLabel}
-      </span>
+    <div className="flex-shrink-0 flex items-center gap-1 ml-auto pl-1 text-[10px] font-sans text-muted-foreground/70">
+      <Heart className="w-3 h-3 text-pink-400/80" fill="currentColor" />
+      <span>{likeLabel}</span>
+      <span className="opacity-40 mx-0.5">·</span>
+      <Star className="w-3 h-3 text-sky-400/80" fill="currentColor" />
+      <span>{superLabel}</span>
     </div>
   );
 }
@@ -706,19 +722,22 @@ export function SwipeView({
         </Link>
       </header>
 
-      <div className="pt-3 flex justify-center">
-        <ModeToggle mode={mode} setMode={setMode} />
-      </div>
-
-      {/* Scope filter chips */}
-      <div className="px-4 pt-2 flex items-center justify-center gap-1.5 flex-wrap">
+      {/* Compact filter bar: mode toggle | scope chips | quota — single scrollable row */}
+      <div
+        className="flex items-center gap-2 px-3 pt-2 pb-1 overflow-x-auto"
+        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      >
+        <div className="flex-shrink-0">
+          <ModeToggle mode={mode} setMode={setMode} />
+        </div>
+        <div className="w-px h-4 flex-shrink-0" style={{ background: "rgba(255,255,255,0.12)" }} />
         {(Object.keys(SCOPE_LABELS) as DiscoverScope[]).map((s) => {
           const active = scope === s;
           return (
             <button
               key={s}
               onClick={() => setScope(s)}
-              className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all duration-150"
+              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all duration-150"
               style={
                 active
                   ? {
@@ -740,6 +759,7 @@ export function SwipeView({
             </button>
           );
         })}
+        <QuotaBar />
       </div>
 
       {/* Location permission banner — only when scope requires coords and we don't have them */}
@@ -771,10 +791,8 @@ export function SwipeView({
         </p>
       )}
 
-      <QuotaChip />
-
-      <div className="flex-1 min-h-0 px-4 py-3">
-        <div className="relative w-full h-full max-w-sm mx-auto">
+      <div className="flex-1 min-h-0 px-2 py-1">
+        <div className="relative w-full h-full">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -825,7 +843,7 @@ export function SwipeView({
       </div>
 
       {!isLoading && !isError && top && (
-        <div className="flex items-center justify-center gap-6 px-6 pt-1 pb-4">
+        <div className="flex items-center justify-center gap-6 px-6 pt-0.5 pb-3">
           <ActionButton
             onClick={() => act("pass")}
             label="No me interesa"

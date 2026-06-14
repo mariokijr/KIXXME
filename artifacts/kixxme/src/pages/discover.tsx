@@ -291,7 +291,7 @@ function GridDiscover({
         />
       ) : (
         <div className="px-4 pb-6 grid grid-cols-2 gap-3">
-          {profiles.map((user) => (
+          {profiles.map((user, i) => (
             <UserCard
               key={user.id}
               user={user}
@@ -300,6 +300,7 @@ function GridDiscover({
               onToggleLike={() => handleToggleLike(user)}
               onSuperLike={() => handleSuperLike(user)}
               superLikePending={likeActions.isPending}
+              featured={i === 0}
             />
           ))}
         </div>
@@ -382,6 +383,7 @@ export function UserCard({
   onToggleLike,
   onSuperLike,
   superLikePending,
+  featured,
 }: {
   user: PublicProfile;
   grad: string;
@@ -389,14 +391,15 @@ export function UserCard({
   onToggleLike: () => void;
   onSuperLike: () => void;
   superLikePending?: boolean;
+  featured?: boolean;
 }) {
   const distance = formatDistance(user.distance_km);
   const [reportOpen, setReportOpen] = useState(false);
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden border border-border/30 group"
-      style={{ background: "rgba(13,11,26,0.8)", aspectRatio: "3/4" }}
+      className={`relative rounded-2xl overflow-hidden border border-border/30 group${featured ? " col-span-2" : ""}`}
+      style={{ background: "rgba(13,11,26,0.8)", aspectRatio: featured ? "3/4" : "3/4" }}
     >
       {user.avatar_url ? (
         <img
