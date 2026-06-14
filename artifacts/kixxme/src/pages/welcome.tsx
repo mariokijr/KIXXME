@@ -272,13 +272,6 @@ function MapScreen({ w }: { w: number }) {
             Mundo
           </span>
         </div>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 3,
-          padding: "3px 7px", borderRadius: 99,
-          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-        }}>
-          <span style={{ fontSize: 8, color: "rgba(255,255,255,0.45)", fontFamily: "Inter,sans-serif" }}>España</span>
-        </div>
       </div>
 
       {/* User dots */}
