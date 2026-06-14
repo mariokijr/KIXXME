@@ -36,6 +36,8 @@ import {
   Minus,
   Mail,
   Clock,
+  Video,
+  MapPin,
 } from "lucide-react";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 
@@ -54,7 +56,8 @@ const COMPARISON: { label: string; free: CompareCell; plus: CompareCell; gold: C
   { label: "Perfil verificado", free: false, plus: true, gold: true },
   { label: "Boost", free: false, plus: "Semanal", gold: "Diario" },
   { label: "Modo incógnito", free: false, plus: false, gold: true },
-  { label: "KixxMe Live", free: false, plus: false, gold: true },
+  { label: "Videollamadas Live", free: false, plus: false, gold: true },
+  { label: "Mapa en tiempo real", free: false, plus: false, gold: true },
   { label: "Soporte", free: "Estándar", plus: "Prioritario", gold: "VIP 24/7" },
 ];
 
@@ -88,6 +91,8 @@ const PLUS_FEATURES = [
 
 const GOLD_FEATURES = [
   { icon: Crown, text: "Todo lo de Plus" },
+  { icon: Video, text: "Videollamadas en vivo · KixxMe Live" },
+  { icon: MapPin, text: "Mapa en tiempo real de usuarios" },
   { icon: Star, text: "SuperLikes ilimitados" },
   { icon: EyeOff, text: "Modo incógnito" },
   { icon: Zap, text: "Boost diario prioritario" },
