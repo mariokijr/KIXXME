@@ -257,22 +257,6 @@ function MapScreen({ w }: { w: number }) {
         filter: "blur(12px)",
       }} />
 
-      {/* Scope chip */}
-      <div style={{
-        position: "absolute", top: 8, left: 8, right: 8,
-        display: "flex", alignItems: "center", gap: 5,
-      }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 4,
-          padding: "3px 8px", borderRadius: 99,
-          background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.35)",
-        }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "hsl(273,85%,65%)", flexShrink: 0 }} />
-          <span style={{ fontSize: 8, color: "rgba(255,255,255,0.85)", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>
-            Mundo
-          </span>
-        </div>
-      </div>
 
       {/* User dots */}
       {MAP_DOTS.map((dot, i) => (
