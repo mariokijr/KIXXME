@@ -46,6 +46,9 @@ export interface Profile {
   exercise?: ProfileExercise;
   /** Relación con mascotas. */
   pets?: ProfilePets;
+  /** List of interest/tag slugs selected by the user (e.g. "gimnasio", "viajes"). Up to 20 items from the pre-defined allowlist.
+   */
+  interests?: string[] | null;
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;

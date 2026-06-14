@@ -49,6 +49,11 @@ import {
   setShowOnMap,
   getMapOptOutIds,
 } from "../lib/profile-details.js";
+import {
+  getUserInterests,
+  getUserInterestsForUsers,
+  setUserInterests,
+} from "../lib/user-interests.js";
 import { getPhotoCountsForUsers } from "../lib/photos.js";
 import { LikeProfileBody, UpdateMapVisibilityBody } from "@workspace/api-zod";
 
@@ -122,7 +127,18 @@ function toPublic(
   viewer: { latitude: number | null; longitude: number | null } | null,
   likedSet: Set<string>,
   blockedSet: Set<string>,
-  details?: { role?: string | null; looking_for?: string | null; orientation?: string | null; height_cm?: number | null; zodiac_sign?: string | null; alcohol?: string | null; tobacco?: string | null; exercise?: string | null; pets?: string | null } | null,
+  details?: {
+    role?: string | null;
+    looking_for?: string | null;
+    orientation?: string | null;
+    height_cm?: number | null;
+    zodiac_sign?: string | null;
+    alcohol?: string | null;
+    tobacco?: string | null;
+    exercise?: string | null;
+    pets?: string | null;
+    interests?: string[];
+  } | null,
 ) {
   return {
     id: row.id,
@@ -154,6 +170,7 @@ function toPublic(
     tobacco: details?.tobacco ?? null,
     exercise: details?.exercise ?? null,
     pets: details?.pets ?? null,
+    interests: details?.interests ?? [],
   };
 }
 
@@ -273,7 +290,10 @@ router.get("/profiles", async (req, res) => {
   // Completitud score per surviving candidate (gallery size + bio richness),
   // used as a Descubrir priority below the verified badge. One batched photo
   // count over the final candidate set — no N+1.
-  const photoCounts = await getPhotoCountsForUsers(rows.map((r) => r.id));
+  const [photoCounts, interestsMap] = await Promise.all([
+    getPhotoCountsForUsers(rows.map((r) => r.id)),
+    getUserInterestsForUsers(rows.map((r) => r.id)),
+  ]);
   const completeness = new Map<string, number>();
   for (const row of rows) {
     completeness.set(
@@ -283,7 +303,10 @@ router.get("/profiles", async (req, res) => {
   }
 
   const profiles = rows.map((row) =>
-    toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id)),
+    toPublic(row, me ?? null, likedSet, iBlocked, {
+      ...detailsMap.get(row.id),
+      interests: interestsMap.get(row.id) ?? [],
+    }),
   );
 
   if (sort === "distance") {
@@ -457,8 +480,12 @@ router.get("/map/users", async (req, res) => {
     );
   });
 
+  const mapInterestsMap = await getUserInterestsForUsers(rows.map((r) => r.id));
   const users = rows.map((row) =>
-    toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id)),
+    toPublic(row, me ?? null, likedSet, iBlocked, {
+      ...detailsMap.get(row.id),
+      interests: mapInterestsMap.get(row.id) ?? [],
+    }),
   );
 
   // Closest first (strongest key), online users winning ties (stable sort).
@@ -583,14 +610,16 @@ router.get("/profiles/me", async (req, res) => {
     return;
   }
 
-  const [details, tutorialCompletedAt, isSystem] = await Promise.all([
+  const [details, tutorialCompletedAt, isSystem, interests] = await Promise.all([
     getProfileDetails(auth.userId),
     getTutorialCompletedAt(auth.userId),
     isSystemAccount(auth.userId),
+    getUserInterests(auth.userId),
   ]);
   res.json({
     ...data,
     ...details,
+    interests,
     tutorial_completed: tutorialCompletedAt != null,
     is_system: isSystem,
   });
@@ -735,6 +764,24 @@ router.put("/profiles/me", async (req, res) => {
 // Mark the mandatory onboarding tutorial as completed (idempotent set-once).
 // Returns the full owner profile so the client can prime its cache and move on
 // to the mandatory-profile step without an extra round trip.
+router.get("/profiles/me/interests", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const interests = await getUserInterests(auth.userId);
+  res.json({ interests });
+});
+
+router.put("/profiles/me/interests", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  try {
+    const interests = await setUserInterests(auth.userId, req.body?.interests ?? []);
+    res.json({ interests });
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
+});
+
 router.post("/profiles/me/tutorial", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
@@ -853,10 +900,16 @@ router.get("/profiles/me/likes", async (req, res) => {
   const likedSet = new Set(ids);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
   const favRows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
-  const favDetailsMap = await getProfileDetailsForUsers(favRows.map((r) => r.id));
+  const [favDetailsMap, favInterestsMap] = await Promise.all([
+    getProfileDetailsForUsers(favRows.map((r) => r.id)),
+    getUserInterestsForUsers(favRows.map((r) => r.id)),
+  ]);
   res.json(
     favRows.map((row) => ({
-      ...toPublic(row, me ?? null, likedSet, iBlocked, favDetailsMap.get(row.id)),
+      ...toPublic(row, me ?? null, likedSet, iBlocked, {
+        ...favDetailsMap.get(row.id),
+        interests: favInterestsMap.get(row.id) ?? [],
+      }),
       matched: matchedSet.has(row.id),
     })),
   );
@@ -1142,7 +1195,11 @@ router.get("/profiles/online", async (req, res) => {
     );
   });
 
-  res.json(rows.map((row) => toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id))));
+  const onlineInterestsMap = await getUserInterestsForUsers(rows.map((r) => r.id));
+  res.json(rows.map((row) => toPublic(row, me ?? null, likedSet, iBlocked, {
+    ...detailsMap.get(row.id),
+    interests: onlineInterestsMap.get(row.id) ?? [],
+  })));
 });
 
 // "Empareja": the viewer's mutual matches (both liked each other). Excludes
@@ -1186,10 +1243,16 @@ router.get("/profiles/me/matches", async (req, res) => {
   const likedSet = new Set(matchedIds);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
   const matchRows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
-  const matchDetailsMap = await getProfileDetailsForUsers(matchRows.map((r) => r.id));
+  const [matchDetailsMap, matchInterestsMap] = await Promise.all([
+    getProfileDetailsForUsers(matchRows.map((r) => r.id)),
+    getUserInterestsForUsers(matchRows.map((r) => r.id)),
+  ]);
   res.json(
     matchRows.map((row) => ({
-      ...toPublic(row, me ?? null, likedSet, iBlocked, matchDetailsMap.get(row.id)),
+      ...toPublic(row, me ?? null, likedSet, iBlocked, {
+        ...matchDetailsMap.get(row.id),
+        interests: matchInterestsMap.get(row.id) ?? [],
+      }),
       matched: true,
     })),
   );
@@ -1246,8 +1309,11 @@ router.get("/profiles/:id", async (req, res) => {
     })();
   }
 
-  const details = await getProfileDetails(id);
-  res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet, details));
+  const [details, interests] = await Promise.all([
+    getProfileDetails(id),
+    getUserInterests(id),
+  ]);
+  res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet, { ...details, interests }));
 });
 
 /**

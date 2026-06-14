@@ -49,6 +49,9 @@ export interface PublicProfile {
   exercise?: PublicProfileExercise;
   /** Relación con mascotas. */
   pets?: PublicProfilePets;
+  /** List of interest/tag slugs selected by the user (e.g. "gimnasio", "viajes"). Up to 20 items from the pre-defined allowlist.
+   */
+  interests?: string[] | null;
   /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
   matched?: boolean;
   created_at?: string;

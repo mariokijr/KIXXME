@@ -612,6 +612,9 @@ export interface Profile {
   exercise?: ProfileExercise;
   /** Relación con mascotas. */
   pets?: ProfilePets;
+  /** List of interest/tag slugs selected by the user (e.g. "gimnasio", "viajes"). Up to 20 items from the pre-defined allowlist.
+   */
+  interests?: string[] | null;
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;
@@ -791,6 +794,9 @@ export interface PublicProfile {
   exercise?: PublicProfileExercise;
   /** Relación con mascotas. */
   pets?: PublicProfilePets;
+  /** List of interest/tag slugs selected by the user (e.g. "gimnasio", "viajes"). Up to 20 items from the pre-defined allowlist.
+   */
+  interests?: string[] | null;
   /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
   matched?: boolean;
   created_at?: string;
@@ -943,6 +949,18 @@ export interface UpdateProfileRequest {
   tobacco?: UpdateProfileRequestTobacco;
   exercise?: UpdateProfileRequestExercise;
   pets?: UpdateProfileRequestPets;
+}
+
+export interface InterestsResponse {
+  interests: string[];
+}
+
+export interface UpdateInterestsRequest {
+  /**
+     * Full replacement list of interest tag slugs (max 20).
+     * @maxItems 20
+     */
+  interests: string[];
 }
 
 export interface AvatarUploadRequest {

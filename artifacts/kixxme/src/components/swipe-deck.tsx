@@ -48,6 +48,7 @@ import {
   ROLE_LABELS, LOOKING_FOR_LABELS, ORIENTATION_LABELS,
   ZODIAC_LABELS, ALCOHOL_LABELS, EXERCISE_LABELS, PETS_LABELS,
   formatHeightCm,
+  interestLabel,
 } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
@@ -510,6 +511,25 @@ function ProfileDetailSheet({
             <p className="font-sans text-base text-foreground/90 leading-relaxed whitespace-pre-wrap">
               {profile.bio}
             </p>
+          </div>
+        )}
+
+        {Array.isArray(profile.interests) && profile.interests.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-display text-sm tracking-widest text-muted-foreground uppercase">
+              Intereses
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.interests.map((slug) => (
+                <span
+                  key={slug}
+                  className="px-2.5 py-1 rounded-full text-xs font-sans border border-primary/30 text-primary/90"
+                  style={{ background: "rgba(168,85,247,0.1)" }}
+                >
+                  {interestLabel(slug)}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

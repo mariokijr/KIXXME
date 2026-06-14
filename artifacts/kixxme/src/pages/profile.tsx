@@ -3,6 +3,9 @@ import {
   useGetMyProfile,
   getGetMyProfileQueryKey,
   useUpdateMyProfile,
+  useGetMyInterests,
+  getGetMyInterestsQueryKey,
+  useUpdateMyInterests,
   useListMyPhotos,
   useUploadPhoto,
   useReplacePhoto,
@@ -12,6 +15,7 @@ import {
   getGetMyModerationQueryKey,
   ProfilePhoto,
 } from "@workspace/api-client-react";
+import { TagPicker } from "@/components/tag-picker";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -100,9 +104,23 @@ export default function Profile() {
   const [tobacco, setTobacco] = useState<TobaccoValue | "">("");
   const [exercise, setExercise] = useState<ExerciseValue | "">("");
   const [pets, setPets] = useState<PetsValue | "">("");
+  const [interests, setInterests] = useState<string[]>([]);
 
   const initRef = useRef<string | null>(null);
+  const interestsInitRef = useRef(false);
   const wasOnboardingRef = useRef(false);
+
+  const { data: interestsData } = useGetMyInterests({
+    query: { enabled: !!session, queryKey: getGetMyInterestsQueryKey() },
+  });
+  const updateInterests = useUpdateMyInterests();
+
+  useEffect(() => {
+    if (interestsData && !interestsInitRef.current) {
+      interestsInitRef.current = true;
+      setInterests(interestsData.interests ?? []);
+    }
+  }, [interestsData]);
 
   useEffect(() => {
     if (profile && initRef.current !== profile.id) {
@@ -144,6 +162,11 @@ export default function Profile() {
       exercise !== ((profile.exercise ?? "") as string) ||
       pets !== ((profile.pets ?? "") as string));
 
+  const interestsDirty =
+    interestsInitRef.current &&
+    JSON.stringify([...(interestsData?.interests ?? [])].sort()) !==
+      JSON.stringify([...interests].sort());
+
   const isOnboarding = wasOnboardingRef.current;
 
   const handleSave = () => {
@@ -177,39 +200,64 @@ export default function Profile() {
       });
       return;
     }
-    updateProfile.mutate(
-      { data: {
-        username,
-        bio,
-        age: age !== "" ? Number(age) : undefined,
-        city: city || undefined,
-        gender: gender || undefined,
-        location: location || undefined,
-        role: role || undefined,
-        looking_for: lookingFor || undefined,
-        orientation: orientation || undefined,
-        height_cm: heightCm !== "" ? Number(heightCm) : undefined,
-        zodiac_sign: zodiacSign || undefined,
-        alcohol: alcohol || undefined,
-        tobacco: tobacco || undefined,
-        exercise: exercise || undefined,
-        pets: pets || undefined,
-      } },
-      {
-        onSuccess: (data) => {
-          queryClient.setQueryData(getGetMyProfileQueryKey(), data);
-          if (isOnboarding) {
-            setLocation("/discover");
-          } else {
-            toast({ title: "¡Perfil actualizado!" });
-          }
-        },
-        onError: (err: any) => {
-          const msg = err?.data?.error ?? err?.message ?? "Error desconocido";
-          toast({ title: "No se pudo guardar", description: msg, variant: "destructive" });
-        },
-      }
-    );
+    const profilePromise = isDirty
+      ? new Promise<void>((resolve, reject) =>
+          updateProfile.mutate(
+            { data: {
+              username,
+              bio,
+              age: age !== "" ? Number(age) : undefined,
+              city: city || undefined,
+              gender: gender || undefined,
+              location: location || undefined,
+              role: role || undefined,
+              looking_for: lookingFor || undefined,
+              orientation: orientation || undefined,
+              height_cm: heightCm !== "" ? Number(heightCm) : undefined,
+              zodiac_sign: zodiacSign || undefined,
+              alcohol: alcohol || undefined,
+              tobacco: tobacco || undefined,
+              exercise: exercise || undefined,
+              pets: pets || undefined,
+            } },
+            {
+              onSuccess: (data) => {
+                queryClient.setQueryData(getGetMyProfileQueryKey(), data);
+                resolve();
+              },
+              onError: (err: any) => reject(err),
+            },
+          ),
+        )
+      : Promise.resolve();
+
+    const interestsPromise = interestsDirty
+      ? new Promise<void>((resolve, reject) =>
+          updateInterests.mutate(
+            { data: { interests } },
+            {
+              onSuccess: () => {
+                queryClient.setQueryData(getGetMyInterestsQueryKey(), { interests });
+                resolve();
+              },
+              onError: (err: any) => reject(err),
+            },
+          ),
+        )
+      : Promise.resolve();
+
+    Promise.all([profilePromise, interestsPromise])
+      .then(() => {
+        if (isOnboarding) {
+          setLocation("/discover");
+        } else {
+          toast({ title: "¡Perfil actualizado!" });
+        }
+      })
+      .catch((err: any) => {
+        const msg = err?.data?.error ?? err?.message ?? "Error desconocido";
+        toast({ title: "No se pudo guardar", description: msg, variant: "destructive" });
+      });
   };
 
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -547,6 +595,13 @@ export default function Profile() {
             />
           </div>
         </div>
+        <div className="space-y-2">
+          <p className="font-sans text-xs font-medium text-foreground/60 uppercase tracking-widest">
+            Intereses · selecciona hasta 20
+          </p>
+          <TagPicker selected={interests} onChange={setInterests} max={20} />
+        </div>
+
         <div className="pt-1">
           <button
             type="button"
@@ -574,7 +629,7 @@ export default function Profile() {
             </p>
           )}
         </div>
-        <Button onClick={handleSave} disabled={updateProfile.isPending || !isDirty}
+        <Button onClick={handleSave} disabled={(updateProfile.isPending || updateInterests.isPending) || (!isDirty && !interestsDirty)}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
           data-testid="button-save-profile">

@@ -142,3 +142,85 @@ export function formatHeightCm(cm: number | null | undefined): string | null {
   if (cm == null) return null;
   return `${cm} cm`;
 }
+
+export const INTEREST_CATEGORIES: { label: string; tags: { slug: string; label: string }[] }[] = [
+  {
+    label: "💪 Fitness",
+    tags: [
+      { slug: "gimnasio", label: "Gimnasio" },
+      { slug: "running", label: "Running" },
+      { slug: "yoga", label: "Yoga" },
+      { slug: "natacion", label: "Natación" },
+      { slug: "ciclismo", label: "Ciclismo" },
+      { slug: "senderismo", label: "Senderismo" },
+      { slug: "deporte", label: "Deporte" },
+    ],
+  },
+  {
+    label: "✈️ Viajes",
+    tags: [
+      { slug: "viajes", label: "Viajes" },
+      { slug: "playa", label: "Playa" },
+      { slug: "montana", label: "Montaña" },
+      { slug: "mochilero", label: "Mochilero" },
+      { slug: "road_trip", label: "Road trip" },
+      { slug: "campamento", label: "Campamento" },
+    ],
+  },
+  {
+    label: "🎵 Música",
+    tags: [
+      { slug: "musica", label: "Música" },
+      { slug: "conciertos", label: "Conciertos" },
+      { slug: "dj", label: "DJ" },
+      { slug: "karaoke", label: "Karaoke" },
+      { slug: "festivales", label: "Festivales" },
+      { slug: "guitarra", label: "Guitarra" },
+    ],
+  },
+  {
+    label: "🎬 Entretenimiento",
+    tags: [
+      { slug: "cine", label: "Cine" },
+      { slug: "series", label: "Series" },
+      { slug: "teatro", label: "Teatro" },
+      { slug: "videojuegos", label: "Videojuegos" },
+      { slug: "podcasts", label: "Podcasts" },
+      { slug: "lectura", label: "Lectura" },
+    ],
+  },
+  {
+    label: "🍽️ Gastronomía",
+    tags: [
+      { slug: "gastronomia", label: "Gastronomía" },
+      { slug: "cocina", label: "Cocina" },
+      { slug: "cafes", label: "Cafés" },
+      { slug: "bares", label: "Bares" },
+      { slug: "vinos", label: "Vinos" },
+      { slug: "sushi", label: "Sushi" },
+    ],
+  },
+  {
+    label: "🌿 Estilo de vida",
+    tags: [
+      { slug: "meditacion", label: "Meditación" },
+      { slug: "vegano", label: "Vegano" },
+      { slug: "voluntariado", label: "Voluntariado" },
+      { slug: "fotografia", label: "Fotografía" },
+      { slug: "moda", label: "Moda" },
+      { slug: "arte", label: "Arte" },
+      { slug: "naturaleza", label: "Naturaleza" },
+      { slug: "clubbing", label: "Clubbing" },
+      { slug: "pride", label: "Pride" },
+      { slug: "tecnologia", label: "Tecnología" },
+    ],
+  },
+];
+
+export function interestLabel(slug: string): string {
+  for (const cat of INTEREST_CATEGORIES) {
+    const found = cat.tags.find((t) => t.slug === slug);
+    if (found) return found.label;
+  }
+  return slug;
+}

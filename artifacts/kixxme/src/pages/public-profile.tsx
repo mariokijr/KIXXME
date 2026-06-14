@@ -40,6 +40,7 @@ import {
   EXERCISE_LABELS,
   PETS_LABELS,
   formatHeightCm,
+  interestLabel,
 } from "@/lib/profile-format";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
@@ -375,6 +376,27 @@ export default function PublicProfile() {
             </span>
           )}
         </div>
+
+        {Array.isArray(profile.interests) && profile.interests.length > 0 && (
+          <div className="border border-border/50 rounded-2xl p-6 w-full text-left relative"
+            style={{ background: "rgba(13,11,26,0.75)", boxShadow: "0 0 30px rgba(168,85,247,0.08)" }}>
+            <div className="absolute -top-3.5 left-6 px-4 py-1 rounded-full text-xs font-display tracking-widest text-white"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}>
+              Intereses
+            </div>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {profile.interests.map((slug) => (
+                <span
+                  key={slug}
+                  className="px-3 py-1.5 rounded-full text-sm font-sans border border-primary/30 text-primary/90"
+                  style={{ background: "rgba(168,85,247,0.1)" }}
+                >
+                  {interestLabel(slug)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {profile.bio && (
           <div className="border border-border/50 rounded-2xl p-7 w-full text-left relative"

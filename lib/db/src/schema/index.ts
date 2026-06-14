@@ -23,3 +23,4 @@ export * from "./email-sends";
 export * from "./plan-grants";
 export * from "./device-tokens";
 export * from "./free-trial-uses";
+export * from "./user-interests";

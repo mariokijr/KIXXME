@@ -53,6 +53,7 @@ import type {
   ForgotPasswordResponse,
   GetDiscoveryStatsParams,
   HealthStatus,
+  InterestsResponse,
   LikeQuota,
   LikeRequest,
   LikeResponse,
@@ -117,6 +118,7 @@ import type {
   SuspendUserRequest,
   TrialStatusResponse,
   UnregisterDeviceBody,
+  UpdateInterestsRequest,
   UpdateProfileRequest,
   UploadAvatar200,
   UploadChatAudio201,
@@ -788,6 +790,154 @@ export const useUpdateMyProfile = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUpdateMyProfileMutationOptions(options));
+    }
+
+export const getGetMyInterestsUrl = () => {
+
+
+
+
+  return `/api/profiles/me/interests`
+}
+
+/**
+ * @summary Get the current user's interest tags
+ */
+export const getMyInterests = async ( options?: RequestInit): Promise<InterestsResponse> => {
+
+  return customFetch<InterestsResponse>(getGetMyInterestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyInterestsQueryKey = () => {
+    return [
+    `/api/profiles/me/interests`
+    ] as const;
+    }
+
+
+export const getGetMyInterestsQueryOptions = <TData = Awaited<ReturnType<typeof getMyInterests>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyInterests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyInterestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyInterests>>> = ({ signal }) => getMyInterests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyInterests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyInterestsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyInterests>>>
+export type GetMyInterestsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get the current user's interest tags
+ */
+
+export function useGetMyInterests<TData = Awaited<ReturnType<typeof getMyInterests>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyInterests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyInterestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateMyInterestsUrl = () => {
+
+
+
+
+  return `/api/profiles/me/interests`
+}
+
+/**
+ * @summary Replace the current user's interest tags (full replace)
+ */
+export const updateMyInterests = async (updateInterestsRequest: UpdateInterestsRequest, options?: RequestInit): Promise<InterestsResponse> => {
+
+  return customFetch<InterestsResponse>(getUpdateMyInterestsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateInterestsRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateMyInterestsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyInterests>>, TError,{data: BodyType<UpdateInterestsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyInterests>>, TError,{data: BodyType<UpdateInterestsRequest>}, TContext> => {
+
+const mutationKey = ['updateMyInterests'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyInterests>>, {data: BodyType<UpdateInterestsRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyInterests(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyInterestsMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyInterests>>>
+    export type UpdateMyInterestsMutationBody = BodyType<UpdateInterestsRequest>
+    export type UpdateMyInterestsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Replace the current user's interest tags (full replace)
+ */
+export const useUpdateMyInterests = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyInterests>>, TError,{data: BodyType<UpdateInterestsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyInterests>>,
+        TError,
+        {data: BodyType<UpdateInterestsRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyInterestsMutationOptions(options));
     }
 
 export const getCompleteTutorialUrl = () => {

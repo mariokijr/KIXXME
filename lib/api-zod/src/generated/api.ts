@@ -142,6 +142,7 @@ export const GetMyProfileResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
@@ -201,10 +202,35 @@ export const UpdateMyProfileResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
+})
+
+
+/**
+ * @summary Get the current user's interest tags
+ */
+export const GetMyInterestsResponse = zod.object({
+  "interests": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Replace the current user's interest tags (full replace)
+ */
+export const updateMyInterestsBodyInterestsMax = 20;
+
+
+
+export const UpdateMyInterestsBody = zod.object({
+  "interests": zod.array(zod.string()).max(updateMyInterestsBodyInterestsMax).describe('Full replacement list of interest tag slugs (max 20).')
+})
+
+export const UpdateMyInterestsResponse = zod.object({
+  "interests": zod.array(zod.string())
 })
 
 
@@ -234,6 +260,7 @@ export const CompleteTutorialResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
@@ -272,6 +299,7 @@ export const GetProfileResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -323,6 +351,7 @@ export const ListProfilesResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -380,6 +409,7 @@ export const ListMapUsersResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })).describe('Other Gold users on the map (empty when can_access is false).'),
@@ -491,6 +521,7 @@ export const ListConversationsResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }),
@@ -535,6 +566,7 @@ export const CreateOrGetConversationResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }),
@@ -645,6 +677,7 @@ export const UpdateMyLocationResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
@@ -691,6 +724,7 @@ export const ListMyLikesResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -726,6 +760,7 @@ export const ListOnlineProfilesResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -761,6 +796,7 @@ export const ListMyMatchesResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -929,6 +965,7 @@ export const ListBlockedProfilesResponseItem = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 })
@@ -1707,6 +1744,7 @@ export const GetAdminReportResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }).nullish(),
@@ -1734,6 +1772,7 @@ export const GetAdminReportResponse = zod.object({
   "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
   "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
   "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
   "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
   "created_at": zod.string().optional()
 }).nullish(),
