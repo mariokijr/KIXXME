@@ -496,6 +496,15 @@ router.get("/profiles", async (req, res) => {
 // goes online/offline (last_active_at within the online window).
 async function mapCommunityStats(
   hidden: Set<string>,
+  /**
+   * The confirmed-Gold viewer's ID and last_active_at. If the viewer reached
+   * this call they are Gold (hasGold returned true), but GOLD_TEST_EMAILS
+   * users are not stored as plan='gold' in Supabase, so the query below would
+   * miss them. We add +1 for the viewer only when they are not already in the
+   * result set, keeping stats accurate in test environments.
+   */
+  viewerId?: string,
+  viewerLastActive?: string | null,
 ): Promise<{ goldTotal: number; onlineTotal: number }> {
   const { data, error } = await supabase
     .from("profiles")
@@ -506,9 +515,19 @@ async function mapCommunityStats(
   const rows = (
     data as { id: string; last_active_at: string | null }[]
   ).filter((r) => !hidden.has(r.id));
+
+  // If the viewer is not already captured by the plan='gold' query (they're a
+  // GOLD_TEST_EMAILS user whose Supabase plan column is still 'free'/'plus'),
+  // include them so community counters are non-zero for test accounts.
+  const viewerCounted =
+    !viewerId || rows.some((r) => r.id === viewerId);
+  const extraGold = viewerCounted ? 0 : 1;
+  const extraOnline =
+    !viewerCounted && isOnline(viewerLastActive ?? null) ? 1 : 0;
+
   return {
-    goldTotal: rows.length,
-    onlineTotal: rows.filter((r) => isOnline(r.last_active_at)).length,
+    goldTotal: rows.length + extraGold,
+    onlineTotal: rows.filter((r) => isOnline(r.last_active_at)).length + extraOnline,
   };
 }
 
@@ -539,19 +558,27 @@ router.get("/map/users", async (req, res) => {
     return;
   }
 
-  // Visibility context drives both the community stats and the marker filter, so
-  // compute it once. Stats are global (no scope) — they must hold even when the
-  // marker list is empty (radius scope with no viewer coords, no opted-in Golds).
-  const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
-  const stats = await mapCommunityStats(hidden);
+  // Fetch viewer profile and visibility context in parallel — both are needed
+  // before we can compute community stats and apply scope filters.
+  const [{ hidden, iBlocked }, { data: me }] = await Promise.all([
+    getVisibilityContext(auth.userId),
+    supabase
+      .from("profiles")
+      .select("latitude, longitude, last_active_at")
+      .eq("id", auth.userId)
+      .maybeSingle(),
+  ]);
+
+  // Stats are global (no scope) — they must hold even when the marker list is
+  // empty (e.g. radius scope with no viewer coords, no opted-in Gold users).
+  // Pass the viewer's ID so GOLD_TEST_EMAILS users are counted correctly.
+  const stats = await mapCommunityStats(
+    hidden,
+    auth.userId,
+    (me as { last_active_at?: string | null } | null)?.last_active_at ?? null,
+  );
 
   const scope = parseScope(req.query.scope);
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("latitude, longitude")
-    .eq("id", auth.userId)
-    .maybeSingle();
 
   const box = scope ? scopeBoxFor(scope, me ?? null) : null;
   if (box === "empty") {
