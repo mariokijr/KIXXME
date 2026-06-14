@@ -11,15 +11,18 @@ import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
 import { motion } from "framer-motion";
+import faceCarlos from "@/assets/face-carlos.png";
+import faceMarcos from "@/assets/face-marcos.png";
+import faceAlejandro from "@/assets/face-alejandro.png";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))";
 
 /* ─────────────────────────────────────────────────────────────
    SCREEN: Video call — two guys face-to-face (KixxMe Live)
 ───────────────────────────────────────────────────────────── */
-const FACE_CARLOS = "https://randomuser.me/api/portraits/men/32.jpg";
-const FACE_MARCOS = "https://randomuser.me/api/portraits/men/75.jpg";
-const FACE_ALEJANDRO = "https://randomuser.me/api/portraits/men/44.jpg";
+const FACE_CARLOS = faceCarlos;
+const FACE_MARCOS = faceMarcos;
+const FACE_ALEJANDRO = faceAlejandro;
 
 function VideoCallScreen({ w, h }: { w: number; h: number }) {
   const r = Math.max(12, Math.floor(w * 0.12));
