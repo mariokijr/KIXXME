@@ -327,7 +327,7 @@ function MapScreen({ w }: { w: number }) {
       }}>
         <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0, boxShadow: "0 0 5px #22c55e" }} />
         <span style={{ fontSize: 8, color: "rgba(255,255,255,0.80)", fontFamily: "Inter,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>
-          24 cerca de ti
+          Descubre personas cerca de ti
         </span>
       </div>
     </div>
