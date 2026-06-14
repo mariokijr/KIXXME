@@ -528,70 +528,65 @@ export default function MapView() {
               </div>
             </div>
           )}
+
+          {/* Activate location banner — lives inside the overlay so it always
+              sits below the chips/filter panel, never overlapping them. */}
+          {canAccess && !hasLocation && (
+            <div className="px-4 pb-3 pointer-events-auto">
+              <div
+                className="px-4 py-3 rounded-2xl flex items-center gap-3"
+                style={{
+                  background: "rgba(8,7,18,0.97)",
+                  backdropFilter: "blur(16px)",
+                  border: "1px solid rgba(168,85,247,0.2)",
+                }}
+              >
+                <Navigation className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-sm tracking-wide text-purple-300">
+                    Activa tu ubicación
+                  </p>
+                  <p className="font-sans text-[11px] text-white/40 leading-snug">
+                    Comparte tu GPS para ver quién está cerca de ti.
+                  </p>
+                </div>
+                <button
+                  onClick={() => geo.request()}
+                  disabled={geo.isPending || geo.state === "locating"}
+                  className="flex-shrink-0 px-3 py-2 rounded-xl text-white text-xs font-sans font-medium disabled:opacity-60"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  }}
+                >
+                  {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Location denied / unsupported — same treatment */}
+          {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
+            <div className="px-4 pb-3 pointer-events-auto">
+              <p
+                className="font-sans text-[11px] text-red-400 px-3 py-2 rounded-xl"
+                style={{
+                  background: "rgba(20,5,5,0.92)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }}
+              >
+                {geo.state === "denied"
+                  ? "Permiso de ubicación denegado. Actívalo en los ajustes del navegador."
+                  : "Tu dispositivo no admite geolocalización."}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Loading spinner */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[450]">
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-          </div>
-        )}
-
-        {/* Activate location banner */}
-        {canAccess && !hasLocation && (
-          <div
-            className="absolute left-4 right-4 z-[500]"
-            style={{ top: "108px" }}
-          >
-            <div
-              className="px-4 py-3 rounded-2xl flex items-center gap-3"
-              style={{
-                background: "rgba(8,7,18,0.97)",
-                backdropFilter: "blur(16px)",
-                border: "1px solid rgba(168,85,247,0.2)",
-              }}
-            >
-              <Navigation className="w-5 h-5 text-purple-400 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-sm tracking-wide text-purple-300">
-                  Activa tu ubicación
-                </p>
-                <p className="font-sans text-[11px] text-white/40 leading-snug">
-                  Comparte tu GPS para ver quién está cerca de ti.
-                </p>
-              </div>
-              <button
-                onClick={() => geo.request()}
-                disabled={geo.isPending || geo.state === "locating"}
-                className="flex-shrink-0 px-3 py-2 rounded-xl text-white text-xs font-sans font-medium disabled:opacity-60"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                }}
-              >
-                {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Location denied / unsupported */}
-        {canAccess && (geo.state === "denied" || geo.state === "unsupported") && (
-          <div
-            className="absolute left-4 right-4 z-[500]"
-            style={{ top: hasLocation ? "108px" : "170px" }}
-          >
-            <p
-              className="font-sans text-[11px] text-red-400 px-3 py-2 rounded-xl"
-              style={{
-                background: "rgba(20,5,5,0.92)",
-                border: "1px solid rgba(239,68,68,0.2)",
-              }}
-            >
-              {geo.state === "denied"
-                ? "Permiso de ubicación denegado. Actívalo en los ajustes del navegador."
-                : "Tu dispositivo no admite geolocalización."}
-            </p>
           </div>
         )}
 
