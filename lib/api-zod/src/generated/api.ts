@@ -323,9 +323,25 @@ export const UploadAvatarResponse = zod.object({
 /**
  * @summary List public profiles for discovery (excludes current user)
  */
+export const listProfilesQueryAgeMinMin = 18;
+export const listProfilesQueryAgeMinMax = 99;
+
+export const listProfilesQueryAgeMaxMin = 18;
+export const listProfilesQueryAgeMaxMax = 99;
+
+
+
 export const ListProfilesQueryParams = zod.object({
   "sort": zod.enum(['recent', 'distance', 'online']).optional(),
-  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional().describe('Geographic scope filter for the world map. nearby\/province are relative to the viewer\'s location (return an empty list when the viewer has no coordinates); spain\/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).\n')
+  "scope": zod.enum(['nearby', 'province', 'spain', 'europe', 'worldwide']).optional().describe('Geographic scope filter for the world map. nearby\/province are relative to the viewer\'s location (return an empty list when the viewer has no coordinates); spain\/europe use bounding boxes; worldwide returns everyone. When present, Gold profiles are ordered first (priority visibility).\n'),
+  "age_min": zod.coerce.number().min(listProfilesQueryAgeMinMin).max(listProfilesQueryAgeMinMax).optional().describe('Minimum age filter (inclusive). Free for all users.'),
+  "age_max": zod.coerce.number().min(listProfilesQueryAgeMaxMin).max(listProfilesQueryAgeMaxMax).optional().describe('Maximum age filter (inclusive). Free for all users.'),
+  "online_only": zod.coerce.boolean().optional().describe('When true, only return users active in the last 15 minutes. Free for all users.'),
+  "verified_only": zod.coerce.boolean().optional().describe('Plus\/Gold only — silently ignored for free users.'),
+  "role": zod.coerce.string().optional().describe('Filter by sexual role (activo\/pasivo\/versatil\/…). Plus\/Gold only.'),
+  "looking_for": zod.coerce.string().optional().describe('Filter by what the user is looking for. Plus\/Gold only.'),
+  "orientation": zod.coerce.string().optional().describe('Filter by orientation. Plus\/Gold only.'),
+  "distance_max_km": zod.coerce.number().optional().describe('Maximum distance in km. Gold only — silently ignored for free\/Plus users.')
 })
 
 export const ListProfilesResponseItem = zod.object({

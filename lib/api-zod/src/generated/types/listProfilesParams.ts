@@ -15,4 +15,40 @@ sort?: ListProfilesSort;
 
  */
 scope?: ListProfilesScope;
+/**
+ * Minimum age filter (inclusive). Free for all users.
+ * @minimum 18
+ * @maximum 99
+ */
+age_min?: number;
+/**
+ * Maximum age filter (inclusive). Free for all users.
+ * @minimum 18
+ * @maximum 99
+ */
+age_max?: number;
+/**
+ * When true, only return users active in the last 15 minutes. Free for all users.
+ */
+online_only?: boolean;
+/**
+ * Plus/Gold only — silently ignored for free users.
+ */
+verified_only?: boolean;
+/**
+ * Filter by sexual role (activo/pasivo/versatil/…). Plus/Gold only.
+ */
+role?: string;
+/**
+ * Filter by what the user is looking for. Plus/Gold only.
+ */
+looking_for?: string;
+/**
+ * Filter by orientation. Plus/Gold only.
+ */
+orientation?: string;
+/**
+ * Maximum distance in km. Gold only — silently ignored for free/Plus users.
+ */
+distance_max_km?: number;
 };

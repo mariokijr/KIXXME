@@ -27,6 +27,7 @@ import {
   Globe2,
   Navigation,
   MessageCircle,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -52,6 +53,13 @@ import {
   interestLabel,
 } from "@/lib/profile-format";
 import { useStartConversation } from "@/lib/use-start-conversation";
+import {
+  FilterSheet,
+  type DiscoverFilters,
+  DEFAULT_FILTERS,
+  countActiveFilters,
+  filtersToParams,
+} from "@/components/filter-sheet";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
 import { useGeolocation } from "@/lib/use-geolocation";
@@ -648,6 +656,8 @@ export function SwipeView({
   const [scope, setScopeState] = useState<DiscoverScope>(readScope);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
+  const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const { session } = useAuth();
   const geo = useGeolocation();
@@ -656,6 +666,7 @@ export function SwipeView({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
   const hasCoords = ownProfile?.latitude != null;
+  const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
   const setScope = (s: DiscoverScope) => {
     setScopeState(s);
@@ -663,12 +674,19 @@ export function SwipeView({
     setIndex(0);
   };
 
+  const applyFilters = (f: DiscoverFilters) => {
+    setFilters(f);
+    setIndex(0);
+    qc.removeQueries({ queryKey: getListProfilesQueryKey({ sort, scope }) });
+  };
+
   // Sort by distance whenever a geographic scope is active; fall back to
   // recent for worldwide so the deck stays fresh on low-density installs.
   const sort: "recent" | "distance" =
     scope === "worldwide" ? "recent" : "distance";
-  const queryParams = { sort, scope };
+  const queryParams = { sort, scope, ...filtersToParams(filters) };
   const queryKey = getListProfilesQueryKey(queryParams);
+  const activeFilterCount = countActiveFilters(filters);
 
   // -------------------------------------------------------------------------
   const {
@@ -733,28 +751,52 @@ export function SwipeView({
         style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
       >
         <KixxMeLogo size={22} withWordmark />
-        <Link href="/matches">
+        <div className="flex items-center gap-2">
+          {/* Filter button */}
           <button
-            className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="Emparejamientos"
-            data-testid="link-matches"
+            onClick={() => setFilterOpen(true)}
+            className="relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors hover:border-primary/50"
+            style={{
+              background: activeFilterCount > 0 ? "rgba(139,92,246,0.2)" : "rgba(255,255,255,0.04)",
+              borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.6)" : "rgba(255,255,255,0.15)",
+            }}
+            aria-label="Filtros"
+            data-testid="button-filters"
           >
-            <Heart className="w-4 h-4 text-primary" />
-            {likesBadge > 0 && (
+            <SlidersHorizontal className="w-4 h-4" style={{ color: activeFilterCount > 0 ? "#a78bfa" : undefined }} />
+            {activeFilterCount > 0 && (
               <span
-                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                }}
-                data-testid="badge-likes"
+                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
               >
-                {likesBadge > 99 ? "99+" : likesBadge}
+                {activeFilterCount}
               </span>
             )}
           </button>
-        </Link>
+
+          <Link href="/matches">
+            <button
+              className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              aria-label="Emparejamientos"
+              data-testid="link-matches"
+            >
+              <Heart className="w-4 h-4 text-primary" />
+              {likesBadge > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  }}
+                  data-testid="badge-likes"
+                >
+                  {likesBadge > 99 ? "99+" : likesBadge}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
       </header>
 
       <div className="pt-3 flex justify-center">
@@ -915,6 +957,14 @@ export function SwipeView({
           onAction={handleDetailAction}
         />
       )}
+
+      <FilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={filters}
+        onChange={applyFilters}
+        plan={plan}
+      />
     </div>
   );
 }

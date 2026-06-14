@@ -422,6 +422,58 @@ paths:
           schema:
             type: string
             enum: [nearby, province, spain, europe, worldwide]
+        - name: age_min
+          in: query
+          required: false
+          description: Minimum age filter (inclusive). Free for all users.
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 99
+        - name: age_max
+          in: query
+          required: false
+          description: Maximum age filter (inclusive). Free for all users.
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 99
+        - name: online_only
+          in: query
+          required: false
+          description: When true, only return users active in the last 15 minutes. Free for all users.
+          schema:
+            type: boolean
+        - name: verified_only
+          in: query
+          required: false
+          description: Plus/Gold only — silently ignored for free users.
+          schema:
+            type: boolean
+        - name: role
+          in: query
+          required: false
+          description: Filter by sexual role (activo/pasivo/versatil/…). Plus/Gold only.
+          schema:
+            type: string
+        - name: looking_for
+          in: query
+          required: false
+          description: Filter by what the user is looking for. Plus/Gold only.
+          schema:
+            type: string
+        - name: orientation
+          in: query
+          required: false
+          description: Filter by orientation. Plus/Gold only.
+          schema:
+            type: string
+        - name: distance_max_km
+          in: query
+          required: false
+          description: Maximum distance in km. Gold only — silently ignored for free/Plus users.
+          schema:
+            type: number
       responses:
         "200":
           description: Array of public profiles

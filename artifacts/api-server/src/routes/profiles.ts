@@ -190,6 +190,24 @@ router.get("/profiles", async (req, res) => {
   const sort = (req.query.sort as string) ?? "recent";
   const scope = parseScope(req.query.scope);
 
+  // --- Advanced filter params (plan-gated) -----------------------------------
+  const ageMin = req.query.age_min ? parseInt(req.query.age_min as string, 10) : null;
+  const ageMax = req.query.age_max ? parseInt(req.query.age_max as string, 10) : null;
+  const onlineOnly = req.query.online_only === "true";
+
+  // Resolve caller plan once for gating (cached 5 min inside getPlan).
+  const callerPlan = await getPlan(auth.userId);
+  const isPaid = callerPlan === "plus" || callerPlan === "gold";
+  const isGold = callerPlan === "gold";
+
+  const verifiedOnly = isPaid && req.query.verified_only === "true";
+  const filterRole = isPaid ? ((req.query.role as string | undefined) ?? null) : null;
+  const filterLookingFor = isPaid ? ((req.query.looking_for as string | undefined) ?? null) : null;
+  const filterOrientation = isPaid ? ((req.query.orientation as string | undefined) ?? null) : null;
+  const distanceMaxKm = isGold && req.query.distance_max_km
+    ? parseFloat(req.query.distance_max_km as string)
+    : null;
+
   const { data: me } = await supabase
     .from("profiles")
     .select("latitude, longitude")
@@ -235,6 +253,10 @@ router.get("/profiles", async (req, res) => {
     .gte("age", 18)
     .not("city", "is", null)
     .not("bio", "is", null);
+  // DB-side age filters (applied before .limit so they shrink the sample).
+  if (ageMin != null && !Number.isNaN(ageMin)) query = query.gte("age", Math.max(18, ageMin));
+  if (ageMax != null && !Number.isNaN(ageMax)) query = query.lte("age", ageMax);
+  if (verifiedOnly) query = query.eq("is_verified", true);
   if (box) {
     query = query
       .gte("latitude", box.latMin)
@@ -288,6 +310,11 @@ router.get("/profiles", async (req, res) => {
     );
   });
 
+  // JS-side advanced filters (Plus/Gold gated already resolved above).
+  if (filterRole) rows = rows.filter((r) => detailsMap.get(r.id)?.role === filterRole);
+  if (filterLookingFor) rows = rows.filter((r) => detailsMap.get(r.id)?.looking_for === filterLookingFor);
+  if (filterOrientation) rows = rows.filter((r) => detailsMap.get(r.id)?.orientation === filterOrientation);
+
   // Completitud score per surviving candidate (gallery size + bio richness),
   // used as a Descubrir priority below the verified badge. One batched photo
   // count over the final candidate set — no N+1.
@@ -303,12 +330,18 @@ router.get("/profiles", async (req, res) => {
     );
   }
 
-  const profiles = rows.map((row) =>
+  let profiles = rows.map((row) =>
     toPublic(row, me ?? null, likedSet, iBlocked, {
       ...detailsMap.get(row.id),
       interests: interestsMap.get(row.id) ?? [],
     }),
   );
+
+  // Post-toPublic JS filters (need computed fields like is_online, distance_km).
+  if (onlineOnly) profiles = profiles.filter((p) => p.is_online);
+  if (distanceMaxKm != null && !Number.isNaN(distanceMaxKm)) {
+    profiles = profiles.filter((p) => p.distance_km != null && p.distance_km <= distanceMaxKm);
+  }
 
   if (sort === "distance") {
     profiles.sort((a, b) => {
