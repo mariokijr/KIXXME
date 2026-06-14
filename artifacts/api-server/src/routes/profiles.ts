@@ -30,7 +30,7 @@ import {
   notifySuperLikeByEmail,
 } from "../lib/like-notifications.js";
 import { pushMatch, pushSuperLike } from "../lib/push-notifications.js";
-import { getPlan, hasGold } from "../lib/entitlement.js";
+import { getPlan } from "../lib/entitlement.js";
 import {
   recordProfileVisit,
   countVisitors,
@@ -496,70 +496,39 @@ router.get("/profiles", async (req, res) => {
 // goes online/offline (last_active_at within the online window).
 async function mapCommunityStats(
   hidden: Set<string>,
-  /**
-   * The confirmed-Gold viewer's ID and last_active_at. If the viewer reached
-   * this call they are Gold (hasGold returned true), but GOLD_TEST_EMAILS
-   * users are not stored as plan='gold' in Supabase, so the query below would
-   * miss them. We add +1 for the viewer only when they are not already in the
-   * result set, keeping stats accurate in test environments.
-   */
-  viewerId?: string,
-  viewerLastActive?: string | null,
 ): Promise<{ goldTotal: number; onlineTotal: number }> {
+  // Count all users who have a location — the map is now open to everyone.
+  // `goldTotal` is repurposed as "total map-eligible users" (field name kept
+  // for API/client compat so codegen doesn't need to run for this change).
   const { data, error } = await supabase
     .from("profiles")
     .select("id, last_active_at")
-    .eq("plan", "gold")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
     .limit(5000);
   if (error || !data) return { goldTotal: 0, onlineTotal: 0 };
   const rows = (
     data as { id: string; last_active_at: string | null }[]
   ).filter((r) => !hidden.has(r.id));
-
-  // If the viewer is not already captured by the plan='gold' query (they're a
-  // GOLD_TEST_EMAILS user whose Supabase plan column is still 'free'/'plus'),
-  // include them so community counters are non-zero for test accounts.
-  const viewerCounted =
-    !viewerId || rows.some((r) => r.id === viewerId);
-  const extraGold = viewerCounted ? 0 : 1;
-  const extraOnline =
-    !viewerCounted && isOnline(viewerLastActive ?? null) ? 1 : 0;
-
   return {
-    goldTotal: rows.length + extraGold,
-    onlineTotal: rows.filter((r) => isOnline(r.last_active_at)).length + extraOnline,
+    goldTotal: rows.length,
+    onlineTotal: rows.filter((r) => isOnline(r.last_active_at)).length,
   };
 }
 
-// Gold-only world map. Unlike GET /profiles (which is shared with the Descubrir
-// grid and must NOT be gated), this dedicated endpoint gates access to Gold and
-// only ever returns OTHER Gold users who opted into the map. The Gold gate is
-// computed via hasGold (so it honors the GOLD_TEST_EMAILS read override) and
-// surfaced as `can_access` in the envelope — the frontend branches on that, not
-// on the raw profiles.plan. Raw coordinates never leave the server (toPublic
-// exposes only a rounded distance_km), preserving the approximate-location margin.
+// Real-time map — open to all authenticated users who share their location.
+// Any user with location enabled can view and appear on the map. Messaging
+// from the map requires Gold on the sender's side (enforced in the UI).
+// `can_access` is always true for authenticated users; kept in the envelope
+// so existing clients degrade gracefully. Raw coordinates never leave the
+// server (toPublic exposes only a rounded distance_km).
 router.get("/map/users", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
   const showOnMap = await getShowOnMap(auth.userId);
-  const canAccess = await hasGold(auth.userId);
 
-  // Non-Gold viewers get the envelope with an empty list; the frontend shows the
-  // premium lock instead of any markers. Identities never leave the API.
-  if (!canAccess) {
-    res.json({
-      can_access: false,
-      show_on_map: showOnMap,
-      users: [],
-      gold_total: 0,
-      online_total: 0,
-    });
-    return;
-  }
-
-  // Fetch viewer profile and visibility context in parallel — both are needed
-  // before we can compute community stats and apply scope filters.
+  // Fetch viewer profile and visibility context in parallel.
   const [{ hidden, iBlocked }, { data: me }] = await Promise.all([
     getVisibilityContext(auth.userId),
     supabase
@@ -569,14 +538,8 @@ router.get("/map/users", async (req, res) => {
       .maybeSingle(),
   ]);
 
-  // Stats are global (no scope) — they must hold even when the marker list is
-  // empty (e.g. radius scope with no viewer coords, no opted-in Gold users).
-  // Pass the viewer's ID so GOLD_TEST_EMAILS users are counted correctly.
-  const stats = await mapCommunityStats(
-    hidden,
-    auth.userId,
-    (me as { last_active_at?: string | null } | null)?.last_active_at ?? null,
-  );
+  // Stats are global (no scope) — hold even when the marker list is empty.
+  const stats = await mapCommunityStats(hidden);
 
   const scope = parseScope(req.query.scope);
 
@@ -594,14 +557,13 @@ router.get("/map/users", async (req, res) => {
 
   const likedSet = await getLikedSet(auth.userId);
 
-  // Only Gold users WITH coordinates that pass calidad mínima appear on the map.
-  // Supabase columns (plan/coords/main photo/age/city/bio) are filtered DB-side
+  // All users WITH coordinates that pass calidad mínima appear on the map.
+  // Supabase columns (coords/main photo/age/city/bio) are filtered DB-side
   // before the limit; role/looking_for (repo-owned Postgres) are refined in JS.
   let query = supabase
     .from("profiles")
     .select(PUBLIC_COLUMNS)
     .neq("id", auth.userId)
-    .eq("plan", "gold")
     .not("username", "is", null)
     .not("avatar_url", "is", null)
     .not("latitude", "is", null)

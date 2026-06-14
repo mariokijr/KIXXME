@@ -14,6 +14,8 @@ import {
   Flag,
   Eye,
   EyeOff,
+  Lock,
+  Users,
 } from "lucide-react";
 import {
   useListMapUsers,
@@ -31,7 +33,6 @@ import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { formatDistance, initialsFor } from "@/lib/profile-format";
 import { ReportDialog } from "@/components/report-dialog";
-import { MapDemo } from "@/components/map-demo";
 
 const DEFAULT_CENTER: [number, number] = [40.4168, -3.7038]; // Madrid
 
@@ -116,14 +117,21 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Every marker on the Gold map is a Gold user, so they all wear the crown ring.
+// Gold users get a gold border + crown badge; other users get the purple ring.
 function markerHtml(user: PublicProfile): string {
+  const isGoldUser = user.plan === "gold";
   const ring = user.is_online
     ? "box-shadow:0 0 0 2px hsl(142,71%,45%),0 0 12px rgba(168,85,247,0.7);"
-    : "box-shadow:0 0 10px rgba(168,85,247,0.5);";
-  const border = "2px solid hsl(45,90%,55%)";
-  // Crown is a static glyph — no user input, so no escaping needed.
-  const crown = `<div style="position:absolute;top:-9px;right:-7px;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">👑</div>`;
+    : isGoldUser
+      ? "box-shadow:0 0 10px rgba(251,191,36,0.5);"
+      : "box-shadow:0 0 10px rgba(168,85,247,0.5);";
+  const border = isGoldUser
+    ? "2px solid hsl(45,90%,55%)"
+    : "2px solid hsl(273,85%,55%)";
+  // Crown badge only for Gold — static glyph, no escaping needed.
+  const crown = isGoldUser
+    ? `<div style="position:absolute;top:-9px;right:-7px;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">👑</div>`
+    : "";
   const inner = user.avatar_url
     ? `<img src="${escapeHtml(
         user.avatar_url
@@ -175,6 +183,11 @@ export default function MapView() {
   const canAccess = mapData?.can_access ?? false;
   const showOnMap = mapData?.show_on_map ?? true;
   const users = useMemo<PublicProfile[]>(() => mapData?.users ?? [], [mapData]);
+
+  // Viewer's Gold status — gates the "Mensaje" button in the selected card.
+  // Uses the raw profile.plan field; GOLD_TEST_EMAILS users can still message
+  // via the chat tab even if this shows the lock (test-env acceptable trade-off).
+  const isGold = profile?.plan === "gold";
 
   const hasLocation = profile?.latitude != null && profile?.longitude != null;
   const center: [number, number] = hasLocation
@@ -263,14 +276,10 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess, hasLocation]);
 
-  // Initialize the map when (and only when) the viewer has Gold access and the
-  // container is mounted. Tying init to `canAccess` — instead of a one-time `[]`
-  // mount — is deliberate: the main return only renders the map container during
-  // the loading frame or for Gold users, so a one-time init would build a Leaflet
-  // instance during a non-Gold loading frame that the early return then orphans.
-  // Re-running on `canAccess` means a user who upgrades while sitting on /map
-  // (access flips via the 30s poll, no route remount) still gets a live map, and
-  // the map is torn down cleanly if access is ever lost.
+  // Initialize the map when the API data has arrived (`canAccess` flips true)
+  // and the container is mounted. Tying init to `canAccess` — instead of a
+  // one-time `[]` mount — prevents building a Leaflet instance before the
+  // container is in the DOM during the initial loading frame.
   useEffect(() => {
     if (!canAccess || !mapDivRef.current || mapRef.current) return;
     const map = L.map(mapDivRef.current, {
@@ -308,8 +317,6 @@ export default function MapView() {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    if (!canAccess) return;
-
     // Own "you are here" marker — only when the viewer has a real location, so we
     // never pin a phantom self at the national-centroid fallback (DEFAULT_CENTER).
     // This keeps the header counter (onMapCount) in sync with what's actually drawn.
@@ -327,7 +334,7 @@ export default function MapView() {
       markersRef.current.push(meMarker);
     }
 
-    // Other Gold users.
+    // Other users with location enabled.
     for (const user of placeable) {
       const pos = offsetPosition(
         center[0],
@@ -348,12 +355,7 @@ export default function MapView() {
     }
   }, [placeable, canAccess, hasLocation, center[0], center[1]]);
 
-  // Non-Gold viewers get the premium demo/trailer instead of the real map. The
-  // gate is the server-computed `can_access` (never raw `profiles.plan`). Wait
-  // until the envelope has loaded so we don't flash the demo at a Gold user.
-  if (!isLoading && !canAccess) {
-    return <MapDemo onUpgrade={() => setLocation("/premium")} />;
-  }
+  // Map is open to all authenticated users — no gate needed here.
 
   return (
     <div className="flex flex-col h-full">
@@ -421,7 +423,7 @@ export default function MapView() {
                 </p>
                 <p className="font-sans text-[11px] text-muted-foreground leading-tight">
                   {showOnMap
-                    ? "Otros usuarios Gold pueden verte"
+                    ? "Otros usuarios pueden verte en el mapa"
                     : "Estás oculto para todos"}
                 </p>
               </div>
@@ -659,7 +661,9 @@ export default function MapView() {
                   {selected.is_verified && (
                     <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   )}
-                  <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  {selected.plan === "gold" && (
+                    <Crown className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  )}
                 </p>
                 <p className="font-sans text-xs text-muted-foreground flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
@@ -700,17 +704,29 @@ export default function MapView() {
             >
               <Flag className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => handleMessage(selected.id)}
-              disabled={convPending}
-              className="flex-shrink-0 px-4 py-2 rounded-lg text-white text-sm font-sans font-medium disabled:opacity-60"
-              style={{
-                background:
-                  "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-              }}
-            >
-              Mensaje
-            </button>
+            {isGold ? (
+              <button
+                onClick={() => handleMessage(selected.id)}
+                disabled={convPending}
+                className="flex-shrink-0 px-4 py-2 rounded-lg text-white text-sm font-sans font-medium disabled:opacity-60"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                }}
+              >
+                Mensaje
+              </button>
+            ) : (
+              <button
+                onClick={() => setLocation("/premium")}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-sans font-medium border border-amber-500/40 text-amber-300"
+                style={{ background: "rgba(45,35,10,0.7)" }}
+                title="Necesitas Gold para enviar mensajes"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                Mensaje
+              </button>
+            )}
           </div>
         )}
 
@@ -728,7 +744,7 @@ export default function MapView() {
       {canAccess && (
         <div className="px-4 pb-4 grid grid-cols-2 gap-2">
           {[
-            { icon: Crown, label: "Usuarios Gold", value: goldCount },
+            { icon: Users, label: "En el mapa", value: goldCount },
             { icon: Zap, label: "En línea ahora", value: onlineCount },
           ].map(({ icon: Icon, label, value }) => (
             <div
