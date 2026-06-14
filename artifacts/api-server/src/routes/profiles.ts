@@ -470,15 +470,13 @@ router.get("/profiles", async (req, res) => {
   // Descubrir priority layering. Array.sort is stable, so each pass preserves
   // the prior order as its tie-breaker; the LAST sort applied is the strongest
   // key. Order of strength (weakest → strongest): feed/sort < completitud < verified
-  // < plan/Gold (scope-only) < boost. Net result on the grid: boosted profiles
-  // float to the very top, then verified, then more-complete, then feed sort.
+  // < plan (Gold > Plus > free, always) < boost. Net result: boosted profiles
+  // first, then Gold, then Plus, then verified, then completitud, then feed sort.
   profiles.sort(
     (a, b) => (completeness.get(b.id) ?? 0) - (completeness.get(a.id) ?? 0),
   );
   profiles.sort((a, b) => Number(b.is_verified) - Number(a.is_verified));
-  if (scope) {
-    profiles.sort((a, b) => PLAN_RANK[b.plan] - PLAN_RANK[a.plan]);
-  }
+  profiles.sort((a, b) => PLAN_RANK[b.plan] - PLAN_RANK[a.plan]);
 
   // Boost: strongest sort key — boosted profiles always appear first.
   const boostedIds = await getActiveBoostedIds(profiles.map((p) => p.id));
