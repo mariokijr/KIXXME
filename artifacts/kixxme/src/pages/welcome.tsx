@@ -492,14 +492,6 @@ export default function Welcome() {
           enterDelay={0.25}
           floatDelay={1.5}
         />
-        <div
-          className="absolute flex items-center justify-center"
-          style={{ top: `calc(6% + ${RH + 10}px)`, right: 0, width: RW + 20, transform: "rotate(9deg)", zIndex: 3 }}
-        >
-          <span className="font-sans text-[11px] font-semibold text-white/70 tracking-wide whitespace-nowrap">
-            Personas cerca de ti
-          </span>
-        </div>
       </div>
 
       {/* Gradient scrim — phones fade into content */}
