@@ -1,14 +1,11 @@
 import { Router } from "express";
 import { supabase, supabaseUserAuth } from "../lib/supabase.js";
 import { reactivateOnLogin } from "../lib/account.js";
+import { sendEmail, appBaseUrl, passwordResetEmail } from "../lib/email.js";
 import {
-  sendEmail,
-  appBaseUrl,
-  passwordResetEmail,
-  WELCOME_SUBJECT,
-  welcomeEmailHtml,
-} from "../lib/email.js";
-import { isValidEmail } from "../lib/email-verification.js";
+  isValidEmail,
+  sendVerificationEmail,
+} from "../lib/email-verification.js";
 
 const router = Router();
 
@@ -79,16 +76,18 @@ router.post("/auth/signup", async (req, res) => {
     return;
   }
 
-  // Send a welcome email immediately on signup. Email verification is no
-  // longer mandatory at registration (the gate is disabled), so users can
-  // access the app right away. The welcome email replaces the old deferred
-  // send that required the user to verify first.
+  // Send the 6-digit verification code. The account is created but gated
+  // (requireAuth → EmailVerificationGate) until the user confirms the code.
+  // The welcome email is deferred to the moment verification first succeeds
+  // (see routes/email-verification.ts confirm handler) so it only lands for
+  // a genuinely usable account. Emails are delivered via Resend using the
+  // verified custom domain (support@kixxme.com).
   if (data.user?.id) {
-    const base = appBaseUrl();
-    void sendEmail({
-      to: email,
-      subject: WELCOME_SUBJECT,
-      html: welcomeEmailHtml(base ? `${base}/` : undefined),
+    void sendVerificationEmail(data.user.id, email).catch((err) => {
+      req.log.error(
+        { err: err instanceof Error ? err.message : String(err) },
+        "signup: failed to send verification email",
+      );
     });
   }
 
