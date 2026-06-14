@@ -17,9 +17,11 @@ const BRAND_GRADIENT = "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52
 /* ─────────────────────────────────────────────────────────────
    SCREEN: Video call — two guys face-to-face (KixxMe Live)
 ───────────────────────────────────────────────────────────── */
+const FACE_CARLOS = "https://randomuser.me/api/portraits/men/32.jpg";
+const FACE_MARCOS = "https://randomuser.me/api/portraits/men/75.jpg";
+const FACE_ALEJANDRO = "https://randomuser.me/api/portraits/men/44.jpg";
+
 function VideoCallScreen({ w, h }: { w: number; h: number }) {
-  const usable = h - 24 - 30; // minus status + header
-  const half = (usable - 8) / 2;
   const r = Math.max(12, Math.floor(w * 0.12));
 
   return (
@@ -28,18 +30,16 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
       <div style={{
         height: 30, flexShrink: 0, display: "flex", alignItems: "center",
         justifyContent: "space-between", padding: "0 10px",
-        background: "rgba(0,0,0,0.5)", borderBottom: "1px solid rgba(255,255,255,0.05)",
+        background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.05)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{
-            display: "flex", alignItems: "center", gap: 3,
-            padding: "1px 6px", borderRadius: 99,
-            background: "rgba(239,68,68,0.9)", fontSize: 8, fontWeight: 700, color: "white",
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white", flexShrink: 0 }} />
-            LIVE
-          </span>
-        </div>
+        <span style={{
+          display: "flex", alignItems: "center", gap: 3,
+          padding: "1px 6px", borderRadius: 99,
+          background: "rgba(239,68,68,0.9)", fontSize: 8, fontWeight: 700, color: "white",
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white", flexShrink: 0 }} />
+          LIVE
+        </span>
         <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontFamily: "Inter,sans-serif", fontWeight: 600, letterSpacing: "0.05em" }}>
           KixxMe Live
         </span>
@@ -48,27 +48,14 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
 
       {/* Caller 1 — Carlos */}
       <div style={{ flex: 1, position: "relative", margin: "4px 4px 2px 4px", borderRadius: r, overflow: "hidden" }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(150deg, hsl(260,70%,28%) 0%, hsl(220,75%,18%) 100%)",
-        }} />
-        <div style={{
-          position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <span style={{
-            fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.38),
-            color: "rgba(255,255,255,0.15)", lineHeight: 1,
-          }}>C</span>
-        </div>
-        {/* glow */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(139,92,246,0.25) 0%, transparent 70%)",
-        }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)",
-        }} />
+        <img
+          src={FACE_CARLOS}
+          alt="Carlos"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+        />
+        {/* purple tint overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(88,28,220,0.25) 0%, transparent 60%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8, display: "flex", alignItems: "center", gap: 4 }}>
           <BadgeCheck style={{ width: 10, height: 10, color: "hsl(199,89%,65%)" }} />
           <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Carlos, 24</span>
@@ -77,26 +64,14 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
 
       {/* Caller 2 — Marcos */}
       <div style={{ flex: 1, position: "relative", margin: "2px 4px 4px 4px", borderRadius: r, overflow: "hidden" }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(150deg, hsl(330,70%,26%) 0%, hsl(270,60%,18%) 100%)",
-        }} />
-        <div style={{
-          position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <span style={{
-            fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.38),
-            color: "rgba(255,255,255,0.15)", lineHeight: 1,
-          }}>M</span>
-        </div>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(236,72,153,0.2) 0%, transparent 70%)",
-        }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)",
-        }} />
+        <img
+          src={FACE_MARCOS}
+          alt="Marcos"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+        />
+        {/* pink tint overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(180,20,120,0.2) 0%, transparent 60%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8 }}>
           <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcos, 29</span>
         </div>
@@ -130,19 +105,18 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
 ───────────────────────────────────────────────────────────── */
 function ProfileCardScreen({ w }: { w: number }) {
   return (
-    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(150deg, hsl(256,72%,26%) 0%, hsl(218,70%,18%) 100%)" }}>
-      {/* Accent blob */}
+    <div style={{ position: "absolute", inset: 0, background: "#0a0820" }}>
+      {/* Face photo */}
+      <img
+        src={FACE_ALEJANDRO}
+        alt="Alejandro"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "75%", objectFit: "cover", objectPosition: "top" }}
+      />
+      {/* brand tint */}
       <div style={{
         position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse 70% 55% at 60% 35%, rgba(139,92,246,0.35) 0%, transparent 65%)",
+        background: "linear-gradient(160deg, rgba(88,28,220,0.18) 0%, transparent 50%)",
       }} />
-      {/* Initials */}
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{
-          fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.5),
-          color: "rgba(255,255,255,0.12)", lineHeight: 1,
-        }}>A</span>
-      </div>
       {/* Top badges */}
       <div style={{ position: "absolute", top: 10, left: 8, display: "flex", alignItems: "center", gap: 4 }}>
         <span style={{
