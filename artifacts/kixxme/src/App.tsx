@@ -56,7 +56,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       className="h-[100dvh] flex flex-col"
       style={{
         background:
-          "radial-gradient(ellipse 100% 50% at 50% 0%, hsl(270 30% 8%) 0%, hsl(238 25% 4%) 60%)",
+          "radial-gradient(ellipse 120% 55% at 50% 0%, hsl(270 40% 9%) 0%, hsl(238 30% 4%) 55%)",
       }}
     >
       <div
@@ -180,6 +180,7 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
+      <Route path="/legal">{() => <LegalPage />}</Route>
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>

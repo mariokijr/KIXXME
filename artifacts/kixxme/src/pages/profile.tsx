@@ -31,10 +31,6 @@ import {
   Loader2,
   BadgeCheck,
   Navigation,
-  LifeBuoy,
-  MessageCircle,
-  MessageSquareWarning,
-  Settings as SettingsIcon,
   ShieldAlert,
 } from "lucide-react";
 import { PhotoSlot } from "@/components/photo-slot";
@@ -58,7 +54,6 @@ import {
   PETS_OPTIONS,
   computeMandatoryProfile,
 } from "@/lib/profile-form";
-import { SupportDialog } from "@/components/support-dialog";
 import { VerificationCard } from "@/components/verification-card";
 import { VisitorsCard } from "@/components/visitors-card";
 import { RewardsCard } from "@/components/rewards-card";
@@ -71,9 +66,6 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [contactOpen, setContactOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-
   const { data: profile, isLoading, error } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
@@ -381,13 +373,6 @@ export default function Profile() {
             style={{ background: "rgba(255,255,255,0.04)" }}>
             <Share2 className="w-4 h-4" />
           </button>
-          <button onClick={() => setLocation("/settings")}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            data-testid="button-open-settings"
-            aria-label="Ajustes">
-            <SettingsIcon className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -450,7 +435,7 @@ export default function Profile() {
       {/* ── Fotos ── */}
       <div className="px-4 pb-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,60%,70%)" }}>Fotos</p>
+          <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Fotos</p>
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -477,7 +462,7 @@ export default function Profile() {
 
       {/* ── Sección: Básico ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Básico</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
             className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
@@ -517,7 +502,7 @@ export default function Profile() {
 
       {/* ── Sección: Preferencias ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Preferencias</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Preferencias</p>
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             label="Rol"
@@ -548,7 +533,7 @@ export default function Profile() {
 
       {/* ── Sección: Sobre mí ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,60%,70%)" }}>Sobre mí</p>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Sobre mí</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
             <input
@@ -609,7 +594,7 @@ export default function Profile() {
 
       {/* ── Sección: Intereses ── */}
       <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-3">
-        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,60%,70%)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>
           Intereses · hasta 20
         </p>
         <TagPicker selected={interests} onChange={setInterests} max={20} />
@@ -673,62 +658,6 @@ export default function Profile() {
         </>
       )}
 
-      {/* ── Soporte ── */}
-      <div className="px-4 pt-2 pb-8 border-t border-border/15 mt-2">
-        <p className="font-sans text-xs font-medium uppercase tracking-widest mb-3 pt-4" style={{ color: "hsl(273,60%,70%)" }}>Soporte</p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setContactOpen(true)}
-            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-            data-testid="button-contact-support"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Contactar
-          </button>
-          <button
-            type="button"
-            onClick={() => setReportOpen(true)}
-            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-            data-testid="button-report-problem"
-          >
-            <MessageSquareWarning className="w-4 h-4" />
-            Reportar
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocation("/support")}
-            className="flex-1 h-10 rounded-xl border border-border/40 flex items-center justify-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-            data-testid="link-support-center"
-          >
-            <LifeBuoy className="w-4 h-4" />
-            Ayuda
-          </button>
-        </div>
-      </div>
-
-      <SupportDialog
-        open={contactOpen}
-        onOpenChange={setContactOpen}
-        category="contact"
-        title="Contactar soporte"
-        description="Cuéntanos en qué podemos ayudarte y te responderemos por email."
-        submitLabel="Enviar mensaje"
-        successTitle="Mensaje enviado"
-        successDescription="Gracias por escribirnos. Te responderemos muy pronto."
-      />
-      <SupportDialog
-        open={reportOpen}
-        onOpenChange={setReportOpen}
-        category="general"
-        title="Reportar un problema"
-        description="Describe el error o el problema con el mayor detalle posible."
-        messageLabel="Describe el problema"
-        messagePlaceholder="¿Qué ha pasado? ¿En qué pantalla? ¿Qué esperabas que ocurriera?"
-        submitLabel="Enviar reporte"
-        successTitle="Reporte enviado"
-        successDescription="Gracias. Lo revisaremos lo antes posible."
-      />
     </div>
   );
 }

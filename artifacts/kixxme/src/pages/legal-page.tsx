@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { LEGAL_DOCS } from "@/lib/legal-content";
+import { LEGAL_DOCS, LEGAL_LINKS } from "@/lib/legal-content";
 import { LegalFooter } from "@/components/legal-footer";
 import bgImage from "@/assets/bg-neon-bokeh.png";
 
@@ -40,12 +40,38 @@ export default function LegalPage({ slug }: { slug?: string }) {
 
       <main className="flex-1 relative z-10 mx-auto w-full max-w-3xl px-5 py-10 lg:py-16">
         {!doc ? (
-          <div className="text-center py-20 space-y-6">
-            <h1 className="text-3xl font-display tracking-wider text-white">Documento no encontrado</h1>
-            <p className="text-white/60">El documento legal que buscas no existe o ha sido movido.</p>
-            <Link href="/" className="inline-flex h-12 items-center justify-center rounded-xl bg-white/10 px-6 font-medium text-white hover:bg-white/20 transition-colors">
-              Volver al inicio
-            </Link>
+          <div className="space-y-8">
+            <header className="mb-10 border-b border-white/10 pb-8">
+              <h1 className="text-4xl font-display tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#d946ef] to-[#8b5cf6] mb-3">
+                Información legal
+              </h1>
+              <p className="text-white/60 text-base">
+                Todo lo que necesitas saber sobre KixxMe.
+              </p>
+            </header>
+            <nav className="space-y-3">
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.slug}
+                  href={`/legal/${link.slug}`}
+                  className="flex items-center justify-between w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all group"
+                  data-testid={`link-legal-${link.slug}`}
+                >
+                  <span className="font-sans text-base text-white/80 group-hover:text-white transition-colors">
+                    {link.label}
+                  </span>
+                  <span className="text-white/30 group-hover:text-white/60 transition-colors text-lg">→</span>
+                </Link>
+              ))}
+            </nav>
+            <div className="pt-6 text-center">
+              <p className="text-sm text-white/40">
+                ¿Necesitas ayuda?{" "}
+                <a href="mailto:supportkixxme@gmail.com" className="text-[#d946ef] hover:text-[#e879f9] transition-colors">
+                  supportkixxme@gmail.com
+                </a>
+              </p>
+            </div>
           </div>
         ) : (
           <article className="prose prose-invert prose-p:text-white/70 prose-headings:text-white prose-li:text-white/70 max-w-none">

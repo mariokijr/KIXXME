@@ -1,0 +1,129 @@
+🚨 REVISIÓN URGENTE KIXXME
+
+He revisado los últimos cambios y hay varios problemas que quiero corregir antes de seguir desarrollando nuevas funciones.
+
+1. PERFIL
+
+No has eliminado correctamente la configuración antigua.
+
+Quiero que desaparezca la sección de Soporte dentro del perfil.
+
+También quiero eliminar la rueda de ajustes que sigue apareciendo arriba a la derecha del perfil, porque ahora existe una pestaña específica de Ajustes en el menú inferior.
+
+El perfil debe centrarse únicamente en:
+
+* Fotos
+* Información personal
+* Intereses
+* Bio
+* Datos del usuario
+
+Nada más.
+
+⸻
+
+2. AJUSTES
+
+La nueva pantalla de Ajustes está demasiado vacía.
+
+Quiero que la sección PREMIUM sea la primera sección visible al entrar.
+
+Debe ocupar la parte superior completa de la pantalla.
+
+Quiero una presentación visual potente:
+
+💎 KixxMe Plus
+
+👑 KixxMe Gold
+
+🔥 Oferta destacada:
+“Prueba Gold GRATIS durante 5 días”
+
+Mostrar claramente todas las ventajas de cada plan.
+
+Debe parecer una pantalla premium real y orientada a conversión.
+
+⸻
+
+3. EMAILS (CRÍTICO)
+
+Los correos siguen sin funcionar.
+
+He recibido errores de DNS.
+
+El sistema intenta enviar emails a dominios que no existen y aparece:
+
+“DNS Error: DNS type ‘mx’ lookup failed”
+
+Necesito una auditoría completa.
+
+Revisar:
+
+* DNS
+* MX
+* SPF
+* DKIM
+* DMARC
+* Resend / SMTP
+* Dominios de prueba
+* Emails de verificación
+* Emails de recuperación
+* Emails de likes
+* Emails de matches
+* Emails de mensajes
+
+No quiero continuar hasta que los correos funcionen correctamente.
+
+⸻
+
+4. MAPA
+
+Quiero que el mapa se sienta mucho más vivo.
+
+Actualmente parece vacío.
+
+Mientras seguimos creciendo, quiero que el mapa priorice:
+
+* Usuarios con ubicación activa
+* Usuarios online
+* Usuarios activos recientemente
+
+Optimizar consultas y renderizado para que cargue mucho más rápido.
+
+Quiero una experiencia fluida.
+
+⸻
+
+5. TÉRMINOS Y PRIVACIDAD
+
+Cuando entro en:
+
+Ajustes → Términos y Privacidad
+
+Aparece un error.
+
+Esto es crítico para la aprobación de la app.
+
+Necesito:
+
+* Términos y Condiciones completos
+* Política de Privacidad completa
+* Política de Cookies
+* Normas de la Comunidad
+* Contacto de soporte
+
+Todo accesible desde Ajustes sin errores.
+
+⸻
+
+6. REVISIÓN GENERAL
+
+Antes de continuar con nuevas fases:
+
+* Verificar Premium
+* Verificar Emails
+* Verificar Mapa
+* Verificar Ajustes
+* Verificar Términos y Privacidad
+
+Quiero estabilidad y calidad antes de seguir añadiendo funcionalidades nuevas.

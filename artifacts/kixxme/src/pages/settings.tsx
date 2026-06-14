@@ -36,8 +36,10 @@ import {
   CreditCard,
   HelpCircle,
   MessageSquare,
-  Star,
   HeadphonesIcon,
+  Check,
+  Zap,
+  FileText,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -64,6 +66,22 @@ function maskEmail(email?: string | null): string {
   return `${shown}${"•".repeat(Math.max(user.length - 2, 1))}@${domain}`;
 }
 
+const GOLD_FEATURES = [
+  "KixxMe Live · videollamadas en directo",
+  "SuperLikes ilimitados",
+  "Ver quién visitó tu perfil",
+  "Mensajes ilimitados sin espera",
+  "Soporte prioritario 24h",
+  "Perfil Gold destacado en búsquedas",
+];
+
+const PLUS_FEATURES = [
+  "Ver quién visitó tu perfil",
+  "Más Me Gusta diarios (+5 extras)",
+  "Potencia tu perfil con boost",
+  "Historial de Me Gusta recibidos",
+];
+
 export default function Settings() {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
@@ -79,8 +97,6 @@ export default function Settings() {
   const confirmAction = useConfirmAccountAction();
   const { data: subscription } = useGetSubscription();
 
-  // Only a real, not-yet-cancelled paid subscription can be cancelled here.
-  // GOLD_TEST_EMAILS overrides have no Stripe sub, so this stays false for them.
   const showCancelSubscription =
     !!subscription?.has_active_subscription &&
     !subscription?.cancel_at_period_end;
@@ -217,43 +233,205 @@ export default function Settings() {
       </header>
 
       <div className="px-5 pt-6">
-        {/* Quick actions: blocked users + logout */}
-        <div className="space-y-3 mb-8">
-          <button
-            type="button"
-            onClick={() => setLocation("/settings/blocked")}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
-            style={{ background: "rgba(13,11,26,0.7)" }}
-            data-testid="button-blocked-users"
-          >
-            <Ban className="w-5 h-5 text-primary flex-shrink-0" />
-            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-              Usuarios bloqueados
-            </span>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
 
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
-            style={{ background: "rgba(13,11,26,0.7)" }}
-            data-testid="button-logout"
-          >
-            <LogOut className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-              Cerrar sesión
-            </span>
-          </button>
-        </div>
+        {/* ══════════════════════════════════════════════════════
+            PREMIUM — PRIMERA SECCIÓN, MÁXIMA VISIBILIDAD
+            ══════════════════════════════════════════════════════ */}
+        {subscription?.has_active_subscription ? (
+          /* ── Usuario con plan activo ── */
+          <div className="mb-8">
+            <p
+              className="font-sans text-xs font-medium uppercase tracking-widest mb-1"
+              style={{ color: "hsl(45,90%,60%)" }}
+            >
+              {subscription.is_trial ? "PRUEBA GRATUITA" : "TU PLAN"}
+            </p>
+            <h2
+              className="font-display text-2xl tracking-widest mb-5"
+              style={{
+                background: "linear-gradient(90deg, hsl(45,90%,60%), hsl(38,95%,55%))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {subscription.is_trial ? "PRUEBA GOLD" : "PREMIUM"}
+            </h2>
+            <div
+              className="rounded-2xl border p-4 mb-4"
+              style={{
+                background: "linear-gradient(135deg, rgba(251,191,36,0.08), rgba(168,85,247,0.06))",
+                borderColor: "rgba(251,191,36,0.25)",
+              }}
+            >
+              {subscription.is_trial && !subscription.cancel_at_period_end && (
+                <p className="font-sans text-sm text-yellow-300 mb-2">
+                  🔥 Disfrutando la prueba Gold gratuita
+                </p>
+              )}
+              {subscription.is_trial && subscription.cancel_at_period_end && (
+                <p className="font-sans text-sm text-yellow-400/80 mb-2">
+                  ⏳ Tu prueba finaliza pronto
+                </p>
+              )}
+              <p className="font-sans text-sm text-white/60">
+                {subscription.cancel_at_period_end
+                  ? "Suscripción activa · se cancela al final del período"
+                  : "Suscripción activa y al día"}
+              </p>
+            </div>
+            {showCancelSubscription && (
+              <button
+                type="button"
+                onClick={() => setLocation("/settings/cancel-subscription")}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+                style={{ background: "rgba(13,11,26,0.7)" }}
+                data-testid="button-cancel-subscription"
+              >
+                <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+                  {subscription.is_trial ? "Cancelar prueba gratuita" : "Cancelar suscripción"}
+                </span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        ) : (
+          /* ── Usuario sin plan: pantalla de ventas ── */
+          <div className="mb-8">
+            <p
+              className="font-sans text-xs font-medium uppercase tracking-widest mb-1"
+              style={{ color: "hsl(273,60%,70%)" }}
+            >
+              Membresía
+            </p>
+            <h2 className="font-display text-3xl tracking-widest text-white mb-6">
+              Elige tu plan
+            </h2>
 
+            {/* ── GOLD ── */}
+            <div
+              className="rounded-2xl p-5 mb-4 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(251,191,36,0.13), rgba(168,85,247,0.09))",
+                border: "1.5px solid rgba(251,191,36,0.38)",
+              }}
+            >
+              {/* RECOMENDADO badge */}
+              <div className="absolute top-3.5 right-3.5">
+                <span
+                  className="px-2.5 py-1 rounded-full text-[10px] font-display tracking-widest font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(45,90%,60%), hsl(38,95%,55%))",
+                    color: "hsl(38,60%,15%)",
+                  }}
+                >
+                  RECOMENDADO
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="text-2xl">👑</span>
+                <span
+                  className="font-display text-2xl tracking-wide"
+                  style={{ color: "hsl(45,90%,62%)" }}
+                >
+                  KixxMe Gold
+                </span>
+              </div>
+              <p className="font-sans text-sm text-white/60 mb-5">
+                La experiencia completa de KixxMe
+              </p>
+
+              <ul className="space-y-2.5 mb-6">
+                {GOLD_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <span className="font-sans text-sm text-white/80">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                type="button"
+                onClick={() => setLocation("/trial")}
+                className="w-full h-12 rounded-xl font-display text-base tracking-widest text-white mb-2.5 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                style={{ background: "linear-gradient(135deg, hsl(38,95%,52%), hsl(25,95%,50%))" }}
+                data-testid="button-trial"
+              >
+                <Zap className="w-4 h-4" />
+                🔥 Probar Gold GRATIS · 5 días
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocation("/premium")}
+                className="w-full h-10 rounded-xl border font-sans text-sm transition-colors hover:opacity-80"
+                style={{
+                  background: "rgba(251,191,36,0.05)",
+                  borderColor: "rgba(251,191,36,0.22)",
+                  color: "hsl(45,90%,62%)",
+                }}
+                data-testid="button-go-premium-gold"
+              >
+                Ver precios Gold →
+              </button>
+            </div>
+
+            {/* ── PLUS ── */}
+            <div
+              className="rounded-2xl p-5 mb-2"
+              style={{
+                background: "linear-gradient(135deg, rgba(168,85,247,0.11), rgba(217,70,239,0.06))",
+                border: "1.5px solid rgba(168,85,247,0.32)",
+              }}
+            >
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="text-2xl">💎</span>
+                <span
+                  className="font-display text-2xl tracking-wide"
+                  style={{ color: "hsl(273,75%,72%)" }}
+                >
+                  KixxMe Plus
+                </span>
+              </div>
+              <p className="font-sans text-sm text-white/60 mb-4">
+                Más conexiones, más matches
+              </p>
+
+              <ul className="space-y-2.5 mb-5">
+                {PLUS_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <span className="font-sans text-sm text-white/80">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                type="button"
+                onClick={() => setLocation("/premium")}
+                className="w-full h-10 rounded-xl border font-sans text-sm transition-colors hover:opacity-80"
+                style={{
+                  background: "rgba(168,85,247,0.07)",
+                  borderColor: "rgba(168,85,247,0.27)",
+                  color: "hsl(273,75%,72%)",
+                }}
+                data-testid="button-go-premium-plus"
+              >
+                Ver plan Plus →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════
+            SEGURIDAD
+            ══════════════════════════════════════════════════════ */}
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           SEGURIDAD
         </h2>
         <p className="font-sans text-sm text-muted-foreground mb-5">
           Mantén tu cuenta protegida.
         </p>
-
         <div className="space-y-3 mb-8">
           <button
             type="button"
@@ -270,66 +448,9 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* Premium section */}
-        <h2
-          className="font-display text-xl tracking-widest mb-1"
-          style={{ background: "linear-gradient(90deg, hsl(45,90%,60%), hsl(38,95%,55%))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
-        >
-          {subscription?.is_trial ? "PRUEBA GRATUITA" : "PREMIUM"}
-        </h2>
-        <p className="font-sans text-sm text-muted-foreground mb-5">
-          {subscription?.is_trial
-            ? "Cancela antes de que expire y no pagarás nada."
-            : subscription?.has_active_subscription
-            ? "Gestiona tu plan premium."
-            : "Desbloquea funciones exclusivas y vive la experiencia completa."}
-        </p>
-        <div className="space-y-3 mb-8">
-          {showCancelSubscription ? (
-            <button
-              type="button"
-              onClick={() => setLocation("/settings/cancel-subscription")}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
-              style={{ background: "rgba(13,11,26,0.7)" }}
-              data-testid="button-cancel-subscription"
-            >
-              <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
-              <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-                {subscription?.is_trial ? "Cancelar prueba gratuita" : "Cancelar suscripción"}
-              </span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
-          ) : subscription?.has_active_subscription && subscription?.cancel_at_period_end ? (
-            <div
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40"
-              style={{ background: "rgba(13,11,26,0.7)" }}
-            >
-              <CreditCard className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              <span className="flex-1 text-left font-sans text-sm text-muted-foreground">
-                Suscripción activa · se cancela al final del período
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setLocation("/premium")}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border transition-colors"
-              style={{
-                background: "linear-gradient(135deg, rgba(234,179,8,0.08), rgba(168,85,247,0.06))",
-                borderColor: "rgba(234,179,8,0.25)",
-              }}
-              data-testid="button-go-premium"
-            >
-              <Star className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-              <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
-                Ver planes Gold y Plus
-              </span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
-          )}
-        </div>
-
-        {/* Soporte section */}
+        {/* ══════════════════════════════════════════════════════
+            SOPORTE
+            ══════════════════════════════════════════════════════ */}
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           SOPORTE
         </h2>
@@ -370,9 +491,9 @@ export default function Settings() {
             onClick={() => setLocation("/legal")}
             className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
             style={{ background: "rgba(13,11,26,0.7)" }}
-            data-testid="button-faq"
+            data-testid="button-legal"
           >
-            <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+            <FileText className="w-5 h-5 text-primary flex-shrink-0" />
             <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
               Términos y privacidad
             </span>
@@ -380,6 +501,47 @@ export default function Settings() {
           </button>
         </div>
 
+        {/* ══════════════════════════════════════════════════════
+            CUENTA
+            ══════════════════════════════════════════════════════ */}
+        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
+          CUENTA
+        </h2>
+        <p className="font-sans text-sm text-muted-foreground mb-5">
+          Accesos y sesión.
+        </p>
+        <div className="space-y-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setLocation("/settings/blocked")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-blocked-users"
+          >
+            <Ban className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Usuarios bloqueados
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="button-logout"
+          >
+            <LogOut className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+              Cerrar sesión
+            </span>
+          </button>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════
+            GESTIÓN DE CUENTA
+            ══════════════════════════════════════════════════════ */}
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           GESTIÓN DE CUENTA
         </h2>
@@ -455,7 +617,8 @@ export default function Settings() {
             style={{ background: "rgba(168,85,247,0.08)" }}
             data-testid="button-deactivate-account"
           >
-            {requestCode.isPending && requestCode.variables?.data.action === "deactivate" ? (
+            {requestCode.isPending &&
+            requestCode.variables?.data.action === "deactivate" ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <PauseCircle className="w-5 h-5" />
@@ -476,7 +639,8 @@ export default function Settings() {
             </h3>
           </div>
           <p className="font-sans text-sm text-muted-foreground">
-            Eliminar tu cuenta es <span className="text-red-300 font-medium">permanente</span>.
+            Eliminar tu cuenta es{" "}
+            <span className="text-red-300 font-medium">permanente</span>.
             Se borrarán tu perfil, tus fotos, tus chats y tus me gusta. Esta acción
             no se puede deshacer.
           </p>
@@ -488,7 +652,8 @@ export default function Settings() {
             style={{ background: "rgba(239,68,68,0.08)" }}
             data-testid="button-delete-account"
           >
-            {requestCode.isPending && requestCode.variables?.data.action === "delete" ? (
+            {requestCode.isPending &&
+            requestCode.variables?.data.action === "delete" ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Trash2 className="w-5 h-5" />
@@ -561,9 +726,7 @@ export default function Settings() {
               type="button"
               onClick={submitCode}
               disabled={code.length !== 6 || confirmAction.isPending}
-              className={`w-full h-12 rounded-xl flex items-center justify-center gap-2 font-display text-lg tracking-widest text-white transition-opacity hover:opacity-90 disabled:opacity-40 ${
-                verifyAction === "delete" ? "" : ""
-              }`}
+              className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-display text-lg tracking-widest text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               style={{
                 background:
                   verifyAction === "delete"

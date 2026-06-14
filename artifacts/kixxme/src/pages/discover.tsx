@@ -406,8 +406,25 @@ export function UserCard({
 
   return (
     <div
-      className={`relative rounded-2xl overflow-hidden border border-border/30 group${featured ? " col-span-2" : ""}`}
-      style={{ background: "rgba(13,11,26,0.8)", aspectRatio: featured ? "3/4" : "3/4" }}
+      className={`relative rounded-2xl overflow-hidden border group${featured ? " col-span-2" : ""}`}
+      style={{
+        background: "rgba(13,11,26,0.8)",
+        aspectRatio: "3/4",
+        borderColor:
+          user.plan === "gold"
+            ? "rgba(251,191,36,0.48)"
+            : user.plan === "plus"
+            ? "rgba(168,85,247,0.42)"
+            : "rgba(255,255,255,0.10)",
+        boxShadow:
+          user.plan === "gold"
+            ? "0 0 22px rgba(251,191,36,0.18), 0 4px 16px rgba(0,0,0,0.5)"
+            : user.plan === "plus"
+            ? "0 0 16px rgba(168,85,247,0.16), 0 4px 16px rgba(0,0,0,0.5)"
+            : user.is_online
+            ? "0 0 14px rgba(74,222,128,0.13), 0 4px 14px rgba(0,0,0,0.4)"
+            : "0 4px 14px rgba(0,0,0,0.4)",
+      }}
     >
       {user.avatar_url ? (
         <img
@@ -451,14 +468,24 @@ export function UserCard({
         )}
       </div>
 
-      {user.is_verified && (
-        <div className="absolute top-2 right-2">
+      {/* Gold crown or verified badge */}
+      <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+        {user.plan === "gold" && (
+          <span
+            className="text-base leading-none"
+            style={{ filter: "drop-shadow(0 0 6px rgba(251,191,36,0.8))" }}
+            title="Gold"
+          >
+            👑
+          </span>
+        )}
+        {user.is_verified && (
           <BadgeCheck
             className="w-5 h-5 text-sky-400"
-            style={{ filter: "drop-shadow(0 0 4px rgba(56,189,248,0.6))" }}
+            style={{ filter: "drop-shadow(0 0 5px rgba(56,189,248,0.65))" }}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <button
         onClick={onSuperLike}

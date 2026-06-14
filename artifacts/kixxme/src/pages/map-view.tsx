@@ -120,16 +120,17 @@ function offsetPosition(
 function dotMarkerHtml(user: PublicProfile): string {
   const isGoldUser = user.plan === "gold";
   const online = user.is_online;
-  const dotSize = online ? 14 : 10;
-  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(210,100%,68%)";
+  const dotSize = online ? 15 : 10;
+  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(273,85%,65%)";
   const shadow = online
-    ? `0 0 0 2.5px rgba(74,222,128,0.55),0 0 10px ${
-        isGoldUser ? "rgba(251,191,36,0.8)" : "rgba(59,130,246,0.8)"
+    ? `0 0 0 2.5px rgba(74,222,128,0.60),0 0 14px ${
+        isGoldUser ? "rgba(251,191,36,0.9)" : "rgba(168,85,247,0.85)"
       }`
     : `0 0 6px ${
-        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(59,130,246,0.45)"
+        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(168,85,247,0.45)"
       }`;
-  return `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${color};box-shadow:${shadow};"></div></div>`;
+  const anim = online ? "animation:kixx-dot-pulse 2s ease-in-out infinite;" : "";
+  return `<div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${color};box-shadow:${shadow};${anim}"></div></div>`;
 }
 
 export default function MapView() {
@@ -170,7 +171,7 @@ export default function MapView() {
   const { data: mapData, isLoading } = useListMapUsers(mapQueryParams, {
     query: {
       queryKey: getListMapUsersQueryKey(mapQueryParams),
-      refetchInterval: 30000,
+      refetchInterval: 15000,
     },
   });
   const { start: startConversation, isPending: convPending } =
@@ -301,6 +302,17 @@ export default function MapView() {
       mapRef.current.flyTo(center, hasLocation ? 12 : 5, { duration: 1.2 });
     }
   };
+
+  // Inject pulse CSS for online markers once per mount.
+  useEffect(() => {
+    const STYLE_ID = "kixx-map-marker-anim";
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `@keyframes kixx-dot-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.45);opacity:0.72}}`;
+    document.head.appendChild(style);
+    return () => { document.getElementById(STYLE_ID)?.remove(); };
+  }, []);
 
   // ── Map lifecycle ────────────────────────────────────────────────────────
 

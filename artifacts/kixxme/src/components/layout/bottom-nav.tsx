@@ -22,6 +22,7 @@ export default function BottomNav() {
         background: "rgba(8,7,18,0.97)",
         backdropFilter: "blur(24px)",
         paddingBottom: "env(safe-area-inset-bottom)",
+        boxShadow: "0 -1px 0 rgba(168,85,247,0.15), 0 -8px 40px rgba(0,0,0,0.6)",
       }}
     >
       <div className="flex justify-around items-center h-16 max-w-xl mx-auto px-2">
