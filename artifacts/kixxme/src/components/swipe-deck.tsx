@@ -827,11 +827,6 @@ export function SwipeView({
   );
 }
 
-const FEATURE_CARDS = [
-  { emoji: "📹", label: "Videollamadas Gold", desc: "Conecta cara a cara con total seguridad.", gold: true },
-  { emoji: "📍", label: "Mapa en tiempo real", desc: "Descubre usuarios cerca de ti.", gold: false },
-  { emoji: "🛡️", label: "Perfiles verificados", desc: "Perfiles reales para conexiones reales.", gold: false },
-];
 
 function DeckEmpty({
   title,
@@ -884,27 +879,6 @@ function DeckEmpty({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs mt-1">
-          {FEATURE_CARDS.map((card) => (
-            <div
-              key={card.label}
-              className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center"
-              style={{ background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.18)" }}
-            >
-              <div
-                className="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.55), rgba(236,72,153,0.45))" }}
-              >
-                <span className="text-lg leading-none">{card.emoji}</span>
-                {card.gold && (
-                  <span className="absolute -top-1.5 -right-1.5 text-sm leading-none">👑</span>
-                )}
-              </div>
-              <p className="text-[9px] font-sans font-semibold text-white/85 leading-tight">{card.label}</p>
-              <p className="text-[8px] font-sans text-white/40 leading-tight">{card.desc}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
