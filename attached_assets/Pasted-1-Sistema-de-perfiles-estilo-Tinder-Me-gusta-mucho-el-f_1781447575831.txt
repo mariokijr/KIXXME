@@ -1,0 +1,495 @@
+1. Sistema de perfiles estilo Tinder
+
+Me gusta mucho el formato de tarjeta grande ocupando prácticamente toda la pantalla.
+
+Quiero que:
+
+* La foto principal sea grande y protagonista.
+* Nombre y edad muy visibles.
+* Estado “Online” visible.
+* Bio corta debajo del nombre.
+* Distancia visible (ejemplo: A 2 km, A 15 km, A 80 km).
+* Ciudad visible debajo del nombre.
+* Verificación visible si el usuario está verificado.
+* Indicador de última conexión.
+
+Botones grandes:
+
+* ❌ Pasar
+* ⭐ Destacar perfil
+* 💚 Like
+* 💬 Mensaje directo
+
+Quiero que los perfiles se sientan modernos, visuales y premium.
+
+⸻
+
+2. Mejorar totalmente el registro (Onboarding)
+
+Quiero un registro más completo, moderno y atractivo.
+
+Fecha de nacimiento
+
+* Selector sencillo.
+* Mostrar únicamente la edad en el perfil.
+
+Distancia máxima
+
+* Slider de distancia.
+* Desde 1 km hasta Mundo.
+
+Qué buscas
+
+* Relación seria
+* Conocer gente
+* Amistad
+* Citas
+* Algo casual
+* Ya veremos
+
+Centro de estudios
+
+* Campo opcional.
+
+Profesión
+
+* Campo opcional.
+
+⸻
+
+3. Hábitos
+
+Alcohol
+
+* No bebo
+* Ocasionalmente
+* Fines de semana
+* Frecuentemente
+
+Tabaco
+
+* No fumo
+* Fumo ocasionalmente
+* Fumo
+* Intentando dejarlo
+
+Ejercicio
+
+* Todos los días
+* Frecuentemente
+* A veces
+* Nunca
+
+Mascotas
+
+* Tengo perro
+* Tengo gato
+* Tengo mascotas
+* No tengo mascotas
+* Me encantan los animales
+
+⸻
+
+4. Orientación y preferencias (adaptado a una app de hombres para hombres)
+
+Como la aplicación está orientada exclusivamente a hombres que buscan hombres, quiero opciones enfocadas a este público.
+
+¿Cómo te defines?
+
+* Gay
+* Bisexual
+* Curioso
+* Heteroflexible
+* Pansexual
+* Demisexual
+* Asexual
+* En exploración
+* Prefiero no decirlo
+
+¿Qué tipo de chicos te gustan?
+
+* Masculinos
+* Twinks
+* Osos
+* Musculados
+* Deportistas
+* Alternativos
+* Maduritos
+* Sin preferencias
+
+¿Cuál es tu rol?
+
+* Activo
+* Pasivo
+* Versátil
+* Versátil activo
+* Versátil pasivo
+* Sin preferencias
+* Prefiero no decirlo
+
+⸻
+
+5. Intereses estilo Tinder
+
+Quiero que el usuario tenga que elegir un mínimo de 10 intereses.
+
+Deportes y fitness
+
+* Gym
+* Fitness
+* Running
+* Crossfit
+* Calistenia
+
+Viajes
+
+* Viajar
+* Playa
+* Senderismo
+* Aventuras
+
+Música
+
+* Reggaetón
+* Pop
+* Electrónica
+* Techno
+* Trap
+
+Redes sociales
+
+* TikTok
+* Instagram
+* YouTube
+* Streaming
+
+Videojuegos
+
+* Fortnite
+* PlayStation
+* Xbox
+* PC Gaming
+
+Estilo de vida
+
+* Moda
+* Fotografía
+* Coches
+* Tecnología
+* Negocios
+* Emprendimiento
+
+Entretenimiento
+
+* Cine
+* Series
+* Netflix
+* Anime
+
+Mascotas
+
+* Perros
+* Gatos
+
+⸻
+
+6. Perfil más completo
+
+Añadir:
+
+Sobre mí
+
+Campo libre para escribir una presentación.
+
+Datos rápidos
+
+* Altura
+* Peso (opcional)
+* Ciudad
+* Profesión
+* Estudios
+* Signo zodiacal
+
+Facts
+
+Permitir añadir datos curiosos del usuario.
+
+Ejemplos:
+
+* Mi sueño es viajar por el mundo.
+* Tengo más de 10 tatuajes.
+* Hablo 3 idiomas.
+* Soy amante de los perros.
+
+⸻
+
+7. Sistema de ubicación profesional
+
+Actualmente aparecen perfiles de muchos países mezclados y la experiencia no es buena.
+
+Quiero que la ubicación funcione como en Tinder, Bumble o Grindr.
+
+Filtros rápidos
+
+📍 Cerca de mí
+
+🏙 Mi ciudad
+
+📍 Mi provincia
+
+🗺 Mi comunidad autónoma
+
+🇪🇸 España
+
+🌍 Mundo
+
+⸻
+
+Información visible en cada perfil
+
+Mostrar siempre:
+
+* Distancia exacta (2 km, 10 km, 25 km, etc.)
+* Ciudad
+* Provincia
+* País (si es extranjero)
+
+Ejemplos:
+
+* Alicante · 2 km
+* Valencia · 15 km
+* Madrid · 80 km
+* Lisboa, Portugal · 500 km
+
+⸻
+
+Sistema de búsqueda geográfica
+
+Permitir buscar perfiles por:
+
+* Ciudad
+* Provincia
+* Comunidad Autónoma
+* País
+
+Ejemplo:
+
+España
+
+* Alicante
+* Valencia
+* Madrid
+* Barcelona
+
+⸻
+
+Orden inteligente
+
+Priorizar siempre:
+
+1. Usuarios más cercanos.
+2. Usuarios online.
+3. Usuarios activos recientemente.
+4. Usuarios verificados.
+
+⸻
+
+Modo viaje
+
+Añadir un sistema tipo Tinder Passport.
+
+Permitir explorar:
+
+* Otras ciudades.
+* Otras provincias.
+* Otros países.
+
+Sin necesidad de cambiar la ubicación real.
+
+⸻
+
+8. Filtros avanzados
+
+Permitir filtrar por:
+
+Básicos
+
+* Edad mínima y máxima.
+* Distancia.
+* Ciudad.
+* Provincia.
+* País.
+
+Perfil
+
+* Rol.
+* Tipo de chico.
+* Orientación.
+* Lo que busca.
+
+Actividad
+
+* Online ahora.
+* Activos hoy.
+* Activos esta semana.
+
+Calidad
+
+* Verificados.
+* Con foto.
+* Con bio.
+* Con intereses.
+
+⸻
+
+9. Nueva pestaña Explorar
+
+Crear una pestaña “Explorar” mucho más potente.
+
+Secciones:
+
+🔥 Tendencias
+
+🆕 Nuevos usuarios
+
+🟢 Online ahora
+
+⭐ Más populares
+
+📍 Cerca de mí
+
+🏙 Mi ciudad
+
+📍 Mi provincia
+
+🗺 Mi comunidad autónoma
+
+🇪🇸 España
+
+🌍 Internacional
+
+⸻
+
+10. Corrección urgente de correos
+
+Actualmente parece que algunos usuarios no reciben los emails.
+
+Revisar:
+
+* SMTP.
+* Resend.
+* Supabase Auth.
+* Emails de verificación.
+* Recuperación de contraseña.
+* Correos en spam.
+* Logs de envío.
+* DNS.
+* SPF.
+* DKIM.
+* DMARC.
+
+Porque hay usuarios que no reciben los correos correctamente.
+
+⸻
+
+11. Diseño Premium
+
+Quiero una experiencia visual moderna inspirada en:
+
+* Tinder.
+* Hinge.
+* Bumble.
+
+Pero manteniendo la identidad propia de KixxMe.
+
+Objetivos:
+
+* Más limpio.
+* Más rápido.
+* Más intuitivo.
+* Más visual.
+* Más premium.
+
+Animaciones suaves, perfiles grandes, diseño moderno y navegación sencilla.
+
+⸻
+
+12. Adaptación al sistema Premium actual (Muy importante)
+
+Todos los cambios y funciones nuevas deben integrarse respetando el sistema de monetización que ya existe en KixxMe.
+
+No quiero que las nuevas funciones rompan ni eliminen ventajas actuales de los usuarios Premium.
+
+Usuarios Gratis
+
+* Swipe limitado diario.
+* Likes limitados.
+* Filtros básicos.
+* Ver perfiles cercanos.
+* Chat con limitaciones definidas.
+
+Usuarios Gold
+
+Mantener y potenciar ventajas como:
+
+* Likes ilimitados.
+* Ver quién te ha dado like.
+* Filtros avanzados.
+* Mayor visibilidad.
+* Destacar perfil.
+* Modo incógnito.
+* Explorar otras ciudades o países.
+
+Usuarios Plus / Premium
+
+Mantener las ventajas actuales y añadir acceso prioritario a futuras funciones premium.
+
+Por ejemplo:
+
+* Filtros más avanzados.
+* Ver perfiles activos recientemente.
+* Ver perfiles verificados primero.
+* Mayor alcance.
+* Boosts.
+* Passport / Modo viaje.
+* Posicionamiento prioritario en resultados.
+
+⸻
+
+13. Arquitectura escalable
+
+Todos los cambios deben desarrollarse pensando en el crecimiento futuro de la aplicación.
+
+Quiero que:
+
+* No afecten al rendimiento.
+* Sean compatibles con Supabase.
+* Sean compatibles con el sistema de suscripciones actual.
+* Sean compatibles con Gold y Plus.
+* Sean fáciles de ampliar en futuras actualizaciones.
+
+⸻
+
+14. Objetivo de negocio
+
+No quiero simplemente añadir funciones.
+
+Quiero que cada función tenga un objetivo claro:
+
+* Aumentar matches.
+* Aumentar conversaciones.
+* Aumentar retención.
+* Aumentar tiempo dentro de la app.
+* Mejorar conversiones a Gold y Plus.
+* Mejorar la experiencia del usuario.
+* Hacer que KixxMe compita con Tinder, Grindr, Bumble y Hinge.
+
+Cada nueva función debe aportar valor tanto al usuario gratuito como al usuario Premium, manteniendo incentivos claros para suscribirse.
+
+⸻
+
+IMPORTANTE
+
+Antes de implementar cualquier cambio, revisar toda la estructura actual de KixxMe para asegurar que las nuevas funciones se integran correctamente con el sistema existente, especialmente con Gold y Plus, evitando conflictos, duplicidades o pérdida de ventajas Premium.
+
+El objetivo final es convertir KixxMe en una aplicación moderna, premium, escalable y altamente competitiva, con una experiencia similar a Tinder en usabilidad y diseño, pero especializada en hombres que buscan hombres, con mejores filtros, mejor ubicación, mejores perfiles y una monetización sólida y sostenible.
