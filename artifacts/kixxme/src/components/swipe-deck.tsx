@@ -29,6 +29,7 @@ import {
   MessageCircle,
   SlidersHorizontal,
   Lock,
+  LayoutGrid,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -438,14 +439,17 @@ function QuotaChip() {
     ? "∞"
     : String(quota.superlikes.remaining);
   return (
-    <div className="flex items-center justify-center gap-3 pt-2 text-[11px] font-sans text-muted-foreground">
-      <span className="flex items-center gap-1">
-        <Heart className="w-3 h-3 text-pink-400" fill="currentColor" />
+    <div
+      className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[11px] font-sans backdrop-blur-sm"
+      style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.1)" }}
+    >
+      <span className="flex items-center gap-1 text-pink-400">
+        <Heart className="w-3 h-3" fill="currentColor" />
         {likeLabel}
       </span>
-      <span className="opacity-30">·</span>
-      <span className="flex items-center gap-1">
-        <Star className="w-3 h-3 text-sky-400" fill="currentColor" />
+      <span className="text-white/20">·</span>
+      <span className="flex items-center gap-1 text-sky-400">
+        <Star className="w-3 h-3" fill="currentColor" />
         {superLabel}
       </span>
     </div>
@@ -849,250 +853,218 @@ export function SwipeView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-72px)]">
-      <header
-        className="px-4 py-3 flex items-center justify-between border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
-      >
-        <KixxMeLogo size={22} withWordmark />
-        <div className="flex items-center gap-2">
-          {/* Filter button */}
-          <button
-            onClick={() => setFilterOpen(true)}
-            className="relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors hover:border-primary/50"
-            style={{
-              background: activeFilterCount > 0 ? "rgba(139,92,246,0.2)" : "rgba(255,255,255,0.04)",
-              borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.6)" : "rgba(255,255,255,0.15)",
-            }}
-            aria-label="Filtros"
-            data-testid="button-filters"
-          >
-            <SlidersHorizontal className="w-4 h-4" style={{ color: activeFilterCount > 0 ? "#a78bfa" : undefined }} />
-            {activeFilterCount > 0 && (
-              <span
-                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+    <div className="flex flex-col h-[calc(100dvh-72px)] max-w-sm w-full mx-auto">
 
-          <Link href="/matches">
+      {/* ── CARD AREA — fills almost the whole screen ───────────────── */}
+      <div className="relative flex-1 min-h-0">
+
+        {/* Gradient header overlay — transparent, floats on top of photo */}
+        <div
+          className="absolute top-0 inset-x-0 z-30 px-4 pt-3 pb-10 flex items-center justify-between pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)" }}
+        >
+          <KixxMeLogo size={20} withWordmark />
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             <button
-              className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-              aria-label="Emparejamientos"
-              data-testid="link-matches"
+              onClick={() => setMode("cuadricula")}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+              style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
+              aria-label="Vista cuadrícula"
             >
-              <Heart className="w-4 h-4 text-primary" />
-              {likesBadge > 0 && (
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setFilterOpen(true)}
+              className="relative w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+              style={{
+                background: activeFilterCount > 0 ? "rgba(139,92,246,0.4)" : "rgba(255,255,255,0.15)",
+                color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.85)",
+              }}
+              aria-label="Filtros"
+              data-testid="button-filters"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              {activeFilterCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                  }}
-                  data-testid="badge-likes"
+                  className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full text-[8px] font-bold text-white"
+                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
                 >
-                  {likesBadge > 99 ? "99+" : likesBadge}
+                  {activeFilterCount}
                 </span>
               )}
             </button>
-          </Link>
-        </div>
-      </header>
-
-      <div className="pt-3 flex justify-center">
-        <ModeToggle mode={mode} setMode={setMode} />
-      </div>
-
-      {/* Scope filter chips */}
-      <div className="px-4 pt-2 flex items-center justify-center gap-1.5 flex-wrap">
-        {(Object.keys(SCOPE_LABELS) as DiscoverScope[]).map((s) => {
-          const active = scope === s;
-          return (
-            <button
-              key={s}
-              onClick={() => setScope(s)}
-              className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all duration-150"
-              style={
-                active
-                  ? {
-                      background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                      color: "white",
-                      boxShadow: "0 0 12px rgba(168,85,247,0.35)",
-                    }
-                  : {
-                      background: "rgba(255,255,255,0.05)",
-                      color: "hsl(240,10%,60%)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }
-              }
-            >
-              {s === "nearby" && <Navigation className="w-3 h-3" />}
-              {s === "worldwide" && <Globe2 className="w-3 h-3" />}
-              {s === "europe" && <Globe2 className="w-3 h-3" />}
-              {s === "spain" && <span className="text-[10px] leading-none">🇪🇸</span>}
-              {SCOPE_LABELS[s]}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Location permission banner — only when scope requires coords and we don't have them */}
-      {(scope === "nearby" || scope === "province") && !hasCoords && (
-        <div
-          className="mx-4 mt-2 px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-sans"
-          style={{
-            background: "rgba(168,85,247,0.1)",
-            border: "1px solid rgba(168,85,247,0.25)",
-          }}
-        >
-          <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-          <span className="flex-1 text-foreground/70 leading-tight">
-            Activa tu ubicación para ver personas cerca de ti
-          </span>
-          <button
-            onClick={() => geo.request(() => setIndex(0))}
-            disabled={geo.isPending || geo.state === "locating"}
-            className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium text-white disabled:opacity-50 transition-opacity"
-            style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-          >
-            {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
-          </button>
-        </div>
-      )}
-      {(scope === "nearby" || scope === "province") && geo.state === "denied" && (
-        <p className="mx-4 mt-1 text-center text-[10px] font-sans text-muted-foreground/60">
-          Permiso denegado · Selecciona "España" para ver perfiles nacionales
-        </p>
-      )}
-
-      <QuotaChip />
-
-      <div className="flex-1 min-h-0 px-2 py-2">
-        <div className="relative w-full h-full max-w-sm mx-auto">
-          {isLoading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              <p className="font-sans text-sm text-muted-foreground">
-                Cargando perfiles...
-              </p>
-            </div>
-          ) : isError ? (
-            <DeckEmpty
-              title="No se pudieron cargar los perfiles."
-              subtitle="Revisa tu conexión e inténtalo de nuevo."
-              onRestart={restart}
-              isFetching={isFetching}
-              onGrid={() => setMode("cuadricula")}
-            />
-          ) : !top ? (
-            <DeckEmpty
-              title={
-                profiles.length === 0 &&
-                (scope === "nearby" || scope === "province")
-                  ? "Nadie cerca de ti ahora"
-                  : "¡Has visto todos los perfiles!"
-              }
-              subtitle={
-                profiles.length === 0 &&
-                (scope === "nearby" || scope === "province")
-                  ? "Amplía el alcance con los filtros de arriba para ver más perfiles."
-                  : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
-              }
-              onRestart={restart}
-              isFetching={isFetching}
-              onGrid={() => setMode("cuadricula")}
-            />
-          ) : (
-            <>
-              {deck[2] && <BackgroundCard profile={deck[2]} depth={2} />}
-              {deck[1] && <BackgroundCard profile={deck[1]} depth={1} />}
-              <SwipeCard
-                key={top.id}
-                ref={cardRef}
-                profile={top}
-                onDecision={handleDecision}
-                onOpenDetail={() => setDetail(top)}
-              />
-            </>
-          )}
-        </div>
-      </div>
-
-      {!isLoading && !isError && top && (
-        <div className="flex items-center justify-center gap-4 px-4 pt-1 pb-4">
-          <ActionButton
-            onClick={() => act("pass")}
-            label="No me interesa"
-            size="lg"
-            gradient="rgba(40,38,56,0.95)"
-            testid="button-pass"
-          >
-            <X className="w-7 h-7 text-rose-400" />
-          </ActionButton>
-          <ActionButton
-            onClick={() => act("superlike")}
-            label="SuperLike"
-            size="sm"
-            gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))"
-            testid="button-superlike"
-          >
-            <Star className="w-6 h-6 text-white" fill="white" />
-          </ActionButton>
-          <ActionButton
-            onClick={() => act("like")}
-            label="Me gusta"
-            size="lg"
-            gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))"
-            testid="button-like"
-          >
-            <Heart className="w-7 h-7 text-white" fill="white" />
-          </ActionButton>
-          {/* Mensaje — siempre llama a useStartConversation que ya gestiona
-              el upsell para usuarios free sin match. El candado es solo visual. */}
-          <div className="relative">
-            <ActionButton
-              onClick={() => startConv(top.id)}
-              label="Mensaje"
-              size="sm"
-              gradient="rgba(40,38,56,0.95)"
-              testid="button-message"
-            >
-              {startingConv
-                ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                : <MessageCircle className="w-5 h-5 text-primary" />}
-            </ActionButton>
-            {!top.matched && plan === "free" && (
-              <span
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-border/50"
-                style={{ background: "rgba(13,11,26,0.9)" }}
+            <Link href="/matches">
+              <button
+                className="relative w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
+                aria-label="Emparejamientos"
+                data-testid="link-matches"
               >
-                <Lock className="w-2.5 h-2.5 text-muted-foreground" />
-              </span>
-            )}
+                <Heart className="w-4 h-4" />
+                {likesBadge > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full text-[8px] font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                    data-testid="badge-likes"
+                  >
+                    {likesBadge > 99 ? "99+" : likesBadge}
+                  </span>
+                )}
+              </button>
+            </Link>
           </div>
         </div>
-      )}
+
+        {/* Location permission banner — overlaid just below header */}
+        {(scope === "nearby" || scope === "province") && !hasCoords && (
+          <div
+            className="absolute top-14 inset-x-3 z-30 px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-sans backdrop-blur-sm"
+            style={{ background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.4)" }}
+          >
+            <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-white/80 leading-tight">
+              Activa tu ubicación para ver personas cerca de ti
+            </span>
+            <button
+              onClick={() => geo.request(() => setIndex(0))}
+              disabled={geo.isPending || geo.state === "locating"}
+              className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium text-white disabled:opacity-50 transition-opacity"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
+            </button>
+          </div>
+        )}
+        {(scope === "nearby" || scope === "province") && geo.state === "denied" && (
+          <div className="absolute top-14 inset-x-3 z-30 text-center text-[10px] font-sans text-white/50 py-1">
+            Permiso denegado · Selecciona "España" para ver perfiles nacionales
+          </div>
+        )}
+
+        {/* Quota badge — bottom-left corner of card */}
+        {!isLoading && !isError && top && (
+          <div className="absolute bottom-3 left-3 z-30 pointer-events-none">
+            <QuotaChip />
+          </div>
+        )}
+
+        {/* Card stack — fills the full container */}
+        {isLoading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
+          </div>
+        ) : isError ? (
+          <DeckEmpty
+            title="No se pudieron cargar los perfiles."
+            subtitle="Revisa tu conexión e inténtalo de nuevo."
+            onRestart={restart}
+            isFetching={isFetching}
+            onGrid={() => setMode("cuadricula")}
+          />
+        ) : !top ? (
+          <DeckEmpty
+            title={
+              profiles.length === 0 && (scope === "nearby" || scope === "province")
+                ? "Nadie cerca de ti ahora"
+                : "¡Has visto todos los perfiles!"
+            }
+            subtitle={
+              profiles.length === 0 && (scope === "nearby" || scope === "province")
+                ? "Amplía el alcance con los filtros de abajo para ver más perfiles."
+                : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
+            }
+            onRestart={restart}
+            isFetching={isFetching}
+            onGrid={() => setMode("cuadricula")}
+          />
+        ) : (
+          <>
+            {deck[2] && <BackgroundCard profile={deck[2]} depth={2} />}
+            {deck[1] && <BackgroundCard profile={deck[1]} depth={1} />}
+            <SwipeCard
+              key={top.id}
+              ref={cardRef}
+              profile={top}
+              onDecision={handleDecision}
+              onOpenDetail={() => setDetail(top)}
+            />
+          </>
+        )}
+      </div>
+
+      {/* ── BOTTOM BAR — scope chips + action buttons ────────────────── */}
+      <div
+        className="flex-shrink-0 px-3 pt-2 pb-3 space-y-2"
+        style={{ background: "rgba(8,7,18,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {/* Scope chips — compact horizontal strip */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+          {(Object.keys(SCOPE_LABELS) as DiscoverScope[]).map((s) => {
+            const active = scope === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-sans font-medium transition-all duration-150"
+                style={
+                  active
+                    ? {
+                        background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                        color: "white",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.05)",
+                        color: "hsl(240,10%,55%)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }
+                }
+              >
+                {s === "nearby" && <Navigation className="w-2.5 h-2.5" />}
+                {s === "worldwide" && <Globe2 className="w-2.5 h-2.5" />}
+                {s === "europe" && <Globe2 className="w-2.5 h-2.5" />}
+                {s === "spain" && <span className="text-[9px] leading-none">🇪🇸</span>}
+                {SCOPE_LABELS[s]}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Action buttons */}
+        {!isLoading && !isError && top && (
+          <div className="flex items-center justify-center gap-4">
+            <ActionButton onClick={() => act("pass")} label="No me interesa" size="lg" gradient="rgba(40,38,56,0.95)" testid="button-pass">
+              <X className="w-7 h-7 text-rose-400" />
+            </ActionButton>
+            <ActionButton onClick={() => act("superlike")} label="SuperLike" size="sm" gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))" testid="button-superlike">
+              <Star className="w-6 h-6 text-white" fill="white" />
+            </ActionButton>
+            <ActionButton onClick={() => act("like")} label="Me gusta" size="lg" gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))" testid="button-like">
+              <Heart className="w-7 h-7 text-white" fill="white" />
+            </ActionButton>
+            <div className="relative">
+              <ActionButton onClick={() => startConv(top.id)} label="Mensaje" size="sm" gradient="rgba(40,38,56,0.95)" testid="button-message">
+                {startingConv
+                  ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  : <MessageCircle className="w-5 h-5 text-primary" />}
+              </ActionButton>
+              {!top.matched && plan === "free" && (
+                <span
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-border/50"
+                  style={{ background: "rgba(13,11,26,0.9)" }}
+                >
+                  <Lock className="w-2.5 h-2.5 text-muted-foreground" />
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {detail && (
-        <ProfileDetailSheet
-          profile={detail}
-          onClose={() => setDetail(null)}
-          onAction={handleDetailAction}
-          plan={plan}
-        />
+        <ProfileDetailSheet profile={detail} onClose={() => setDetail(null)} onAction={handleDetailAction} plan={plan} />
       )}
-
-      <FilterSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        filters={filters}
-        onChange={applyFilters}
-        plan={plan}
-      />
+      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} filters={filters} onChange={applyFilters} plan={plan} />
     </div>
   );
 }
