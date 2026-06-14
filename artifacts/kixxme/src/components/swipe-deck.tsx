@@ -24,11 +24,9 @@ import {
   RefreshCw,
   Sparkles,
   Flag,
-  Globe2,
-  Navigation,
+  Lock,
   MessageCircle,
   SlidersHorizontal,
-  Lock,
   LayoutGrid,
 } from "lucide-react";
 import {
@@ -62,43 +60,10 @@ import {
   countActiveFilters,
   filtersToParams,
 } from "@/components/filter-sheet";
-import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
+import { type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
-import { useGeolocation } from "@/lib/use-geolocation";
 import { useAuth } from "@/lib/auth";
 
-// ---------------------------------------------------------------------------
-// Scope filter (persisted in localStorage)
-// ---------------------------------------------------------------------------
-const SWIPE_SCOPE_KEY = "kixxme:swipe-scope";
-type DiscoverScope = "nearby" | "province" | "spain" | "europe" | "worldwide";
-
-const SCOPE_LABELS: Record<DiscoverScope, string> = {
-  nearby: "Cerca",
-  province: "Provincia",
-  spain: "España",
-  europe: "Europa",
-  worldwide: "Mundo",
-};
-
-function readScope(): DiscoverScope {
-  try {
-    const v = localStorage.getItem(SWIPE_SCOPE_KEY);
-    if (
-      v === "nearby" ||
-      v === "province" ||
-      v === "spain" ||
-      v === "europe" ||
-      v === "worldwide"
-    )
-      return v;
-  } catch { /* ignore */ }
-  return "nearby";
-}
-
-function saveScope(s: DiscoverScope) {
-  try { localStorage.setItem(SWIPE_SCOPE_KEY, s); } catch { /* ignore */ }
-}
 
 type Decision = "like" | "pass" | "superlike";
 
@@ -154,7 +119,7 @@ function BackgroundCard({
       style={{
         transform: `scale(${scale}) translateY(${translateY}px)`,
         opacity: depth === 1 ? 0.85 : 0.6,
-        background: "rgba(13,11,26,0.9)",
+        background: "rgba(18,8,40,0.92)",
         transition: "transform 0.3s ease, opacity 0.3s ease",
       }}
     >
@@ -162,7 +127,7 @@ function BackgroundCard({
       <div
         className="absolute inset-x-0 bottom-0 h-2/5"
         style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)",
+          background: "linear-gradient(to top, rgba(12,4,30,0.9), transparent)",
         }}
       />
     </div>
@@ -299,13 +264,13 @@ const SwipeCard = forwardRef<
         }
       />
 
-      {/* Bottom gradient — taller for more info space */}
+      {/* Bottom gradient — deep purple tint for a richer feel */}
       <div
         className="absolute inset-x-0 bottom-0 pointer-events-none z-10"
         style={{
-          height: "65%",
+          height: "68%",
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)",
+            "linear-gradient(to top, rgba(10,3,28,0.97) 0%, rgba(14,5,35,0.75) 45%, transparent 100%)",
         }}
       />
 
@@ -463,25 +428,39 @@ function ActionButton({
   gradient,
   children,
   testid,
+  glow,
+  showLabel,
 }: {
   onClick: () => void;
   label: string;
-  size: "sm" | "lg";
+  size: "sm" | "lg" | "xl";
   gradient: string;
   children: React.ReactNode;
   testid: string;
+  glow?: string;
+  showLabel?: boolean;
 }) {
-  const dim = size === "lg" ? "w-16 h-16" : "w-12 h-12";
+  const dim =
+    size === "xl" ? "w-[68px] h-[68px]" :
+    size === "lg" ? "w-[58px] h-[58px]" :
+    "w-12 h-12";
   return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      data-testid={testid}
-      className={`${dim} rounded-full flex items-center justify-center border border-white/15 transition-transform active:scale-90 hover:scale-105`}
-      style={{ background: gradient, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}
-    >
-      {children}
-    </button>
+    <div className={`flex flex-col items-center ${showLabel ? "gap-1" : ""}`}>
+      <button
+        onClick={onClick}
+        aria-label={label}
+        data-testid={testid}
+        className={`${dim} rounded-full flex items-center justify-center border border-white/15 transition-transform active:scale-90 hover:scale-105`}
+        style={{ background: gradient, boxShadow: glow ?? "0 8px 24px rgba(0,0,0,0.45)" }}
+      >
+        {children}
+      </button>
+      {showLabel && (
+        <span className="text-[9px] font-sans text-white/45 leading-none tracking-wide uppercase">
+          {label}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -760,41 +739,28 @@ export function SwipeView({
   const passMut = usePassProfile();
   const { start: startConv, isPending: startingConv } = useStartConversation();
 
-  // --- Scope & location ---------------------------------------------------
-  const [scope, setScopeState] = useState<DiscoverScope>(readScope);
+  // --- State & filters -------------------------------------------------------
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
   const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
 
   const { session } = useAuth();
-  const geo = useGeolocation();
 
   const { data: ownProfile } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
-  const hasCoords = ownProfile?.latitude != null;
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
-  const setScope = (s: DiscoverScope) => {
-    setScopeState(s);
-    saveScope(s);
-    setIndex(0);
-  };
+  const queryParams = { sort: "recent" as const, scope: "worldwide" as const, ...filtersToParams(filters) };
+  const queryKey = getListProfilesQueryKey(queryParams);
+  const activeFilterCount = countActiveFilters(filters);
 
   const applyFilters = (f: DiscoverFilters) => {
     setFilters(f);
     setIndex(0);
-    qc.removeQueries({ queryKey: getListProfilesQueryKey({ sort, scope }) });
+    qc.removeQueries({ queryKey });
   };
-
-  // Sort by distance whenever a geographic scope is active; fall back to
-  // recent for worldwide so the deck stays fresh on low-density installs.
-  const sort: "recent" | "distance" =
-    scope === "worldwide" ? "recent" : "distance";
-  const queryParams = { sort, scope, ...filtersToParams(filters) };
-  const queryKey = getListProfilesQueryKey(queryParams);
-  const activeFilterCount = countActiveFilters(filters);
 
   // -------------------------------------------------------------------------
   const {
@@ -853,58 +819,69 @@ export function SwipeView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-72px)] max-w-sm w-full mx-auto">
+    <div
+      className="flex flex-col h-[calc(100dvh-72px)] max-w-sm w-full mx-auto"
+      style={{ background: "linear-gradient(170deg, #1c0838 0%, #0e0b1e 55%, #140926 100%)" }}
+    >
 
-      {/* ── CARD AREA — fills almost the whole screen ───────────────── */}
+      {/* ── CARD AREA — fills ~85 % of the screen ────────────────────── */}
       <div className="relative flex-1 min-h-0">
 
-        {/* Gradient header overlay — transparent, floats on top of photo */}
+        {/* Floating glass header — overlaid on the photo */}
         <div
-          className="absolute top-0 inset-x-0 z-30 px-4 pt-3 pb-10 flex items-center justify-between pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)" }}
+          className="absolute top-0 inset-x-0 z-30 px-4 pt-3.5 pb-12 flex items-center justify-between pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%)" }}
         >
           <KixxMeLogo size={20} withWordmark />
-          <div className="flex items-center gap-1.5 pointer-events-auto">
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Switch to grid/online */}
             <button
               onClick={() => setMode("cuadricula")}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-              style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
+              className="w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 transition-all active:scale-90"
+              style={{ background: "rgba(255,255,255,0.12)" }}
               aria-label="Vista cuadrícula"
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4 text-white/85" />
             </button>
+
+            {/* Filters */}
             <button
               onClick={() => setFilterOpen(true)}
-              className="relative w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+              className="relative w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all active:scale-90"
               style={{
-                background: activeFilterCount > 0 ? "rgba(139,92,246,0.4)" : "rgba(255,255,255,0.15)",
-                color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.85)",
+                background: activeFilterCount > 0 ? "rgba(124,58,237,0.45)" : "rgba(255,255,255,0.12)",
+                borderColor: activeFilterCount > 0 ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.2)",
               }}
               aria-label="Filtros"
               data-testid="button-filters"
             >
-              <SlidersHorizontal className="w-4 h-4" />
+              <SlidersHorizontal
+                className="w-4 h-4"
+                style={{ color: activeFilterCount > 0 ? "#ddd6fe" : "rgba(255,255,255,0.85)" }}
+              />
               {activeFilterCount > 0 && (
                 <span
-                  className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full text-[8px] font-bold text-white"
-                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
+                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ background: "linear-gradient(135deg,#7c3aed,#db2777)" }}
                 >
                   {activeFilterCount}
                 </span>
               )}
             </button>
+
+            {/* Matches / likes received */}
             <Link href="/matches">
               <button
-                className="relative w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
+                className="relative w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 transition-all active:scale-90"
+                style={{ background: "rgba(255,255,255,0.12)" }}
                 aria-label="Emparejamientos"
                 data-testid="link-matches"
               >
-                <Heart className="w-4 h-4" />
+                <Heart className="w-4 h-4 text-white/85" />
                 {likesBadge > 0 && (
                   <span
-                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full text-[8px] font-bold text-white"
-                    style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                    className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    style={{ background: "linear-gradient(135deg,#7c3aed,#db2777)" }}
                     data-testid="badge-likes"
                   >
                     {likesBadge > 99 ? "99+" : likesBadge}
@@ -915,43 +892,17 @@ export function SwipeView({
           </div>
         </div>
 
-        {/* Location permission banner — overlaid just below header */}
-        {(scope === "nearby" || scope === "province") && !hasCoords && (
-          <div
-            className="absolute top-14 inset-x-3 z-30 px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-sans backdrop-blur-sm"
-            style={{ background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.4)" }}
-          >
-            <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="flex-1 text-white/80 leading-tight">
-              Activa tu ubicación para ver personas cerca de ti
-            </span>
-            <button
-              onClick={() => geo.request(() => setIndex(0))}
-              disabled={geo.isPending || geo.state === "locating"}
-              className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium text-white disabled:opacity-50 transition-opacity"
-              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-            >
-              {geo.isPending || geo.state === "locating" ? "..." : "Activar"}
-            </button>
-          </div>
-        )}
-        {(scope === "nearby" || scope === "province") && geo.state === "denied" && (
-          <div className="absolute top-14 inset-x-3 z-30 text-center text-[10px] font-sans text-white/50 py-1">
-            Permiso denegado · Selecciona "España" para ver perfiles nacionales
-          </div>
-        )}
-
-        {/* Quota badge — bottom-left corner of card */}
+        {/* Quota pill — bottom-left of card */}
         {!isLoading && !isError && top && (
           <div className="absolute bottom-3 left-3 z-30 pointer-events-none">
             <QuotaChip />
           </div>
         )}
 
-        {/* Card stack — fills the full container */}
+        {/* Card stack */}
         {isLoading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <Loader2 className="w-9 h-9 text-primary animate-spin" />
             <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
           </div>
         ) : isError ? (
@@ -964,16 +915,8 @@ export function SwipeView({
           />
         ) : !top ? (
           <DeckEmpty
-            title={
-              profiles.length === 0 && (scope === "nearby" || scope === "province")
-                ? "Nadie cerca de ti ahora"
-                : "¡Has visto todos los perfiles!"
-            }
-            subtitle={
-              profiles.length === 0 && (scope === "nearby" || scope === "province")
-                ? "Amplía el alcance con los filtros de abajo para ver más perfiles."
-                : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
-            }
+            title="¡Ya los has visto todos!"
+            subtitle="Vuelve más tarde o ajusta los filtros para descubrir personas nuevas."
             onRestart={restart}
             isFetching={isFetching}
             onGrid={() => setMode("cuadricula")}
@@ -993,78 +936,94 @@ export function SwipeView({
         )}
       </div>
 
-      {/* ── BOTTOM BAR — scope chips + action buttons ────────────────── */}
+      {/* ── ACTION BAR ───────────────────────────────────────────────── */}
       <div
-        className="flex-shrink-0 px-3 pt-2 pb-3 space-y-2"
-        style={{ background: "rgba(8,7,18,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        className="flex-shrink-0 px-4 pt-4 pb-5"
+        style={{
+          background: "linear-gradient(to top, #100822 0%, #0e0b1e 100%)",
+          borderTop: "1px solid rgba(124,58,237,0.18)",
+        }}
       >
-        {/* Scope chips — compact horizontal strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-          {(Object.keys(SCOPE_LABELS) as DiscoverScope[]).map((s) => {
-            const active = scope === s;
-            return (
-              <button
-                key={s}
-                onClick={() => setScope(s)}
-                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-sans font-medium transition-all duration-150"
-                style={
-                  active
-                    ? {
-                        background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                        color: "white",
-                      }
-                    : {
-                        background: "rgba(255,255,255,0.05)",
-                        color: "hsl(240,10%,55%)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }
-                }
-              >
-                {s === "nearby" && <Navigation className="w-2.5 h-2.5" />}
-                {s === "worldwide" && <Globe2 className="w-2.5 h-2.5" />}
-                {s === "europe" && <Globe2 className="w-2.5 h-2.5" />}
-                {s === "spain" && <span className="text-[9px] leading-none">🇪🇸</span>}
-                {SCOPE_LABELS[s]}
-              </button>
-            );
-          })}
-        </div>
+        {!isLoading && !isError && top ? (
+          <div className="flex items-center justify-center gap-5">
 
-        {/* Action buttons */}
-        {!isLoading && !isError && top && (
-          <div className="flex items-center justify-center gap-4">
-            <ActionButton onClick={() => act("pass")} label="No me interesa" size="lg" gradient="rgba(40,38,56,0.95)" testid="button-pass">
+            {/* Pass ✕ */}
+            <ActionButton
+              onClick={() => act("pass")}
+              label="No"
+              size="lg"
+              gradient="rgba(25,10,48,0.95)"
+              testid="button-pass"
+              glow="0 8px 28px rgba(0,0,0,0.55)"
+              showLabel
+            >
               <X className="w-7 h-7 text-rose-400" />
             </ActionButton>
-            <ActionButton onClick={() => act("superlike")} label="SuperLike" size="sm" gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))" testid="button-superlike">
-              <Star className="w-6 h-6 text-white" fill="white" />
+
+            {/* SuperLike ⭐ */}
+            <ActionButton
+              onClick={() => act("superlike")}
+              label="Super"
+              size="sm"
+              gradient="linear-gradient(135deg,#0ea5e9,#6d28d9)"
+              testid="button-superlike"
+              glow="0 8px 30px rgba(14,165,233,0.4)"
+              showLabel
+            >
+              <Star className="w-5 h-5 text-white" fill="white" />
             </ActionButton>
-            <ActionButton onClick={() => act("like")} label="Me gusta" size="lg" gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))" testid="button-like">
-              <Heart className="w-7 h-7 text-white" fill="white" />
+
+            {/* Like ❤️ — largest button, most prominent */}
+            <ActionButton
+              onClick={() => act("like")}
+              label="Me gusta"
+              size="xl"
+              gradient="linear-gradient(135deg,#ec4899,#8b5cf6)"
+              testid="button-like"
+              glow="0 10px 38px rgba(236,72,153,0.55)"
+              showLabel
+            >
+              <Heart className="w-8 h-8 text-white" fill="white" />
             </ActionButton>
-            <div className="relative">
-              <ActionButton onClick={() => startConv(top.id)} label="Mensaje" size="sm" gradient="rgba(40,38,56,0.95)" testid="button-message">
+
+            {/* Chat 💬 — only shown when user can actually message */}
+            {(plan !== "free" || !!top.matched) && (
+              <ActionButton
+                onClick={() => startConv(top.id)}
+                label="Chat"
+                size="sm"
+                gradient="rgba(25,10,48,0.95)"
+                testid="button-message"
+                glow="0 8px 28px rgba(0,0,0,0.55)"
+                showLabel
+              >
                 {startingConv
-                  ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                  : <MessageCircle className="w-5 h-5 text-primary" />}
+                  ? <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+                  : <MessageCircle className="w-5 h-5 text-violet-400" />}
               </ActionButton>
-              {!top.matched && plan === "free" && (
-                <span
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-border/50"
-                  style={{ background: "rgba(13,11,26,0.9)" }}
-                >
-                  <Lock className="w-2.5 h-2.5 text-muted-foreground" />
-                </span>
-              )}
-            </div>
+            )}
+
           </div>
+        ) : (
+          <div className="h-[72px]" />
         )}
       </div>
 
       {detail && (
-        <ProfileDetailSheet profile={detail} onClose={() => setDetail(null)} onAction={handleDetailAction} plan={plan} />
+        <ProfileDetailSheet
+          profile={detail}
+          onClose={() => setDetail(null)}
+          onAction={handleDetailAction}
+          plan={plan}
+        />
       )}
-      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} filters={filters} onChange={applyFilters} plan={plan} />
+      <FilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={filters}
+        onChange={applyFilters}
+        plan={plan}
+      />
     </div>
   );
 }
