@@ -195,16 +195,16 @@ router.get("/profiles", async (req, res) => {
   const ageMax = req.query.age_max ? parseInt(req.query.age_max as string, 10) : null;
   const onlineOnly = req.query.online_only === "true";
 
-  // Resolve caller plan once for gating (cached 5 min inside getPlan).
+  // Basic filters are free for all users.
+  // Only verified_only requires Plus/Gold (scarce feature, quality gate).
   const callerPlan = await getPlan(auth.userId);
   const isPaid = callerPlan === "plus" || callerPlan === "gold";
-  const isGold = callerPlan === "gold";
 
   const verifiedOnly = isPaid && req.query.verified_only === "true";
-  const filterRole = isPaid ? ((req.query.role as string | undefined) ?? null) : null;
-  const filterLookingFor = isPaid ? ((req.query.looking_for as string | undefined) ?? null) : null;
-  const filterOrientation = isPaid ? ((req.query.orientation as string | undefined) ?? null) : null;
-  const distanceMaxKm = isGold && req.query.distance_max_km
+  const filterRole = (req.query.role as string | undefined) ?? null;
+  const filterLookingFor = (req.query.looking_for as string | undefined) ?? null;
+  const filterOrientation = (req.query.orientation as string | undefined) ?? null;
+  const distanceMaxKm = req.query.distance_max_km
     ? parseFloat(req.query.distance_max_km as string)
     : null;
 

@@ -1,14 +1,14 @@
 import { Link, useLocation } from "wouter";
-import { Sparkles, Globe, MessageCircle, User, Video, Compass } from "lucide-react";
+import { Sparkles, Globe, MessageCircle, User, Star, Video } from "lucide-react";
 import { useNotifications } from "@/lib/notifications";
 
 const tabs = [
   { href: "/discover", Icon: Sparkles, label: "Descubrir" },
-  { href: "/explore", Icon: Compass, label: "Explorar" },
   { href: "/map", Icon: Globe, label: "Mapa" },
   { href: "/live", Icon: Video, label: "Live" },
   { href: "/chats", Icon: MessageCircle, label: "Chats" },
   { href: "/profile", Icon: User, label: "Perfil" },
+  { href: "/premium", Icon: Star, label: "Premium" },
 ];
 
 export default function BottomNav() {
@@ -27,7 +27,7 @@ export default function BottomNav() {
       <div className="flex justify-around items-center h-16 max-w-xl mx-auto px-2">
         {tabs.map(({ href, Icon, label }) => {
           const active = location === href;
-          const isPremium = false;
+          const isPremium = href === "/premium";
           const showBadge = href === "/chats" && totalUnread > 0;
           const showSoon = href === "/live";
           return (

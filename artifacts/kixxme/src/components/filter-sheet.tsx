@@ -127,7 +127,9 @@ interface FilterSheetProps {
 export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSheetProps) {
   const [draft, setDraft] = useState<DiscoverFilters>(filters);
   const isPaid = plan === "plus" || plan === "gold";
-  const isGold = plan === "gold";
+  // Basic filters (age, distance, role, looking_for, orientation, online) are free for all.
+  // Only verified_only is Plus+.
+  const canVerifiedFilter = isPaid;
 
   const set = <K extends keyof DiscoverFilters>(k: K, v: DiscoverFilters[K]) =>
     setDraft((prev) => ({ ...prev, [k]: v }));
@@ -247,13 +249,13 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
             </div>
           </section>
 
-          {/* Verified only (Plus+) */}
+          {/* Verified only — Plus+ filter */}
           <section>
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium text-white">Solo verificados</p>
-                  {!isPaid && (
+                  {!canVerifiedFilter && (
                     <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
                       style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}>
                       <Lock className="w-2.5 h-2.5" /> Plus
@@ -269,115 +271,88 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
                 role="switch"
                 aria-checked={draft.verifiedOnly}
                 onClick={() => {
-                  if (!isPaid) { upsell("plus"); return; }
+                  if (!canVerifiedFilter) { upsell("plus"); return; }
                   set("verifiedOnly", !draft.verifiedOnly);
                 }}
                 className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
                 style={{
-                  background: (isPaid && draft.verifiedOnly)
+                  background: (canVerifiedFilter && draft.verifiedOnly)
                     ? "linear-gradient(135deg,#8b5cf6,#ec4899)"
                     : "rgba(255,255,255,0.12)",
                 }}
               >
                 <span
                   className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
-                  style={{ transform: (isPaid && draft.verifiedOnly) ? "translateX(20px)" : "translateX(0)" }}
+                  style={{ transform: (canVerifiedFilter && draft.verifiedOnly) ? "translateX(20px)" : "translateX(0)" }}
                 />
               </button>
             </div>
           </section>
 
-          {/* Role (Plus+) */}
+          {/* Role — free for all */}
           <section>
             <div className="flex items-center gap-1.5 mb-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rol</p>
-              {!isPaid && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                  style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}>
-                  <Lock className="w-2.5 h-2.5" /> Plus
-                </span>
-              )}
             </div>
             <ChipGrid
               options={ROLE_LABELS}
-              value={isPaid ? draft.role : null}
+              value={draft.role}
               onChange={(v) => set("role", v)}
-              locked={!isPaid}
-              onLockTap={() => upsell("plus")}
+              locked={false}
+              onLockTap={() => {}}
             />
           </section>
 
-          {/* Looking for (Plus+) */}
+          {/* Looking for — free for all */}
           <section>
             <div className="flex items-center gap-1.5 mb-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Busca</p>
-              {!isPaid && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                  style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}>
-                  <Lock className="w-2.5 h-2.5" /> Plus
-                </span>
-              )}
             </div>
             <ChipGrid
               options={LOOKING_FOR_LABELS}
-              value={isPaid ? draft.lookingFor : null}
+              value={draft.lookingFor}
               onChange={(v) => set("lookingFor", v)}
-              locked={!isPaid}
-              onLockTap={() => upsell("plus")}
+              locked={false}
+              onLockTap={() => {}}
             />
           </section>
 
-          {/* Orientation (Plus+) */}
+          {/* Orientation — free for all */}
           <section>
             <div className="flex items-center gap-1.5 mb-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Orientación</p>
-              {!isPaid && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                  style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}>
-                  <Lock className="w-2.5 h-2.5" /> Plus
-                </span>
-              )}
             </div>
             <ChipGrid
               options={ORIENTATION_LABELS}
-              value={isPaid ? draft.orientation : null}
+              value={draft.orientation}
               onChange={(v) => set("orientation", v)}
-              locked={!isPaid}
-              onLockTap={() => upsell("plus")}
+              locked={false}
+              onLockTap={() => {}}
             />
           </section>
 
-          {/* Distance max (Gold) */}
+          {/* Distance max — free for all */}
           <section>
             <div className="flex items-center gap-1.5 mb-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Distancia máxima
               </p>
-              {!isGold && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                  style={{ background: "rgba(234,179,8,0.25)", color: "#fde047" }}>
-                  <Lock className="w-2.5 h-2.5" /> Gold
-                </span>
-              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {DISTANCE_OPTIONS.map((km) => {
-                const active = isGold && draft.distanceMaxKm === km;
+                const active = draft.distanceMaxKm === km;
                 return (
                   <button
                     key={km}
                     type="button"
-                    onClick={() => {
-                      if (!isGold) { upsell("gold"); return; }
-                      set("distanceMaxKm", draft.distanceMaxKm === km ? null : km);
-                    }}
+                    onClick={() => set("distanceMaxKm", draft.distanceMaxKm === km ? null : km)}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={
                       active
                         ? { background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }
                         : {
                             background: "rgba(255,255,255,0.06)",
-                            color: isGold ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.3)",
+                            color: "rgba(255,255,255,0.75)",
                             border: "1px solid rgba(255,255,255,0.1)",
                           }
                     }
