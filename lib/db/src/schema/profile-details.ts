@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 /**
  * Extra profile attributes that don't exist on the Supabase `profiles` table
@@ -8,29 +8,48 @@ import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
  * Same dual-DB pattern as verification/visits/blocks: `userId` holds the
  * Supabase auth user UUID, there are no cross-DB foreign keys, and the API
  * merges these fields into the profile read responses in application code.
- *
- * Both fields are single-select free text (validated to a closed enum at the
- * API boundary): `role` = Rol/Preferencia, `lookingFor` = "Qué buscas".
  */
 export const profileDetailsTable = pgTable("profile_details", {
-  // Supabase auth user UUID — one row per user.
   userId: uuid("user_id").primaryKey(),
-  // Rol/Preferencia: activo | pasivo | versatil | heterocurioso | flexible | no_decir
+
+  // --- Core discovery fields (required for calidad mínima) ---
+  // Rol/Preferencia: activo | pasivo | versatil | versatil_activo | versatil_pasivo | sin_preferencias | no_decir
   role: text("role"),
   // Qué buscas: amistad | chat | citas | relacion | encuentros | lo_que_surja
   lookingFor: text("looking_for"),
-  // When the user finished the mandatory animated onboarding tutorial. NULL until
-  // completed; set once (never re-shown). Lives here (not Supabase) because the
-  // Supabase `profiles` schema is NOT DDL-modifiable from this repo.
+
+  // --- Enrichment fields (optional, displayed on profile & swipe card) ---
+
+  // Orientación sexual: gay | bisexual | curioso | heteroflexible | pansexual |
+  //   demisexual | asexual | en_exploracion | no_decir
+  orientation: text("orientation"),
+
+  // Altura en centímetros (e.g. 175). Nullable = not set.
+  heightCm: integer("height_cm"),
+
+  // Signo zodiacal: aries | tauro | geminis | cancer | leo | virgo |
+  //   libra | escorpio | sagitario | capricornio | acuario | piscis
+  zodiacSign: text("zodiac_sign"),
+
+  // Hábitos: alcohol
+  // no_bebo | ocasionalmente | fines_semana | frecuentemente
+  alcohol: text("alcohol"),
+
+  // Hábitos: tabaco
+  // no_fumo | fumo_ocasionalmente | fumo | intentando_dejarlo
+  tobacco: text("tobacco"),
+
+  // Hábitos: ejercicio
+  // todos_dias | frecuentemente | a_veces | nunca
+  exercise: text("exercise"),
+
+  // Mascotas: tengo_perro | tengo_gato | tengo_mascotas | no_mascotas | me_encantan
+  pets: text("pets"),
+
+  // --- Private / system fields ---
+
   tutorialCompletedAt: timestamp("tutorial_completed_at", { withTimezone: true }),
-  // When the user proved access to their email via the mandatory 6-digit signup
-  // code. NULL until verified; set once (COALESCE) so it never resets. Lives here
-  // (not Supabase) because the Supabase `profiles` schema is NOT DDL-modifiable
-  // from this repo. Private — never folded into the public profile responses.
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-  // "Mostrarme en el mapa": whether the user appears as a marker on the Gold map.
-  // Default true (visible); the user can opt out to be invisible to everyone on
-  // the map. Private setting — never exposed on PublicProfile.
   showOnMap: boolean("show_on_map").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

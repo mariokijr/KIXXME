@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProfileAlcohol } from './profileAlcohol';
+import type { ProfileExercise } from './profileExercise';
 import type { ProfileLookingFor } from './profileLookingFor';
+import type { ProfileOrientation } from './profileOrientation';
+import type { ProfilePets } from './profilePets';
 import type { ProfileRole } from './profileRole';
+import type { ProfileTobacco } from './profileTobacco';
+import type { ProfileZodiacSign } from './profileZodiacSign';
 
 export interface Profile {
   id: string;
@@ -26,6 +32,20 @@ export interface Profile {
   role?: ProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: ProfileLookingFor;
+  /** Orientación sexual (single-select). */
+  orientation?: ProfileOrientation;
+  /** Altura en centímetros (e.g. 175). */
+  height_cm?: number | null;
+  /** Signo zodiacal. */
+  zodiac_sign?: ProfileZodiacSign;
+  /** Hábito de consumo de alcohol. */
+  alcohol?: ProfileAlcohol;
+  /** Hábito de tabaco. */
+  tobacco?: ProfileTobacco;
+  /** Frecuencia de ejercicio. */
+  exercise?: ProfileExercise;
+  /** Relación con mascotas. */
+  pets?: ProfilePets;
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;

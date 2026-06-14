@@ -5,9 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicProfileAlcohol } from './publicProfileAlcohol';
+import type { PublicProfileExercise } from './publicProfileExercise';
 import type { PublicProfileLookingFor } from './publicProfileLookingFor';
+import type { PublicProfileOrientation } from './publicProfileOrientation';
+import type { PublicProfilePets } from './publicProfilePets';
 import type { PublicProfilePlan } from './publicProfilePlan';
 import type { PublicProfileRole } from './publicProfileRole';
+import type { PublicProfileTobacco } from './publicProfileTobacco';
+import type { PublicProfileZodiacSign } from './publicProfileZodiacSign';
 
 export interface PublicProfile {
   id: string;
@@ -29,6 +35,20 @@ export interface PublicProfile {
   role?: PublicProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: PublicProfileLookingFor;
+  /** Orientación sexual (single-select). */
+  orientation?: PublicProfileOrientation;
+  /** Altura en centímetros (e.g. 175). */
+  height_cm?: number | null;
+  /** Signo zodiacal. */
+  zodiac_sign?: PublicProfileZodiacSign;
+  /** Hábito de consumo de alcohol. */
+  alcohol?: PublicProfileAlcohol;
+  /** Hábito de tabaco. */
+  tobacco?: PublicProfileTobacco;
+  /** Frecuencia de ejercicio. */
+  exercise?: PublicProfileExercise;
+  /** Relación con mascotas. */
+  pets?: PublicProfilePets;
   /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
   matched?: boolean;
   created_at?: string;

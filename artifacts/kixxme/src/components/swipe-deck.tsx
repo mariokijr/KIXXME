@@ -43,7 +43,12 @@ import { useLikeActions } from "@/lib/like-actions";
 import { usePassProfile } from "@workspace/api-client-react";
 import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
+import {
+  gradFor, initialsFor, formatDistance,
+  ROLE_LABELS, LOOKING_FOR_LABELS, ORIENTATION_LABELS,
+  ZODIAC_LABELS, ALCOHOL_LABELS, EXERCISE_LABELS, PETS_LABELS,
+  formatHeightCm,
+} from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
 import { useGeolocation } from "@/lib/use-geolocation";
@@ -451,6 +456,48 @@ function ProfileDetailSheet({
           {profile.gender && (
             <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
               {profile.gender}
+            </span>
+          )}
+          {profile.role && ROLE_LABELS[profile.role] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-primary border border-primary/30"
+              style={{ background: "rgba(168,85,247,0.08)" }}>
+              {ROLE_LABELS[profile.role]}
+            </span>
+          )}
+          {profile.looking_for && LOOKING_FOR_LABELS[profile.looking_for] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans border border-accent/30"
+              style={{ background: "rgba(236,72,153,0.08)", color: "hsl(330,85%,65%)" }}>
+              {LOOKING_FOR_LABELS[profile.looking_for]}
+            </span>
+          )}
+          {profile.orientation && ORIENTATION_LABELS[profile.orientation] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              {ORIENTATION_LABELS[profile.orientation]}
+            </span>
+          )}
+          {profile.height_cm && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              📏 {formatHeightCm(profile.height_cm)}
+            </span>
+          )}
+          {profile.zodiac_sign && ZODIAC_LABELS[profile.zodiac_sign] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              {ZODIAC_LABELS[profile.zodiac_sign]}
+            </span>
+          )}
+          {profile.alcohol && ALCOHOL_LABELS[profile.alcohol] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              🥂 {ALCOHOL_LABELS[profile.alcohol]}
+            </span>
+          )}
+          {profile.exercise && EXERCISE_LABELS[profile.exercise] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              🏃 {EXERCISE_LABELS[profile.exercise]}
+            </span>
+          )}
+          {profile.pets && PETS_LABELS[profile.pets] && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
+              {PETS_LABELS[profile.pets]}
             </span>
           )}
         </div>

@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateProfileRequestAlcohol } from './updateProfileRequestAlcohol';
+import type { UpdateProfileRequestExercise } from './updateProfileRequestExercise';
 import type { UpdateProfileRequestLookingFor } from './updateProfileRequestLookingFor';
+import type { UpdateProfileRequestOrientation } from './updateProfileRequestOrientation';
+import type { UpdateProfileRequestPets } from './updateProfileRequestPets';
 import type { UpdateProfileRequestRole } from './updateProfileRequestRole';
+import type { UpdateProfileRequestTobacco } from './updateProfileRequestTobacco';
+import type { UpdateProfileRequestZodiacSign } from './updateProfileRequestZodiacSign';
 
 export interface UpdateProfileRequest {
   username?: string;
@@ -22,4 +28,15 @@ export interface UpdateProfileRequest {
   avatar_url?: string;
   role?: UpdateProfileRequestRole;
   looking_for?: UpdateProfileRequestLookingFor;
+  orientation?: UpdateProfileRequestOrientation;
+  /**
+     * @minimum 100
+     * @maximum 250
+     */
+  height_cm?: number;
+  zodiac_sign?: UpdateProfileRequestZodiacSign;
+  alcohol?: UpdateProfileRequestAlcohol;
+  tobacco?: UpdateProfileRequestTobacco;
+  exercise?: UpdateProfileRequestExercise;
+  pets?: UpdateProfileRequestPets;
 }

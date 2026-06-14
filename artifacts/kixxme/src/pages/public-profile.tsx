@@ -30,7 +30,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/lib/confirm";
 import { ReportDialog } from "@/components/report-dialog";
 import { formatDistance } from "./discover";
-import { ROLE_LABELS, LOOKING_FOR_LABELS } from "@/lib/profile-format";
+import {
+  ROLE_LABELS,
+  LOOKING_FOR_LABELS,
+  ORIENTATION_LABELS,
+  ZODIAC_LABELS,
+  ALCOHOL_LABELS,
+  TOBACCO_LABELS,
+  EXERCISE_LABELS,
+  PETS_LABELS,
+  formatHeightCm,
+} from "@/lib/profile-format";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 
@@ -320,6 +330,48 @@ export default function PublicProfile() {
               style={{ background: "rgba(236,72,153,0.08)", color: "hsl(330,85%,65%)" }} data-testid="badge-looking-for">
               <Heart className="w-3.5 h-3.5" />
               {LOOKING_FOR_LABELS[profile.looking_for]}
+            </span>
+          )}
+          {profile.orientation && ORIENTATION_LABELS[profile.orientation] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-primary/20 text-primary/80"
+              style={{ background: "rgba(168,85,247,0.06)" }}>
+              {ORIENTATION_LABELS[profile.orientation]}
+            </span>
+          )}
+          {profile.height_cm && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              📏 {formatHeightCm(profile.height_cm)}
+            </span>
+          )}
+          {profile.zodiac_sign && ZODIAC_LABELS[profile.zodiac_sign] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              {ZODIAC_LABELS[profile.zodiac_sign]}
+            </span>
+          )}
+          {profile.alcohol && ALCOHOL_LABELS[profile.alcohol] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              🥂 {ALCOHOL_LABELS[profile.alcohol]}
+            </span>
+          )}
+          {profile.tobacco && TOBACCO_LABELS[profile.tobacco] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              {TOBACCO_LABELS[profile.tobacco]}
+            </span>
+          )}
+          {profile.exercise && EXERCISE_LABELS[profile.exercise] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              🏃 {EXERCISE_LABELS[profile.exercise]}
+            </span>
+          )}
+          {profile.pets && PETS_LABELS[profile.pets] && (
+            <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-sans border border-border/40 text-foreground/70"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              {PETS_LABELS[profile.pets]}
             </span>
           )}
         </div>

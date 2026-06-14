@@ -30,6 +30,13 @@ export function ProfileCompletionCard() {
     location: profile.location,
     avatar_url: profile.avatar_url,
     is_verified: profile.is_verified,
+    role: profile.role,
+    looking_for: profile.looking_for,
+    orientation: profile.orientation,
+    height_cm: profile.height_cm,
+    zodiac_sign: profile.zodiac_sign,
+    alcohol: profile.alcohol,
+    exercise: profile.exercise,
     photoCount: photos.length,
   });
 

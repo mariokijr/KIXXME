@@ -16,7 +16,8 @@ export const PublicProfileRole = {
   activo: 'activo',
   pasivo: 'pasivo',
   versatil: 'versatil',
-  heterocurioso: 'heterocurioso',
-  flexible: 'flexible',
+  versatil_activo: 'versatil_activo',
+  versatil_pasivo: 'versatil_pasivo',
+  sin_preferencias: 'sin_preferencias',
   no_decir: 'no_decir',
 } as const;

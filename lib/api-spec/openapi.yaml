@@ -4038,7 +4038,7 @@ components:
           type: boolean
         role:
           type: string
-          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+          enum: [activo, pasivo, versatil, versatil_activo, versatil_pasivo, sin_preferencias, no_decir]
           nullable: true
           description: Rol/Preferencia (single-select).
         looking_for:
@@ -4046,6 +4046,40 @@ components:
           enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
           nullable: true
           description: "Qué buscas (single-select)."
+        orientation:
+          type: string
+          enum: [gay, bisexual, curioso, heteroflexible, pansexual, demisexual, asexual, en_exploracion, no_decir]
+          nullable: true
+          description: Orientación sexual (single-select).
+        height_cm:
+          type: integer
+          nullable: true
+          description: Altura en centímetros (e.g. 175).
+        zodiac_sign:
+          type: string
+          enum: [aries, tauro, geminis, cancer, leo, virgo, libra, escorpio, sagitario, capricornio, acuario, piscis]
+          nullable: true
+          description: Signo zodiacal.
+        alcohol:
+          type: string
+          enum: [no_bebo, ocasionalmente, fines_semana, frecuentemente]
+          nullable: true
+          description: Hábito de consumo de alcohol.
+        tobacco:
+          type: string
+          enum: [no_fumo, fumo_ocasionalmente, fumo, intentando_dejarlo]
+          nullable: true
+          description: Hábito de tabaco.
+        exercise:
+          type: string
+          enum: [todos_dias, frecuentemente, a_veces, nunca]
+          nullable: true
+          description: Frecuencia de ejercicio.
+        pets:
+          type: string
+          enum: [tengo_perro, tengo_gato, tengo_mascotas, no_mascotas, me_encantan]
+          nullable: true
+          description: Relación con mascotas.
         tutorial_completed:
           type: boolean
           description: >
@@ -4105,7 +4139,7 @@ components:
           description: Entitlement tier, used for the Gold priority badge.
         role:
           type: string
-          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+          enum: [activo, pasivo, versatil, versatil_activo, versatil_pasivo, sin_preferencias, no_decir]
           nullable: true
           description: Rol/Preferencia (single-select).
         looking_for:
@@ -4113,6 +4147,40 @@ components:
           enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
           nullable: true
           description: "Qué buscas (single-select)."
+        orientation:
+          type: string
+          enum: [gay, bisexual, curioso, heteroflexible, pansexual, demisexual, asexual, en_exploracion, no_decir]
+          nullable: true
+          description: Orientación sexual (single-select).
+        height_cm:
+          type: integer
+          nullable: true
+          description: Altura en centímetros (e.g. 175).
+        zodiac_sign:
+          type: string
+          enum: [aries, tauro, geminis, cancer, leo, virgo, libra, escorpio, sagitario, capricornio, acuario, piscis]
+          nullable: true
+          description: Signo zodiacal.
+        alcohol:
+          type: string
+          enum: [no_bebo, ocasionalmente, fines_semana, frecuentemente]
+          nullable: true
+          description: Hábito de consumo de alcohol.
+        tobacco:
+          type: string
+          enum: [no_fumo, fumo_ocasionalmente, fumo, intentando_dejarlo]
+          nullable: true
+          description: Hábito de tabaco.
+        exercise:
+          type: string
+          enum: [todos_dias, frecuentemente, a_veces, nunca]
+          nullable: true
+          description: Frecuencia de ejercicio.
+        pets:
+          type: string
+          enum: [tengo_perro, tengo_gato, tengo_mascotas, no_mascotas, me_encantan]
+          nullable: true
+          description: Relación con mascotas.
         matched:
           type: boolean
           description: >-
@@ -4186,10 +4254,32 @@ components:
           type: string
         role:
           type: string
-          enum: [activo, pasivo, versatil, heterocurioso, flexible, no_decir]
+          enum: [activo, pasivo, versatil, versatil_activo, versatil_pasivo, sin_preferencias, no_decir]
         looking_for:
           type: string
           enum: [amistad, chat, citas, relacion, encuentros, lo_que_surja]
+        orientation:
+          type: string
+          enum: [gay, bisexual, curioso, heteroflexible, pansexual, demisexual, asexual, en_exploracion, no_decir]
+        height_cm:
+          type: integer
+          minimum: 100
+          maximum: 250
+        zodiac_sign:
+          type: string
+          enum: [aries, tauro, geminis, cancer, leo, virgo, libra, escorpio, sagitario, capricornio, acuario, piscis]
+        alcohol:
+          type: string
+          enum: [no_bebo, ocasionalmente, fines_semana, frecuentemente]
+        tobacco:
+          type: string
+          enum: [no_fumo, fumo_ocasionalmente, fumo, intentando_dejarlo]
+        exercise:
+          type: string
+          enum: [todos_dias, frecuentemente, a_veces, nunca]
+        pets:
+          type: string
+          enum: [tengo_perro, tengo_gato, tengo_mascotas, no_mascotas, me_encantan]
 
     AvatarUploadRequest:
       type: object

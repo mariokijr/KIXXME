@@ -38,8 +38,20 @@ import { Field, SelectField } from "@/components/profile-fields";
 import {
   type RoleValue,
   type LookingForValue,
+  type OrientationValue,
+  type ZodiacSignValue,
+  type AlcoholValue,
+  type TobaccoValue,
+  type ExerciseValue,
+  type PetsValue,
   ROLE_OPTIONS,
   LOOKING_FOR_OPTIONS,
+  ORIENTATION_OPTIONS,
+  ZODIAC_OPTIONS,
+  ALCOHOL_OPTIONS,
+  TOBACCO_OPTIONS,
+  EXERCISE_OPTIONS,
+  PETS_OPTIONS,
   computeMandatoryProfile,
 } from "@/lib/profile-form";
 import { SupportDialog } from "@/components/support-dialog";
@@ -81,6 +93,13 @@ export default function Profile() {
   const [location, setLocation2] = useState("");
   const [role, setRole] = useState<RoleValue | "">("");
   const [lookingFor, setLookingFor] = useState<LookingForValue | "">("");
+  const [orientation, setOrientation] = useState<OrientationValue | "">("");
+  const [heightCm, setHeightCm] = useState<string>("");
+  const [zodiacSign, setZodiacSign] = useState<ZodiacSignValue | "">("");
+  const [alcohol, setAlcohol] = useState<AlcoholValue | "">("");
+  const [tobacco, setTobacco] = useState<TobaccoValue | "">("");
+  const [exercise, setExercise] = useState<ExerciseValue | "">("");
+  const [pets, setPets] = useState<PetsValue | "">("");
 
   const initRef = useRef<string | null>(null);
   const wasOnboardingRef = useRef(false);
@@ -97,6 +116,13 @@ export default function Profile() {
       setLocation2(profile.location || "");
       setRole((profile.role ?? "") as RoleValue | "");
       setLookingFor((profile.looking_for ?? "") as LookingForValue | "");
+      setOrientation((profile.orientation ?? "") as OrientationValue | "");
+      setHeightCm(profile.height_cm != null ? String(profile.height_cm) : "");
+      setZodiacSign((profile.zodiac_sign ?? "") as ZodiacSignValue | "");
+      setAlcohol((profile.alcohol ?? "") as AlcoholValue | "");
+      setTobacco((profile.tobacco ?? "") as TobaccoValue | "");
+      setExercise((profile.exercise ?? "") as ExerciseValue | "");
+      setPets((profile.pets ?? "") as PetsValue | "");
     }
   }, [profile]);
 
@@ -109,7 +135,14 @@ export default function Profile() {
       gender !== (profile.gender || "") ||
       location !== (profile.location || "") ||
       role !== ((profile.role ?? "") as string) ||
-      lookingFor !== ((profile.looking_for ?? "") as string));
+      lookingFor !== ((profile.looking_for ?? "") as string) ||
+      orientation !== ((profile.orientation ?? "") as string) ||
+      heightCm !== (profile.height_cm != null ? String(profile.height_cm) : "") ||
+      zodiacSign !== ((profile.zodiac_sign ?? "") as string) ||
+      alcohol !== ((profile.alcohol ?? "") as string) ||
+      tobacco !== ((profile.tobacco ?? "") as string) ||
+      exercise !== ((profile.exercise ?? "") as string) ||
+      pets !== ((profile.pets ?? "") as string));
 
   const isOnboarding = wasOnboardingRef.current;
 
@@ -145,7 +178,23 @@ export default function Profile() {
       return;
     }
     updateProfile.mutate(
-      { data: { username, bio, age: age !== "" ? Number(age) : undefined, city: city || undefined, gender: gender || undefined, location: location || undefined, role: role || undefined, looking_for: lookingFor || undefined } },
+      { data: {
+        username,
+        bio,
+        age: age !== "" ? Number(age) : undefined,
+        city: city || undefined,
+        gender: gender || undefined,
+        location: location || undefined,
+        role: role || undefined,
+        looking_for: lookingFor || undefined,
+        orientation: orientation || undefined,
+        height_cm: heightCm !== "" ? Number(heightCm) : undefined,
+        zodiac_sign: zodiacSign || undefined,
+        alcohol: alcohol || undefined,
+        tobacco: tobacco || undefined,
+        exercise: exercise || undefined,
+        pets: pets || undefined,
+      } },
       {
         onSuccess: (data) => {
           queryClient.setQueryData(getGetMyProfileQueryKey(), data);
@@ -430,6 +479,73 @@ export default function Profile() {
             placeholder="Selecciona"
             testId="select-edit-looking-for"
           />
+        </div>
+        <SelectField
+          label="Orientación"
+          value={orientation}
+          onChange={(v) => setOrientation(v as OrientationValue | "")}
+          options={ORIENTATION_OPTIONS}
+          placeholder="Selecciona tu orientación"
+          testId="select-edit-orientation"
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Altura (cm)">
+            <input
+              type="number"
+              min={100}
+              max={250}
+              value={heightCm}
+              onChange={(e) => setHeightCm(e.target.value)}
+              className="flex h-11 w-full rounded-xl border border-border/60 bg-input/40 px-3 py-2 text-sm font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary"
+              placeholder="175"
+              data-testid="input-edit-height"
+            />
+          </Field>
+          <SelectField
+            label="Signo zodiacal"
+            value={zodiacSign}
+            onChange={(v) => setZodiacSign(v as ZodiacSignValue | "")}
+            options={ZODIAC_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            placeholder="Selecciona"
+            testId="select-edit-zodiac"
+          />
+        </div>
+        <div className="space-y-1">
+          <p className="font-sans text-xs font-medium text-foreground/60 uppercase tracking-widest">Hábitos</p>
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField
+              label="Alcohol"
+              value={alcohol}
+              onChange={(v) => setAlcohol(v as AlcoholValue | "")}
+              options={ALCOHOL_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+              placeholder="Selecciona"
+              testId="select-edit-alcohol"
+            />
+            <SelectField
+              label="Tabaco"
+              value={tobacco}
+              onChange={(v) => setTobacco(v as TobaccoValue | "")}
+              options={TOBACCO_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+              placeholder="Selecciona"
+              testId="select-edit-tobacco"
+            />
+            <SelectField
+              label="Ejercicio"
+              value={exercise}
+              onChange={(v) => setExercise(v as ExerciseValue | "")}
+              options={EXERCISE_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+              placeholder="Selecciona"
+              testId="select-edit-exercise"
+            />
+            <SelectField
+              label="Mascotas"
+              value={pets}
+              onChange={(v) => setPets(v as PetsValue | "")}
+              options={PETS_OPTIONS.map(o => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+              placeholder="Selecciona"
+              testId="select-edit-pets"
+            />
+          </div>
         </div>
         <div className="pt-1">
           <button

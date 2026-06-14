@@ -13,8 +13,9 @@ export const PROFILE_ROLES = [
   "activo",
   "pasivo",
   "versatil",
-  "heterocurioso",
-  "flexible",
+  "versatil_activo",
+  "versatil_pasivo",
+  "sin_preferencias",
   "no_decir",
 ] as const;
 export type ProfileRole = (typeof PROFILE_ROLES)[number];
@@ -30,12 +31,59 @@ export const LOOKING_FOR = [
 ] as const;
 export type LookingFor = (typeof LOOKING_FOR)[number];
 
+/** Orientación sexual (single-select). */
+export const ORIENTATIONS = [
+  "gay",
+  "bisexual",
+  "curioso",
+  "heteroflexible",
+  "pansexual",
+  "demisexual",
+  "asexual",
+  "en_exploracion",
+  "no_decir",
+] as const;
+export type Orientation = (typeof ORIENTATIONS)[number];
+
+/** Signos zodiacales (single-select). */
+export const ZODIAC_SIGNS = [
+  "aries", "tauro", "geminis", "cancer", "leo", "virgo",
+  "libra", "escorpio", "sagitario", "capricornio", "acuario", "piscis",
+] as const;
+export type ZodiacSign = (typeof ZODIAC_SIGNS)[number];
+
+/** Alcohol (single-select). */
+export const ALCOHOL_OPTIONS = ["no_bebo", "ocasionalmente", "fines_semana", "frecuentemente"] as const;
+/** Tabaco (single-select). */
+export const TOBACCO_OPTIONS = ["no_fumo", "fumo_ocasionalmente", "fumo", "intentando_dejarlo"] as const;
+/** Ejercicio (single-select). */
+export const EXERCISE_OPTIONS = ["todos_dias", "frecuentemente", "a_veces", "nunca"] as const;
+/** Mascotas (single-select). */
+export const PETS_OPTIONS = ["tengo_perro", "tengo_gato", "tengo_mascotas", "no_mascotas", "me_encantan"] as const;
+
 export interface ProfileDetailValues {
   role: string | null;
   looking_for: string | null;
+  orientation: string | null;
+  height_cm: number | null;
+  zodiac_sign: string | null;
+  alcohol: string | null;
+  tobacco: string | null;
+  exercise: string | null;
+  pets: string | null;
 }
 
-const EMPTY: ProfileDetailValues = { role: null, looking_for: null };
+const EMPTY: ProfileDetailValues = {
+  role: null,
+  looking_for: null,
+  orientation: null,
+  height_cm: null,
+  zodiac_sign: null,
+  alcohol: null,
+  tobacco: null,
+  exercise: null,
+  pets: null,
+};
 
 export function isValidRole(v: unknown): v is ProfileRole {
   return typeof v === "string" && (PROFILE_ROLES as readonly string[]).includes(v);
@@ -44,6 +92,23 @@ export function isValidRole(v: unknown): v is ProfileRole {
 export function isValidLookingFor(v: unknown): v is LookingFor {
   return typeof v === "string" && (LOOKING_FOR as readonly string[]).includes(v);
 }
+
+export function isValidOrientation(v: unknown): v is Orientation {
+  return typeof v === "string" && (ORIENTATIONS as readonly string[]).includes(v);
+}
+
+export function isValidZodiacSign(v: unknown): v is ZodiacSign {
+  return typeof v === "string" && (ZODIAC_SIGNS as readonly string[]).includes(v);
+}
+
+function isValidEnum(v: unknown, options: readonly string[]): boolean {
+  return typeof v === "string" && options.includes(v);
+}
+
+export function isValidAlcohol(v: unknown) { return isValidEnum(v, ALCOHOL_OPTIONS as unknown as string[]); }
+export function isValidTobacco(v: unknown) { return isValidEnum(v, TOBACCO_OPTIONS as unknown as string[]); }
+export function isValidExercise(v: unknown) { return isValidEnum(v, EXERCISE_OPTIONS as unknown as string[]); }
+export function isValidPets(v: unknown) { return isValidEnum(v, PETS_OPTIONS as unknown as string[]); }
 
 /** Single-user detail lookup (returns nulls when there's no row yet). */
 export async function getProfileDetails(
@@ -55,7 +120,17 @@ export async function getProfileDetails(
     .where(eq(profileDetailsTable.userId, userId))
     .limit(1);
   if (!row) return { ...EMPTY };
-  return { role: row.role ?? null, looking_for: row.lookingFor ?? null };
+  return {
+    role: row.role ?? null,
+    looking_for: row.lookingFor ?? null,
+    orientation: row.orientation ?? null,
+    height_cm: row.heightCm ?? null,
+    zodiac_sign: row.zodiacSign ?? null,
+    alcohol: row.alcohol ?? null,
+    tobacco: row.tobacco ?? null,
+    exercise: row.exercise ?? null,
+    pets: row.pets ?? null,
+  };
 }
 
 /**
@@ -75,6 +150,13 @@ export async function getProfileDetailsForUsers(
     map.set(row.userId, {
       role: row.role ?? null,
       looking_for: row.lookingFor ?? null,
+      orientation: row.orientation ?? null,
+      height_cm: row.heightCm ?? null,
+      zodiac_sign: row.zodiacSign ?? null,
+      alcohol: row.alcohol ?? null,
+      tobacco: row.tobacco ?? null,
+      exercise: row.exercise ?? null,
+      pets: row.pets ?? null,
     });
   }
   return map;
@@ -82,16 +164,33 @@ export async function getProfileDetailsForUsers(
 
 /**
  * Upsert only the provided fields — an omitted key is left untouched on update,
- * so a partial profile edit never nulls out the other field. No-ops when neither
- * field is provided.
+ * so a partial profile edit never nulls out other fields. No-ops when nothing
+ * is provided.
  */
 export async function upsertProfileDetails(
   userId: string,
-  values: { role?: string | null; lookingFor?: string | null },
+  values: {
+    role?: string | null;
+    lookingFor?: string | null;
+    orientation?: string | null;
+    heightCm?: number | null;
+    zodiacSign?: string | null;
+    alcohol?: string | null;
+    tobacco?: string | null;
+    exercise?: string | null;
+    pets?: string | null;
+  },
 ): Promise<void> {
   const set: Record<string, unknown> = {};
   if (values.role !== undefined) set.role = values.role;
   if (values.lookingFor !== undefined) set.lookingFor = values.lookingFor;
+  if (values.orientation !== undefined) set.orientation = values.orientation;
+  if (values.heightCm !== undefined) set.heightCm = values.heightCm;
+  if (values.zodiacSign !== undefined) set.zodiacSign = values.zodiacSign;
+  if (values.alcohol !== undefined) set.alcohol = values.alcohol;
+  if (values.tobacco !== undefined) set.tobacco = values.tobacco;
+  if (values.exercise !== undefined) set.exercise = values.exercise;
+  if (values.pets !== undefined) set.pets = values.pets;
   if (Object.keys(set).length === 0) return;
 
   await db
@@ -100,6 +199,13 @@ export async function upsertProfileDetails(
       userId,
       role: values.role ?? null,
       lookingFor: values.lookingFor ?? null,
+      orientation: values.orientation ?? null,
+      heightCm: values.heightCm ?? null,
+      zodiacSign: values.zodiacSign ?? null,
+      alcohol: values.alcohol ?? null,
+      tobacco: values.tobacco ?? null,
+      exercise: values.exercise ?? null,
+      pets: values.pets ?? null,
     })
     .onConflictDoUpdate({ target: profileDetailsTable.userId, set });
 }

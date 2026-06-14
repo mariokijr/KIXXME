@@ -37,6 +37,12 @@ import {
   upsertProfileDetails,
   isValidRole,
   isValidLookingFor,
+  isValidOrientation,
+  isValidZodiacSign,
+  isValidAlcohol,
+  isValidTobacco,
+  isValidExercise,
+  isValidPets,
   getTutorialCompletedAt,
   markTutorialCompleted,
   getShowOnMap,
@@ -116,6 +122,7 @@ function toPublic(
   viewer: { latitude: number | null; longitude: number | null } | null,
   likedSet: Set<string>,
   blockedSet: Set<string>,
+  details?: { role?: string | null; looking_for?: string | null; orientation?: string | null; height_cm?: number | null; zodiac_sign?: string | null; alcohol?: string | null; tobacco?: string | null; exercise?: string | null; pets?: string | null } | null,
 ) {
   return {
     id: row.id,
@@ -138,6 +145,15 @@ function toPublic(
     liked_by_me: likedSet.has(row.id),
     blocked_by_me: blockedSet.has(row.id),
     plan: normalizePlan(row.plan),
+    role: details?.role ?? null,
+    looking_for: details?.looking_for ?? null,
+    orientation: details?.orientation ?? null,
+    height_cm: details?.height_cm ?? null,
+    zodiac_sign: details?.zodiac_sign ?? null,
+    alcohol: details?.alcohol ?? null,
+    tobacco: details?.tobacco ?? null,
+    exercise: details?.exercise ?? null,
+    pets: details?.pets ?? null,
   };
 }
 
@@ -267,7 +283,7 @@ router.get("/profiles", async (req, res) => {
   }
 
   const profiles = rows.map((row) =>
-    toPublic(row, me ?? null, likedSet, iBlocked),
+    toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id)),
   );
 
   if (sort === "distance") {
@@ -442,7 +458,7 @@ router.get("/map/users", async (req, res) => {
   });
 
   const users = rows.map((row) =>
-    toPublic(row, me ?? null, likedSet, iBlocked),
+    toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id)),
   );
 
   // Closest first (strongest key), online users winning ties (stable sort).
@@ -584,18 +600,28 @@ router.put("/profiles/me", async (req, res) => {
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  const { username, bio, age, city, gender, location, avatar_url, role, looking_for } =
-    req.body as {
-      username?: string;
-      bio?: string;
-      age?: number;
-      city?: string;
-      gender?: string;
-      location?: string;
-      avatar_url?: string;
-      role?: string;
-      looking_for?: string;
-    };
+  const {
+    username, bio, age, city, gender, location, avatar_url,
+    role, looking_for,
+    orientation, height_cm, zodiac_sign, alcohol, tobacco, exercise, pets,
+  } = req.body as {
+    username?: string;
+    bio?: string;
+    age?: number;
+    city?: string;
+    gender?: string;
+    location?: string;
+    avatar_url?: string;
+    role?: string;
+    looking_for?: string;
+    orientation?: string;
+    height_cm?: number;
+    zodiac_sign?: string;
+    alcohol?: string;
+    tobacco?: string;
+    exercise?: string;
+    pets?: string;
+  };
 
   if (role !== undefined && !isValidRole(role)) {
     res.status(400).json({ error: "invalid role" });
@@ -603,6 +629,37 @@ router.put("/profiles/me", async (req, res) => {
   }
   if (looking_for !== undefined && !isValidLookingFor(looking_for)) {
     res.status(400).json({ error: "invalid looking_for" });
+    return;
+  }
+  if (orientation !== undefined && !isValidOrientation(orientation)) {
+    res.status(400).json({ error: "invalid orientation" });
+    return;
+  }
+  if (
+    height_cm !== undefined &&
+    (typeof height_cm !== "number" || height_cm < 100 || height_cm > 250)
+  ) {
+    res.status(400).json({ error: "height_cm must be between 100 and 250" });
+    return;
+  }
+  if (zodiac_sign !== undefined && !isValidZodiacSign(zodiac_sign)) {
+    res.status(400).json({ error: "invalid zodiac_sign" });
+    return;
+  }
+  if (alcohol !== undefined && !isValidAlcohol(alcohol)) {
+    res.status(400).json({ error: "invalid alcohol" });
+    return;
+  }
+  if (tobacco !== undefined && !isValidTobacco(tobacco)) {
+    res.status(400).json({ error: "invalid tobacco" });
+    return;
+  }
+  if (exercise !== undefined && !isValidExercise(exercise)) {
+    res.status(400).json({ error: "invalid exercise" });
+    return;
+  }
+  if (pets !== undefined && !isValidPets(pets)) {
+    res.status(400).json({ error: "invalid pets" });
     return;
   }
   if (
@@ -642,9 +699,22 @@ router.put("/profiles/me", async (req, res) => {
   // Repo-owned extra fields (Replit Postgres). Only the provided ones are
   // written (omitted keys are left untouched); on failure surface a 500 so the
   // client can retry rather than silently dropping the edit.
-  if (role !== undefined || looking_for !== undefined) {
+  const hasDetails = role !== undefined || looking_for !== undefined ||
+    orientation !== undefined || height_cm !== undefined || zodiac_sign !== undefined ||
+    alcohol !== undefined || tobacco !== undefined || exercise !== undefined || pets !== undefined;
+  if (hasDetails) {
     try {
-      await upsertProfileDetails(auth.userId, { role, lookingFor: looking_for });
+      await upsertProfileDetails(auth.userId, {
+        role,
+        lookingFor: looking_for,
+        orientation,
+        heightCm: height_cm,
+        zodiacSign: zodiac_sign,
+        alcohol,
+        tobacco,
+        exercise,
+        pets,
+      });
     } catch (e) {
       req.log.error(
         { error: e instanceof Error ? e.message : String(e) },
@@ -782,13 +852,13 @@ router.get("/profiles/me/likes", async (req, res) => {
 
   const likedSet = new Set(ids);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+  const favRows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
+  const favDetailsMap = await getProfileDetailsForUsers(favRows.map((r) => r.id));
   res.json(
-    (data as ProfileRow[])
-      .filter((row) => !hidden.has(row.id))
-      .map((row) => ({
-        ...toPublic(row, me ?? null, likedSet, iBlocked),
-        matched: matchedSet.has(row.id),
-      })),
+    favRows.map((row) => ({
+      ...toPublic(row, me ?? null, likedSet, iBlocked, favDetailsMap.get(row.id)),
+      matched: matchedSet.has(row.id),
+    })),
   );
 });
 
@@ -1072,7 +1142,7 @@ router.get("/profiles/online", async (req, res) => {
     );
   });
 
-  res.json(rows.map((row) => toPublic(row, me ?? null, likedSet, iBlocked)));
+  res.json(rows.map((row) => toPublic(row, me ?? null, likedSet, iBlocked, detailsMap.get(row.id))));
 });
 
 // "Empareja": the viewer's mutual matches (both liked each other). Excludes
@@ -1115,13 +1185,13 @@ router.get("/profiles/me/matches", async (req, res) => {
 
   const likedSet = new Set(matchedIds);
   const { hidden, iBlocked } = await getVisibilityContext(auth.userId);
+  const matchRows = (data as ProfileRow[]).filter((row) => !hidden.has(row.id));
+  const matchDetailsMap = await getProfileDetailsForUsers(matchRows.map((r) => r.id));
   res.json(
-    (data as ProfileRow[])
-      .filter((row) => !hidden.has(row.id))
-      .map((row) => ({
-        ...toPublic(row, me ?? null, likedSet, iBlocked),
-        matched: true,
-      })),
+    matchRows.map((row) => ({
+      ...toPublic(row, me ?? null, likedSet, iBlocked, matchDetailsMap.get(row.id)),
+      matched: true,
+    })),
   );
 });
 
@@ -1177,10 +1247,7 @@ router.get("/profiles/:id", async (req, res) => {
   }
 
   const details = await getProfileDetails(id);
-  res.json({
-    ...toPublic(data as ProfileRow, me, likedSet, blockedSet),
-    ...details,
-  });
+  res.json(toPublic(data as ProfileRow, me, likedSet, blockedSet, details));
 });
 
 /**

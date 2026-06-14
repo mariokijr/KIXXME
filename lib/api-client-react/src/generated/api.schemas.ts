@@ -467,8 +467,9 @@ export const ProfileRole = {
   activo: 'activo',
   pasivo: 'pasivo',
   versatil: 'versatil',
-  heterocurioso: 'heterocurioso',
-  flexible: 'flexible',
+  versatil_activo: 'versatil_activo',
+  versatil_pasivo: 'versatil_pasivo',
+  sin_preferencias: 'sin_preferencias',
   no_decir: 'no_decir',
 } as const;
 
@@ -485,6 +486,98 @@ export const ProfileLookingFor = {
   relacion: 'relacion',
   encuentros: 'encuentros',
   lo_que_surja: 'lo_que_surja',
+} as const;
+
+/**
+ * Orientación sexual (single-select).
+ */
+export type ProfileOrientation = typeof ProfileOrientation[keyof typeof ProfileOrientation] | null;
+
+
+export const ProfileOrientation = {
+  gay: 'gay',
+  bisexual: 'bisexual',
+  curioso: 'curioso',
+  heteroflexible: 'heteroflexible',
+  pansexual: 'pansexual',
+  demisexual: 'demisexual',
+  asexual: 'asexual',
+  en_exploracion: 'en_exploracion',
+  no_decir: 'no_decir',
+} as const;
+
+/**
+ * Signo zodiacal.
+ */
+export type ProfileZodiacSign = typeof ProfileZodiacSign[keyof typeof ProfileZodiacSign] | null;
+
+
+export const ProfileZodiacSign = {
+  aries: 'aries',
+  tauro: 'tauro',
+  geminis: 'geminis',
+  cancer: 'cancer',
+  leo: 'leo',
+  virgo: 'virgo',
+  libra: 'libra',
+  escorpio: 'escorpio',
+  sagitario: 'sagitario',
+  capricornio: 'capricornio',
+  acuario: 'acuario',
+  piscis: 'piscis',
+} as const;
+
+/**
+ * Hábito de consumo de alcohol.
+ */
+export type ProfileAlcohol = typeof ProfileAlcohol[keyof typeof ProfileAlcohol] | null;
+
+
+export const ProfileAlcohol = {
+  no_bebo: 'no_bebo',
+  ocasionalmente: 'ocasionalmente',
+  fines_semana: 'fines_semana',
+  frecuentemente: 'frecuentemente',
+} as const;
+
+/**
+ * Hábito de tabaco.
+ */
+export type ProfileTobacco = typeof ProfileTobacco[keyof typeof ProfileTobacco] | null;
+
+
+export const ProfileTobacco = {
+  no_fumo: 'no_fumo',
+  fumo_ocasionalmente: 'fumo_ocasionalmente',
+  fumo: 'fumo',
+  intentando_dejarlo: 'intentando_dejarlo',
+} as const;
+
+/**
+ * Frecuencia de ejercicio.
+ */
+export type ProfileExercise = typeof ProfileExercise[keyof typeof ProfileExercise] | null;
+
+
+export const ProfileExercise = {
+  todos_dias: 'todos_dias',
+  frecuentemente: 'frecuentemente',
+  a_veces: 'a_veces',
+  nunca: 'nunca',
+} as const;
+
+/**
+ * Relación con mascotas.
+ */
+export type ProfilePets = typeof ProfilePets[keyof typeof ProfilePets] | null;
+
+
+export const ProfilePets = {
+  tengo_perro: 'tengo_perro',
+  tengo_gato: 'tengo_gato',
+  tengo_mascotas: 'tengo_mascotas',
+  no_mascotas: 'no_mascotas',
+  me_encantan: 'me_encantan',
 } as const;
 
 export interface Profile {
@@ -505,6 +598,20 @@ export interface Profile {
   role?: ProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: ProfileLookingFor;
+  /** Orientación sexual (single-select). */
+  orientation?: ProfileOrientation;
+  /** Altura en centímetros (e.g. 175). */
+  height_cm?: number | null;
+  /** Signo zodiacal. */
+  zodiac_sign?: ProfileZodiacSign;
+  /** Hábito de consumo de alcohol. */
+  alcohol?: ProfileAlcohol;
+  /** Hábito de tabaco. */
+  tobacco?: ProfileTobacco;
+  /** Frecuencia de ejercicio. */
+  exercise?: ProfileExercise;
+  /** Relación con mascotas. */
+  pets?: ProfilePets;
   /** Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).
    */
   tutorial_completed?: boolean;
@@ -537,8 +644,9 @@ export const PublicProfileRole = {
   activo: 'activo',
   pasivo: 'pasivo',
   versatil: 'versatil',
-  heterocurioso: 'heterocurioso',
-  flexible: 'flexible',
+  versatil_activo: 'versatil_activo',
+  versatil_pasivo: 'versatil_pasivo',
+  sin_preferencias: 'sin_preferencias',
   no_decir: 'no_decir',
 } as const;
 
@@ -555,6 +663,98 @@ export const PublicProfileLookingFor = {
   relacion: 'relacion',
   encuentros: 'encuentros',
   lo_que_surja: 'lo_que_surja',
+} as const;
+
+/**
+ * Orientación sexual (single-select).
+ */
+export type PublicProfileOrientation = typeof PublicProfileOrientation[keyof typeof PublicProfileOrientation] | null;
+
+
+export const PublicProfileOrientation = {
+  gay: 'gay',
+  bisexual: 'bisexual',
+  curioso: 'curioso',
+  heteroflexible: 'heteroflexible',
+  pansexual: 'pansexual',
+  demisexual: 'demisexual',
+  asexual: 'asexual',
+  en_exploracion: 'en_exploracion',
+  no_decir: 'no_decir',
+} as const;
+
+/**
+ * Signo zodiacal.
+ */
+export type PublicProfileZodiacSign = typeof PublicProfileZodiacSign[keyof typeof PublicProfileZodiacSign] | null;
+
+
+export const PublicProfileZodiacSign = {
+  aries: 'aries',
+  tauro: 'tauro',
+  geminis: 'geminis',
+  cancer: 'cancer',
+  leo: 'leo',
+  virgo: 'virgo',
+  libra: 'libra',
+  escorpio: 'escorpio',
+  sagitario: 'sagitario',
+  capricornio: 'capricornio',
+  acuario: 'acuario',
+  piscis: 'piscis',
+} as const;
+
+/**
+ * Hábito de consumo de alcohol.
+ */
+export type PublicProfileAlcohol = typeof PublicProfileAlcohol[keyof typeof PublicProfileAlcohol] | null;
+
+
+export const PublicProfileAlcohol = {
+  no_bebo: 'no_bebo',
+  ocasionalmente: 'ocasionalmente',
+  fines_semana: 'fines_semana',
+  frecuentemente: 'frecuentemente',
+} as const;
+
+/**
+ * Hábito de tabaco.
+ */
+export type PublicProfileTobacco = typeof PublicProfileTobacco[keyof typeof PublicProfileTobacco] | null;
+
+
+export const PublicProfileTobacco = {
+  no_fumo: 'no_fumo',
+  fumo_ocasionalmente: 'fumo_ocasionalmente',
+  fumo: 'fumo',
+  intentando_dejarlo: 'intentando_dejarlo',
+} as const;
+
+/**
+ * Frecuencia de ejercicio.
+ */
+export type PublicProfileExercise = typeof PublicProfileExercise[keyof typeof PublicProfileExercise] | null;
+
+
+export const PublicProfileExercise = {
+  todos_dias: 'todos_dias',
+  frecuentemente: 'frecuentemente',
+  a_veces: 'a_veces',
+  nunca: 'nunca',
+} as const;
+
+/**
+ * Relación con mascotas.
+ */
+export type PublicProfilePets = typeof PublicProfilePets[keyof typeof PublicProfilePets] | null;
+
+
+export const PublicProfilePets = {
+  tengo_perro: 'tengo_perro',
+  tengo_gato: 'tengo_gato',
+  tengo_mascotas: 'tengo_mascotas',
+  no_mascotas: 'no_mascotas',
+  me_encantan: 'me_encantan',
 } as const;
 
 export interface PublicProfile {
@@ -577,6 +777,20 @@ export interface PublicProfile {
   role?: PublicProfileRole;
   /** Qué buscas (single-select). */
   looking_for?: PublicProfileLookingFor;
+  /** Orientación sexual (single-select). */
+  orientation?: PublicProfileOrientation;
+  /** Altura en centímetros (e.g. 175). */
+  height_cm?: number | null;
+  /** Signo zodiacal. */
+  zodiac_sign?: PublicProfileZodiacSign;
+  /** Hábito de consumo de alcohol. */
+  alcohol?: PublicProfileAlcohol;
+  /** Hábito de tabaco. */
+  tobacco?: PublicProfileTobacco;
+  /** Frecuencia de ejercicio. */
+  exercise?: PublicProfileExercise;
+  /** Relación con mascotas. */
+  pets?: PublicProfilePets;
   /** True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses. */
   matched?: boolean;
   created_at?: string;
@@ -612,8 +826,9 @@ export const UpdateProfileRequestRole = {
   activo: 'activo',
   pasivo: 'pasivo',
   versatil: 'versatil',
-  heterocurioso: 'heterocurioso',
-  flexible: 'flexible',
+  versatil_activo: 'versatil_activo',
+  versatil_pasivo: 'versatil_pasivo',
+  sin_preferencias: 'sin_preferencias',
   no_decir: 'no_decir',
 } as const;
 
@@ -627,6 +842,80 @@ export const UpdateProfileRequestLookingFor = {
   relacion: 'relacion',
   encuentros: 'encuentros',
   lo_que_surja: 'lo_que_surja',
+} as const;
+
+export type UpdateProfileRequestOrientation = typeof UpdateProfileRequestOrientation[keyof typeof UpdateProfileRequestOrientation];
+
+
+export const UpdateProfileRequestOrientation = {
+  gay: 'gay',
+  bisexual: 'bisexual',
+  curioso: 'curioso',
+  heteroflexible: 'heteroflexible',
+  pansexual: 'pansexual',
+  demisexual: 'demisexual',
+  asexual: 'asexual',
+  en_exploracion: 'en_exploracion',
+  no_decir: 'no_decir',
+} as const;
+
+export type UpdateProfileRequestZodiacSign = typeof UpdateProfileRequestZodiacSign[keyof typeof UpdateProfileRequestZodiacSign];
+
+
+export const UpdateProfileRequestZodiacSign = {
+  aries: 'aries',
+  tauro: 'tauro',
+  geminis: 'geminis',
+  cancer: 'cancer',
+  leo: 'leo',
+  virgo: 'virgo',
+  libra: 'libra',
+  escorpio: 'escorpio',
+  sagitario: 'sagitario',
+  capricornio: 'capricornio',
+  acuario: 'acuario',
+  piscis: 'piscis',
+} as const;
+
+export type UpdateProfileRequestAlcohol = typeof UpdateProfileRequestAlcohol[keyof typeof UpdateProfileRequestAlcohol];
+
+
+export const UpdateProfileRequestAlcohol = {
+  no_bebo: 'no_bebo',
+  ocasionalmente: 'ocasionalmente',
+  fines_semana: 'fines_semana',
+  frecuentemente: 'frecuentemente',
+} as const;
+
+export type UpdateProfileRequestTobacco = typeof UpdateProfileRequestTobacco[keyof typeof UpdateProfileRequestTobacco];
+
+
+export const UpdateProfileRequestTobacco = {
+  no_fumo: 'no_fumo',
+  fumo_ocasionalmente: 'fumo_ocasionalmente',
+  fumo: 'fumo',
+  intentando_dejarlo: 'intentando_dejarlo',
+} as const;
+
+export type UpdateProfileRequestExercise = typeof UpdateProfileRequestExercise[keyof typeof UpdateProfileRequestExercise];
+
+
+export const UpdateProfileRequestExercise = {
+  todos_dias: 'todos_dias',
+  frecuentemente: 'frecuentemente',
+  a_veces: 'a_veces',
+  nunca: 'nunca',
+} as const;
+
+export type UpdateProfileRequestPets = typeof UpdateProfileRequestPets[keyof typeof UpdateProfileRequestPets];
+
+
+export const UpdateProfileRequestPets = {
+  tengo_perro: 'tengo_perro',
+  tengo_gato: 'tengo_gato',
+  tengo_mascotas: 'tengo_mascotas',
+  no_mascotas: 'no_mascotas',
+  me_encantan: 'me_encantan',
 } as const;
 
 export interface UpdateProfileRequest {
@@ -643,6 +932,17 @@ export interface UpdateProfileRequest {
   avatar_url?: string;
   role?: UpdateProfileRequestRole;
   looking_for?: UpdateProfileRequestLookingFor;
+  orientation?: UpdateProfileRequestOrientation;
+  /**
+     * @minimum 100
+     * @maximum 250
+     */
+  height_cm?: number;
+  zodiac_sign?: UpdateProfileRequestZodiacSign;
+  alcohol?: UpdateProfileRequestAlcohol;
+  tobacco?: UpdateProfileRequestTobacco;
+  exercise?: UpdateProfileRequestExercise;
+  pets?: UpdateProfileRequestPets;
 }
 
 export interface AvatarUploadRequest {
