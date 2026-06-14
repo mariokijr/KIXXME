@@ -59,7 +59,7 @@ const SWIPE_FEED_KEY = "kixxme:swipe-feed";
 type DiscoverFeed = "recommended" | "online" | "new" | "popular" | "compatible";
 
 const FEED_OPTIONS: { key: DiscoverFeed; emoji: string; label: string }[] = [
-  { key: "recommended", emoji: "✨", label: "Recomendados" },
+  { key: "recommended", emoji: "✨", label: "Para ti" },
   { key: "online",      emoji: "🟢", label: "En línea" },
   { key: "new",         emoji: "🆕", label: "Nuevos" },
   { key: "popular",     emoji: "🔥", label: "Populares" },
@@ -91,10 +91,8 @@ const SPRING = { type: "spring" as const, stiffness: 320, damping: 32 };
 
 function ProfileMedia({
   profile,
-  className,
 }: {
   profile: PublicProfile;
-  className?: string;
 }) {
   if (profile.avatar_url) {
     return (
@@ -102,72 +100,17 @@ function ProfileMedia({
         src={profile.avatar_url}
         alt={profile.username ?? ""}
         draggable={false}
-        className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${className ?? ""}`}
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
     );
   }
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${gradFor(
-        profile.id,
-      )} ${className ?? ""}`}
+      className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${gradFor(profile.id)}`}
     >
-      <span className="font-display text-7xl text-white/90 drop-shadow-lg">
+      <span className="font-display text-8xl text-white/90 drop-shadow-lg">
         {initialsFor(profile.username)}
       </span>
-    </div>
-  );
-}
-
-/** Side card rendered in a fan layout — peeks left or right of the active card. */
-function BackgroundCard({
-  profile,
-  depth,
-}: {
-  profile: PublicProfile;
-  depth: number;
-}) {
-  // depth=2 → LEFT fan, depth=1 → RIGHT fan
-  const isLeft = depth === 2;
-  const tx = isLeft ? "-60%" : "60%";
-  const rot = isLeft ? -7 : 7;
-
-  return (
-    <div
-      className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none"
-      style={{
-        transform: `translateX(${tx}) scale(0.87) rotate(${rot}deg)`,
-        opacity: 0.86,
-        background: "rgba(13,11,26,0.9)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        transition: "transform 0.3s ease",
-        zIndex: depth === 1 ? 1 : 0,
-      }}
-    >
-      <ProfileMedia profile={profile} />
-      <div
-        className="absolute inset-x-0 bottom-0 h-2/5"
-        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)" }}
-      />
-      <div className="absolute inset-x-0 bottom-0 p-3">
-        <p className="font-display text-[15px] text-white leading-tight truncate">
-          {profile.username}{profile.age ? `, ${profile.age}` : ""}
-        </p>
-        <div className="flex items-center gap-2 mt-0.5">
-          {profile.is_online && (
-            <span className="flex items-center gap-1 text-[9px] font-sans text-white/90">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-              En línea
-            </span>
-          )}
-          {profile.distance_km != null && (
-            <span className="flex items-center gap-0.5 text-[9px] font-sans text-white/60">
-              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-              a {Math.round(profile.distance_km)} km
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -182,10 +125,10 @@ const SwipeCard = forwardRef<
 >(({ profile, onDecision, onOpenDetail }, ref) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, [-240, 240], [-16, 16]);
-  const likeOpacity = useTransform(x, [30, 150], [0, 1]);
-  const passOpacity = useTransform(x, [-30, -150], [0, 1]);
-  const superOpacity = useTransform(y, [-30, -150], [0, 1]);
+  const rotate = useTransform(x, [-280, 280], [-18, 18]);
+  const likeOpacity = useTransform(x, [40, 160], [0, 1]);
+  const passOpacity = useTransform(x, [-40, -160], [0, 1]);
+  const superOpacity = useTransform(y, [-40, -160], [0, 1]);
   const decidedRef = useRef(false);
   const [decided, setDecided] = useState(false);
 
@@ -193,11 +136,11 @@ const SwipeCard = forwardRef<
     if (decidedRef.current) return;
     decidedRef.current = true;
     setDecided(true);
-    const tx = dir === "like" ? 720 : dir === "pass" ? -720 : 0;
-    const ty = dir === "superlike" ? -920 : 60;
-    animate(x, tx, { duration: 0.34, ease: "easeOut" });
+    const tx = dir === "like" ? 800 : dir === "pass" ? -800 : 0;
+    const ty = dir === "superlike" ? -1000 : 60;
+    animate(x, tx, { duration: 0.32, ease: "easeOut" });
     animate(y, ty, {
-      duration: 0.34,
+      duration: 0.32,
       ease: "easeOut",
       onComplete: () => onDecision(dir),
     });
@@ -207,11 +150,11 @@ const SwipeCard = forwardRef<
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const { offset, velocity } = info;
-    if (offset.y < -130 && Math.abs(offset.x) < 110) {
+    if (offset.y < -120 && Math.abs(offset.x) < 100) {
       decide("superlike");
-    } else if (offset.x > 120 || velocity.x > 750) {
+    } else if (offset.x > 110 || velocity.x > 700) {
       decide("like");
-    } else if (offset.x < -120 || velocity.x < -750) {
+    } else if (offset.x < -110 || velocity.x < -700) {
       decide("pass");
     } else {
       animate(x, 0, SPRING);
@@ -223,13 +166,12 @@ const SwipeCard = forwardRef<
 
   return (
     <motion.div
-      className="absolute inset-0 rounded-3xl overflow-hidden border border-white/10 touch-none select-none cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 rounded-3xl overflow-hidden touch-none select-none cursor-grab active:cursor-grabbing"
       style={{
         x,
         y,
         rotate,
-        background: "rgba(13,11,26,0.9)",
-        boxShadow: "0 24px 70px rgba(0,0,0,0.65)",
+        boxShadow: "0 28px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)",
       }}
       drag={!decided}
       onDragEnd={handleDragEnd}
@@ -237,104 +179,108 @@ const SwipeCard = forwardRef<
     >
       <ProfileMedia profile={profile} />
 
+      {/* Bottom gradient */}
       <div
-        className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
         style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.92), transparent)",
+          background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 45%, transparent 100%)",
         }}
       />
 
-      <div className="absolute top-3 left-3 flex items-center gap-1.5">
-        {profile.is_online && (
+      {/* Online badge */}
+      {profile.is_online && (
+        <div className="absolute top-4 left-4">
           <span
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white"
-            style={{ background: "rgba(34,197,94,0.85)" }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-sans font-semibold text-white"
+            style={{ background: "rgba(22,163,74,0.9)", backdropFilter: "blur(8px)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             En línea
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
+      {/* Info button */}
       <button
         onPointerDownCapture={(e) => e.stopPropagation()}
         onClick={onOpenDetail}
-        className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border border-white/25 text-white backdrop-blur-sm transition-transform active:scale-90"
-        style={{ background: "rgba(0,0,0,0.4)" }}
+        className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white transition-transform active:scale-90"
+        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}
         aria-label="Ver perfil completo"
         data-testid="button-card-detail"
       >
         <Info className="w-5 h-5" />
       </button>
 
+      {/* Swipe labels */}
       <motion.div
-        style={{ opacity: likeOpacity }}
-        className="absolute top-10 left-6 px-3 py-1 rounded-lg border-4 border-green-400 text-green-400 font-display text-2xl tracking-widest -rotate-12 pointer-events-none"
+        style={{ opacity: likeOpacity, filter: "drop-shadow(0 0 12px rgba(74,222,128,0.5))" }}
+        className="absolute top-12 left-5 px-4 py-1.5 rounded-xl border-[3px] border-green-400 text-green-400 font-display text-3xl font-bold tracking-widest -rotate-12 pointer-events-none"
       >
         ME GUSTA
       </motion.div>
       <motion.div
         style={{ opacity: passOpacity }}
-        className="absolute top-10 right-6 px-3 py-1 rounded-lg border-4 border-red-400 text-red-400 font-display text-2xl tracking-widest rotate-12 pointer-events-none"
+        className="absolute top-12 right-5 px-4 py-1.5 rounded-xl border-[3px] border-rose-400 text-rose-400 font-display text-3xl font-bold tracking-widest rotate-12 pointer-events-none"
       >
-        NO
+        PASO
       </motion.div>
       <motion.div
         style={{ opacity: superOpacity }}
-        className="absolute left-1/2 top-1/3 -translate-x-1/2 px-4 py-1 rounded-lg border-4 border-sky-400 text-sky-400 font-display text-2xl tracking-widest pointer-events-none"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-xl border-[3px] border-sky-400 text-sky-400 font-display text-2xl font-bold tracking-widest pointer-events-none"
       >
         SUPER LIKE
       </motion.div>
 
-      <div className="absolute inset-x-0 bottom-0 p-5 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <h3 className="font-display text-3xl text-white leading-tight tracking-wide truncate">
-            {profile.username}
-            {profile.age ? (
-              <span className="text-white/80">, {profile.age}</span>
-            ) : null}
-          </h3>
-          {profile.is_verified && (
-            <BadgeCheck
-              className="w-6 h-6 text-sky-400 flex-shrink-0"
-              style={{ filter: "drop-shadow(0 0 5px rgba(56,189,248,0.7))" }}
-            />
-          )}
-        </div>
-        <div className="flex items-center gap-3 mt-1.5 text-white/85 font-sans text-sm">
-          {profile.city && <span className="truncate">{profile.city}</span>}
-          {distance && (
-            <span className="flex items-center gap-1 flex-shrink-0">
-              <MapPin className="w-3.5 h-3.5" />
-              {distance}
-            </span>
-          )}
-        </div>
-        {(profile.role || profile.looking_for) && (
-          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-            {profile.role && (
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
-                style={{ background: "rgba(168,85,247,0.4)", border: "1px solid rgba(168,85,247,0.5)" }}
-              >
-                {ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS]}
-              </span>
-            )}
-            {profile.looking_for && (
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
-                style={{ background: "rgba(236,72,153,0.35)", border: "1px solid rgba(236,72,153,0.45)" }}
-              >
-                {LOOKING_FOR_LABELS[profile.looking_for as keyof typeof LOOKING_FOR_LABELS]}
-              </span>
+      {/* Profile info at bottom */}
+      <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pointer-events-none">
+        <div className="flex items-end gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-display text-[28px] text-white leading-tight tracking-wide truncate">
+                {profile.username}
+                {profile.age ? (
+                  <span className="text-white/80">, {profile.age}</span>
+                ) : null}
+              </h3>
+              {profile.is_verified && (
+                <BadgeCheck
+                  className="w-6 h-6 text-sky-400 flex-shrink-0"
+                  style={{ filter: "drop-shadow(0 0 6px rgba(56,189,248,0.8))" }}
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-1 text-white/75 font-sans text-[13px]">
+              {profile.city && <span className="truncate">{profile.city}</span>}
+              {distance && (
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {distance}
+                </span>
+              )}
+            </div>
+            {(profile.role || profile.looking_for) && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {profile.role && (
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
+                    style={{ background: "rgba(168,85,247,0.5)", border: "1px solid rgba(168,85,247,0.6)" }}
+                  >
+                    {ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS]}
+                  </span>
+                )}
+                {profile.looking_for && (
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white/90"
+                    style={{ background: "rgba(236,72,153,0.45)", border: "1px solid rgba(236,72,153,0.55)" }}
+                  >
+                    {LOOKING_FOR_LABELS[profile.looking_for as keyof typeof LOOKING_FOR_LABELS]}
+                  </span>
+                )}
+              </div>
             )}
           </div>
-        )}
-        {profile.bio && (
-          <p className="mt-2 text-white/70 font-sans text-sm line-clamp-2">
-            {profile.bio}
-          </p>
-        )}
+        </div>
       </div>
     </motion.div>
   );
@@ -349,7 +295,7 @@ function QuotaBar() {
     ? "∞"
     : String(quota.superlikes.remaining);
   return (
-    <div className="flex-shrink-0 flex items-center gap-1 ml-auto pl-1 text-[10px] font-sans text-muted-foreground/70">
+    <div className="flex items-center gap-1 text-[10px] font-sans text-muted-foreground/70 flex-shrink-0">
       <Heart className="w-3 h-3 text-pink-400/80" fill="currentColor" />
       <span>{likeLabel}</span>
       <span className="opacity-40 mx-0.5">·</span>
@@ -374,14 +320,14 @@ function ActionButton({
   children: React.ReactNode;
   testid: string;
 }) {
-  const dim = size === "lg" ? "w-16 h-16" : "w-12 h-12";
+  const dim = size === "lg" ? "w-[68px] h-[68px]" : "w-12 h-12";
   return (
     <button
       onClick={onClick}
       aria-label={label}
       data-testid={testid}
-      className={`${dim} rounded-full flex items-center justify-center border border-white/15 transition-transform active:scale-90 hover:scale-105`}
-      style={{ background: gradient, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}
+      className={`${dim} rounded-full flex items-center justify-center transition-transform active:scale-90 hover:scale-105`}
+      style={{ background: gradient, boxShadow: "0 8px 28px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.12)" }}
     >
       {children}
     </button>
@@ -461,9 +407,7 @@ function ProfileDetailSheet({
           ))
         ) : (
           <div
-            className={`relative w-full rounded-2xl overflow-hidden border border-border/30 flex items-center justify-center bg-gradient-to-br ${gradFor(
-              profile.id,
-            )}`}
+            className={`relative w-full rounded-2xl overflow-hidden border border-border/30 flex items-center justify-center bg-gradient-to-br ${gradFor(profile.id)}`}
             style={{ aspectRatio: "4/5" }}
           >
             <span className="font-display text-7xl text-white/90">
@@ -579,7 +523,7 @@ function ProfileDetailSheet({
           onClick={() => onAction("pass")}
           label="No me interesa"
           size="lg"
-          gradient="rgba(40,38,56,0.95)"
+          gradient="rgba(30,27,50,0.98)"
           testid="button-detail-pass"
         >
           <X className="w-7 h-7 text-rose-400" />
@@ -616,9 +560,8 @@ function ProfileDetailSheet({
 }
 
 /**
- * Tinder-style swipe discovery deck. Consumes the shared like engine
- * (`useLikeActions`) so quota limits, Spanish upsell toasts and the match
- * celebration all behave exactly like the rest of the app.
+ * Tinder-style swipe discovery deck — one card at a time.
+ * Swipe right = like, swipe left = pass, swipe up = superlike.
  */
 export function SwipeView({
   mode,
@@ -633,7 +576,6 @@ export function SwipeView({
   const likeActions = useLikeActions();
   const passMut = usePassProfile();
 
-  // --- Scope & location ---------------------------------------------------
   const [feed, setFeedState] = useState<DiscoverFeed>(readFeed);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
@@ -643,6 +585,7 @@ export function SwipeView({
   const { data: ownProfile } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
+  void ownProfile;
 
   const setFeed = (f: DiscoverFeed) => {
     setFeedState(f);
@@ -653,7 +596,6 @@ export function SwipeView({
   const queryParams = { feed };
   const queryKey = getListProfilesQueryKey(queryParams);
 
-  // -------------------------------------------------------------------------
   const {
     data: profiles = [],
     isLoading,
@@ -667,10 +609,11 @@ export function SwipeView({
       refetchOnWindowFocus: false,
     },
   });
+
   const cardRef = useRef<SwipeCardHandle>(null);
 
-  const deck = profiles.slice(index, index + 3);
-  const top = deck[0] ?? null;
+  const top = profiles[index] ?? null;
+  const hasNext = profiles[index + 1] != null;
 
   const invalidateQuota = () =>
     qc.invalidateQueries({ queryKey: getGetLikeQuotaQueryKey() });
@@ -686,9 +629,6 @@ export function SwipeView({
         playSound("pass");
         passMut.mutate({ id: profile.id });
       }
-      // Mark the candidate list stale so a later remount refetches (excluding
-      // this now liked/superliked/passed profile) WITHOUT disrupting the
-      // current in-session deck order (refetchType "none").
       qc.invalidateQueries({ queryKey, refetchType: "none" });
     }
     setIndex((i) => i + 1);
@@ -711,14 +651,55 @@ export function SwipeView({
 
   return (
     <div className="flex flex-col h-[calc(100dvh-72px)]">
+
+      {/* ── Header: logo + mode toggle + feed chips + quota + matches ── */}
       <header
-        className="px-4 py-3 flex items-center justify-between border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        className="flex items-center gap-2 px-3 py-2.5 border-b border-border/25"
+        style={{ background: "rgba(8,7,18,0.94)", backdropFilter: "blur(20px)" }}
       >
-        <KixxMeLogo size={22} withWordmark />
+        <KixxMeLogo size={20} withWordmark />
+
+        <div className="flex-shrink-0">
+          <ModeToggle mode={mode} setMode={setMode} />
+        </div>
+
+        <div
+          className="flex items-center gap-1.5 flex-1 overflow-x-auto"
+          style={{ scrollbarWidth: "none" } as React.CSSProperties}
+        >
+          {FEED_OPTIONS.map(({ key, emoji, label }) => {
+            const active = feed === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFeed(key)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-medium transition-all duration-150"
+                style={
+                  active
+                    ? {
+                        background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                        color: "white",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.05)",
+                        color: "hsl(240,10%,55%)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }
+                }
+                data-testid={`chip-feed-${key}`}
+              >
+                <span className="text-[9px] leading-none">{emoji}</span>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <QuotaBar />
+
         <Link href="/matches">
           <button
-            className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+            className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
             style={{ background: "rgba(255,255,255,0.04)" }}
             aria-label="Emparejamientos"
             data-testid="link-matches"
@@ -726,11 +707,8 @@ export function SwipeView({
             <Heart className="w-4 h-4 text-primary" />
             {likesBadge > 0 && (
               <span
-                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                }}
+                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
                 data-testid="badge-likes"
               >
                 {likesBadge > 99 ? "99+" : likesBadge}
@@ -740,53 +718,13 @@ export function SwipeView({
         </Link>
       </header>
 
-      {/* Compact filter bar: mode toggle | feed chips | quota — single scrollable row */}
-      <div
-        className="flex items-center gap-2 px-3 pt-2 pb-1 overflow-x-auto"
-        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-      >
-        <div className="flex-shrink-0">
-          <ModeToggle mode={mode} setMode={setMode} />
-        </div>
-        <div className="w-px h-4 flex-shrink-0" style={{ background: "rgba(255,255,255,0.12)" }} />
-        {FEED_OPTIONS.map(({ key, emoji, label }) => {
-          const active = feed === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setFeed(key)}
-              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all duration-150"
-              style={
-                active
-                  ? {
-                      background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                      color: "white",
-                      boxShadow: "0 0 12px rgba(168,85,247,0.35)",
-                    }
-                  : {
-                      background: "rgba(255,255,255,0.05)",
-                      color: "hsl(240,10%,60%)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }
-              }
-              data-testid={`chip-feed-${key}`}
-            >
-              <span className="text-[10px] leading-none">{emoji}</span>
-              {label}
-            </button>
-          );
-        })}
-        <QuotaBar />
-      </div>
-
-      <div className="flex-1 min-h-0 px-2 py-1">
+      {/* ── Card area ── */}
+      <div className="flex-1 min-h-0 px-3 pt-2.5 pb-1">
         <div className="relative w-full h-full">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              <p className="font-sans text-sm text-muted-foreground">
-                Cargando perfiles...
-              </p>
+              <p className="font-sans text-sm text-muted-foreground">Cargando perfiles...</p>
             </div>
           ) : isError ? (
             <DeckEmpty
@@ -814,8 +752,20 @@ export function SwipeView({
             />
           ) : (
             <>
-              {deck[2] && <BackgroundCard profile={deck[2]} depth={2} />}
-              {deck[1] && <BackgroundCard profile={deck[1]} depth={1} />}
+              {/* Ghost card behind — shows depth without revealing photo */}
+              {hasNext && (
+                <div
+                  className="absolute inset-x-0 bottom-0 rounded-3xl"
+                  style={{
+                    top: "6px",
+                    transform: "scale(0.96)",
+                    background: "rgba(20,17,40,0.85)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    zIndex: 0,
+                  }}
+                />
+              )}
+              {/* Active card */}
               <SwipeCard
                 key={top.id}
                 ref={cardRef}
@@ -828,26 +778,32 @@ export function SwipeView({
         </div>
       </div>
 
+      {/* ── Action buttons ── */}
       {!isLoading && !isError && top && (
-        <div className="flex items-center justify-center gap-6 px-6 pt-0.5 pb-3">
+        <div className="flex items-center justify-center gap-5 px-6 pt-1 pb-3.5">
+          {/* Pass */}
           <ActionButton
             onClick={() => act("pass")}
             label="No me interesa"
             size="lg"
-            gradient="rgba(40,38,56,0.95)"
+            gradient="rgba(22,18,45,0.98)"
             testid="button-pass"
           >
             <X className="w-7 h-7 text-rose-400" />
           </ActionButton>
+
+          {/* SuperLike */}
           <ActionButton
             onClick={() => act("superlike")}
             label="SuperLike"
             size="sm"
-            gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))"
+            gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))"
             testid="button-superlike"
           >
-            <KixxMeLogo size={22} glow={false} />
+            <Star className="w-5 h-5 text-white" fill="white" />
           </ActionButton>
+
+          {/* Like */}
           <ActionButton
             onClick={() => act("like")}
             label="Me gusta"
@@ -903,9 +859,7 @@ function DeckEmpty({
           />
         </div>
         <div className="space-y-1.5">
-          <h3 className="font-display text-2xl tracking-wide text-foreground">
-            {title}
-          </h3>
+          <h3 className="font-display text-2xl tracking-wide text-foreground">{title}</h3>
           <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
             {subtitle}
           </p>
@@ -930,16 +884,12 @@ function DeckEmpty({
           </button>
         </div>
 
-        {/* Feature cards */}
         <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs mt-1">
           {FEATURE_CARDS.map((card) => (
             <div
               key={card.label}
               className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center"
-              style={{
-                background: "rgba(168,85,247,0.07)",
-                border: "1px solid rgba(168,85,247,0.18)",
-              }}
+              style={{ background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.18)" }}
             >
               <div
                 className="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -950,12 +900,8 @@ function DeckEmpty({
                   <span className="absolute -top-1.5 -right-1.5 text-sm leading-none">👑</span>
                 )}
               </div>
-              <p className="text-[9px] font-sans font-semibold text-white/85 leading-tight">
-                {card.label}
-              </p>
-              <p className="text-[8px] font-sans text-white/40 leading-tight">
-                {card.desc}
-              </p>
+              <p className="text-[9px] font-sans font-semibold text-white/85 leading-tight">{card.label}</p>
+              <p className="text-[8px] font-sans text-white/40 leading-tight">{card.desc}</p>
             </div>
           ))}
         </div>
