@@ -28,6 +28,7 @@ import {
   Navigation,
   MessageCircle,
   SlidersHorizontal,
+  Lock,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -183,6 +184,22 @@ const SwipeCard = forwardRef<
   const superOpacity = useTransform(y, [-30, -150], [0, 1]);
   const decidedRef = useRef(false);
   const [decided, setDecided] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
+
+  // Load all profile photos for the carousel (cached by React Query).
+  const { data: photos = [] } = useListProfilePhotos(profile.id, {
+    query: {
+      enabled: !!profile.id,
+      queryKey: getListProfilePhotosQueryKey(profile.id),
+    },
+  });
+  const gallery =
+    photos.length > 0
+      ? photos.map((p) => p.url)
+      : profile.avatar_url
+        ? [profile.avatar_url]
+        : [];
+  const currentPhoto = gallery[Math.min(photoIndex, Math.max(0, gallery.length - 1))];
 
   const decide = (dir: Decision) => {
     if (decidedRef.current) return;
@@ -224,26 +241,79 @@ const SwipeCard = forwardRef<
         y,
         rotate,
         background: "rgba(13,11,26,0.9)",
-        boxShadow: "0 24px 70px rgba(0,0,0,0.65)",
+        boxShadow: "0 28px 80px rgba(0,0,0,0.7)",
       }}
       drag={!decided}
       onDragEnd={handleDragEnd}
       data-testid="swipe-card"
     >
-      <ProfileMedia profile={profile} />
+      {/* Photo */}
+      {currentPhoto ? (
+        <img
+          src={currentPhoto}
+          alt={profile.username ?? ""}
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+      ) : (
+        <div
+          className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${gradFor(profile.id)}`}
+        >
+          <span className="font-display text-7xl text-white/90 drop-shadow-lg">
+            {initialsFor(profile.username)}
+          </span>
+        </div>
+      )}
 
+      {/* Photo progress bars (Tinder-style) — only when multiple photos */}
+      {gallery.length > 1 && (
+        <div className="absolute top-2 inset-x-2 flex gap-1 z-20 pointer-events-none">
+          {gallery.map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-full transition-all duration-200"
+              style={{
+                height: "3px",
+                background: i === photoIndex
+                  ? "rgba(255,255,255,0.95)"
+                  : "rgba(255,255,255,0.32)",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Left tap zone — previous photo (capture pointer so swipe isn't triggered) */}
       <div
-        className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
+        className="absolute inset-y-0 left-0 w-2/5 z-10"
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onClick={() => setPhotoIndex((i) => Math.max(0, i - 1))}
+      />
+      {/* Right tap zone — next photo */}
+      <div
+        className="absolute inset-y-0 right-0 w-2/5 z-10"
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onClick={() =>
+          setPhotoIndex((i) => Math.min(gallery.length - 1, i + 1))
+        }
+      />
+
+      {/* Bottom gradient — taller for more info space */}
+      <div
+        className="absolute inset-x-0 bottom-0 pointer-events-none z-10"
         style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.92), transparent)",
+          height: "65%",
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)",
         }}
       />
 
-      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+      {/* Top badges */}
+      <div className="absolute top-7 left-3 flex items-center gap-1.5 z-20 pointer-events-none">
         {profile.is_online && (
           <span
             className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium text-white"
-            style={{ background: "rgba(34,197,94,0.85)" }}
+            style={{ background: "rgba(34,197,94,0.85)", backdropFilter: "blur(6px)" }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-white" />
             En línea
@@ -257,79 +327,100 @@ const SwipeCard = forwardRef<
         )}
       </div>
 
+      {/* Info button — top-right, above tap zone */}
       <button
         onPointerDownCapture={(e) => e.stopPropagation()}
         onClick={onOpenDetail}
-        className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border border-white/25 text-white backdrop-blur-sm transition-transform active:scale-90"
+        className="absolute top-7 right-3 w-9 h-9 rounded-full flex items-center justify-center border border-white/25 text-white backdrop-blur-sm transition-transform active:scale-90 z-20"
         style={{ background: "rgba(0,0,0,0.4)" }}
         aria-label="Ver perfil completo"
         data-testid="button-card-detail"
       >
-        <Info className="w-5 h-5" />
+        <Info className="w-4.5 h-4.5" />
       </button>
 
+      {/* Swipe overlays */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-10 left-6 px-3 py-1 rounded-lg border-4 border-green-400 text-green-400 font-display text-2xl tracking-widest -rotate-12 pointer-events-none"
+        className="absolute top-12 left-6 px-3 py-1 rounded-lg border-4 border-green-400 text-green-400 font-display text-2xl tracking-widest -rotate-12 pointer-events-none z-30"
       >
         ME GUSTA
       </motion.div>
       <motion.div
         style={{ opacity: passOpacity }}
-        className="absolute top-10 right-6 px-3 py-1 rounded-lg border-4 border-red-400 text-red-400 font-display text-2xl tracking-widest rotate-12 pointer-events-none"
+        className="absolute top-12 right-6 px-3 py-1 rounded-lg border-4 border-red-400 text-red-400 font-display text-2xl tracking-widest rotate-12 pointer-events-none z-30"
       >
         NO
       </motion.div>
       <motion.div
         style={{ opacity: superOpacity }}
-        className="absolute left-1/2 top-1/3 -translate-x-1/2 px-4 py-1 rounded-lg border-4 border-sky-400 text-sky-400 font-display text-2xl tracking-widest pointer-events-none"
+        className="absolute left-1/2 top-1/3 -translate-x-1/2 px-4 py-1 rounded-lg border-4 border-sky-400 text-sky-400 font-display text-2xl tracking-widest pointer-events-none z-30"
       >
         SUPER LIKE
       </motion.div>
 
-      <div className="absolute inset-x-0 bottom-0 p-5 pointer-events-none">
-        <h3 className="font-display text-3xl text-white leading-tight tracking-wide truncate">
+      {/* Info overlay at bottom */}
+      <div className="absolute inset-x-0 bottom-0 px-5 pt-4 pb-5 z-20 pointer-events-none">
+        {/* Name + age */}
+        <h3 className="font-display text-3xl text-white leading-tight tracking-wide">
           {profile.username}
           {profile.age ? (
             <span className="text-white/80">, {profile.age}</span>
           ) : null}
         </h3>
-        <div className="flex items-center gap-2 mt-1.5 text-white/85 font-sans text-sm flex-wrap">
+
+        {/* City + distance + looking_for */}
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {profile.city && (
-            <span className="flex items-center gap-1 truncate">
+            <span className="flex items-center gap-1 text-white/85 font-sans text-sm">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
               {profile.city}
             </span>
           )}
           {distance && (
-            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium text-white/90"
-              style={{ background: "rgba(0,0,0,0.45)" }}>
+            <span
+              className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium text-white/90"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+            >
               {distance}
             </span>
           )}
           {profile.looking_for && LOOKING_FOR_LABELS[profile.looking_for] && (
-            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium"
-              style={{ background: "rgba(236,72,153,0.6)", color: "#fff" }}>
+            <span
+              className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium text-white"
+              style={{ background: "rgba(236,72,153,0.6)" }}
+            >
               {LOOKING_FOR_LABELS[profile.looking_for]}
             </span>
           )}
+          {profile.role && ROLE_LABELS[profile.role] && (
+            <span
+              className="flex-shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium text-white"
+              style={{ background: "rgba(168,85,247,0.55)" }}
+            >
+              {ROLE_LABELS[profile.role]}
+            </span>
+          )}
         </div>
-        {/* Top interests as chips */}
+
+        {/* Interests */}
         {Array.isArray(profile.interests) && profile.interests.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {profile.interests.slice(0, 3).map((slug) => (
+            {profile.interests.slice(0, 4).map((slug) => (
               <span
                 key={slug}
                 className="px-2 py-0.5 rounded-full text-[10px] font-sans"
-                style={{ background: "rgba(168,85,247,0.55)", color: "#fff" }}
+                style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.9)" }}
               >
                 {interestLabel(slug)}
               </span>
             ))}
           </div>
         )}
+
+        {/* Bio */}
         {profile.bio && (
-          <p className="mt-2 text-white/70 font-sans text-sm line-clamp-2">
+          <p className="mt-2 text-white/72 font-sans text-sm line-clamp-2 leading-relaxed">
             {profile.bio}
           </p>
         )}
@@ -394,10 +485,12 @@ function ProfileDetailSheet({
   profile,
   onClose,
   onAction,
+  plan,
 }: {
   profile: PublicProfile;
   onClose: () => void;
   onAction: (dir: Decision) => void;
+  plan: "free" | "plus" | "gold";
 }) {
   const { data: photos = [] } = useListProfilePhotos(profile.id, {
     query: {
@@ -415,6 +508,8 @@ function ProfileDetailSheet({
   const lastSeen = !profile.is_online ? formatLastSeen(profile.last_active_at) : null;
   const [reportOpen, setReportOpen] = useState(false);
   const { start: startConversation, isPending: startingChat } = useStartConversation();
+  // Free users can only message matches; Plus/Gold can message anyone.
+  const canMessage = plan !== "free" || !!profile.matched;
 
   return (
     <div
@@ -610,17 +705,25 @@ function ProfileDetailSheet({
         >
           <Heart className="w-7 h-7 text-white" fill="white" />
         </ActionButton>
-        <ActionButton
-          onClick={() => startConversation(profile.id)}
-          label="Mensaje"
-          size="sm"
-          gradient="rgba(40,38,56,0.95)"
-          testid="button-detail-message"
-        >
-          {startingChat
-            ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
-            : <MessageCircle className="w-5 h-5 text-primary" />}
-        </ActionButton>
+        <div className="relative">
+          <ActionButton
+            onClick={() => startConversation(profile.id)}
+            label={canMessage ? "Mensaje" : "Mensaje (requiere Plus)"}
+            size="sm"
+            gradient="rgba(40,38,56,0.95)"
+            testid="button-detail-message"
+          >
+            {startingChat
+              ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              : <MessageCircle className="w-5 h-5 text-primary" />}
+          </ActionButton>
+          {!canMessage && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-border/50"
+              style={{ background: "rgba(13,11,26,0.9)" }}>
+              <Lock className="w-2.5 h-2.5 text-muted-foreground" />
+            </span>
+          )}
+        </div>
       </div>
 
       <ReportDialog
@@ -651,6 +754,7 @@ export function SwipeView({
   const likesBadge = newLikes + newMatches;
   const likeActions = useLikeActions();
   const passMut = usePassProfile();
+  const { start: startConv, isPending: startingConv } = useStartConversation();
 
   // --- Scope & location ---------------------------------------------------
   const [scope, setScopeState] = useState<DiscoverScope>(readScope);
@@ -867,7 +971,7 @@ export function SwipeView({
 
       <QuotaChip />
 
-      <div className="flex-1 min-h-0 px-4 py-3">
+      <div className="flex-1 min-h-0 px-2 py-2">
         <div className="relative w-full h-full max-w-sm mx-auto">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -919,7 +1023,7 @@ export function SwipeView({
       </div>
 
       {!isLoading && !isError && top && (
-        <div className="flex items-center justify-center gap-6 px-6 pt-1 pb-4">
+        <div className="flex items-center justify-center gap-4 px-4 pt-1 pb-4">
           <ActionButton
             onClick={() => act("pass")}
             label="No me interesa"
@@ -947,6 +1051,29 @@ export function SwipeView({
           >
             <Heart className="w-7 h-7 text-white" fill="white" />
           </ActionButton>
+          {/* Mensaje — siempre llama a useStartConversation que ya gestiona
+              el upsell para usuarios free sin match. El candado es solo visual. */}
+          <div className="relative">
+            <ActionButton
+              onClick={() => startConv(top.id)}
+              label="Mensaje"
+              size="sm"
+              gradient="rgba(40,38,56,0.95)"
+              testid="button-message"
+            >
+              {startingConv
+                ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                : <MessageCircle className="w-5 h-5 text-primary" />}
+            </ActionButton>
+            {!top.matched && plan === "free" && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-border/50"
+                style={{ background: "rgba(13,11,26,0.9)" }}
+              >
+                <Lock className="w-2.5 h-2.5 text-muted-foreground" />
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -955,6 +1082,7 @@ export function SwipeView({
           profile={detail}
           onClose={() => setDetail(null)}
           onAction={handleDetailAction}
+          plan={plan}
         />
       )}
 
