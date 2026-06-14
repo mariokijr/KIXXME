@@ -1,44 +1,354 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { Users, Video, Heart, ShieldCheck, BadgeCheck } from "lucide-react";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Heart, X, Star, BadgeCheck } from "lucide-react";
 import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { isIOS } from "@/lib/platform";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
-import { motion, AnimatePresence } from "framer-motion";
-import bgImage from "@/assets/bg-neon-bokeh.png";
+import { motion } from "framer-motion";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))";
 
-const INFO_CARDS = [
+const PHONE_PROFILES = [
   {
-    icon: <Users className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Conoce gente nueva",
-    desc: "Descubre chicos y perfiles cerca de ti o en cualquier parte del mundo con nuestro radar preciso.",
+    name: "Carlos",
+    age: 24,
+    city: "Barcelona",
+    initials: "C",
+    bg: "linear-gradient(160deg, hsl(260,75%,32%) 0%, hsl(220,80%,22%) 100%)",
+    accent: "rgba(139,92,246,0.6)",
+    online: true,
+    verified: true,
   },
   {
-    icon: <Video className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Haz videollamadas seguras",
-    desc: "Conecta cara a cara de forma privada, segura y sin grabaciones. Siente la química al instante.",
+    name: "Marcos",
+    age: 29,
+    city: "Madrid",
+    initials: "M",
+    bg: "linear-gradient(160deg, hsl(330,80%,30%) 0%, hsl(270,65%,22%) 100%)",
+    accent: "rgba(236,72,153,0.6)",
+    online: true,
+    verified: false,
   },
   {
-    icon: <Heart className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Conecta con personas",
-    desc: "Un espacio diseñado para que personas auténticas creen conexiones reales en una comunidad segura y acogedora.",
-  },
-  {
-    icon: <ShieldCheck className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Privacidad y seguridad",
-    desc: "Tú controlas qué ven los demás. Bloquea, denuncia y mantén tu entorno libre de toxicidad.",
-  },
-  {
-    icon: <BadgeCheck className="w-8 h-8" strokeWidth={1.5} />,
-    title: "Perfiles verificados",
-    desc: "Nuestra insignia de verificación te garantiza que estás hablando con la persona que ves en las fotos.",
+    name: "Alejandro",
+    age: 26,
+    city: "Valencia",
+    initials: "A",
+    bg: "linear-gradient(160deg, hsl(190,70%,22%) 0%, hsl(260,75%,28%) 100%)",
+    accent: "rgba(56,189,248,0.5)",
+    online: false,
+    verified: true,
   },
 ];
+
+function PhoneCard({
+  profile,
+  width,
+  height,
+  style,
+  delay,
+}: {
+  profile: typeof PHONE_PROFILES[0];
+  width: number;
+  height: number;
+  style: React.CSSProperties;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay, ease: "easeOut" }}
+      style={{
+        position: "absolute",
+        width,
+        height,
+        ...style,
+      }}
+    >
+      {/* Phone shell */}
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          borderRadius: 36,
+          overflow: "hidden",
+          background: "rgba(8,6,20,0.96)",
+          border: "2px solid rgba(255,255,255,0.12)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Status bar */}
+        <div
+          style={{
+            height: 28,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.4)",
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 14,
+              borderRadius: 8,
+              background: "rgba(0,0,0,0.8)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+            }}
+          />
+        </div>
+
+        {/* App header — KixxMe mini */}
+        <div
+          style={{
+            height: 36,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 12px",
+            background: "rgba(8,6,18,0.88)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <KixxMeLogo size={13} withWordmark />
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Heart style={{ width: 11, height: 11, color: "hsl(273,85%,65%)" }} />
+          </div>
+        </div>
+
+        {/* Profile card */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: profile.bg,
+            }}
+          />
+
+          {/* Decorative pattern */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `radial-gradient(circle at 70% 30%, ${profile.accent} 0%, transparent 60%)`,
+            }}
+          />
+
+          {/* Avatar initials */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: Math.floor(width * 0.45),
+                color: "rgba(255,255,255,0.18)",
+                lineHeight: 1,
+                userSelect: "none",
+              }}
+            >
+              {profile.initials}
+            </span>
+          </div>
+
+          {/* Top badges */}
+          <div
+            style={{
+              position: "absolute",
+              top: 8,
+              left: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {profile.online && (
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                  padding: "2px 6px",
+                  borderRadius: 999,
+                  background: "rgba(34,197,94,0.85)",
+                  fontSize: 8,
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 600,
+                  color: "white",
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: "white",
+                    flexShrink: 0,
+                  }}
+                />
+                En línea
+              </span>
+            )}
+            {profile.verified && (
+              <BadgeCheck
+                style={{
+                  width: Math.floor(width * 0.11),
+                  height: Math.floor(width * 0.11),
+                  color: "hsl(199,89%,68%)",
+                  filter: "drop-shadow(0 0 3px rgba(56,189,248,0.5))",
+                }}
+              />
+            )}
+          </div>
+
+          {/* Gradient overlay */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 55%)",
+            }}
+          />
+
+          {/* Info overlay */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 44,
+              left: 10,
+              right: 10,
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: Math.floor(width * 0.13),
+                color: "white",
+                lineHeight: 1.1,
+                letterSpacing: "0.03em",
+              }}
+            >
+              {profile.name}, {profile.age}
+            </p>
+            <p
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: Math.floor(width * 0.07),
+                color: "rgba(255,255,255,0.65)",
+                marginTop: 2,
+              }}
+            >
+              {profile.city}
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 8,
+              left: 0,
+              right: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: Math.floor(width * 0.1),
+            }}
+          >
+            <div
+              style={{
+                width: Math.floor(width * 0.18),
+                height: Math.floor(width * 0.18),
+                borderRadius: "50%",
+                background: "rgba(20,16,40,0.92)",
+                border: "1.5px solid rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X
+                style={{
+                  width: Math.floor(width * 0.1),
+                  height: Math.floor(width * 0.1),
+                  color: "hsl(0,84%,65%)",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                width: Math.floor(width * 0.14),
+                height: Math.floor(width * 0.14),
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 0 10px rgba(56,189,248,0.35)",
+              }}
+            >
+              <Star
+                style={{
+                  width: Math.floor(width * 0.08),
+                  height: Math.floor(width * 0.08),
+                  color: "white",
+                  fill: "white",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                width: Math.floor(width * 0.18),
+                height: Math.floor(width * 0.18),
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, hsl(330,85%,52%), hsl(273,85%,55%))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 0 12px rgba(168,85,247,0.4)",
+              }}
+            >
+              <Heart
+                style={{
+                  width: Math.floor(width * 0.1),
+                  height: Math.floor(width * 0.1),
+                  color: "white",
+                  fill: "white",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Welcome() {
   const { loginWithProvider } = useAuth();
@@ -46,16 +356,6 @@ export default function Welcome() {
   const [, setLocation] = useLocation();
   const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
   const showApple = isIOS();
-
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  // Auto-advance carousel
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % INFO_CARDS.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleProvider = async (provider: "google" | "apple") => {
     setLoadingProvider(provider);
@@ -65,87 +365,113 @@ export default function Welcome() {
       setLoadingProvider(null);
       toast({
         title: "No disponible",
-        description: e?.message ?? `El inicio de sesión con ${provider === "google" ? "Google" : "Apple"} no está disponible ahora mismo.`,
+        description:
+          e?.message ??
+          `El inicio de sesión con ${provider === "google" ? "Google" : "Apple"} no está disponible ahora mismo.`,
         variant: "destructive",
       });
     }
   };
 
+  const PW = 210;
+  const PH = 400;
+  const SW = 180;
+  const SH = 345;
+
   return (
-    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#0a0715]">
-      {/* Background Image & Scrim */}
-      <div className="absolute inset-0 z-0">
-        <img src={bgImage} alt="" className="w-full h-full object-cover opacity-60 mix-blend-screen" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0715]/40 via-[#0a0715]/80 to-[#0a0715]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0715_100%)] opacity-80" />
+    <div
+      className="min-h-[100dvh] flex flex-col relative overflow-hidden"
+      style={{ background: "#080612" }}
+    >
+      {/* ── PHONE MOCKUPS ── */}
+      <div className="absolute top-0 left-0 right-0 bottom-0 z-0 overflow-hidden">
+        {/* Ambient glow */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 55% at 50% 35%, rgba(139,92,246,0.14) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* Left phone */}
+        <PhoneCard
+          profile={PHONE_PROFILES[1]}
+          width={SW}
+          height={SH}
+          style={{
+            top: "6%",
+            left: "calc(50% - 220px)",
+            transform: "rotate(-13deg)",
+            zIndex: 1,
+            opacity: 0.88,
+          }}
+          delay={0.15}
+        />
+
+        {/* Center phone */}
+        <PhoneCard
+          profile={PHONE_PROFILES[0]}
+          width={PW}
+          height={PH}
+          style={{
+            top: "2%",
+            left: "50%",
+            transform: "translateX(-50%) rotate(4deg)",
+            zIndex: 3,
+          }}
+          delay={0}
+        />
+
+        {/* Right phone */}
+        <PhoneCard
+          profile={PHONE_PROFILES[2]}
+          width={SW}
+          height={SH}
+          style={{
+            top: "9%",
+            left: "calc(50% + 70px)",
+            transform: "rotate(16deg)",
+            zIndex: 2,
+            opacity: 0.88,
+          }}
+          delay={0.25}
+        />
       </div>
 
-      <div className="flex-1 relative z-10 w-full max-w-md mx-auto px-6 py-12 flex flex-col justify-between">
-        
-        {/* Header & Logo */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+      {/* Bottom gradient scrim */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to top, #080612 38%, rgba(8,6,18,0.95) 54%, rgba(8,6,18,0.6) 68%, rgba(8,6,18,0.15) 82%, transparent 100%)",
+        }}
+      />
+
+      {/* ── CONTENT ── */}
+      <div className="relative z-10 mt-auto w-full max-w-md mx-auto px-6 pt-4 pb-8 flex flex-col items-center">
+        {/* Logo + tagline */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex flex-col items-center text-center mt-4"
+          transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+          className="flex flex-col items-center mb-7"
         >
-          <KixxMeLogo size={100} badge glow />
-          <h1 className="mt-6 font-display text-6xl tracking-tight text-gradient-brand leading-none">
+          <KixxMeLogo size={56} badge glow />
+          <h1 className="mt-4 font-display text-5xl tracking-tight text-gradient-brand leading-none">
             KIXXME
           </h1>
-          <p className="mt-3 text-[15px] font-medium text-white/70 max-w-[280px] leading-relaxed">
-            Tu próxima conexión empieza aquí. Descubre una comunidad vibrante.
+          <p className="mt-2 text-[14px] font-medium text-white/50 text-center leading-snug max-w-[240px]">
+            Conoce chicos. Haz conexiones reales.
           </p>
         </motion.div>
 
-        {/* Carousel */}
-        <div className="my-10 h-[190px] relative w-full" data-testid="carousel-info">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
-              className="absolute inset-0 flex flex-col items-center text-center px-4"
-              data-testid={`card-info-${activeIndex}`}
-            >
-              <div 
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-5 shadow-lg glow-purple"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}
-              >
-                {INFO_CARDS[activeIndex].icon}
-              </div>
-              <h3 className="font-display tracking-wide text-2xl text-white mb-2">
-                {INFO_CARDS[activeIndex].title}
-              </h3>
-              <p className="text-[13px] text-white/60 leading-relaxed max-w-[300px]">
-                {INFO_CARDS[activeIndex].desc}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Dots */}
-          <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-            {INFO_CARDS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveIndex(i)}
-                className={`transition-all duration-300 rounded-full ${
-                  i === activeIndex ? "w-6 h-1.5 bg-[#d946ef] shadow-[0_0_8px_rgba(217,70,239,0.8)]" : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
-                }`}
-                aria-label={`Ir a diapositiva ${i + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Auth CTAs */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+        {/* CTA buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="flex flex-col gap-3 w-full mt-4"
+          transition={{ duration: 0.7, delay: 0.45, ease: "easeOut" }}
+          className="flex flex-col gap-3 w-full"
         >
           <Button
             type="button"
@@ -210,40 +536,32 @@ export default function Welcome() {
               )}
             </>
           )}
-
-          <Link
-            href="/forgot-password"
-            className="mt-4 text-center text-sm font-medium text-white/50 hover:text-white transition-colors"
-            data-testid="link-forgot"
-          >
-            He olvidado mi contraseña
-          </Link>
         </motion.div>
 
-        {/* Redes sociales oficiales */}
+        {/* Social links */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="mt-8 flex flex-col items-center gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.65, ease: "easeOut" }}
+          className="mt-7 flex flex-col items-center gap-3 w-full"
           data-testid="section-social"
         >
           <div className="flex items-center gap-3 w-full">
-            <span className="h-px flex-1 bg-white/10" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+            <span className="h-px flex-1 bg-white/8" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
               Síguenos en redes
             </span>
-            <span className="h-px flex-1 bg-white/10" />
+            <span className="h-px flex-1 bg-white/8" />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <a
               href="https://www.instagram.com/kixxmeapp"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Síguenos en Instagram"
               data-testid="link-instagram"
-              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+              className="flex items-center justify-center w-11 h-11 rounded-xl border border-white/8 bg-white/4 text-white/60 hover:bg-white/10 hover:text-white transition-all"
             >
               <InstagramIcon />
             </a>
@@ -253,7 +571,7 @@ export default function Welcome() {
               rel="noopener noreferrer"
               aria-label="Síguenos en TikTok"
               data-testid="link-tiktok"
-              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+              className="flex items-center justify-center w-11 h-11 rounded-xl border border-white/8 bg-white/4 text-white/60 hover:bg-white/10 hover:text-white transition-all"
             >
               <TikTokIcon />
             </a>
@@ -263,15 +581,11 @@ export default function Welcome() {
               rel="noopener noreferrer"
               aria-label="Síguenos en X"
               data-testid="link-x"
-              className="flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white/80 backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg"
+              className="flex items-center justify-center w-11 h-11 rounded-xl border border-white/8 bg-white/4 text-white/60 hover:bg-white/10 hover:text-white transition-all"
             >
               <XIcon />
             </a>
           </div>
-
-          <p className="text-[12px] font-medium text-white/40">
-            Conecta con la comunidad KixxMe
-          </p>
         </motion.div>
 
         <LegalFooter />
@@ -301,7 +615,7 @@ function AppleIcon() {
 
 function InstagramIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="17.5" cy="6.5" r="1.25" fill="currentColor" />
@@ -311,7 +625,7 @@ function InstagramIcon() {
 
 function TikTokIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M16.6 5.82a4.28 4.28 0 0 1-2.6-3.82h-3.2v12.86a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V8.98a5.86 5.86 0 0 0-.78-.05A5.74 5.74 0 1 0 14.4 14.6V8.6a7.45 7.45 0 0 0 4.36 1.4V6.8a4.28 4.28 0 0 1-2.16-.98z" />
     </svg>
   );
@@ -319,7 +633,7 @@ function TikTokIcon() {
 
 function XIcon() {
   return (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817-5.967 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
