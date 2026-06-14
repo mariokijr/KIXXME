@@ -317,17 +317,17 @@ function MapScreen({ w }: { w: number }) {
         </div>
       ))}
 
-      {/* Bottom location pill */}
+      {/* Bottom pill — anchored to right so it's in the visible strip */}
       <div style={{
-        position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
-        padding: "3px 10px", borderRadius: 99,
-        background: "rgba(5,4,18,0.80)", border: "1px solid rgba(139,92,246,0.28)",
+        position: "absolute", bottom: 8, right: 6,
+        padding: "3px 8px", borderRadius: 99,
+        background: "rgba(5,4,18,0.82)", border: "1px solid rgba(139,92,246,0.30)",
         backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+        display: "flex", alignItems: "center", gap: 5,
       }}>
-        <MapPin style={{ width: 8, height: 8, color: "hsl(273,85%,70%)", flexShrink: 0 }} />
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.70)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
-          Madrid · España
+        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0, boxShadow: "0 0 5px #22c55e" }} />
+        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.80)", fontFamily: "Inter,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>
+          24 cerca de ti
         </span>
       </div>
     </div>
