@@ -266,18 +266,20 @@ export default function Settings() {
           </button>
         </div>
 
-        {showCancelSubscription ? (
-          <>
-            <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-              {subscription?.is_trial ? "PRUEBA GRATUITA" : "SUSCRIPCIÓN"}
-            </h2>
-            <p className="font-sans text-sm text-muted-foreground mb-5">
-              {subscription?.is_trial
-                ? "Cancela antes de que expire y no pagarás nada."
-                : "Gestiona tu plan premium."}
-            </p>
+        <>
+          <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
+            {subscription?.is_trial ? "PRUEBA GRATUITA" : "SUSCRIPCIÓN"}
+          </h2>
+          <p className="font-sans text-sm text-muted-foreground mb-5">
+            {subscription?.is_trial
+              ? "Cancela antes de que expire y no pagarás nada."
+              : subscription?.has_active_subscription
+              ? "Gestiona tu plan premium."
+              : "Accede a más funciones con un plan de pago."}
+          </p>
 
-            <div className="space-y-3 mb-8">
+          <div className="space-y-3 mb-8">
+            {showCancelSubscription ? (
               <button
                 type="button"
                 onClick={() => setLocation("/settings/cancel-subscription")}
@@ -293,9 +295,33 @@ export default function Settings() {
                 </span>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>
-            </div>
-          </>
-        ) : null}
+            ) : subscription?.has_active_subscription && subscription?.cancel_at_period_end ? (
+              <div
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40"
+                style={{ background: "rgba(13,11,26,0.7)" }}
+              >
+                <CreditCard className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <span className="flex-1 text-left font-sans text-sm text-muted-foreground">
+                  Suscripción activa · se cancela al final del período
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setLocation("/premium")}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 hover:border-border transition-colors"
+                style={{ background: "rgba(13,11,26,0.7)" }}
+                data-testid="button-view-premium"
+              >
+                <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="flex-1 text-left font-display text-base tracking-wide text-foreground">
+                  Ver planes Premium
+                </span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </>
 
         <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
           GESTIÓN DE CUENTA

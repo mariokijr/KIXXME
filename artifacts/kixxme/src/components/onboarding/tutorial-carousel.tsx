@@ -25,9 +25,10 @@ type Slide = {
   body: string;
   from: string;
   to: string;
+  /** Accent colour used for subtle text highlight */
+  accent: string;
 };
 
-// 9 topics — the full tour of what KixxMe offers, in Spanish.
 const SLIDES: Slide[] = [
   {
     icon: Sparkles,
@@ -36,6 +37,7 @@ const SLIDES: Slide[] = [
     body: "La comunidad gay en español para conocer gente cerca de ti, chatear y conectar de verdad. Te enseñamos lo esencial en un minuto.",
     from: "hsl(273,85%,55%)",
     to: "hsl(330,85%,52%)",
+    accent: "hsl(273,85%,72%)",
   },
   {
     icon: Compass,
@@ -44,6 +46,7 @@ const SLIDES: Slide[] = [
     body: "Desliza tarjetas estilo Tinder, explora la cuadrícula o ábrete al mapa con filtros por cercanía. Tú decides cómo descubrir.",
     from: "hsl(258,85%,58%)",
     to: "hsl(291,85%,55%)",
+    accent: "hsl(258,85%,78%)",
   },
   {
     icon: Heart,
@@ -52,6 +55,7 @@ const SLIDES: Slide[] = [
     body: "Da like o un Super Like para destacar. Cuando el interés es mutuo, ¡es un Match! y se abre el chat al instante.",
     from: "hsl(330,85%,55%)",
     to: "hsl(0,85%,60%)",
+    accent: "hsl(330,85%,72%)",
   },
   {
     icon: MessageCircle,
@@ -60,6 +64,7 @@ const SLIDES: Slide[] = [
     body: "Mensajes al momento con confirmaciones de lectura y contadores de no leídos. Conversa sin esperas.",
     from: "hsl(213,90%,58%)",
     to: "hsl(273,85%,55%)",
+    accent: "hsl(213,90%,75%)",
   },
   {
     icon: Mic,
@@ -68,6 +73,7 @@ const SLIDES: Slide[] = [
     body: "Comparte fotos que se abren a pantalla completa y graba notas de voz con su duración. Exprésate como quieras.",
     from: "hsl(291,85%,55%)",
     to: "hsl(330,85%,52%)",
+    accent: "hsl(291,85%,74%)",
   },
   {
     icon: LifeBuoy,
@@ -76,6 +82,7 @@ const SLIDES: Slide[] = [
     body: "¿Una duda o un problema? Escríbenos desde Soporte en español. Los usuarios Gold tienen chat de soporte prioritario.",
     from: "hsl(173,80%,45%)",
     to: "hsl(213,90%,55%)",
+    accent: "hsl(173,80%,64%)",
   },
   {
     icon: Video,
@@ -84,35 +91,37 @@ const SLIDES: Slide[] = [
     body: "Con Gold, conecta cara a cara con videollamadas aleatorias. Revela, salta a la siguiente y conoce gente al instante.",
     from: "hsl(258,85%,58%)",
     to: "hsl(330,85%,52%)",
+    accent: "hsl(258,85%,78%)",
   },
   {
     icon: Crown,
     eyebrow: "Premium",
     title: "Ventajas Plus y Gold",
-    body: "Más likes, ver quién visitó tu perfil, filtros avanzados, prioridad y mucho más. Sube de nivel cuando quieras.",
+    body: "Más likes, ver quién visitó tu perfil, filtros avanzados, prioridad en el mapa y mucho más. Sube de nivel cuando quieras.",
     from: "hsl(43,96%,56%)",
     to: "hsl(330,85%,52%)",
+    accent: "hsl(43,96%,72%)",
   },
   {
     icon: ShieldCheck,
     eyebrow: "Seguridad",
-    title: "Tu seguridad y privacidad",
-    body: "Bloquea y reporta a quien quieras, verifica tu perfil y disfruta de un espacio respetuoso. KixxMe es solo para mayores de 18 años.",
+    title: "Tu seguridad, primero",
+    body: "Bloquea y reporta a quien quieras, verifica tu perfil con foto y disfruta de un espacio respetuoso. Solo para mayores de 18.",
     from: "hsl(152,70%,45%)",
     to: "hsl(173,80%,45%)",
+    accent: "hsl(152,70%,64%)",
   },
 ];
 
-const variants = {
-  enter: (dir: number) => ({ x: dir > 0 ? 320 : -320, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir: number) => ({ x: dir > 0 ? -320 : 320, opacity: 0 }),
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0, scale: 0.94 }),
+  center: { x: 0, opacity: 1, scale: 1 },
+  exit:   (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0, scale: 0.94 }),
 };
 
 /**
- * Mandatory, swipeable, animated onboarding tour. There is no skip — the only way
- * forward is to reach the last slide and tap "Crear mi perfil", which fires
- * `onFinish` (the gate persists the tutorial flag and advances to the profile step).
+ * Mandatory, swipeable, animated onboarding tour. No skip — the only exit is
+ * the last slide's "Crear mi perfil" button, which fires `onFinish`.
  */
 export function TutorialCarousel({
   onFinish,
@@ -124,8 +133,6 @@ export function TutorialCarousel({
   const { user } = useAuth();
   const [[index, dir], setPage] = useState<[number, number]>([0, 0]);
 
-  // The tutorial has superseded the one-time welcome modal — clear its pending
-  // flag so it never pops up later behind the user's back.
   useEffect(() => {
     if (user?.id) clearWelcomePending(user.id);
   }, [user?.id]);
@@ -142,101 +149,158 @@ export function TutorialCarousel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden select-none"
       style={{
         background:
           "radial-gradient(ellipse 90% 55% at 50% 0%, hsl(270 35% 10%) 0%, hsl(238 25% 4%) 65%)",
       }}
       data-testid="onboarding-tutorial"
     >
-      {/* Ambient gradient glow that shifts per slide. */}
+      {/* ── Large background glow ── */}
       <motion.div
         key={`glow-${index}`}
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 0.55, scale: 1 }}
+        transition={{ duration: 0.6 }}
+        className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full blur-3xl"
+        style={{ background: `radial-gradient(circle, ${slide.from}, transparent 65%)` }}
+      />
+      {/* Secondary smaller glow — opposite colour, bottom */}
+      <motion.div
+        key={`glow2-${index}`}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        className="pointer-events-none absolute -top-32 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full blur-3xl"
-        style={{ background: `radial-gradient(circle, ${slide.from}, transparent 70%)` }}
+        animate={{ opacity: 0.2 }}
+        transition={{ duration: 0.8, delay: 0.15 }}
+        className="pointer-events-none absolute -bottom-20 right-0 h-[300px] w-[300px] rounded-full blur-3xl"
+        style={{ background: `radial-gradient(circle, ${slide.to}, transparent 70%)` }}
       />
 
-      <header className="relative flex items-center justify-center pt-[calc(env(safe-area-inset-top)+20px)] pb-2">
-        <KixxMeLogo size={30} badge />
+      {/* ── Header: logo + counter ── */}
+      <header className="relative flex items-center justify-between px-6 pt-[calc(env(safe-area-inset-top)+18px)] pb-2">
+        <KixxMeLogo size={28} badge />
+        <span
+          className="font-display text-sm tracking-widest"
+          style={{ color: slide.accent }}
+        >
+          {index + 1} / {SLIDES.length}
+        </span>
       </header>
 
-      {/* Slide content */}
-      <div className="relative flex-1 flex items-center justify-center px-7">
+      {/* ── Slide content ── */}
+      <div className="relative flex-1 flex items-center justify-center px-7 overflow-hidden">
         <AnimatePresence custom={dir} mode="wait">
           <motion.div
             key={index}
             custom={dir}
-            variants={variants}
+            variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.7}
+            dragElastic={0.6}
             onDragEnd={(_e, info) => {
               if (info.offset.x < -80) paginate(1);
               else if (info.offset.x > 80) paginate(-1);
             }}
-            className="flex flex-col items-center text-center max-w-sm cursor-grab active:cursor-grabbing"
+            className="flex flex-col items-center text-center max-w-xs cursor-grab active:cursor-grabbing"
           >
+            {/* Icon container — bounces in */}
             <motion.div
-              initial={{ scale: 0.8, rotate: -6 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 18 }}
-              className="mb-8 flex h-28 w-28 items-center justify-center rounded-[28px] shadow-2xl"
-              style={{
-                background: `linear-gradient(135deg, ${slide.from}, ${slide.to})`,
-                boxShadow: `0 18px 60px -12px ${slide.from}`,
-              }}
+              initial={{ scale: 0.6, rotate: -10, y: 20 }}
+              animate={{ scale: 1, rotate: 0, y: 0 }}
+              transition={{ type: "spring", stiffness: 220, damping: 16 }}
+              className="relative mb-8 flex items-center justify-center"
             >
-              <Icon className="h-14 w-14 text-white" />
+              {/* Outer ring pulse */}
+              <motion.div
+                animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.1, 0.35] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute rounded-[36px]"
+                style={{
+                  inset: -12,
+                  background: `linear-gradient(135deg, ${slide.from}, ${slide.to})`,
+                  filter: "blur(8px)",
+                }}
+              />
+              <div
+                className="relative h-28 w-28 flex items-center justify-center rounded-[28px] shadow-2xl"
+                style={{
+                  background: `linear-gradient(145deg, ${slide.from}, ${slide.to})`,
+                  boxShadow: `0 22px 70px -14px ${slide.from}aa`,
+                }}
+              >
+                <Icon className="h-14 w-14 text-white drop-shadow-lg" />
+              </div>
             </motion.div>
 
-            <span
-              className="mb-3 rounded-full px-3 py-1 font-display text-xs tracking-[0.25em] uppercase text-white/90"
-              style={{ background: "rgba(255,255,255,0.08)" }}
+            {/* Eyebrow */}
+            <motion.span
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-3 rounded-full px-4 py-1 font-display text-xs tracking-[0.25em] uppercase"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                color: slide.accent,
+                border: `1px solid ${slide.accent}33`,
+              }}
             >
               {slide.eyebrow}
-            </span>
-            <h2 className="font-display text-4xl leading-tight tracking-wide text-white">
+            </motion.span>
+
+            {/* Title */}
+            <motion.h2
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="font-display text-[2.1rem] leading-[1.15] tracking-wide text-white"
+            >
               {slide.title}
-            </h2>
-            <p className="mt-4 font-sans text-base leading-relaxed text-white/65">
+            </motion.h2>
+
+            {/* Body */}
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 font-sans text-[0.95rem] leading-relaxed text-white/60"
+            >
               {slide.body}
-            </p>
+            </motion.p>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Progress dots */}
-      <div className="relative flex items-center justify-center gap-2 pb-6">
+      {/* ── Progress dots ── */}
+      <div className="relative flex items-center justify-center gap-2 pb-5">
         {SLIDES.map((_, i) => (
           <button
             key={i}
             onClick={() => setPage([i, i > index ? 1 : -1])}
             aria-label={`Ir a la diapositiva ${i + 1}`}
-            className="h-2 rounded-full transition-all duration-300"
+            className="h-1.5 rounded-full transition-all duration-350"
             style={{
-              width: i === index ? 26 : 8,
+              width: i === index ? 28 : 7,
               background:
                 i === index
-                  ? "linear-gradient(90deg, hsl(273,85%,60%), hsl(330,85%,55%))"
-                  : "rgba(255,255,255,0.22)",
+                  ? `linear-gradient(90deg, ${slide.from}, ${slide.to})`
+                  : i < index
+                  ? "rgba(255,255,255,0.45)"
+                  : "rgba(255,255,255,0.15)",
             }}
             data-testid={`tutorial-dot-${i}`}
           />
         ))}
       </div>
 
-      {/* Controls */}
-      <div className="relative flex items-center gap-3 px-7 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      {/* ── Navigation controls ── */}
+      <div className="relative flex items-center gap-3 px-6 pb-[calc(env(safe-area-inset-bottom)+22px)]">
         <button
           onClick={() => paginate(-1)}
           disabled={index === 0}
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white transition disabled:opacity-30"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white transition disabled:opacity-0 disabled:pointer-events-none"
           style={{ background: "rgba(255,255,255,0.08)" }}
           aria-label="Anterior"
           data-testid="tutorial-prev"
@@ -244,22 +308,26 @@ export function TutorialCarousel({
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           onClick={() => (isLast ? onFinish() : paginate(1))}
           disabled={finishing}
-          className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl font-display text-lg tracking-widest text-white shadow-lg transition active:scale-[0.98] disabled:opacity-70"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+          className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl font-display text-lg tracking-widest text-white shadow-lg disabled:opacity-70"
+          style={{
+            background: `linear-gradient(135deg, ${slide.from}, ${slide.to})`,
+            boxShadow: `0 8px 32px -8px ${slide.from}99`,
+          }}
           data-testid={isLast ? "tutorial-finish" : "tutorial-next"}
         >
           {finishing ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <>
-              {isLast ? "Crear mi perfil" : "Siguiente"}
+              <span>{isLast ? "Crear mi perfil" : "Siguiente"}</span>
               <ArrowRight className="h-5 w-5" />
             </>
           )}
-        </button>
+        </motion.button>
       </div>
     </div>
   );
