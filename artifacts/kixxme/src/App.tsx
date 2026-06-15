@@ -53,15 +53,52 @@ import {
 function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="h-[100dvh] flex flex-col"
-      style={{
-        background:
-          "radial-gradient(ellipse 120% 55% at 50% 0%, hsl(270 40% 9%) 0%, hsl(238 30% 4%) 55%)",
-      }}
+      className="h-[100dvh] flex flex-col relative"
+      style={{ background: "hsl(238,28%,4%)" }}
     >
+      {/* Aurora ambient glow — fixed behind all content */}
       <div
-        className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 0 }}
+        aria-hidden
+      >
+        <div
+          className="absolute"
+          style={{
+            top: "-30%",
+            left: "10%",
+            width: "80%",
+            height: "65%",
+            background: "radial-gradient(ellipse, rgba(139,92,246,0.30) 0%, transparent 68%)",
+            filter: "blur(52px)",
+          }}
+        />
+        <div
+          className="absolute"
+          style={{
+            top: "20%",
+            right: "-20%",
+            width: "60%",
+            height: "50%",
+            background: "radial-gradient(ellipse, rgba(236,72,153,0.15) 0%, transparent 70%)",
+            filter: "blur(64px)",
+          }}
+        />
+        <div
+          className="absolute"
+          style={{
+            bottom: "5%",
+            left: "-12%",
+            width: "48%",
+            height: "38%",
+            background: "radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, transparent 70%)",
+            filter: "blur(52px)",
+          }}
+        />
+      </div>
+      <div
+        className="flex-1 overflow-y-auto relative"
+        style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))", zIndex: 1 }}
       >
         {children}
       </div>

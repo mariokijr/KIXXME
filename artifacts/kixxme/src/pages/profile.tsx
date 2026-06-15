@@ -461,7 +461,7 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Básico ── */}
-      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
         <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
@@ -501,7 +501,7 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Preferencias ── */}
-      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
         <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Preferencias</p>
         <div className="grid grid-cols-2 gap-3">
           <SelectField
@@ -532,7 +532,7 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Sobre mí ── */}
-      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-4">
+      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
         <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Sobre mí</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
@@ -593,7 +593,7 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Intereses ── */}
-      <div className="px-4 border-t border-border/15 pt-5 pb-5 space-y-3">
+      <div className="px-4 pt-5 pb-5 space-y-3" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
         <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>
           Intereses · hasta 20
         </p>
@@ -601,7 +601,7 @@ export default function Profile() {
       </div>
 
       {/* ── Ubicación + Guardar ── */}
-      <div className="px-4 border-t border-border/15 pt-5 pb-6 space-y-3">
+      <div className="px-4 pt-5 pb-6 space-y-3" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
         <button
           type="button"
           onClick={handleUseLocation}

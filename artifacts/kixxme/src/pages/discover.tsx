@@ -284,6 +284,8 @@ function GridDiscover({
         )}
       </div>
 
+      <div className="divider-brand mx-4 mb-1" />
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -408,21 +410,21 @@ export function UserCard({
     <div
       className={`relative rounded-2xl overflow-hidden border group${featured ? " col-span-2" : ""}`}
       style={{
-        background: "rgba(13,11,26,0.8)",
+        background: "rgba(13,11,26,0.85)",
         aspectRatio: "3/4",
         borderColor:
           user.plan === "gold"
-            ? "rgba(251,191,36,0.48)"
+            ? "rgba(251,191,36,0.60)"
             : user.plan === "plus"
-            ? "rgba(168,85,247,0.42)"
+            ? "rgba(168,85,247,0.52)"
             : "rgba(255,255,255,0.10)",
         boxShadow:
           user.plan === "gold"
-            ? "0 0 22px rgba(251,191,36,0.18), 0 4px 16px rgba(0,0,0,0.5)"
+            ? "0 0 32px rgba(251,191,36,0.28), 0 0 60px rgba(251,191,36,0.10), 0 4px 20px rgba(0,0,0,0.55)"
             : user.plan === "plus"
-            ? "0 0 16px rgba(168,85,247,0.16), 0 4px 16px rgba(0,0,0,0.5)"
+            ? "0 0 24px rgba(168,85,247,0.26), 0 0 50px rgba(168,85,247,0.09), 0 4px 18px rgba(0,0,0,0.5)"
             : user.is_online
-            ? "0 0 14px rgba(74,222,128,0.13), 0 4px 14px rgba(0,0,0,0.4)"
+            ? "0 0 18px rgba(74,222,128,0.16), 0 4px 14px rgba(0,0,0,0.4)"
             : "0 4px 14px rgba(0,0,0,0.4)",
       }}
     >
@@ -441,6 +443,26 @@ export function UserCard({
             </span>
           </div>
         </>
+      )}
+
+      {/* Plan-colour ambient tint at the top of the card */}
+      {user.plan === "gold" && (
+        <div
+          className="absolute top-0 left-0 right-0 h-20 pointer-events-none animate-shimmer-gold"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(251,191,36,0.32) 0%, transparent 100%)",
+          }}
+        />
+      )}
+      {user.plan === "plus" && (
+        <div
+          className="absolute top-0 left-0 right-0 h-16 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(168,85,247,0.26) 0%, transparent 100%)",
+          }}
+        />
       )}
 
       <div className="absolute top-2 left-2 flex items-center gap-1.5">
