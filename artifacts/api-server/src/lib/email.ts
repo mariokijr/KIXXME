@@ -10,7 +10,7 @@ import { deliverEmail } from "./email-transport.js";
  */
 export const SUPPORT_EMAIL = "supportkixxme@gmail.com";
 /** Public-facing contact address shown inside email templates. */
-export const CONTACT_EMAIL = "support@kixxme.com";
+export const CONTACT_EMAIL = "supportkixxme@gmail.com";
 const FROM = `KixxMe <${SUPPORT_EMAIL}>`;
 
 /**
