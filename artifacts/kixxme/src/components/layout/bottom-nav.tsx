@@ -26,15 +26,15 @@ export default function BottomNav() {
         borderTop: "1px solid rgba(168,85,247,0.08)",
       }}
     >
-      {/* Gradient glow line at top */}
+      {/* Gradient glow line at top — two-layer for more depth */}
       <div
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.7) 25%, rgba(236,72,153,0.6) 55%, rgba(139,92,246,0.5) 80%, transparent 100%)" }}
+        className="absolute top-0 left-0 right-0 h-[1.5px]"
+        style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.90) 20%, rgba(236,72,153,0.80) 50%, rgba(168,85,247,0.75) 75%, transparent 100%)", boxShadow: "0 0 12px 1px rgba(168,85,247,0.35)" }}
       />
-      {/* Upward bloom */}
+      {/* Upward bloom — taller and warmer */}
       <div
-        className="absolute top-0 left-0 right-0 h-6 pointer-events-none"
-        style={{ background: "linear-gradient(to top, transparent 0%, rgba(168,85,247,0.06) 100%)" }}
+        className="absolute top-0 left-0 right-0 h-10 pointer-events-none"
+        style={{ background: "linear-gradient(to top, transparent 0%, rgba(168,85,247,0.10) 70%, rgba(168,85,247,0.14) 100%)" }}
       />
       <div className="flex justify-around items-center h-16 max-w-xl mx-auto px-2">
         {tabs.map(({ href, Icon, label }) => {
@@ -49,18 +49,18 @@ export default function BottomNav() {
               {active && (
                 <>
                   <span
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] rounded-full"
                     style={{
-                      background: "linear-gradient(90deg, hsl(273,85%,65%), hsl(330,85%,60%))",
-                      boxShadow: "0 0 12px rgba(168,85,247,0.8), 0 0 24px rgba(168,85,247,0.4)",
+                      background: "linear-gradient(90deg, hsl(290,90%,70%), hsl(273,85%,65%), hsl(330,90%,62%))",
+                      boxShadow: "0 0 16px rgba(168,85,247,1.0), 0 0 32px rgba(168,85,247,0.55), 0 0 6px rgba(236,72,153,0.4)",
                     }}
                   />
-                  {/* glow bloom below the active bar */}
+                  {/* glow bloom below the active bar — wider + brighter */}
                   <span
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 pointer-events-none"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 pointer-events-none"
                     style={{
-                      background: "radial-gradient(ellipse, rgba(168,85,247,0.30) 0%, transparent 70%)",
-                      filter: "blur(4px)",
+                      background: "radial-gradient(ellipse, rgba(168,85,247,0.42) 0%, rgba(236,72,153,0.18) 45%, transparent 75%)",
+                      filter: "blur(5px)",
                     }}
                   />
                 </>

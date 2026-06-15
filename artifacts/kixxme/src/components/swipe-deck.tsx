@@ -662,10 +662,10 @@ export function SwipeView({
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.6) 30%, rgba(236,72,153,0.5) 70%, transparent 100%)" }}
         />
-        {/* Subtle glow bloom beneath header */}
+        {/* Glow bloom beneath header */}
         <div
-          className="absolute -bottom-4 left-0 right-0 h-8 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.08) 0%, transparent 100%)" }}
+          className="absolute -bottom-6 left-0 right-0 h-10 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.12) 0%, rgba(236,72,153,0.04) 60%, transparent 100%)" }}
         />
         <KixxMeLogo size={20} withWordmark />
 

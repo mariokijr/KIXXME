@@ -233,6 +233,8 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
       <Route path="/legal">{() => <LegalPage />}</Route>
+      <Route path="/privacy">{() => <LegalPage slug="privacidad" />}</Route>
+      <Route path="/terms">{() => <LegalPage slug="terminos" />}</Route>
       <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
       <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
       <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>

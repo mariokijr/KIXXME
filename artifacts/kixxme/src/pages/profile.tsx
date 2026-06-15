@@ -363,16 +363,21 @@ export default function Profile() {
       {/* ── Ambient background orbs (fixed, behind everything) ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
-          className="absolute top-0 right-1/4 w-96 h-96 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 65%)", filter: "blur(52px)", transform: "translateY(-25%)" }}
+          className="absolute top-0 right-1/4 w-[28rem] h-[28rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.28) 0%, rgba(168,85,247,0.06) 60%, transparent 80%)", filter: "blur(48px)", transform: "translateY(-25%)" }}
         />
         <div
-          className="absolute top-1/2 -left-20 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%)", filter: "blur(48px)" }}
+          className="absolute top-1/2 -left-24 w-80 h-80 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, rgba(236,72,153,0.04) 65%, transparent 85%)", filter: "blur(44px)" }}
         />
         <div
-          className="absolute bottom-0 right-0 w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.13) 0%, transparent 70%)", filter: "blur(44px)", transform: "translate(20%,20%)" }}
+          className="absolute bottom-0 right-0 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(42px)", transform: "translate(20%,20%)" }}
+        />
+        {/* Centre vertical glow — warms the form */}
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)", filter: "blur(60px)" }}
         />
       </div>
 
@@ -426,13 +431,13 @@ export default function Profile() {
       <div
         className="flex items-center gap-4 px-4 pt-5 pb-4 relative z-10"
         style={{
-          background: "linear-gradient(180deg, rgba(139,92,246,0.10) 0%, rgba(100,60,200,0.04) 60%, transparent 100%)",
+          background: "linear-gradient(180deg, rgba(139,92,246,0.18) 0%, rgba(168,85,247,0.08) 50%, transparent 100%)",
         }}
       >
-        {/* subtle glow behind avatar */}
+        {/* glow behind avatar */}
         <div
-          className="absolute top-2 left-2 w-28 h-28 rounded-2xl pointer-events-none"
-          style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.50) 0%, transparent 70%)", filter: "blur(20px)" }}
+          className="absolute top-0 left-0 w-40 h-32 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at 20% 40%, rgba(168,85,247,0.55) 0%, rgba(236,72,153,0.18) 45%, transparent 70%)", filter: "blur(18px)" }}
         />
         <div data-testid="avatar-container" className="flex-shrink-0 relative z-10">
           <Avatar className="w-20 h-20 border-2 border-primary/60 rounded-2xl"
@@ -490,8 +495,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Básico ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(168,85,247,0.05) 0%, transparent 40%)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 14px rgba(168,85,247,0.6)" }}>Básico</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.45)", background: "linear-gradient(180deg, rgba(168,85,247,0.09) 0%, rgba(168,85,247,0.02) 60%, transparent 100%)", boxShadow: "0 -1px 0 rgba(168,85,247,0.08)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,78%)", textShadow: "0 0 18px rgba(168,85,247,0.80), 0 0 6px rgba(168,85,247,0.50)" }}>Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
             className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
@@ -530,8 +535,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Preferencias ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.25)", background: "linear-gradient(180deg, rgba(236,72,153,0.04) 0%, transparent 40%)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(330,80%,72%)", textShadow: "0 0 14px rgba(236,72,153,0.5)" }}>Preferencias</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.40)", background: "linear-gradient(180deg, rgba(236,72,153,0.08) 0%, rgba(236,72,153,0.02) 60%, transparent 100%)", boxShadow: "0 -1px 0 rgba(236,72,153,0.08)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(330,80%,76%)", textShadow: "0 0 18px rgba(236,72,153,0.75), 0 0 6px rgba(236,72,153,0.40)" }}>Preferencias</p>
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             label="Rol"
@@ -561,8 +566,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Sobre mí ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(139,92,246,0.05) 0%, transparent 40%)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 14px rgba(168,85,247,0.6)" }}>Sobre mí</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.45)", background: "linear-gradient(180deg, rgba(139,92,246,0.09) 0%, rgba(139,92,246,0.02) 60%, transparent 100%)", boxShadow: "0 -1px 0 rgba(168,85,247,0.08)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,78%)", textShadow: "0 0 18px rgba(168,85,247,0.80), 0 0 6px rgba(168,85,247,0.50)" }}>Sobre mí</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
             <input
@@ -622,15 +627,15 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Intereses ── */}
-      <div className="px-4 pt-5 pb-5 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.25)", background: "linear-gradient(180deg, rgba(236,72,153,0.04) 0%, transparent 40%)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(330,80%,72%)", textShadow: "0 0 14px rgba(236,72,153,0.5)" }}>
+      <div className="px-4 pt-5 pb-5 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.40)", background: "linear-gradient(180deg, rgba(236,72,153,0.08) 0%, rgba(236,72,153,0.02) 60%, transparent 100%)", boxShadow: "0 -1px 0 rgba(236,72,153,0.08)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(330,80%,76%)", textShadow: "0 0 18px rgba(236,72,153,0.75), 0 0 6px rgba(236,72,153,0.40)" }}>
           Intereses · hasta 20
         </p>
         <TagPicker selected={interests} onChange={setInterests} max={20} />
       </div>
 
       {/* ── Ubicación + Guardar ── */}
-      <div className="px-4 pt-5 pb-6 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(168,85,247,0.04) 0%, transparent 40%)" }}>
+      <div className="px-4 pt-5 pb-6 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.45)", background: "linear-gradient(180deg, rgba(168,85,247,0.09) 0%, rgba(168,85,247,0.02) 60%, transparent 100%)", boxShadow: "0 -1px 0 rgba(168,85,247,0.08)" }}>
         <button
           type="button"
           onClick={handleUseLocation}
@@ -669,7 +674,7 @@ export default function Profile() {
         <Button onClick={handleSave}
           disabled={(updateProfile.isPending || updateInterests.isPending) || (!isDirty && !interestsDirty)}
           className="w-full h-13 rounded-xl font-display text-xl tracking-widest border-0 text-white hover:opacity-90 transition-opacity disabled:opacity-40"
-          style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+          style={{ background: "linear-gradient(135deg, hsl(290,90%,58%) 0%, hsl(273,85%,55%) 40%, hsl(330,90%,52%) 100%)", boxShadow: "0 4px 28px rgba(168,85,247,0.45), 0 2px 8px rgba(236,72,153,0.25)" }}
           data-testid="button-save-profile">
           {updateProfile.isPending ? "Guardando..." : isOnboarding ? "Completar perfil →" : "Guardar cambios"}
         </Button>

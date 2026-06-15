@@ -24,6 +24,8 @@ const PUBLIC_PATHS = new Set([
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
+  "/privacy",
+  "/terms",
 ]);
 const PUBLIC_PREFIXES = ["/legal"];
 

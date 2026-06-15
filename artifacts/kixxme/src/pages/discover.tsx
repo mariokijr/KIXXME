@@ -224,25 +224,35 @@ function GridDiscover({
       {/* ── Ambient background orbs ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
-          className="absolute -top-16 left-1/4 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 70%)", filter: "blur(48px)" }}
+          className="absolute -top-20 left-1/4 w-[26rem] h-[26rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.30) 0%, rgba(168,85,247,0.08) 55%, transparent 75%)", filter: "blur(44px)" }}
         />
         <div
-          className="absolute top-1/3 -right-16 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%)", filter: "blur(56px)" }}
+          className="absolute top-1/3 -right-20 w-80 h-80 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.06) 60%, transparent 80%)", filter: "blur(50px)" }}
         />
         <div
-          className="absolute bottom-1/4 left-0 w-56 h-56 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)", filter: "blur(44px)" }}
+          className="absolute bottom-1/4 -left-8 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(40px)" }}
+        />
+        {/* Extra warm accent at top-right */}
+        <div
+          className="absolute top-0 right-0 w-48 h-48 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
         />
       </div>
       <header
         className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative"
-        style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
+        style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
         <div
           className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 35%, rgba(236,72,153,0.45) 65%, transparent 100%)" }}
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.75) 30%, rgba(236,72,153,0.65) 60%, rgba(139,92,246,0.55) 80%, transparent 100%)" }}
+        />
+        {/* Downward glow bloom from header */}
+        <div
+          className="absolute -bottom-6 left-0 right-0 h-8 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.10) 0%, transparent 100%)" }}
         />
         <div className="flex items-center gap-2">
           <KixxMeLogo size={22} withWordmark />
@@ -288,10 +298,10 @@ function GridDiscover({
         <h2
           className="font-display text-3xl tracking-wide leading-tight"
           style={{
-            background: "linear-gradient(90deg, hsl(273,85%,78%), hsl(330,85%,70%))",
+            background: "linear-gradient(110deg, hsl(290,90%,80%) 0%, hsl(273,85%,72%) 40%, hsl(330,90%,68%) 80%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.3))",
+            filter: "drop-shadow(0 0 28px rgba(168,85,247,0.50)) drop-shadow(0 0 8px rgba(236,72,153,0.25))",
           }}
         >
           {heading}

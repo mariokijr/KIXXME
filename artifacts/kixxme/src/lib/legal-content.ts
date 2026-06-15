@@ -18,12 +18,13 @@ export interface LegalDoc {
   blocks: LegalBlock[];
 }
 
-const UPDATED = "11 de junio de 2026";
+const UPDATED = "15 de junio de 2026";
 const SUPPORT_EMAIL = "supportkixxme@gmail.com";
+const DELETE_EMAIL = "mariokimbm2003@gmail.com";
 
-export const LEGAL_LINKS: { slug: string; label: string }[] = [
-  { slug: "privacidad", label: "Política de privacidad" },
-  { slug: "terminos", label: "Términos y condiciones" },
+export const LEGAL_LINKS: { slug: string; label: string; path?: string }[] = [
+  { slug: "privacidad", label: "Política de privacidad", path: "/privacy" },
+  { slug: "terminos", label: "Términos y condiciones", path: "/terms" },
   { slug: "cookies", label: "Política de cookies" },
   { slug: "normas-comunidad", label: "Normas de la comunidad" },
   { slug: "contacto", label: "Contacto" },
@@ -42,7 +43,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "1. Responsable del tratamiento",
         body: [
-          "El responsable del tratamiento de tus datos es el titular del servicio KixxMe (en adelante, “KixxMe”, “nosotros”). Puedes contactar con nosotros para cualquier cuestión relacionada con la privacidad en " +
+          'El responsable del tratamiento de tus datos es el titular del servicio KixxMe (en adelante, \u201cKixxMe\u201d, \u201cnosotros\u201d). Puedes contactar con nosotros para cualquier cuesti\u00f3n relacionada con la privacidad en ' +
             SUPPORT_EMAIL +
             ".",
         ],
@@ -52,9 +53,10 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
         body: ["Recopilamos los siguientes datos para que la aplicación funcione:"],
         list: [
           "Datos de cuenta: dirección de correo electrónico, nombre de usuario y contraseña (almacenada de forma cifrada por nuestro proveedor de autenticación).",
+          "Inicio de sesión con Google: cuando te registras o inicias sesión con Google, recopilamos tu nombre completo, dirección de correo electrónico, foto de perfil de Google y los datos básicos de autenticación que Google comparte con nosotros (identificador de cuenta, token de acceso). Estos datos se utilizan exclusivamente para crear y gestionar tu cuenta en KixxMe.",
           "Datos de perfil: edad, ciudad, biografía, fotografías, rol/preferencia y qué buscas.",
           "Ubicación: ubicación aproximada para mostrarte personas cercanas y calcular distancias, solo si concedes el permiso. Puedes usar la app sin ubicación con funciones reducidas.",
-          "Contenido y actividad: mensajes de chat, imágenes enviadas, “me gusta”, “super me gusta”, coincidencias (matches) y personas que visitan tu perfil.",
+          'Contenido y actividad: mensajes de chat, im\u00e1genes enviadas, \u201cme gusta\u201d, \u201csuper me gusta\u201d, coincidencias (matches) y personas que visitan tu perfil.',
           "Verificación: si solicitas la insignia de verificación, una selfie de identidad que se guarda en un almacenamiento privado y solo es accesible por nuestro equipo de moderación mediante enlaces temporales.",
           "Datos de pago: si te suscribes a Plus o Gold, los pagos se procesan a través de Stripe. No almacenamos los datos completos de tu tarjeta.",
           "Datos técnicos: información básica del dispositivo y de uso necesaria para la seguridad y el correcto funcionamiento del servicio.",
@@ -76,7 +78,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
           "Supabase: autenticación, base de datos y almacenamiento.",
           "Stripe: procesamiento de pagos y suscripciones.",
           "LiveKit: infraestructura de las videollamadas (las llamadas no se graban).",
-          "Google y Apple: inicio de sesión social, si decides usarlo.",
+          "Google: inicio de sesión social y autenticación, si decides usarlo.",
           "Proveedor de correo: envío de correos transaccionales (bienvenida, coincidencias, notificaciones).",
         ],
       },
@@ -87,11 +89,13 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
         ],
       },
       {
-        heading: "6. Tus derechos",
+        heading: "6. Tus derechos y eliminación de datos",
         body: [
-          "Puedes ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad. Desde la propia app puedes editar tu perfil y eliminar tu cuenta. Para cualquier otra solicitud, escríbenos a " +
-            SUPPORT_EMAIL +
-            ". También tienes derecho a presentar una reclamación ante la autoridad de control competente.",
+          "Puedes ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad. Desde la propia app puedes editar tu perfil y eliminar tu cuenta en los ajustes.",
+          "Para solicitar la eliminación de tu cuenta y todos tus datos personales, también puedes escribirnos directamente a " +
+            DELETE_EMAIL +
+            " indicando el correo de tu cuenta. Procesaremos tu solicitud en un plazo máximo de 30 días.",
+          "También tienes derecho a presentar una reclamación ante la autoridad de control competente.",
         ],
       },
       {
@@ -132,7 +136,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "2. Tu cuenta",
         body: [
-          "Eres responsable de mantener la confidencialidad de tus credenciales y de toda la actividad realizada desde tu cuenta. Debes notificarnos cualquier uso no autorizado. Puedes registrarte con correo y contraseña o mediante inicio de sesión con Google o Apple.",
+          "Eres responsable de mantener la confidencialidad de tus credenciales y de toda la actividad realizada desde tu cuenta. Debes notificarnos cualquier uso no autorizado. Puedes registrarte con correo y contraseña o mediante inicio de sesión con Google.",
         ],
       },
       {
@@ -148,38 +152,48 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
         ],
       },
       {
-        heading: "5. Suscripciones y pagos",
+        heading: "5. Propiedad intelectual",
+        body: [
+          "La marca KixxMe, su logotipo, el diseño de la plataforma y el software son propiedad del titular del servicio o de sus licenciantes. Queda prohibida su reproducción, distribución o uso con fines comerciales sin autorización expresa por escrito. El contenido publicado por las personas usuarias es responsabilidad de cada una de ellas y no transfiere derechos de propiedad intelectual a KixxMe más allá de la licencia necesaria para operar el servicio.",
+        ],
+      },
+      {
+        heading: "6. Suscripciones y pagos",
         body: [
           "KixxMe ofrece suscripciones de pago (Plus y Gold) en modalidad mensual o anual, gestionadas a través de Stripe. Las suscripciones se renuevan automáticamente al final de cada periodo salvo que las canceles antes de la renovación. Puedes gestionar o cancelar tu suscripción según las opciones disponibles; los precios se muestran en la página de Premium.",
         ],
       },
       {
-        heading: "6. Verificación",
+        heading: "7. Verificación",
         body: [
           "La verificación de perfil es opcional y sirve para aumentar la confianza en la comunidad. El envío de una selfie de verificación implica que aceptas que nuestro equipo la revise con esa finalidad.",
         ],
       },
       {
-        heading: "7. Suspensión y cancelación",
+        heading: "8. Suspensión y cancelación de cuentas",
         body: [
-          "Podemos advertir, suspender, eliminar o cancelar cuentas que incumplan estos términos o las Normas de la comunidad. Tú también puedes desactivar o eliminar tu cuenta en cualquier momento desde los ajustes.",
+          "Nos reservamos el derecho de advertir, suspender temporalmente, eliminar o cancelar de forma permanente cualquier cuenta que incumpla estos términos, las Normas de la comunidad o la legislación aplicable, sin previo aviso en casos graves. Entre las conductas que pueden dar lugar a la suspensión o cancelación se incluyen: el acoso, la suplantación de identidad, la publicación de contenido ilegal, el spam y cualquier comportamiento que ponga en riesgo la seguridad de otros usuarios.",
+          "Tú también puedes desactivar o eliminar tu cuenta en cualquier momento desde los ajustes de la aplicación.",
         ],
       },
       {
-        heading: "8. Exención y limitación de responsabilidad",
+        heading: "9. Limitación de responsabilidad",
         body: [
-          "KixxMe es una plataforma para conocer personas; no garantizamos resultados ni verificamos la identidad de todas las personas usuarias. Debes actuar con prudencia al interactuar y al quedar con otras personas. En la medida permitida por la ley, no seremos responsables de daños indirectos derivados del uso del servicio.",
+          "KixxMe es una plataforma para conocer personas; no garantizamos resultados ni verificamos la identidad de todas las personas usuarias. Debes actuar con prudencia al interactuar y al quedar con otras personas.",
+          "En la medida máxima permitida por la ley aplicable, KixxMe no será responsable de daños indirectos, incidentales, especiales o consecuentes derivados del uso o la imposibilidad de uso del servicio, incluyendo pérdida de datos, interrupción del servicio o daños derivados de las interacciones con otros usuarios.",
         ],
       },
       {
-        heading: "9. Ley aplicable",
+        heading: "10. Ley aplicable",
         body: [
           "Estos términos se rigen por la legislación aplicable en el domicilio del titular del servicio, sin perjuicio de los derechos que te correspondan como persona consumidora.",
         ],
       },
       {
-        heading: "10. Contacto",
-        body: ["Para cualquier duda sobre estos términos, escríbenos a " + SUPPORT_EMAIL + "."],
+        heading: "11. Contacto",
+        body: [
+          "Para cualquier duda sobre estos términos, escríbenos a " + SUPPORT_EMAIL + ". Para solicitudes de eliminación de datos, contacta a " + DELETE_EMAIL + ".",
+        ],
       },
     ],
   },
@@ -212,7 +226,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "3. Servicios de terceros",
         body: [
-          "Algunos proveedores (como Supabase, Stripe o el inicio de sesión con Google/Apple) pueden establecer sus propias cookies o almacenamiento cuando utilizas sus funciones, conforme a sus respectivas políticas.",
+          "Algunos proveedores (como Supabase, Stripe o el inicio de sesión con Google) pueden establecer sus propias cookies o almacenamiento cuando utilizas sus funciones, conforme a sus respectivas políticas.",
         ],
       },
       {
@@ -307,9 +321,17 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
         ],
       },
       {
-        heading: "Privacidad y asuntos legales",
+        heading: "Privacidad y eliminación de datos",
         body: [
-          "Para solicitudes relacionadas con la privacidad, tus datos o cuestiones legales, utiliza el mismo correo " +
+          "Para solicitar la eliminación de tu cuenta y tus datos personales, escríbenos a " +
+            DELETE_EMAIL +
+            " indicando el correo de tu cuenta. También puedes eliminar tu cuenta directamente desde los ajustes de la app.",
+        ],
+      },
+      {
+        heading: "Asuntos legales",
+        body: [
+          "Para cuestiones legales, utiliza el mismo correo " +
             SUPPORT_EMAIL +
             " indicando el motivo de tu consulta.",
         ],
@@ -338,7 +360,7 @@ export const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: "Objeto",
         body: [
-          "KixxMe es una aplicación social y de citas dirigida a personas mayores de 18 años de la comunidad gay, trans y LGBTQ+, que permite crear un perfil, descubrir personas cercanas, dar “me gusta”, chatear y realizar videollamadas.",
+          'KixxMe es una aplicación social y de citas dirigida a personas mayores de 18 años de la comunidad gay, trans y LGBTQ+, que permite crear un perfil, descubrir personas cercanas, dar \\u201cme gusta\\u201d, chatear y realizar videollamadas.',
         ],
       },
       {
