@@ -10,7 +10,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { LegalFooter } from "@/components/legal-footer";
-import { isIOS } from "@/lib/platform";
 import { motion } from "framer-motion";
 import bgImage from "@/assets/bg-neon-bokeh.png";
 
@@ -25,8 +24,7 @@ export default function Login() {
   const search = useSearch();
   const confirmEmail = new URLSearchParams(search).get("confirm") === "1";
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [loadingProvider, setLoadingProvider] = React.useState<"google" | "apple" | null>(null);
-  const showApple = isIOS();
+  const [loadingProvider, setLoadingProvider] = React.useState<"google" | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,7 +46,7 @@ export default function Login() {
     }
   };
 
-  const handleProvider = async (provider: "google" | "apple") => {
+  const handleProvider = async (provider: "google") => {
     setLoadingProvider(provider);
     try {
       await loginWithProvider(provider);
@@ -56,7 +54,7 @@ export default function Login() {
       setLoadingProvider(null);
       toast({
         title: "No disponible",
-        description: e?.message ?? `El inicio de sesión con ${provider === "google" ? "Google" : "Apple"} no está disponible ahora mismo.`,
+        description: e?.message ?? "El inicio de sesión con Google no está disponible ahora mismo.",
         variant: "destructive",
       });
     }
@@ -172,19 +170,6 @@ export default function Login() {
                     {loadingProvider === "google" ? "Conectando..." : "Google"}
                   </Button>
 
-                  {showApple && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={loadingProvider !== null}
-                      onClick={() => handleProvider("apple")}
-                      className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
-                      data-testid="button-apple"
-                    >
-                      <AppleIcon />
-                      {loadingProvider === "apple" ? "Conectando..." : "Apple"}
-                    </Button>
-                  )}
                 </div>
               </>
             )}
@@ -215,10 +200,3 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true">
-      <path d="M16.36 1.43c0 1.14-.42 2.2-1.25 3.06-.99 1.02-2.18 1.61-3.47 1.51a3.5 3.5 0 0 1-.03-.43c0-1.09.48-2.26 1.27-3.08.4-.42.9-.77 1.51-1.05.6-.27 1.17-.42 1.71-.44.02.15.03.29.03.43zM20.5 17.04c-.3.69-.45 1-.83 1.61-.54.85-1.3 1.91-2.24 1.92-.84.01-1.05-.55-2.18-.54-1.13 0-1.37.55-2.2.55-.95.01-1.67-.96-2.21-1.81-1.5-2.37-1.66-5.15-.73-6.63.66-1.05 1.69-1.66 2.67-1.66.99 0 1.61.55 2.43.55.8 0 1.28-.55 2.43-.55.86 0 1.78.47 2.43 1.28-2.13 1.17-1.79 4.22.4 5.28z" />
-    </svg>
-  );
-}

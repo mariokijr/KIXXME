@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { isIOS } from "@/lib/platform";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
@@ -414,10 +413,9 @@ export default function Welcome() {
   const { loginWithProvider } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
-  const showApple = isIOS();
+  const [loadingProvider, setLoadingProvider] = useState<"google" | null>(null);
 
-  const handleProvider = async (provider: "google" | "apple") => {
+  const handleProvider = async (provider: "google") => {
     setLoadingProvider(provider);
     try {
       await loginWithProvider(provider);
@@ -425,9 +423,7 @@ export default function Welcome() {
       setLoadingProvider(null);
       toast({
         title: "No disponible",
-        description:
-          e?.message ??
-          `El inicio de sesión con ${provider === "google" ? "Google" : "Apple"} no está disponible ahora mismo.`,
+        description: e?.message ?? "El inicio de sesión con Google no está disponible ahora mismo.",
         variant: "destructive",
       });
     }
@@ -594,23 +590,6 @@ export default function Welcome() {
                 Continuar con Google
               </Button>
 
-              {showApple && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={loadingProvider !== null}
-                  onClick={() => handleProvider("apple")}
-                  className="w-full h-[50px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 transition-all backdrop-blur-md"
-                  data-testid="button-apple"
-                >
-                  {loadingProvider === "apple" ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <AppleIcon />
-                  )}
-                  Continuar con Apple
-                </Button>
-              )}
             </>
           )}
         </motion.div>
@@ -677,13 +656,6 @@ function GoogleIcon() {
       <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
       <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3.01-2.33z" />
       <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
-    </svg>
-  );
-}
-function AppleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true">
-      <path d="M16.36 1.43c0 1.14-.42 2.2-1.25 3.06-.99 1.02-2.18 1.61-3.47 1.51a3.5 3.5 0 0 1-.03-.43c0-1.09.48-2.26 1.27-3.08.4-.42.9-.77 1.51-1.05.6-.27 1.17-.42 1.71-.44.02.15.03.29.03.43zM20.5 17.04c-.3.69-.45 1-.83 1.61-.54.85-1.3 1.91-2.24 1.92-.84.01-1.05-.55-2.18-.54-1.13 0-1.37.55-2.2.55-.95.01-1.67-.96-2.21-1.81-1.5-2.37-1.66-5.15-.73-6.63.66-1.05 1.69-1.66 2.67-1.66.99 0 1.61.55 2.43.55.8 0 1.28-.55 2.43-.55.86 0 1.78.47 2.43 1.28-2.13 1.17-1.79 4.22.4 5.28z" />
     </svg>
   );
 }
