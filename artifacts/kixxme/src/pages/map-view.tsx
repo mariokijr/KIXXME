@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -42,10 +43,12 @@ interface MapFilters {
   ageMin: number;
   ageMax: number;
 }
-const DEFAULT_FILTERS: MapFilters = { ageMin: 18, ageMax: 99 };
+const AGE_SLIDER_MIN = 18;
+const AGE_SLIDER_MAX = 70;
+const DEFAULT_FILTERS: MapFilters = { ageMin: AGE_SLIDER_MIN, ageMax: AGE_SLIDER_MAX };
 
 function filtersActive(f: MapFilters): boolean {
-  return f.ageMin > DEFAULT_FILTERS.ageMin || f.ageMax < DEFAULT_FILTERS.ageMax;
+  return f.ageMin > AGE_SLIDER_MIN || f.ageMax < AGE_SLIDER_MAX;
 }
 
 interface NominatimResult {
@@ -140,9 +143,6 @@ export default function MapView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
-  // Draft strings for age inputs — let the user type freely; clamp only on blur.
-  const [ageMinDraft, setAgeMinDraft] = useState(String(DEFAULT_FILTERS.ageMin));
-  const [ageMaxDraft, setAgeMaxDraft] = useState(String(DEFAULT_FILTERS.ageMax));
 
   // ── Geocoding search ──────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -225,8 +225,11 @@ export default function MapView() {
   const filtered = useMemo(
     () =>
       users.filter((p) => {
-        if (p.age != null && (p.age < filters.ageMin || p.age > filters.ageMax))
-          return false;
+        if (p.age != null) {
+          if (p.age < filters.ageMin) return false;
+          // When slider is at max (70) treat as "70+" — no upper bound.
+          if (filters.ageMax < AGE_SLIDER_MAX && p.age > filters.ageMax) return false;
+        }
         return true;
       }),
     [users, filters]
@@ -614,65 +617,6 @@ export default function MapView() {
               </span>
             )}
 
-            {/* Age range */}
-            <div className="flex items-center gap-1.5 ml-auto">
-              <span className="text-xs text-white/35 flex-shrink-0">Edad</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={18}
-                max={99}
-                value={ageMinDraft}
-                onChange={(e) => setAgeMinDraft(e.target.value)}
-                onBlur={() => {
-                  const v = Math.min(
-                    Math.max(18, parseInt(ageMinDraft, 10) || 18),
-                    filters.ageMax
-                  );
-                  setAgeMinDraft(String(v));
-                  setFilters((f) => ({ ...f, ageMin: v }));
-                }}
-                className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
-                style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              />
-              <span className="text-white/25 text-xs">–</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={18}
-                max={99}
-                value={ageMaxDraft}
-                onChange={(e) => setAgeMaxDraft(e.target.value)}
-                onBlur={() => {
-                  const v = Math.max(
-                    Math.min(99, parseInt(ageMaxDraft, 10) || 99),
-                    filters.ageMin
-                  );
-                  setAgeMaxDraft(String(v));
-                  setFilters((f) => ({ ...f, ageMax: v }));
-                }}
-                className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
-                style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              />
-              {filtersActive(filters) && (
-                <button
-                  onClick={() => {
-                    setFilters(DEFAULT_FILTERS);
-                    setAgeMinDraft(String(DEFAULT_FILTERS.ageMin));
-                    setAgeMaxDraft(String(DEFAULT_FILTERS.ageMax));
-                  }}
-                  className="text-xs text-white/35 underline flex-shrink-0"
-                >
-                  ×
-                </button>
-              )}
-            </div>
 
             {/* Visibility toggle — pill button */}
             <button
@@ -697,6 +641,61 @@ export default function MapView() {
               {showOnMap ? "Visible" : "Oculto"}
             </button>
           </div>
+
+          {/* Age range slider row */}
+          {canAccess && (
+            <div className="flex items-center gap-3 px-4 pb-2 pointer-events-auto">
+              <span className="text-xs text-white/40 flex-shrink-0">Edad</span>
+              <SliderPrimitive.Root
+                className="relative flex flex-1 touch-none select-none items-center"
+                min={AGE_SLIDER_MIN}
+                max={AGE_SLIDER_MAX}
+                step={1}
+                value={[filters.ageMin, filters.ageMax]}
+                onValueChange={([min, max]: [number, number]) =>
+                  setFilters({ ageMin: min, ageMax: max })
+                }
+              >
+                <SliderPrimitive.Track
+                  className="relative h-[3px] w-full grow overflow-hidden rounded-full"
+                  style={{ background: "rgba(255,255,255,0.1)" }}
+                >
+                  <SliderPrimitive.Range
+                    className="absolute h-full"
+                    style={{ background: "hsl(273,85%,60%)" }}
+                  />
+                </SliderPrimitive.Track>
+                <SliderPrimitive.Thumb
+                  className="block w-[18px] h-[18px] rounded-full focus:outline-none cursor-grab active:cursor-grabbing"
+                  style={{
+                    background: "hsl(273,85%,68%)",
+                    boxShadow: "0 0 0 3px rgba(168,85,247,0.25), 0 0 10px rgba(168,85,247,0.5)",
+                  }}
+                />
+                <SliderPrimitive.Thumb
+                  className="block w-[18px] h-[18px] rounded-full focus:outline-none cursor-grab active:cursor-grabbing"
+                  style={{
+                    background: "hsl(273,85%,68%)",
+                    boxShadow: "0 0 0 3px rgba(168,85,247,0.25), 0 0 10px rgba(168,85,247,0.5)",
+                  }}
+                />
+              </SliderPrimitive.Root>
+              <span
+                className="text-xs font-sans text-white/70 flex-shrink-0 text-right"
+                style={{ minWidth: "52px" }}
+              >
+                {filters.ageMin} – {filters.ageMax >= AGE_SLIDER_MAX ? "70+" : filters.ageMax}
+              </span>
+              {filtersActive(filters) && (
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="text-xs text-white/35 hover:text-white/60 transition-colors flex-shrink-0"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Row 2: geocoding search bar */}
           {canAccess && (
