@@ -103,7 +103,7 @@ export default function Live() {
   const [ageMin, setAgeMin] = useState(AGE_MIN);
   const [ageMax, setAgeMax] = useState(AGE_MAX);
   const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
-  const [showLiveTutorial, setShowLiveTutorial] = useState(true);
+  const [showLiveTutorial, setShowLiveTutorial] = useState(false);
   const countryFetchedRef = useRef(false);
 
   // Local camera/mic intent. Drives both the in-call controls and the LiveKit
