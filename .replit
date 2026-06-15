@@ -44,4 +44,4 @@ channel = "stable-25_05"
 [userenv.shared]
 ADMIN_EMAILS = "supportkixxme@gmail.com"
 GOLD_TEST_EMAILS = "mariokimbm2003@gmail.com,saraolivaz20@gmail.com"
-EMAIL_FROM = "KixxMe <onboarding@resend.dev>"
+EMAIL_FROM = "KixxMe <support@kixxme.com>"
