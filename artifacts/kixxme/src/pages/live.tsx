@@ -219,12 +219,12 @@ export default function Live() {
     if (status === "ringing" && prev !== "ringing") {
       startRinging();
     } else if (prev === "ringing" && status !== "ringing") {
+      // Stop ring whenever we leave "ringing".
+      // Do NOT play hangup here — skip and decline/cancel/miss all look
+      // identical (ringing→null), so hangup is played by the action handlers.
       stopRinging();
-      if (!status || ["declined", "cancelled", "missed"].includes(status)) {
-        playHangup();
-      }
     } else if (prev === "active" && !status) {
-      // Partner hung up — call vanished from poll
+      // Partner hung up from an active call — call vanished from poll.
       playHangup();
     }
   }); // intentionally runs every render so prevCallStatusRef stays in sync
@@ -262,10 +262,12 @@ export default function Live() {
   }
 
   function decline(call: LiveCall) {
+    playHangup();
     declineCall.mutate({ id: call.id }, { onSettled: refresh });
   }
 
   function cancel(call: LiveCall) {
+    playHangup();
     cancelCall.mutate({ id: call.id }, { onSettled: refresh });
   }
 
