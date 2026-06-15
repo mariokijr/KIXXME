@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/lib/confirm";
 import { playSound } from "@/lib/sound";
+import { startRinging, stopRinging, playHangup } from "@/lib/call-sound";
 import {
   useLiveKitCall,
   type LiveKitCall,
@@ -208,6 +209,29 @@ export default function Live() {
     }
   }, [activeCall?.id]);
 
+  // --- Ring / hangup sounds --------------------------------------------------
+  const prevCallStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const status = call?.status ?? null;
+    const prev = prevCallStatusRef.current;
+    prevCallStatusRef.current = status;
+
+    if (status === "ringing" && prev !== "ringing") {
+      startRinging();
+    } else if (prev === "ringing" && status !== "ringing") {
+      stopRinging();
+      if (!status || ["declined", "cancelled", "missed"].includes(status)) {
+        playHangup();
+      }
+    } else if (prev === "active" && !status) {
+      // Partner hung up — call vanished from poll
+      playHangup();
+    }
+  }); // intentionally runs every render so prevCallStatusRef stays in sync
+
+  // Always stop ringing when the Live page unmounts.
+  useEffect(() => () => { stopRinging(); }, []);
+
   const onError = (msg: string) => (err: any) =>
     toast({
       title: msg,
@@ -257,6 +281,7 @@ export default function Live() {
   }
 
   function hangUp(call: LiveCall) {
+    playHangup();
     endCall.mutate(
       { id: call.id, data: { reason: "hangup" } },
       { onSettled: refresh },

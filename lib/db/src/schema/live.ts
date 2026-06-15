@@ -124,6 +124,10 @@ export const videoCallsTable = pgTable(
     // Independent acceptances; both required before a call goes active.
     callerAcceptedAt: timestamp("caller_accepted_at", { withTimezone: true }),
     calleeAcceptedAt: timestamp("callee_accepted_at", { withTimezone: true }),
+    // For private calls initiated from a chat: the Supabase conversation id.
+    // When set, a call-log system message is inserted into the chat on
+    // terminal transitions (ended / missed / cancelled / declined).
+    conversationId: uuid("conversation_id"),
     // Free-form reason set when a call ends (e.g. "hangup", "reported").
     endReason: text("end_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })

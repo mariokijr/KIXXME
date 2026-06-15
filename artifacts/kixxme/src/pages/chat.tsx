@@ -14,6 +14,7 @@ import {
   CheckCheck,
   Video,
   Lock,
+  Phone,
   X,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -48,6 +49,22 @@ import { supabase } from "@/lib/supabase";
 function timeLabel(iso: string) {
   const d = new Date(iso);
   return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s < 10 ? "0" + s : s}s`;
+}
+
+interface CallMsgPayload { _call: string; duration?: number }
+function parseCallMessage(content: string | null | undefined): CallMsgPayload | null {
+  if (!content || !content.startsWith('{"_call":')) return null;
+  try {
+    const p = JSON.parse(content) as CallMsgPayload;
+    return p._call ? p : null;
+  } catch { return null; }
 }
 
 function mergeMessages(local: Message[], incoming: Message[]): Message[] {
@@ -339,7 +356,7 @@ export default function Chat() {
     // GOLD_TEST_EMAILS recipient (whose override never writes the display plan)
     // would be uncallable even though the server would allow it.
     createLiveCall.mutate(
-      { data: { recipientId: otherUser.id } },
+      { data: { recipientId: otherUser.id, conversationId: conversationId ?? undefined } },
       {
         onSuccess: () => setLocation("/live"),
         onError: (err: any) => {
@@ -574,6 +591,46 @@ export default function Chat() {
             const isMine = msg.sender_id === myId;
             const isOptimistic = msg.id.startsWith("opt-");
             const isDeleted = !!msg.deleted_at;
+
+            // ── Call-record system message ──────────────────────────────────
+            const callMsg = parseCallMessage(msg.content);
+            if (callMsg && !isDeleted) {
+              const isMissed = callMsg._call === "missed" || callMsg._call === "declined";
+              const label =
+                callMsg._call === "ended"
+                  ? callMsg.duration
+                    ? `Videollamada · ${formatDuration(callMsg.duration)}`
+                    : "Videollamada finalizada"
+                  : callMsg._call === "missed"
+                    ? "Llamada perdida"
+                    : callMsg._call === "cancelled"
+                      ? "Llamada cancelada"
+                      : callMsg._call === "declined"
+                        ? "Llamada rechazada"
+                        : "Videollamada";
+              return (
+                <div key={msg.id} className="flex justify-center py-1">
+                  <div
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-sans text-xs"
+                    style={{
+                      background: isMissed
+                        ? "rgba(239,68,68,0.12)"
+                        : "rgba(255,255,255,0.07)",
+                      border: `1px solid ${isMissed ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.1)"}`,
+                      color: isMissed ? "rgba(239,100,100,0.9)" : "rgba(255,255,255,0.5)",
+                    }}
+                  >
+                    {isMissed
+                      ? <Phone className="w-3 h-3" />
+                      : <Video className="w-3 h-3" />}
+                    <span>{label}</span>
+                    <span className="opacity-60">·</span>
+                    <span className="opacity-60">{timeLabel(msg.created_at)}</span>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div className="max-w-[78%] flex flex-col items-stretch">

@@ -9,4 +9,6 @@
 export interface LiveCallRequest {
   /** Supabase user id of the person being invited to a private call */
   recipientId: string;
+  /** Optional conversation id — when provided a call-log system message is inserted in the chat on call end/miss/cancel/decline */
+  conversationId?: string;
 }

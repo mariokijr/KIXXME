@@ -159,7 +159,7 @@ router.post("/live/calls", async (req, res) => {
     return;
   }
 
-  const call = await live.createPrivateCall(me, recipientId);
+  const call = await live.createPrivateCall(me, recipientId, parsed.data.conversationId ?? undefined);
   res.status(201).json(await live.serializeCall(call, me));
 });
 

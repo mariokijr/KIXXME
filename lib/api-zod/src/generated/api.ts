@@ -1475,7 +1475,8 @@ export const ReportLiveDiagResponse = zod.object({
  * @summary Invite a user to a private video call (both users must be Gold)
  */
 export const CreateLiveCallBody = zod.object({
-  "recipientId": zod.string().describe('Supabase user id of the person being invited to a private call')
+  "recipientId": zod.string().describe('Supabase user id of the person being invited to a private call'),
+  "conversationId": zod.string().optional().describe('Optional conversation id — when provided a call-log system message is inserted in the chat on call end\/miss\/cancel\/decline')
 })
 
 

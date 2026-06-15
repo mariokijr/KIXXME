@@ -391,6 +391,9 @@ export async function getActiveCall(
     // email; random-match calls are anonymous and live-only.
     if (missed && row.type === "private") {
       void notifyMissedCallByEmail(row.calleeId, row.callerId);
+      if (row.conversationId) {
+        void insertCallMessage(row.conversationId, row.callerId, "missed");
+      }
     }
     return undefined;
   }
@@ -567,10 +570,12 @@ export async function leaveQueue(me: string): Promise<void> {
 /**
  * Create a private call invite. The caller accepts implicitly on creation, so
  * only the callee's acceptance is outstanding ("both must accept" handshake).
+ * Pass `conversationId` to enable call-log system messages in the chat thread.
  */
 export async function createPrivateCall(
   caller: string,
   callee: string,
+  conversationId?: string,
 ): Promise<VideoCall> {
   const [call] = await db
     .insert(videoCallsTable)
@@ -581,10 +586,41 @@ export async function createPrivateCall(
       callerId: caller,
       calleeId: callee,
       callerAcceptedAt: new Date(),
+      ...(conversationId ? { conversationId } : {}),
     })
     .returning();
   if (!call) throw new Error("Failed to create private call");
   return call;
+}
+
+// --- Call-log system messages -----------------------------------------------
+
+/**
+ * Insert a system message into a Supabase conversation recording the call
+ * outcome. The content is a compact JSON sentinel that `chat.tsx` detects and
+ * renders as a centred call-record bubble (never shown as raw text).
+ *
+ * Fire-and-forget: non-critical, never throws.
+ */
+async function insertCallMessage(
+  conversationId: string,
+  senderId: string,
+  status: "ended" | "missed" | "cancelled" | "declined",
+  durationSeconds?: number,
+): Promise<void> {
+  try {
+    const payload: Record<string, unknown> = { _call: status };
+    if (status === "ended" && durationSeconds != null && durationSeconds > 0) {
+      payload.duration = durationSeconds;
+    }
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      content: JSON.stringify(payload),
+    });
+  } catch {
+    /* fail silent — call logging is non-critical */
+  }
 }
 
 // --- Call lifecycle transitions -------------------------------------------
@@ -640,14 +676,14 @@ async function terminate(
   allowedFrom: VideoCall["status"][],
   reason: string,
 ): Promise<{ outcome: CallOutcome; flipped: boolean }> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [row] = await tx
       .select()
       .from(videoCallsTable)
       .where(eq(videoCallsTable.id, callId))
       .for("update");
-    if (!row) return { outcome: "notfound", flipped: false };
-    if (!isParticipant(row, userId)) return { outcome: "forbidden", flipped: false };
+    if (!row) return { outcome: "notfound" as const, flipped: false };
+    if (!isParticipant(row, userId)) return { outcome: "forbidden" as const, flipped: false };
     // Already in a terminal/other state — nothing to flip (stale/duplicate).
     if (!allowedFrom.includes(row.status)) return { outcome: row, flipped: false };
 
@@ -656,9 +692,28 @@ async function terminate(
       .set({ status, endedAt: new Date(), endReason: reason })
       .where(eq(videoCallsTable.id, callId))
       .returning();
-    if (!updated) return { outcome: "notfound", flipped: false };
+    if (!updated) return { outcome: "notfound" as const, flipped: false };
     return { outcome: updated, flipped: true };
   });
+
+  // Insert a call-log system message into the linked chat conversation when
+  // this is a private call with a conversationId and we were the one that
+  // actually flipped the status (flipped=false = stale/duplicate — skip).
+  if (
+    result.flipped &&
+    typeof result.outcome !== "string" &&
+    result.outcome.type === "private" &&
+    result.outcome.conversationId
+  ) {
+    const call = result.outcome;
+    const durationSeconds =
+      status === "ended" && call.startedAt && call.endedAt
+        ? Math.round((call.endedAt.getTime() - call.startedAt.getTime()) / 1000)
+        : undefined;
+    void insertCallMessage(call.conversationId!, call.callerId, status, durationSeconds);
+  }
+
+  return result;
 }
 
 export async function declineCall(

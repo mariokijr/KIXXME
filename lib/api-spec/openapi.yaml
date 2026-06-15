@@ -4733,6 +4733,9 @@ components:
         recipientId:
           type: string
           description: Supabase user id of the person being invited to a private call
+        conversationId:
+          type: string
+          description: Optional conversation id — when provided a call-log system message is inserted in the chat on call end/miss/cancel/decline
       required: [recipientId]
 
     LiveCallEndRequest:
