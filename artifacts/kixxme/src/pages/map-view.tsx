@@ -17,7 +17,6 @@ import {
   X,
   User,
   MessageCircle,
-  Search,
 } from "lucide-react";
 import {
   useListMapUsers,
@@ -144,14 +143,6 @@ export default function MapView() {
   const [reportOpen, setReportOpen] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
 
-  // ── Geocoding search ──────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchCenter, setSearchCenter] = useState<SearchCenter | null>(null);
-  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -165,14 +156,13 @@ export default function MapView() {
   const [autoCountryFilter, setAutoCountryFilter] = useState<SearchCenter | null>(null);
   const countryFetchedForRef = useRef<string | null>(null);
 
-  // Active country/area filter: manual search takes precedence over auto GPS country.
-  const activeFilter = searchCenter ?? autoCountryFilter;
-  const mapQueryParams = activeFilter
+  // Country filter: auto-detected from viewer's GPS via reverse geocode.
+  const mapQueryParams = autoCountryFilter
     ? {
         scope: "worldwide" as const,
-        search_lat: activeFilter.lat,
-        search_lng: activeFilter.lng,
-        search_radius_km: activeFilter.radiusKm,
+        search_lat: autoCountryFilter.lat,
+        search_lng: autoCountryFilter.lng,
+        search_radius_km: autoCountryFilter.radiusKm,
       }
     : { scope: "worldwide" as const };
 
@@ -215,11 +205,8 @@ export default function MapView() {
     ? [profile!.latitude as number, profile!.longitude as number]
     : DEFAULT_CENTER;
 
-  // When searching, use the search point as the dot-placement origin.
-  // When not searching, use the viewer's own location (or default).
-  const mapOrigin: [number, number] = searchCenter
-    ? [searchCenter.lat, searchCenter.lng]
-    : center;
+  // Dot-placement origin: viewer's own GPS location (or default center).
+  const mapOrigin: [number, number] = center;
 
   const invalidateMap = () =>
     qc.invalidateQueries({ queryKey: getListMapUsersQueryKey() });
@@ -242,9 +229,7 @@ export default function MapView() {
   const placeable = useMemo(() => filtered, [filtered]);
 
   // In search mode, the viewer isn't necessarily in the search area.
-  const onMapCount = searchCenter
-    ? placeable.length
-    : placeable.length + (hasLocation ? 1 : 0);
+  const onMapCount = placeable.length + (hasLocation ? 1 : 0);
 
   const selected = filtered.find((p) => p.id === selectedId) || null;
 
@@ -275,38 +260,6 @@ export default function MapView() {
 
   // ── Geocoding helpers ────────────────────────────────────────────────────
 
-  const geocode = useCallback(async (q: string) => {
-    setIsSearching(true);
-    try {
-      const url =
-        `https://nominatim.openstreetmap.org/search` +
-        `?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=es`;
-      const res = await fetch(url, {
-        headers: { "User-Agent": "KixxMe/1.0 (kixxme.app)" },
-      });
-      const data: NominatimResult[] = await res.json();
-      setSuggestions(data);
-      setShowSuggestions(data.length > 0);
-    } catch {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  const onSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setSearchQuery(q);
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    if (q.trim().length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    searchDebounceRef.current = setTimeout(() => geocode(q.trim()), 400);
-  };
-
   // Reverse-geocode a lat/lng to the enclosing country and return a SearchCenter.
   const geocodeCountry = async (lat: number, lng: number): Promise<SearchCenter | null> => {
     try {
@@ -326,37 +279,6 @@ export default function MapView() {
     }
   };
 
-  const selectSuggestion = async (r: NominatimResult) => {
-    const lat = parseFloat(r.lat);
-    const lng = parseFloat(r.lon);
-    // Fly to the searched city immediately for responsiveness.
-    const cityZoom = radiusToZoom(bboxToRadius(r.boundingbox));
-    mapRef.current?.flyTo([lat, lng], cityZoom, { duration: 1.2 });
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setSearchQuery(r.display_name.split(",").slice(0, 2).join(", "));
-    // Then resolve to country level so the API filter covers the whole country.
-    const country = await geocodeCountry(lat, lng);
-    if (country) {
-      setSearchCenter(country);
-      setSearchQuery(country.label);
-      mapRef.current?.flyTo([lat, lng], Math.min(cityZoom, radiusToZoom(country.radiusKm) + 1), { duration: 0.8 });
-    } else {
-      // Fallback: use city-level bbox
-      setSearchCenter({ lat, lng, radiusKm: bboxToRadius(r.boundingbox), label: r.display_name.split(",")[0].trim() });
-    }
-  };
-
-  const clearSearch = () => {
-    setSearchCenter(null);
-    setSearchQuery("");
-    setSuggestions([]);
-    setShowSuggestions(false);
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    if (mapRef.current) {
-      mapRef.current.flyTo(center, hasLocation ? 12 : 5, { duration: 1.2 });
-    }
-  };
 
   // Auto-detect the viewer's country from their stored GPS position and apply it as the
   // default filter so they only see users from their own country.
@@ -427,13 +349,13 @@ export default function MapView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess]);
 
-  // Recenter when viewer's location becomes available (only when not in search mode).
+  // Recenter when viewer's location becomes available.
   useEffect(() => {
-    if (mapRef.current && hasLocation && !searchCenter) {
+    if (mapRef.current && hasLocation) {
       mapRef.current.setView(center, 12);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLocation, center[0], center[1], searchCenter]);
+  }, [hasLocation, center[0], center[1]]);
 
   // Render dot markers.
   useEffect(() => {
@@ -485,7 +407,7 @@ export default function MapView() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const handler = () => { setSelectedId(null); setShowSuggestions(false); };
+    const handler = () => { setSelectedId(null); };
     map.on("click", handler);
     return () => { map.off("click", handler); };
   }, [canAccess]);
@@ -594,19 +516,7 @@ export default function MapView() {
                 {isLoading ? "…" : `${onMapCount} aquí`}
               </span>
             )}
-            {searchCenter && (
-              <span
-                className="text-xs font-sans px-2 py-0.5 rounded-full truncate max-w-[120px]"
-                style={{
-                  background: "rgba(168,85,247,0.15)",
-                  border: "1px solid rgba(168,85,247,0.3)",
-                  color: "hsl(273,85%,75%)",
-                }}
-              >
-                {searchCenter.label}
-              </span>
-            )}
-            {!searchCenter && autoCountryFilter && (
+            {autoCountryFilter && (
               <span
                 className="text-xs font-sans px-2 py-0.5 rounded-full truncate max-w-[120px]"
                 style={{
@@ -699,75 +609,6 @@ export default function MapView() {
             </div>
           )}
 
-          {/* Row 2: geocoding search bar */}
-          {canAccess && (
-            <div className="px-4 pb-2 pointer-events-auto relative">
-              <div className="relative">
-                {isSearching ? (
-                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 animate-spin pointer-events-none" />
-                ) : (
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-                )}
-                <input
-                  type="text"
-                  placeholder="Buscar ciudad, país…"
-                  value={searchQuery}
-                  onChange={onSearchInput}
-                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 160)}
-                  className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-white font-sans transition-all"
-                  style={{
-                    background: searchCenter
-                      ? "rgba(168,85,247,0.12)"
-                      : "rgba(255,255,255,0.07)",
-                    border: searchCenter
-                      ? "1px solid rgba(168,85,247,0.35)"
-                      : "1px solid rgba(255,255,255,0.09)",
-                    outline: "none",
-                    caretColor: "hsl(273,85%,75%)",
-                  }}
-                />
-                {searchQuery.length > 0 && (
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); clearSearch(); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full transition-colors"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
-                  >
-                    <X className="w-3 h-3 text-white/50" />
-                  </button>
-                )}
-              </div>
-
-              {/* Suggestions dropdown */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div
-                  className="absolute left-4 right-4 mt-1 z-[410] rounded-xl overflow-hidden"
-                  style={{
-                    background: "rgba(8,7,20,0.98)",
-                    backdropFilter: "blur(24px)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
-                  }}
-                >
-                  {suggestions.map((r, i) => (
-                    <button
-                      key={r.place_id}
-                      onMouseDown={(e) => { e.preventDefault(); selectSuggestion(r); }}
-                      className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]"
-                      style={{
-                        borderTop: i > 0 ? "1px solid rgba(255,255,255,0.05)" : undefined,
-                      }}
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-white/80 leading-snug font-sans">
-                        {r.display_name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Activate location banner */}
           {canAccess && !hasLocation && (
