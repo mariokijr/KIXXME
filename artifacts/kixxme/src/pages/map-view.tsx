@@ -119,20 +119,21 @@ function offsetPosition(
   return [(φ2 * 180) / Math.PI, (λ2 * 180) / Math.PI];
 }
 
+function planDotColor(plan: string | undefined): { dot: string; glow: string } {
+  if (plan === "gold") return { dot: "hsl(45,90%,60%)",  glow: "rgba(251,191,36," };
+  if (plan === "plus") return { dot: "hsl(158,72%,50%)", glow: "rgba(52,211,153," };
+  return                        { dot: "hsl(210,90%,62%)", glow: "rgba(59,130,246,"  };
+}
+
 function dotMarkerHtml(user: PublicProfile): string {
-  const isGoldUser = user.plan === "gold";
+  const { dot, glow } = planDotColor(user.plan ?? undefined);
   const online = user.is_online;
   const dotSize = online ? 15 : 10;
-  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(210,90%,62%)";
   const shadow = online
-    ? `0 0 0 2.5px rgba(74,222,128,0.60),0 0 14px ${
-        isGoldUser ? "rgba(251,191,36,0.9)" : "rgba(59,130,246,0.85)"
-      }`
-    : `0 0 6px ${
-        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(59,130,246,0.50)"
-      }`;
+    ? `0 0 0 2.5px rgba(74,222,128,0.60),0 0 14px ${glow}0.9)`
+    : `0 0 6px ${glow}0.55)`;
   const anim = online ? "animation:kixx-dot-pulse 2s ease-in-out infinite;" : "";
-  return `<div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${color};box-shadow:${shadow};${anim}"></div></div>`;
+  return `<div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${dot};box-shadow:${shadow};${anim}"></div></div>`;
 }
 
 export default function MapView() {
@@ -936,9 +937,9 @@ export default function MapView() {
                     desc: "La app usa tu ubicación para detectar tu país y filtra el mapa automáticamente. Si estás en Madrid, verás usuarios de toda España — no solo de Madrid. Si estás en Londres, verás usuarios del Reino Unido. Cada persona ve su propio país.",
                   },
                   {
-                    icon: "🔵",
+                    icon: "🟡",
                     title: "Puntos de colores",
-                    desc: "Puntos azules = usuarios libres. Puntos dorados 👑 = usuarios Gold. Toca cualquier punto para ver el perfil.",
+                    desc: "🔵 Azul = plan gratuito · 🟢 Verde = Plus · 🟡 Dorado = Gold. Toca cualquier punto — sin importar su plan — para ver el perfil, foto y descripción.",
                   },
                   {
                     icon: "🎚️",
