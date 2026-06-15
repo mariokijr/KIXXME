@@ -740,104 +740,89 @@ function AgeRangeSlider({
   );
 }
 
-const LIVE_TUTORIAL_SLIDES = [
-  {
-    emoji: "🎥",
-    title: "¿Cómo funciona Live?",
-    body: "KixxMe Live te empareja al azar con otro usuario que esté buscando en el mismo momento. Cuando ambos aceptéis, comienza la videollamada.",
-  },
-  {
-    emoji: "🗺️",
-    title: "Elige tu zona",
-    body: "Cerca de mí (máx. 200 km) · Mi ciudad · Mi país (detectado por GPS) · Internacional. La app detecta tu país automáticamente según tu ubicación.",
-  },
-  {
-    emoji: "🎚️",
-    title: "Filtra por edad",
-    body: "El deslizador de edad se configura automáticamente según la tuya. Puedes ajustarlo para ver solo el rango que te interesa.",
-  },
-  {
-    emoji: "📍",
-    title: "Tu ubicación",
-    body: "Solo usamos tu ubicación aproximada (ciudad o país) para emparejarte. Nunca compartimos tus coordenadas exactas con otros usuarios.",
-  },
-  {
-    emoji: "🛡️",
-    title: "Comunidad y respeto",
-    body: "Puedes reportar o bloquear a cualquier persona en cualquier momento durante la llamada. El contenido inapropiado puede suponer una sanción.",
-  },
-];
-
-function LiveTutorialModal({ onClose }: { onClose: () => void }) {
-  const [slide, setSlide] = useState(0);
-  const total = LIVE_TUTORIAL_SLIDES.length;
-  const s = LIVE_TUTORIAL_SLIDES[slide];
-  const isLast = slide === total - 1;
+function LiveTutorialPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-[800] flex flex-col items-center justify-end pb-8 px-5"
-      style={{ background: "rgba(5,3,16,0.93)", backdropFilter: "blur(10px)" }}
+      className="absolute inset-0 z-[800] flex flex-col items-center justify-end"
+      style={{ background: "rgba(6,5,16,0.90)", backdropFilter: "blur(22px)" }}
     >
       <div
-        className="w-full max-w-sm rounded-3xl p-7 space-y-5"
+        className="w-full max-w-sm rounded-t-3xl px-6 pt-7 pb-8 flex flex-col gap-5"
         style={{
-          background: "rgba(13,11,26,0.98)",
-          border: "1px solid rgba(168,85,247,0.25)",
-          boxShadow: "0 0 60px rgba(168,85,247,0.18)",
+          background: "linear-gradient(180deg, rgba(20,14,40,0.98) 0%, rgba(10,8,22,0.99) 100%)",
+          border: "1px solid rgba(168,85,247,0.2)",
+          borderBottom: "none",
+          boxShadow: "0 -12px 60px rgba(168,85,247,0.15)",
         }}
       >
-        <div className="flex flex-col items-center text-center gap-3">
+        {/* Header */}
+        <div className="text-center space-y-1.5">
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+            className="w-16 h-16 rounded-3xl mx-auto flex items-center justify-center mb-3"
             style={{
-              background: "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.14))",
-              boxShadow: "0 0 28px rgba(168,85,247,0.30)",
+              background: "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,52%))",
+              boxShadow: "0 0 32px rgba(168,85,247,0.5), 0 0 64px rgba(236,72,153,0.2)",
             }}
           >
-            {s.emoji}
+            <span className="text-3xl">🎥</span>
           </div>
-          <h2 className="font-display text-xl tracking-tight text-white">{s.title}</h2>
-          <p className="font-sans text-sm text-white/65 leading-relaxed">{s.body}</p>
+          <h2 className="font-display text-2xl tracking-wide text-white">Live en directo</h2>
+          <p className="font-sans text-sm text-white/50 leading-snug">
+            Videollamadas cara a cara con usuarios de tu zona
+          </p>
         </div>
 
-        <div className="flex justify-center gap-1.5">
-          {LIVE_TUTORIAL_SLIDES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setSlide(i)}
-              className="h-1.5 rounded-full transition-all duration-300"
-              style={{
-                width: i === slide ? 20 : 6,
-                background:
-                  i === slide
-                    ? "linear-gradient(90deg, hsl(273,85%,60%), hsl(330,85%,58%))"
-                    : "rgba(255,255,255,0.18)",
-              }}
-            />
+        {/* Feature list */}
+        <div className="space-y-3.5">
+          {[
+            {
+              icon: "🎲",
+              title: "Emparejamiento al azar",
+              desc: "Te conectamos con alguien buscando en el mismo momento. Ambos veis la foto del otro y decidís si aceptáis — si alguno pasa, buscamos otro.",
+            },
+            {
+              icon: "🗺️",
+              title: "Elige tu zona",
+              desc: "Cerca de mí (máx. 200 km) · Mi ciudad · Mi país (detectado por GPS) · Internacional. La app detecta tu país automáticamente.",
+            },
+            {
+              icon: "🎚️",
+              title: "Filtra por edad",
+              desc: "El deslizador se configura automáticamente con tu edad de perfil. Ajústalo para ver solo el rango que te interesa.",
+            },
+            {
+              icon: "🛡️",
+              title: "Comunidad y respeto",
+              desc: "Solo mayores de 18 años. Puedes reportar o bloquear durante la llamada. El contenido inapropiado puede suponer una sanción.",
+            },
+          ].map((item) => (
+            <div key={item.icon} className="flex items-start gap-3.5">
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.18)" }}
+              >
+                <span className="text-lg">{item.icon}</span>
+              </div>
+              <div className="pt-0.5">
+                <p className="font-sans text-sm font-semibold text-white/90 leading-tight">{item.title}</p>
+                <p className="font-sans text-xs text-white/50 leading-snug mt-0.5">{item.desc}</p>
+              </div>
+            </div>
           ))}
         </div>
 
-        <div className="flex gap-3">
-          {slide > 0 && (
-            <button
-              onClick={() => setSlide(slide - 1)}
-              className="flex-1 h-12 rounded-xl border font-sans text-sm font-medium text-white/70"
-              style={{ borderColor: "rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.04)" }}
-            >
-              Anterior
-            </button>
-          )}
-          <button
-            onClick={isLast ? onClose : () => setSlide(slide + 1)}
-            className="flex-1 h-12 rounded-xl font-sans text-sm font-semibold text-white"
-            style={{
-              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-              boxShadow: "0 4px 20px rgba(168,85,247,0.35)",
-            }}
-          >
-            {isLast ? "¡Entendido, conectar!" : "Siguiente →"}
-          </button>
-        </div>
+        {/* CTA */}
+        <button
+          onClick={onClose}
+          className="w-full rounded-2xl font-display text-base tracking-widest text-white transition-opacity active:opacity-80"
+          style={{
+            height: "52px",
+            background: "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,52%))",
+            boxShadow: "0 4px 24px rgba(168,85,247,0.4)",
+          }}
+        >
+          ¡Explorar el Live! 🎥
+        </button>
       </div>
     </div>
   );
@@ -878,7 +863,7 @@ function Idle({
   const online = stats?.online ?? 0;
   return (
     <>
-    {showTutorial && <LiveTutorialModal onClose={onCloseTutorial} />}
+    {showTutorial && <LiveTutorialPanel onClose={onCloseTutorial} />}
     <div className="min-h-full pb-10">
       <Header />
       <div className="flex justify-center mt-2 mb-4">
