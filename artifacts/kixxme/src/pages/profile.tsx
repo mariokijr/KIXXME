@@ -362,8 +362,12 @@ export default function Profile() {
     <div className="pb-10">
 
       {/* ── Header ── */}
-      <header className="px-4 py-3 flex items-center justify-between border-b border-border/20"
-        style={{ background: "rgba(8,7,18,0.6)", backdropFilter: "blur(12px)" }}>
+      <header className="px-4 py-3 flex items-center justify-between relative"
+        style={{ background: "rgba(8,7,18,0.75)", backdropFilter: "blur(16px)" }}>
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 40%, rgba(236,72,153,0.40) 70%, transparent 100%)" }}
+        />
         <h1 className="font-display text-2xl tracking-wide">
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
@@ -404,17 +408,27 @@ export default function Profile() {
       )}
 
       {/* ── Avatar ── */}
-      <div className="flex items-center gap-4 px-4 pt-5 pb-4">
-        <div data-testid="avatar-container" className="flex-shrink-0">
-          <Avatar className="w-20 h-20 border-2 border-primary/40 rounded-2xl"
-            style={{ boxShadow: "0 0 24px rgba(168,85,247,0.2)" }}>
+      <div
+        className="flex items-center gap-4 px-4 pt-5 pb-4 relative"
+        style={{
+          background: "linear-gradient(180deg, rgba(139,92,246,0.07) 0%, transparent 100%)",
+        }}
+      >
+        {/* subtle glow behind avatar */}
+        <div
+          className="absolute top-2 left-2 w-24 h-24 rounded-2xl pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.35) 0%, transparent 70%)", filter: "blur(16px)" }}
+        />
+        <div data-testid="avatar-container" className="flex-shrink-0 relative z-10">
+          <Avatar className="w-20 h-20 border-2 border-primary/60 rounded-2xl"
+            style={{ boxShadow: "0 0 32px rgba(168,85,247,0.40), 0 0 8px rgba(236,72,153,0.20)" }}>
             {profile.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
             <AvatarFallback className="font-display text-3xl uppercase bg-card text-primary">
               {profile.username?.slice(0, 2) || "KX"}
             </AvatarFallback>
           </Avatar>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 relative z-10">
           <p className="font-display text-lg leading-tight truncate text-foreground">
             {profile.username || "Sin nombre aún"}
           </p>

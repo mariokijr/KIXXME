@@ -214,9 +214,13 @@ export default function Settings() {
   return (
     <div className="min-h-full pb-10">
       <header
-        className="px-4 py-3 flex items-center gap-3 border-b border-border/30 sticky top-0 z-10"
-        style={{ background: "rgba(8,7,18,0.7)", backdropFilter: "blur(12px)" }}
+        className="px-4 py-3 flex items-center gap-3 sticky top-0 z-10 relative"
+        style={{ background: "rgba(8,7,18,0.88)", backdropFilter: "blur(20px)" }}
       >
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 35%, rgba(236,72,153,0.40) 65%, transparent 100%)" }}
+        />
         <button
           type="button"
           onClick={() => setLocation("/profile")}

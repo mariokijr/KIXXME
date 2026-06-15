@@ -222,9 +222,13 @@ function GridDiscover({
   return (
     <div className="min-h-full">
       <header
-        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative"
+        style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
       >
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 35%, rgba(236,72,153,0.45) 65%, transparent 100%)" }}
+        />
         <div className="flex items-center gap-2">
           <KixxMeLogo size={22} withWordmark />
           {!isLoading && !isError && onlineCount > 0 && (

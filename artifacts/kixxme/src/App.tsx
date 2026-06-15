@@ -62,37 +62,52 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         style={{ zIndex: 0 }}
         aria-hidden
       >
+        {/* Top-center violet burst */}
         <div
           className="absolute"
           style={{
-            top: "-30%",
-            left: "10%",
-            width: "80%",
-            height: "65%",
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.30) 0%, transparent 68%)",
-            filter: "blur(52px)",
+            top: "-25%",
+            left: "5%",
+            width: "90%",
+            height: "70%",
+            background: "radial-gradient(ellipse, rgba(139,92,246,0.42) 0%, transparent 65%)",
+            filter: "blur(60px)",
           }}
         />
+        {/* Right-side pink glow */}
         <div
           className="absolute"
           style={{
-            top: "20%",
-            right: "-20%",
+            top: "15%",
+            right: "-25%",
+            width: "70%",
+            height: "55%",
+            background: "radial-gradient(ellipse, rgba(236,72,153,0.24) 0%, transparent 68%)",
+            filter: "blur(72px)",
+          }}
+        />
+        {/* Bottom-left indigo pool */}
+        <div
+          className="absolute"
+          style={{
+            bottom: "0%",
+            left: "-15%",
             width: "60%",
-            height: "50%",
-            background: "radial-gradient(ellipse, rgba(236,72,153,0.15) 0%, transparent 70%)",
-            filter: "blur(64px)",
+            height: "45%",
+            background: "radial-gradient(ellipse, rgba(99,102,241,0.20) 0%, transparent 68%)",
+            filter: "blur(60px)",
           }}
         />
+        {/* Subtle center haze to unify */}
         <div
           className="absolute"
           style={{
-            bottom: "5%",
-            left: "-12%",
-            width: "48%",
-            height: "38%",
-            background: "radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, transparent 70%)",
-            filter: "blur(52px)",
+            top: "35%",
+            left: "20%",
+            width: "60%",
+            height: "40%",
+            background: "radial-gradient(ellipse, rgba(168,85,247,0.10) 0%, transparent 70%)",
+            filter: "blur(80px)",
           }}
         />
       </div>

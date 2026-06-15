@@ -654,9 +654,19 @@ export function SwipeView({
 
       {/* ── Header: logo + mode toggle + feed chips + quota + matches ── */}
       <header
-        className="flex items-center gap-2 px-3 py-2.5 border-b border-border/25"
-        style={{ background: "rgba(8,7,18,0.94)", backdropFilter: "blur(20px)" }}
+        className="flex items-center gap-2 px-3 py-2.5 relative"
+        style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
       >
+        {/* Glowing bottom border */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.6) 30%, rgba(236,72,153,0.5) 70%, transparent 100%)" }}
+        />
+        {/* Subtle glow bloom beneath header */}
+        <div
+          className="absolute -bottom-4 left-0 right-0 h-8 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.08) 0%, transparent 100%)" }}
+        />
         <KixxMeLogo size={20} withWordmark />
 
         <div className="flex-shrink-0">
