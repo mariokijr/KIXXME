@@ -187,6 +187,7 @@ export default function MapView() {
   const ackMapMutation = useAckMapPrivacy();
   const [privacyAckedLocally, setPrivacyAckedLocally] = useState(false);
   const [showGoldModal, setShowGoldModal] = useState(false);
+  const [showVisibilityConfirm, setShowVisibilityConfirm] = useState(false);
 
   const showPrivacyModal =
     profile !== undefined &&
@@ -244,8 +245,22 @@ export default function MapView() {
 
   const toggleVisibility = () => {
     if (updateVisibility.isPending) return;
+    if (!showOnMap) {
+      // Enabling → always show the country-visibility notice first.
+      setShowVisibilityConfirm(true);
+    } else {
+      // Disabling → no confirmation needed.
+      updateVisibility.mutate(
+        { data: { show_on_map: false } },
+        { onSuccess: () => invalidateMap() }
+      );
+    }
+  };
+
+  const confirmEnableVisibility = () => {
+    setShowVisibilityConfirm(false);
     updateVisibility.mutate(
-      { data: { show_on_map: !showOnMap } },
+      { data: { show_on_map: true } },
       { onSuccess: () => invalidateMap() }
     );
   };
@@ -650,26 +665,27 @@ export default function MapView() {
               )}
             </div>
 
-            {/* Visibility toggle */}
+            {/* Visibility toggle — pill button */}
             <button
               onClick={toggleVisibility}
               disabled={updateVisibility.isPending}
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full font-sans text-xs font-medium flex-shrink-0 disabled:opacity-50 transition-all"
               style={{
                 background: showOnMap
-                  ? "rgba(168,85,247,0.2)"
+                  ? "rgba(168,85,247,0.18)"
                   : "rgba(255,255,255,0.06)",
                 border: showOnMap
                   ? "1px solid hsl(273,85%,55%)"
-                  : "1px solid rgba(255,255,255,0.1)",
+                  : "1px solid rgba(255,255,255,0.15)",
+                color: showOnMap ? "hsl(273,85%,72%)" : "rgba(255,255,255,0.38)",
               }}
-              title={showOnMap ? "Estás visible en el mapa" : "Estás oculto del mapa"}
             >
               {showOnMap ? (
-                <Eye className="w-4 h-4 text-purple-300" />
+                <Eye className="w-3.5 h-3.5" />
               ) : (
-                <EyeOff className="w-4 h-4 text-white/40" />
+                <EyeOff className="w-3.5 h-3.5" />
               )}
+              {showOnMap ? "Visible" : "Oculto"}
             </button>
           </div>
 
@@ -1025,6 +1041,96 @@ export default function MapView() {
             username={selected.username}
             targetType="profile"
           />
+        )}
+
+        {/* ── Visibility confirmation modal (shown every time user enables show_on_map) ── */}
+        {showVisibilityConfirm && (
+          <div
+            className="absolute inset-0 z-[700] flex flex-col items-center justify-end p-4 pb-6"
+            style={{ background: "rgba(6,5,16,0.88)", backdropFilter: "blur(20px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowVisibilityConfirm(false); }}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl p-6 space-y-5"
+              style={{
+                background: "rgba(13,11,26,0.98)",
+                border: "1px solid rgba(168,85,247,0.25)",
+                boxShadow: "0 -8px 60px rgba(168,85,247,0.12)",
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(273,85%,52%), hsl(210,90%,55%))",
+                      boxShadow: "0 0 20px rgba(168,85,247,0.4)",
+                    }}
+                  >
+                    <Eye className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-xl tracking-wide text-white leading-tight">
+                      Vas a aparecer en el mapa
+                    </h2>
+                    <p className="font-sans text-xs text-white/45 mt-0.5">
+                      Lee esto antes de activarte
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowVisibilityConfirm(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <X className="w-4 h-4 text-white/40" />
+                </button>
+              </div>
+
+              {/* Info items */}
+              <div className="space-y-3">
+                {[
+                  {
+                    icon: "📍",
+                    text: `Solo los usuarios de ${autoCountryFilter?.label ?? "tu país"} podrán verte — no de todo el mundo.`,
+                  },
+                  {
+                    icon: "🔒",
+                    text: "Tu posición exacta nunca se comparte. Solo apareces con una ubicación aproximada (±2 km).",
+                  },
+                  {
+                    icon: "👁️",
+                    text: 'Puedes ocultarte en cualquier momento pulsando el botón "Oculto" del mapa.',
+                  },
+                ].map((item) => (
+                  <div key={item.icon} className="flex items-start gap-3">
+                    <span className="text-lg leading-none pt-0.5 flex-shrink-0">{item.icon}</span>
+                    <p className="font-sans text-sm text-white/70 leading-snug">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={confirmEnableVisibility}
+                disabled={updateVisibility.isPending}
+                className="w-full h-12 rounded-2xl font-display text-base tracking-widest text-white disabled:opacity-60 transition-opacity"
+                style={{
+                  background: "linear-gradient(135deg, hsl(273,85%,52%), hsl(210,90%,55%))",
+                  boxShadow: "0 4px 20px rgba(168,85,247,0.35)",
+                }}
+              >
+                {updateVisibility.isPending ? "…" : "Entendido, mostrarme 👁️"}
+              </button>
+              <button
+                onClick={() => setShowVisibilityConfirm(false)}
+                className="w-full h-10 font-sans text-sm text-white/35 hover:text-white/55 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
 
         {/* ── Gold upsell modal (tap locked Like / Mensaje) ── */}
