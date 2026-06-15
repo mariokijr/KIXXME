@@ -365,13 +365,17 @@ export default function MapView() {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Self — bright pink dot. Always at the viewer's real GPS position.
+    // Self — emoji marker so the viewer always knows which dot is them.
+    // Other users still see this person as their plan-colored dot.
     if (hasLocation) {
       const meIcon = L.divIcon({
-        html: `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:9999px;background:hsl(330,85%,55%);box-shadow:0 0 0 3px rgba(255,255,255,0.2),0 0 14px rgba(236,72,153,0.9);"></div></div>`,
+        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">` +
+          `<div style="width:36px;height:36px;border-radius:9999px;background:rgba(255,255,255,0.10);border:2px solid rgba(255,255,255,0.40);display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;box-shadow:0 0 0 3px rgba(168,85,247,0.40),0 0 20px rgba(168,85,247,0.75);">😎</div>` +
+          `<span style="font-size:9px;font-weight:700;color:#fff;letter-spacing:0.8px;text-shadow:0 1px 5px rgba(0,0,0,0.95);">TÚ</span>` +
+          `</div>`,
         className: "",
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        iconSize: [36, 50],
+        iconAnchor: [18, 25],
       });
       markersRef.current.push(
         L.marker(center, { icon: meIcon, zIndexOffset: 1000 }).addTo(map)
