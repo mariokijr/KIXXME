@@ -158,13 +158,18 @@ export default function MapView() {
     query: { queryKey: getGetMyProfileQueryKey() },
   });
 
-  // Pass search center coords to the API when active.
-  const mapQueryParams = searchCenter
+  // Auto-detected country filter (from viewer's GPS via reverse geocode).
+  const [autoCountryFilter, setAutoCountryFilter] = useState<SearchCenter | null>(null);
+  const countryFetchedForRef = useRef<string | null>(null);
+
+  // Active country/area filter: manual search takes precedence over auto GPS country.
+  const activeFilter = searchCenter ?? autoCountryFilter;
+  const mapQueryParams = activeFilter
     ? {
         scope: "worldwide" as const,
-        search_lat: searchCenter.lat,
-        search_lng: searchCenter.lng,
-        search_radius_km: searchCenter.radiusKm,
+        search_lat: activeFilter.lat,
+        search_lng: activeFilter.lng,
+        search_radius_km: activeFilter.radiusKm,
       }
     : { scope: "worldwide" as const };
 
@@ -279,17 +284,44 @@ export default function MapView() {
     searchDebounceRef.current = setTimeout(() => geocode(q.trim()), 400);
   };
 
-  const selectSuggestion = (r: NominatimResult) => {
+  // Reverse-geocode a lat/lng to the enclosing country and return a SearchCenter.
+  const geocodeCountry = async (lat: number, lng: number): Promise<SearchCenter | null> => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&zoom=3&format=json`,
+        { headers: { "User-Agent": "KixxMe/1.0 (kixxme.app)" } }
+      );
+      const data: NominatimResult = await res.json();
+      const bb = data.boundingbox;
+      const cLat = (parseFloat(bb[0]) + parseFloat(bb[1])) / 2;
+      const cLng = (parseFloat(bb[2]) + parseFloat(bb[3])) / 2;
+      const radiusKm = bboxToRadius(bb);
+      const label = data.display_name.split(",")[0].trim();
+      return { lat: cLat, lng: cLng, radiusKm, label };
+    } catch {
+      return null;
+    }
+  };
+
+  const selectSuggestion = async (r: NominatimResult) => {
     const lat = parseFloat(r.lat);
     const lng = parseFloat(r.lon);
-    const radiusKm = bboxToRadius(r.boundingbox);
-    const zoom = radiusToZoom(radiusKm);
-    const label = r.display_name.split(",").slice(0, 2).join(", ");
-    setSearchCenter({ lat, lng, radiusKm, label });
-    setSearchQuery(label);
+    // Fly to the searched city immediately for responsiveness.
+    const cityZoom = radiusToZoom(bboxToRadius(r.boundingbox));
+    mapRef.current?.flyTo([lat, lng], cityZoom, { duration: 1.2 });
     setSuggestions([]);
     setShowSuggestions(false);
-    mapRef.current?.flyTo([lat, lng], zoom, { duration: 1.4 });
+    setSearchQuery(r.display_name.split(",").slice(0, 2).join(", "));
+    // Then resolve to country level so the API filter covers the whole country.
+    const country = await geocodeCountry(lat, lng);
+    if (country) {
+      setSearchCenter(country);
+      setSearchQuery(country.label);
+      mapRef.current?.flyTo([lat, lng], Math.min(cityZoom, radiusToZoom(country.radiusKm) + 1), { duration: 0.8 });
+    } else {
+      // Fallback: use city-level bbox
+      setSearchCenter({ lat, lng, radiusKm: bboxToRadius(r.boundingbox), label: r.display_name.split(",")[0].trim() });
+    }
   };
 
   const clearSearch = () => {
@@ -302,6 +334,19 @@ export default function MapView() {
       mapRef.current.flyTo(center, hasLocation ? 12 : 5, { duration: 1.2 });
     }
   };
+
+  // Auto-detect the viewer's country from their stored GPS position and apply it as the
+  // default filter so they only see users from their own country.
+  useEffect(() => {
+    if (!hasLocation || !profile?.latitude || !profile?.longitude) return;
+    const key = `${profile.latitude},${profile.longitude}`;
+    if (countryFetchedForRef.current === key) return;
+    countryFetchedForRef.current = key;
+    geocodeCountry(profile.latitude as number, profile.longitude as number).then((country) => {
+      if (country) setAutoCountryFilter(country);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLocation, profile?.latitude, profile?.longitude]);
 
   // Inject pulse CSS for online markers once per mount.
   useEffect(() => {
@@ -536,6 +581,18 @@ export default function MapView() {
                 }}
               >
                 {searchCenter.label}
+              </span>
+            )}
+            {!searchCenter && autoCountryFilter && (
+              <span
+                className="text-xs font-sans px-2 py-0.5 rounded-full truncate max-w-[120px]"
+                style={{
+                  background: "rgba(59,130,246,0.12)",
+                  border: "1px solid rgba(59,130,246,0.28)",
+                  color: "hsl(210,90%,72%)",
+                }}
+              >
+                📍 {autoCountryFilter.label}
               </span>
             )}
 
