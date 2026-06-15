@@ -933,7 +933,7 @@ export default function MapView() {
                   {
                     icon: "📍",
                     title: "Tu país, tu mapa",
-                    desc: `La app detecta automáticamente tu país y te muestra solo personas de ahí. Si estás en España ves España; en Nueva York ves EE. UU.`,
+                    desc: "La app usa tu ubicación para detectar tu país y filtra el mapa automáticamente. Si estás en Madrid, verás usuarios de toda España — no solo de Madrid. Si estás en Londres, verás usuarios del Reino Unido. Cada persona ve su propio país.",
                   },
                   {
                     icon: "🔵",
