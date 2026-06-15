@@ -191,6 +191,8 @@ export default function MapView() {
   const [privacyAckedLocally, setPrivacyAckedLocally] = useState(false);
   const [showGoldModal, setShowGoldModal] = useState(false);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState(false);
+  // Tutorial shown every time the map mounts (resets on each navigation to map tab).
+  const [showMapTutorial, setShowMapTutorial] = useState(true);
 
   const showPrivacyModal =
     profile !== undefined &&
@@ -1052,6 +1054,93 @@ export default function MapView() {
         )}
 
         {/* ── Visibility confirmation modal (shown every time user enables show_on_map) ── */}
+        {/* ── Map tutorial (shown every time the map tab is opened) ── */}
+        {showMapTutorial && (
+          <div
+            className="absolute inset-0 z-[800] flex flex-col items-center justify-end"
+            style={{ background: "rgba(6,5,16,0.90)", backdropFilter: "blur(22px)" }}
+          >
+            <div
+              className="w-full max-w-sm rounded-t-3xl px-6 pt-7 pb-8 flex flex-col gap-5"
+              style={{
+                background: "linear-gradient(180deg, rgba(20,14,40,0.98) 0%, rgba(10,8,22,0.99) 100%)",
+                border: "1px solid rgba(168,85,247,0.2)",
+                borderBottom: "none",
+                boxShadow: "0 -12px 60px rgba(168,85,247,0.15)",
+              }}
+            >
+              {/* Header */}
+              <div className="text-center space-y-1.5">
+                <div
+                  className="w-16 h-16 rounded-3xl mx-auto flex items-center justify-center mb-3"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(273,85%,50%), hsl(210,90%,52%))",
+                    boxShadow: "0 0 32px rgba(168,85,247,0.5), 0 0 64px rgba(168,85,247,0.2)",
+                  }}
+                >
+                  <span className="text-3xl">🗺️</span>
+                </div>
+                <h2 className="font-display text-2xl tracking-wide text-white">Mapa en vivo</h2>
+                <p className="font-sans text-sm text-white/50 leading-snug">
+                  Descubre quién está en tu país ahora mismo
+                </p>
+              </div>
+
+              {/* Feature list */}
+              <div className="space-y-3.5">
+                {[
+                  {
+                    icon: "📍",
+                    title: "Tu país, tu mapa",
+                    desc: `La app detecta automáticamente tu país y te muestra solo personas de ahí. Si estás en España ves España; en Nueva York ves EE. UU.`,
+                  },
+                  {
+                    icon: "🔵",
+                    title: "Puntos de colores",
+                    desc: "Puntos azules = usuarios libres. Puntos dorados 👑 = usuarios Gold. Toca cualquier punto para ver el perfil.",
+                  },
+                  {
+                    icon: "🎚️",
+                    title: "Filtra por edad",
+                    desc: "Usa la barra de 18–70+ para ver solo el rango que te interesa. Los marcadores se actualizan al instante.",
+                  },
+                  {
+                    icon: "👁️",
+                    title: "Visible / Oculto",
+                    desc: 'Si estás "Oculto", ni te ven a ti ni tú ves a nadie. Actívate para explorar — tu posición exacta nunca se revela.',
+                  },
+                ].map((item) => (
+                  <div key={item.icon} className="flex items-start gap-3.5">
+                    <div
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.18)" }}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                    </div>
+                    <div className="pt-0.5">
+                      <p className="font-sans text-sm font-semibold text-white/90 leading-tight">{item.title}</p>
+                      <p className="font-sans text-xs text-white/50 leading-snug mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => setShowMapTutorial(false)}
+                className="w-full h-13 rounded-2xl font-display text-base tracking-widest text-white transition-opacity active:opacity-80"
+                style={{
+                  height: "52px",
+                  background: "linear-gradient(135deg, hsl(273,85%,52%), hsl(210,90%,52%))",
+                  boxShadow: "0 4px 24px rgba(168,85,247,0.4)",
+                }}
+              >
+                ¡Explorar el mapa! 🗺️
+              </button>
+            </div>
+          </div>
+        )}
+
         {showVisibilityConfirm && (
           <div
             className="absolute inset-0 z-[700] flex flex-col items-center justify-end p-4 pb-6"
