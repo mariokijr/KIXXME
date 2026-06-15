@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { AnimatePresence, motion } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,32 +19,32 @@ import { EmailVerificationGate } from "@/components/email-verification-gate";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import BottomNav from "@/components/layout/bottom-nav";
 
-import Login from "@/pages/login";
-import Signup from "@/pages/signup";
-import ForgotPassword from "@/pages/forgot-password";
-import ResetPassword from "@/pages/reset-password";
-import Profile from "@/pages/profile";
-import PublicProfile from "@/pages/public-profile";
-import Discover from "@/pages/discover";
-import MapView from "@/pages/map-view";
-import Chats from "@/pages/chats";
-import ChatPage from "@/pages/chat";
-import SupportInboxThread from "@/pages/support-inbox-thread";
-import Premium from "@/pages/premium";
-import Favorites from "@/pages/favorites";
-import Matches from "@/pages/matches";
-import Support from "@/pages/support";
-import Settings from "@/pages/settings";
-import ChangePassword from "@/pages/change-password";
-import CancelSubscription from "@/pages/cancel-subscription";
-import Trial from "@/pages/trial";
-import Live from "@/pages/live";
-import Admin from "@/pages/admin";
-import BlockedUsers from "@/pages/blocked-users";
-import LesGustas from "@/pages/les-gustas";
-import Welcome from "@/pages/welcome";
-import AuthCallback from "@/pages/auth-callback";
-import LegalPage from "@/pages/legal-page";
+const Login = React.lazy(() => import("@/pages/login"));
+const Signup = React.lazy(() => import("@/pages/signup"));
+const ForgotPassword = React.lazy(() => import("@/pages/forgot-password"));
+const ResetPassword = React.lazy(() => import("@/pages/reset-password"));
+const Profile = React.lazy(() => import("@/pages/profile"));
+const PublicProfile = React.lazy(() => import("@/pages/public-profile"));
+const Discover = React.lazy(() => import("@/pages/discover"));
+const MapView = React.lazy(() => import("@/pages/map-view"));
+const Chats = React.lazy(() => import("@/pages/chats"));
+const ChatPage = React.lazy(() => import("@/pages/chat"));
+const SupportInboxThread = React.lazy(() => import("@/pages/support-inbox-thread"));
+const Premium = React.lazy(() => import("@/pages/premium"));
+const Favorites = React.lazy(() => import("@/pages/favorites"));
+const Matches = React.lazy(() => import("@/pages/matches"));
+const Support = React.lazy(() => import("@/pages/support"));
+const Settings = React.lazy(() => import("@/pages/settings"));
+const ChangePassword = React.lazy(() => import("@/pages/change-password"));
+const CancelSubscription = React.lazy(() => import("@/pages/cancel-subscription"));
+const Trial = React.lazy(() => import("@/pages/trial"));
+const Live = React.lazy(() => import("@/pages/live"));
+const Admin = React.lazy(() => import("@/pages/admin"));
+const BlockedUsers = React.lazy(() => import("@/pages/blocked-users"));
+const LesGustas = React.lazy(() => import("@/pages/les-gustas"));
+const Welcome = React.lazy(() => import("@/pages/welcome"));
+const AuthCallback = React.lazy(() => import("@/pages/auth-callback"));
+const LegalPage = React.lazy(() => import("@/pages/legal-page"));
 import { ConfirmProvider } from "@/lib/confirm";
 import {
   useGetMyModeration,
@@ -222,40 +223,67 @@ function HomeRedirect() {
 }
 
 function Router() {
+  const [location] = useLocation();
+  const routeKey = location.split("?")[0];
+
   return (
-    <Switch>
-      <Route path="/" component={HomeRedirect} />
-      <Route path="/welcome" component={Welcome} />
-      <Route path="/login" component={Login} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/auth/callback" component={AuthCallback} />
-      <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
-      <Route path="/legal">{() => <LegalPage />}</Route>
-      <Route path="/privacy">{() => <LegalPage slug="privacidad" />}</Route>
-      <Route path="/terms">{() => <LegalPage slug="terminos" />}</Route>
-      <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
-      <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
-      <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>
-      <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
-      <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
-      <Route path="/support-inbox/:userId">{() => <ProtectedMain component={SupportInboxThread} />}</Route>
-      <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
-      <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
-      <Route path="/trial">{() => <ProtectedMain component={Trial} />}</Route>
-      <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
-      <Route path="/matches">{() => <ProtectedMain component={Matches} />}</Route>
-      <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
-      <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
-      <Route path="/settings/password">{() => <ProtectedMain component={ChangePassword} />}</Route>
-      <Route path="/settings/cancel-subscription">{() => <ProtectedMain component={CancelSubscription} />}</Route>
-      <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
-      <Route path="/les-gustas">{() => <ProtectedMain component={LesGustas} />}</Route>
-      <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
-      <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
-      <Route component={NotFound} />
-    </Switch>
+    <React.Suspense
+      fallback={
+        <div
+          className="min-h-screen w-full flex flex-col items-center justify-center gap-4"
+          style={{ background: "hsl(238,28%,4%)" }}
+        >
+          <div className="animate-pulse">
+            <KixxMeLogo size={56} badge />
+          </div>
+        </div>
+      }
+    >
+      <AnimatePresence mode="sync" initial={false}>
+        <motion.div
+          key={routeKey}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
+          style={{ minHeight: "100%", willChange: "opacity" }}
+        >
+          <Switch>
+            <Route path="/" component={HomeRedirect} />
+            <Route path="/welcome" component={Welcome} />
+            <Route path="/login" component={Login} />
+            <Route path="/signup" component={Signup} />
+            <Route path="/forgot-password" component={ForgotPassword} />
+            <Route path="/reset-password" component={ResetPassword} />
+            <Route path="/auth/callback" component={AuthCallback} />
+            <Route path="/legal/:slug">{(params) => <LegalPage slug={params.slug} />}</Route>
+            <Route path="/legal">{() => <LegalPage />}</Route>
+            <Route path="/privacy">{() => <LegalPage slug="privacidad" />}</Route>
+            <Route path="/terms">{() => <LegalPage slug="terminos" />}</Route>
+            <Route path="/discover">{() => <ProtectedMain component={Discover} />}</Route>
+            <Route path="/map">{() => <ProtectedMain component={MapView} />}</Route>
+            <Route path="/live">{() => <ProtectedMain component={Live} />}</Route>
+            <Route path="/chats">{() => <ProtectedMain component={Chats} />}</Route>
+            <Route path="/chats/:id">{() => <ProtectedRoute component={ChatPage} />}</Route>
+            <Route path="/support-inbox/:userId">{() => <ProtectedMain component={SupportInboxThread} />}</Route>
+            <Route path="/profile">{() => <ProtectedMain component={Profile} />}</Route>
+            <Route path="/premium">{() => <ProtectedMain component={Premium} />}</Route>
+            <Route path="/trial">{() => <ProtectedMain component={Trial} />}</Route>
+            <Route path="/favorites">{() => <ProtectedMain component={Favorites} />}</Route>
+            <Route path="/matches">{() => <ProtectedMain component={Matches} />}</Route>
+            <Route path="/support">{() => <ProtectedMain component={Support} />}</Route>
+            <Route path="/settings">{() => <ProtectedMain component={Settings} />}</Route>
+            <Route path="/settings/password">{() => <ProtectedMain component={ChangePassword} />}</Route>
+            <Route path="/settings/cancel-subscription">{() => <ProtectedMain component={CancelSubscription} />}</Route>
+            <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
+            <Route path="/les-gustas">{() => <ProtectedMain component={LesGustas} />}</Route>
+            <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
+            <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
+            <Route component={NotFound} />
+          </Switch>
+        </motion.div>
+      </AnimatePresence>
+    </React.Suspense>
   );
 }
 
