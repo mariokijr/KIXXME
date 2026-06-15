@@ -18,7 +18,7 @@ interface AuthContextValue {
   signup: (data: any) => Promise<void>;
   logout: () => void;
   applySession: (res: { user: AuthUser; session: Session | null }) => void;
-  loginWithProvider: (provider: "google" | "apple") => Promise<void>;
+  loginWithProvider: (provider: "google") => Promise<void>;
   adoptOAuthSession: (tokens: {
     access_token: string;
     refresh_token: string;
@@ -185,10 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Kick off an OAuth (Google/Apple) sign-in. supabase-js redirects the whole
-  // browser to the provider; on return it lands on /auth/callback with tokens
+  // Kick off a Google OAuth sign-in. supabase-js redirects the whole
+  // browser to Google; on return it lands on /auth/callback with tokens
   // in the URL hash (implicit flow).
-  const loginWithProvider = async (provider: "google" | "apple") => {
+  const loginWithProvider = async (provider: "google") => {
     const baseNoSlash = import.meta.env.BASE_URL.replace(/\/$/, "");
     const redirectTo = `${window.location.origin}${baseNoSlash}/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
