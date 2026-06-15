@@ -172,6 +172,11 @@ export default function Live() {
   const refresh = () =>
     qc.invalidateQueries({ queryKey: getGetLiveStateQueryKey() });
 
+  // Derived early so every hook/effect below can reference it safely.
+  // Uses optional chaining because `data` may be undefined before the first
+  // fetch resolves (the loading guard below handles the null display case).
+  const call = data?.call ?? null;
+
   const joinQueue = useJoinLiveQueue();
   const leaveQueue = useLeaveLiveQueue();
   const acceptCall = useAcceptLiveCall();
@@ -344,8 +349,6 @@ export default function Live() {
       </div>
     );
   }
-
-  const call = data.call ?? null;
 
   // --- Live privacy notice (first visit, only when no active/ringing call) --
   if (showLivePrivacyModal && !call) {
