@@ -5,7 +5,7 @@ description: How Google/Apple sign-in is wired with zero backend changes, and wh
 
 # OAuth social login (Google / Apple)
 
-Social login was added with **zero backend changes**. Before adding new auth surfaces, preserve these invariants.
+Social login was added with **minimal backend changes**. `SOCIAL_AUTH_ENABLED` (in `artifacts/kixxme/src/lib/auth.tsx`) is the master feature flag — set to `true` to show buttons. The server-side change: `isEmailVerified()` in `email-verification.ts` must skip the OTP gate for OAuth users (`app_metadata.provider !== "email"`). Before adding new auth surfaces, preserve these invariants.
 
 ## Why no backend changes were needed
 - `requireAuth` trusts `supabase.auth.getUser(token)` — any valid Supabase session (password OR OAuth) authenticates the same way.

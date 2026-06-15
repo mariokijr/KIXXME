@@ -34,6 +34,8 @@ interface VerifiableUser {
   id: string;
   email?: string | null;
   created_at?: string;
+  /** Supabase app_metadata — present on the full User object from getUser(). */
+  app_metadata?: { provider?: string; providers?: string[] };
 }
 
 /** Lightweight email sanity check (presence of a single @ with non-empty sides). */
@@ -47,7 +49,9 @@ export function isValidEmail(email: string | null | undefined): boolean {
  *  1. Accounts created before the cutoff (or with an unparseable created_at) are
  *     grandfathered → always verified.
  *  2. System/support accounts are exempt → always verified.
- *  3. Otherwise the `emailVerifiedAt` column must be set.
+ *  3. OAuth users (Google, Apple, etc.) — their email is already verified by the
+ *     provider, so we skip our OTP gate entirely.
+ *  4. Otherwise the `emailVerifiedAt` column must be set (email+password accounts).
  *
  * FAILS OPEN: any DB error returns `true`. Verification is a usability gate, not
  * a security boundary (auth + moderation already protect access), so a transient
@@ -69,7 +73,12 @@ export async function isEmailVerified(
   // 2. System/support accounts never go through email verification.
   if (isSystemEmail(user.email)) return true;
 
-  // 3. New accounts must have a verified timestamp.
+  // 3. OAuth users (Google, Apple…) have their email verified by the provider.
+  //    Supabase sets app_metadata.provider to "google", "apple", etc. for OAuth.
+  const provider = user.app_metadata?.provider;
+  if (provider && provider !== "email") return true;
+
+  // 4. Email+password accounts must have a verified timestamp.
   try {
     const verifiedAt = await getEmailVerifiedAt(user.id);
     return verifiedAt !== null;
