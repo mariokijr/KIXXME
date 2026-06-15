@@ -665,12 +665,17 @@ router.get("/map/users", async (req, res) => {
   const distanceOrigin = searchCenter ?? me ?? null;
 
   const mapInterestsMap = await getUserInterestsForUsers(rows.map((r) => r.id));
-  const users = rows.map((row) =>
-    toPublic(row, distanceOrigin, likedSet, iBlocked, {
+  const users = rows.map((row) => ({
+    ...toPublic(row, distanceOrigin, likedSet, iBlocked, {
       ...detailsMap.get(row.id),
       interests: mapInterestsMap.get(row.id) ?? [],
     }),
-  );
+    // Approximate coordinates for map marker placement (~1 km precision).
+    // Rounding to 2 decimal places (~1.1 km at mid-latitudes) preserves privacy
+    // while placing markers in the correct area instead of a random bearing.
+    lat_approx: row.latitude != null ? Math.round(row.latitude * 100) / 100 : null,
+    lng_approx: row.longitude != null ? Math.round(row.longitude * 100) / 100 : null,
+  }));
 
   // Closest first (strongest key), online users winning ties (stable sort).
   users.sort((a, b) => Number(b.is_online) - Number(a.is_online));

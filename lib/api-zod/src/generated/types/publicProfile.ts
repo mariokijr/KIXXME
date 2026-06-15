@@ -25,6 +25,12 @@ export interface PublicProfile {
   location?: string | null;
   avatar_url?: string | null;
   distance_km?: number | null;
+  /** Approximate latitude rounded to ~1 km precision. Populated only on GET /map/users responses; null on all other endpoints.
+   */
+  lat_approx?: number | null;
+  /** Approximate longitude rounded to ~1 km precision. Populated only on GET /map/users responses; null on all other endpoints.
+   */
+  lng_approx?: number | null;
   is_online?: boolean;
   is_verified?: boolean;
   liked_by_me?: boolean;

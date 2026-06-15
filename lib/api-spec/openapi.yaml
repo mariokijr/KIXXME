@@ -4377,6 +4377,18 @@ components:
         distance_km:
           type: number
           nullable: true
+        lat_approx:
+          type: number
+          nullable: true
+          description: >
+            Approximate latitude rounded to ~1 km precision. Populated only
+            on GET /map/users responses; null on all other endpoints.
+        lng_approx:
+          type: number
+          nullable: true
+          description: >
+            Approximate longitude rounded to ~1 km precision. Populated only
+            on GET /map/users responses; null on all other endpoints.
         is_online:
           type: boolean
         is_verified:

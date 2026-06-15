@@ -382,16 +382,18 @@ export default function MapView() {
       );
     }
 
-    // Other users — offset from the mapOrigin (search center or viewer GPS).
-    // When distance_km is null (viewer has no GPS), assign a consistent spread via hash.
+    // Other users — use server-provided approximate coordinates (rounded to
+    // ~1 km) so markers appear in the correct area. Fall back to the legacy
+    // distance+bearing projection only when lat_approx is absent (old cached
+    // responses or future edge-cases).
     for (const user of placeable) {
-      const distKm = user.distance_km ?? (hashId(user.id) % 350 + 50);
-      const pos = offsetPosition(
-        mapOrigin[0],
-        mapOrigin[1],
-        distKm,
-        user.id
-      );
+      const pos: [number, number] =
+        user.lat_approx != null && user.lng_approx != null
+          ? [user.lat_approx, user.lng_approx]
+          : (() => {
+              const distKm = user.distance_km ?? (hashId(user.id) % 350 + 50);
+              return offsetPosition(mapOrigin[0], mapOrigin[1], distKm, user.id);
+            })();
       const icon = L.divIcon({
         html: dotMarkerHtml(user),
         className: "",
