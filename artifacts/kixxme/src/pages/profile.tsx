@@ -359,10 +359,25 @@ export default function Profile() {
   );
 
   return (
-    <div className="pb-10">
+    <div className="pb-10 relative" style={{ background: "hsl(238,32%,4%)" }}>
+      {/* ── Ambient background orbs (fixed, behind everything) ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div
+          className="absolute top-0 right-1/4 w-96 h-96 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 65%)", filter: "blur(52px)", transform: "translateY(-25%)" }}
+        />
+        <div
+          className="absolute top-1/2 -left-20 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%)", filter: "blur(48px)" }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-64 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.13) 0%, transparent 70%)", filter: "blur(44px)", transform: "translate(20%,20%)" }}
+        />
+      </div>
 
       {/* ── Header ── */}
-      <header className="px-4 py-3 flex items-center justify-between relative"
+      <header className="px-4 py-3 flex items-center justify-between relative z-10"
         style={{ background: "rgba(8,7,18,0.75)", backdropFilter: "blur(16px)" }}>
         <div
           className="absolute bottom-0 left-0 right-0 h-px"
@@ -409,15 +424,15 @@ export default function Profile() {
 
       {/* ── Avatar ── */}
       <div
-        className="flex items-center gap-4 px-4 pt-5 pb-4 relative"
+        className="flex items-center gap-4 px-4 pt-5 pb-4 relative z-10"
         style={{
-          background: "linear-gradient(180deg, rgba(139,92,246,0.07) 0%, transparent 100%)",
+          background: "linear-gradient(180deg, rgba(139,92,246,0.10) 0%, rgba(100,60,200,0.04) 60%, transparent 100%)",
         }}
       >
         {/* subtle glow behind avatar */}
         <div
-          className="absolute top-2 left-2 w-24 h-24 rounded-2xl pointer-events-none"
-          style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.35) 0%, transparent 70%)", filter: "blur(16px)" }}
+          className="absolute top-2 left-2 w-28 h-28 rounded-2xl pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.50) 0%, transparent 70%)", filter: "blur(20px)" }}
         />
         <div data-testid="avatar-container" className="flex-shrink-0 relative z-10">
           <Avatar className="w-20 h-20 border-2 border-primary/60 rounded-2xl"
@@ -447,7 +462,7 @@ export default function Profile() {
       </div>
 
       {/* ── Fotos ── */}
-      <div className="px-4 pb-5">
+      <div className="px-4 pb-5 relative z-10">
         <div className="flex items-center justify-between mb-3">
           <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Fotos</p>
           <span className="font-sans text-xs text-muted-foreground">{photos.length}/4</span>
@@ -475,8 +490,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Básico ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Básico</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(168,85,247,0.05) 0%, transparent 40%)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 14px rgba(168,85,247,0.6)" }}>Básico</p>
         <Field label="Nombre de usuario">
           <Input value={username} onChange={(e) => setUsername(e.target.value)}
             className="h-11 rounded-xl border border-border/50 focus-visible:ring-primary focus-visible:border-primary font-sans bg-input/30 text-sm"
@@ -515,8 +530,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Preferencias ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Preferencias</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.25)", background: "linear-gradient(180deg, rgba(236,72,153,0.04) 0%, transparent 40%)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(330,80%,72%)", textShadow: "0 0 14px rgba(236,72,153,0.5)" }}>Preferencias</p>
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             label="Rol"
@@ -546,8 +561,8 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Sobre mí ── */}
-      <div className="px-4 pt-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>Sobre mí</p>
+      <div className="px-4 pt-5 pb-5 space-y-4 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(139,92,246,0.05) 0%, transparent 40%)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest -mb-1" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 14px rgba(168,85,247,0.6)" }}>Sobre mí</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Altura (cm)">
             <input
@@ -607,15 +622,15 @@ export default function Profile() {
       </div>
 
       {/* ── Sección: Intereses ── */}
-      <div className="px-4 pt-5 pb-5 space-y-3" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
-        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(273,80%,74%)", textShadow: "0 0 10px rgba(168,85,247,0.45)" }}>
+      <div className="px-4 pt-5 pb-5 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(236,72,153,0.25)", background: "linear-gradient(180deg, rgba(236,72,153,0.04) 0%, transparent 40%)" }}>
+        <p className="font-sans text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(330,80%,72%)", textShadow: "0 0 14px rgba(236,72,153,0.5)" }}>
           Intereses · hasta 20
         </p>
         <TagPicker selected={interests} onChange={setInterests} max={20} />
       </div>
 
       {/* ── Ubicación + Guardar ── */}
-      <div className="px-4 pt-5 pb-6 space-y-3" style={{ borderTop: "1px solid rgba(168,85,247,0.22)" }}>
+      <div className="px-4 pt-5 pb-6 space-y-3 relative z-10" style={{ borderTop: "1px solid rgba(168,85,247,0.32)", background: "linear-gradient(180deg, rgba(168,85,247,0.04) 0%, transparent 40%)" }}>
         <button
           type="button"
           onClick={handleUseLocation}
@@ -662,14 +677,14 @@ export default function Profile() {
 
       {/* ── Cards (solo fuera del onboarding) ── */}
       {!isOnboarding && (
-        <>
+        <div className="relative z-10">
           <ProfileCompletionCard />
           <RewardsCard />
           <BoostCard />
           <VerificationCard />
           <VisitorsCard />
           <LesGustasCard />
-        </>
+        </div>
       )}
 
     </div>

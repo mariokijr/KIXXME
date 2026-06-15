@@ -220,7 +220,22 @@ function GridDiscover({
   const heading = source === "likes" ? "Tus Me gusta" : "En línea ahora";
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+      {/* ── Ambient background orbs ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div
+          className="absolute -top-16 left-1/4 w-80 h-80 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 70%)", filter: "blur(48px)" }}
+        />
+        <div
+          className="absolute top-1/3 -right-16 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%)", filter: "blur(56px)" }}
+        />
+        <div
+          className="absolute bottom-1/4 left-0 w-56 h-56 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)", filter: "blur(44px)" }}
+        />
+      </div>
       <header
         className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative"
         style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
@@ -265,11 +280,11 @@ function GridDiscover({
         </Link>
       </header>
 
-      <div className="px-4 pt-3 flex justify-center">
+      <div className="relative z-10 px-4 pt-3 flex justify-center">
         <ModeToggle mode={mode} setMode={setMode} />
       </div>
 
-      <div className="px-4 pt-4 pb-2">
+      <div className="relative z-10 px-4 pt-4 pb-2">
         <h2
           className="font-display text-3xl tracking-wide leading-tight"
           style={{
@@ -288,23 +303,25 @@ function GridDiscover({
         )}
       </div>
 
-      <div className="divider-brand mx-4 mb-1" />
+      <div className="divider-brand mx-4 mb-1 relative z-10" />
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="relative z-10 flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="font-sans text-sm text-muted-foreground">
             Cargando perfiles...
           </p>
         </div>
       ) : isEmpty ? (
-        <EmptyState
-          source={source}
-          onShare={handleShare}
-          onExplore={() => setMode("tarjetas")}
-        />
+        <div className="relative z-10">
+          <EmptyState
+            source={source}
+            onShare={handleShare}
+            onExplore={() => setMode("tarjetas")}
+          />
+        </div>
       ) : (
-        <div className="px-4 pb-6 grid grid-cols-2 gap-3">
+        <div className="relative z-10 px-4 pb-6 grid grid-cols-2 gap-3">
           {profiles.map((user, i) => (
             <UserCard
               key={user.id}
@@ -415,18 +432,22 @@ export function UserCard({
       className={`relative rounded-2xl overflow-hidden border group${featured ? " col-span-2" : ""}`}
       style={{
         background: "rgba(13,11,26,0.85)",
-        aspectRatio: "3/4",
+        aspectRatio: featured ? "16/9" : "3/4",
         borderColor:
           user.plan === "gold"
-            ? "rgba(251,191,36,0.60)"
+            ? "rgba(251,191,36,0.70)"
             : user.plan === "plus"
-            ? "rgba(168,85,247,0.52)"
+            ? "rgba(168,85,247,0.60)"
+            : featured
+            ? "rgba(168,85,247,0.35)"
             : "rgba(255,255,255,0.10)",
         boxShadow:
           user.plan === "gold"
-            ? "0 0 32px rgba(251,191,36,0.28), 0 0 60px rgba(251,191,36,0.10), 0 4px 20px rgba(0,0,0,0.55)"
+            ? "0 0 40px rgba(251,191,36,0.35), 0 0 80px rgba(251,191,36,0.12), 0 6px 28px rgba(0,0,0,0.65)"
             : user.plan === "plus"
-            ? "0 0 24px rgba(168,85,247,0.26), 0 0 50px rgba(168,85,247,0.09), 0 4px 18px rgba(0,0,0,0.5)"
+            ? "0 0 30px rgba(168,85,247,0.32), 0 0 60px rgba(168,85,247,0.12), 0 6px 24px rgba(0,0,0,0.6)"
+            : featured
+            ? "0 0 28px rgba(168,85,247,0.22), 0 0 56px rgba(236,72,153,0.10), 0 6px 20px rgba(0,0,0,0.55)"
             : user.is_online
             ? "0 0 18px rgba(74,222,128,0.16), 0 4px 14px rgba(0,0,0,0.4)"
             : "0 4px 14px rgba(0,0,0,0.4)",
@@ -576,9 +597,9 @@ export function UserCard({
 
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-3 pointer-events-none"
-        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)" }}
+        style={{ background: "linear-gradient(to top, rgba(6,4,20,0.96) 0%, rgba(20,10,40,0.70) 45%, transparent 100%)" }}
       >
-        <p className="font-display text-base text-white leading-tight tracking-wide truncate">
+        <p className={`font-display text-white leading-tight tracking-wide truncate${featured ? " text-xl" : " text-base"}`}>
           {user.username}
         </p>
         <div className="flex items-center justify-between mt-0.5">
@@ -586,7 +607,7 @@ export function UserCard({
             {[user.age, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
           </span>
           {distance && (
-            <span className="flex items-center gap-0.5 font-sans text-[10px] text-white/60 flex-shrink-0 ml-1">
+            <span className="flex items-center gap-0.5 font-sans text-[10px] flex-shrink-0 ml-1" style={{ color: "rgba(200,170,255,0.7)" }}>
               <MapPin className="w-2.5 h-2.5" />
               {distance}
             </span>
