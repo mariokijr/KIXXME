@@ -121,13 +121,13 @@ function dotMarkerHtml(user: PublicProfile): string {
   const isGoldUser = user.plan === "gold";
   const online = user.is_online;
   const dotSize = online ? 15 : 10;
-  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(273,85%,65%)";
+  const color = isGoldUser ? "hsl(45,90%,60%)" : "hsl(210,90%,62%)";
   const shadow = online
     ? `0 0 0 2.5px rgba(74,222,128,0.60),0 0 14px ${
-        isGoldUser ? "rgba(251,191,36,0.9)" : "rgba(168,85,247,0.85)"
+        isGoldUser ? "rgba(251,191,36,0.9)" : "rgba(59,130,246,0.85)"
       }`
     : `0 0 6px ${
-        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(168,85,247,0.45)"
+        isGoldUser ? "rgba(251,191,36,0.5)" : "rgba(59,130,246,0.50)"
       }`;
   const anim = online ? "animation:kixx-dot-pulse 2s ease-in-out infinite;" : "";
   return `<div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><div style="width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:${color};box-shadow:${shadow};${anim}"></div></div>`;
@@ -181,6 +181,7 @@ export default function MapView() {
   const updateVisibility = useUpdateMapVisibility();
   const ackMapMutation = useAckMapPrivacy();
   const [privacyAckedLocally, setPrivacyAckedLocally] = useState(false);
+  const [showGoldModal, setShowGoldModal] = useState(false);
 
   const showPrivacyModal =
     profile !== undefined &&
@@ -222,10 +223,9 @@ export default function MapView() {
     [users, filters]
   );
 
-  const placeable = useMemo(
-    () => filtered.filter((p) => p.distance_km != null),
-    [filtered]
-  );
+  // Include ALL filtered users — even those without distance_km (viewer has no GPS).
+  // When distance_km is null we use a pseudo-random spread based on the user id hash.
+  const placeable = useMemo(() => filtered, [filtered]);
 
   // In search mode, the viewer isn't necessarily in the search area.
   const onMapCount = searchCenter
@@ -388,11 +388,13 @@ export default function MapView() {
     }
 
     // Other users — offset from the mapOrigin (search center or viewer GPS).
+    // When distance_km is null (viewer has no GPS), assign a consistent spread via hash.
     for (const user of placeable) {
+      const distKm = user.distance_km ?? (hashId(user.id) % 350 + 50);
       const pos = offsetPosition(
         mapOrigin[0],
         mapOrigin[1],
-        user.distance_km as number,
+        distKm,
         user.id
       );
       const icon = L.divIcon({
@@ -913,7 +915,7 @@ export default function MapView() {
                 </button>
               ) : (
                 <button
-                  onClick={() => setLocation("/premium")}
+                  onClick={() => setShowGoldModal(true)}
                   className="w-11 flex-shrink-0 rounded-xl flex items-center justify-center relative"
                   style={{
                     background: "rgba(251,191,36,0.06)",
@@ -942,7 +944,7 @@ export default function MapView() {
                 </button>
               ) : (
                 <button
-                  onClick={() => setLocation("/premium")}
+                  onClick={() => setShowGoldModal(true)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-sans font-medium"
                   style={{
                     background: "rgba(251,191,36,0.07)",
@@ -966,6 +968,72 @@ export default function MapView() {
             username={selected.username}
             targetType="profile"
           />
+        )}
+
+        {/* ── Gold upsell modal (tap locked Like / Mensaje) ── */}
+        {showGoldModal && (
+          <div
+            className="absolute inset-0 z-[700] flex flex-col items-center justify-end p-4 pb-6"
+            style={{ background: "rgba(6,5,16,0.88)", backdropFilter: "blur(20px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowGoldModal(false); }}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl p-6 space-y-4"
+              style={{
+                background: "rgba(13,11,26,0.98)",
+                border: "1px solid rgba(251,191,36,0.28)",
+                boxShadow: "0 -8px 60px rgba(251,191,36,0.14), 0 0 0 1px rgba(251,191,36,0.06)",
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl"
+                    style={{ background: "linear-gradient(135deg, hsl(45,90%,55%), hsl(35,95%,45%))", boxShadow: "0 0 20px rgba(251,191,36,0.5)" }}
+                  >
+                    👑
+                  </div>
+                  <div>
+                    <h2 className="font-display text-xl tracking-wide text-white">Se requiere Gold</h2>
+                    <p className="font-sans text-xs text-white/45">Para contactar desde el mapa</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowGoldModal(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white/70 flex-shrink-0"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { icon: "💬", text: "Envía mensajes a cualquier usuario directamente desde el mapa." },
+                  { icon: "❤️", text: "Da me gusta e inicia conexiones con quien te guste." },
+                  { icon: "📹", text: "Videollamadas Gold en tiempo real." },
+                  { icon: "⭐", text: "5 días de prueba gratuita disponibles si aún no los has canjeado." },
+                ].map((item) => (
+                  <div key={item.icon} className="flex items-start gap-3">
+                    <span className="text-base leading-none pt-0.5 flex-shrink-0">{item.icon}</span>
+                    <p className="font-sans text-sm text-white/70 leading-snug">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => { setShowGoldModal(false); setLocation("/premium"); }}
+                className="w-full h-12 rounded-2xl font-display text-lg tracking-widest text-white"
+                style={{ background: "linear-gradient(135deg, hsl(45,90%,55%), hsl(35,95%,50%))", boxShadow: "0 4px 20px rgba(251,191,36,0.45)" }}
+              >
+                Probar 5 días gratis 👑
+              </button>
+              <button
+                onClick={() => { setShowGoldModal(false); setLocation("/premium"); }}
+                className="w-full h-10 rounded-2xl font-sans text-sm text-white/45 hover:text-white/60 transition-colors"
+              >
+                Ver todos los planes →
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
