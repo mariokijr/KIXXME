@@ -62,7 +62,7 @@ export function useGeolocation() {
             const pos = await Geolocation.getCurrentPosition({
               enableHighAccuracy: true,
               timeout: 15000,
-              maximumAge: 300000,
+              maximumAge: 30000,
             });
             submit(pos.coords.latitude, pos.coords.longitude);
           } catch {
@@ -79,13 +79,15 @@ export function useGeolocation() {
         return;
       }
 
-      // On web we use enableHighAccuracy:false — it relies on WiFi/IP positioning
-      // which works on every device (desktop and mobile) without GPS hardware.
-      // GPS-level precision is not needed for a social app; WiFi/cell is sufficient.
+      // enableHighAccuracy:true asks the browser for GPS / precise WiFi triangulation
+      // instead of coarse IP-based positioning (which can be 20–50 km off).
+      // maximumAge:30000 — accept a cached position no older than 30 s so the
+      // browser can satisfy the request instantly if the user barely moved, but
+      // never serves a stale IP-based fix from a previous session.
       navigator.geolocation.getCurrentPosition(
         (pos) => submit(pos.coords.latitude, pos.coords.longitude),
         (err) => handleGeoError(err.code),
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
       );
     },
     [update, qc]
