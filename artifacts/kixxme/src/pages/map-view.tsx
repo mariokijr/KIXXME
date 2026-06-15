@@ -46,6 +46,30 @@ const AGE_SLIDER_MIN = 18;
 const AGE_SLIDER_MAX = 70;
 const DEFAULT_FILTERS: MapFilters = { ageMin: AGE_SLIDER_MIN, ageMax: AGE_SLIDER_MAX };
 
+/**
+ * Client-side great-circle distance (km) between two lat/lng points.
+ * Used to recompute `distance_km` from the viewer's FRESH profile coordinates
+ * instead of the server-side snapshot which may be stale.
+ */
+function localDistKm(
+  vLat: number | null | undefined,
+  vLng: number | null | undefined,
+  tLat: number | null | undefined,
+  tLng: number | null | undefined,
+): number | null {
+  if (vLat == null || vLng == null || tLat == null || tLng == null) return null;
+  const R = 6371;
+  const dLat = ((tLat - vLat) * Math.PI) / 180;
+  const dLon = ((tLng - vLng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((vLat * Math.PI) / 180) *
+      Math.cos((tLat * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(km * 10) / 10;
+}
+
 function filtersActive(f: MapFilters): boolean {
   return f.ageMin > AGE_SLIDER_MIN || f.ageMax < AGE_SLIDER_MAX;
 }
@@ -170,7 +194,7 @@ export default function MapView() {
   const { data: mapData, isLoading } = useListMapUsers(mapQueryParams, {
     query: {
       queryKey: getListMapUsersQueryKey(mapQueryParams),
-      refetchInterval: 15000,
+      refetchInterval: 5000,
     },
   });
   const { start: startConversation, isPending: convPending } =
@@ -784,18 +808,33 @@ export default function MapView() {
                       En línea
                     </span>
                   )}
-                  {(selected.distance_km != null || selected.city) && (
-                    <span className="flex items-center gap-0.5 text-xs text-white/40">
-                      <MapPin className="w-3 h-3 flex-shrink-0" />
-                      {formatDistance(selected.distance_km) ?? selected.city ?? "Cerca"}
-                    </span>
-                  )}
-                </div>
-                {selected.city && selected.distance_km != null && (
-                  <p className="text-xs text-white/30 mt-0.5 truncate">
-                    {selected.city}
-                  </p>
-                )}
+                  {(() => {
+                    // Recompute distance client-side from the viewer's FRESH GPS
+                    // coordinates (profile.latitude/longitude) + the approximate
+                    // coordinates of the other user. This avoids the stale
+                    // server-side snapshot that caused wrong distances (e.g. 579 km
+                    // for Móstoles→Getafe which should be ~13 km).
+                    const distKm = localDistKm(
+                      profile?.latitude,
+                      profile?.longitude,
+                      selected.lat_approx,
+                      selected.lng_approx,
+                    );
+                    const distLabel = formatDistance(distKm) ?? selected.city ?? "Cerca";
+                    return (
+                      <>
+                        <span className="flex items-center gap-0.5 text-xs text-white/40">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          {distLabel}
+                        </span>
+                        {selected.city && distKm != null && (
+                          <p className="text-xs text-white/30 mt-0.5 truncate">
+                            {selected.city}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
               </div>
             </div>
 
