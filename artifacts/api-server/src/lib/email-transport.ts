@@ -154,20 +154,15 @@ function queuedGmailSend(email: OutboundEmail): Promise<void> {
 let warnedMissingEmailFrom = false;
 
 /**
- * When Resend returns `daily_quota_exceeded`, we cache the exhaustion until
- * the next midnight UTC so subsequent calls skip the Resend HTTP round-trip
- * entirely and go straight to Gmail without flooding the logs with 429 warnings.
- * Resets automatically on the next calendar day (Resend quota is UTC-daily).
+ * When Resend returns `daily_quota_exceeded`, we cache the exhaustion for
+ * RESEND_QUOTA_RETRY_MS (default 10 min) so subsequent calls skip the HTTP
+ * round-trip without flooding logs. After the TTL expires the next send
+ * retries Resend automatically — useful after upgrading the Resend plan.
+ * On paid plans Resend never returns daily_quota_exceeded, so this cache
+ * stays at 0 and every email goes through Resend.
  */
+const RESEND_QUOTA_RETRY_MS = 10 * 60 * 1000; // 10 minutes
 let resendQuotaExhaustedUntil = 0; // Unix ms; 0 = not exhausted
-
-function nextMidnightUtcMs(): number {
-  const now = new Date();
-  const midnight = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
-  );
-  return midnight.getTime();
-}
 
 function isResendQuotaExhausted(): boolean {
   return Date.now() < resendQuotaExhaustedUntil;
@@ -196,10 +191,10 @@ export async function deliverEmail(email: OutboundEmail): Promise<void> {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("daily_quota_exceeded")) {
-        resendQuotaExhaustedUntil = nextMidnightUtcMs();
+        resendQuotaExhaustedUntil = Date.now() + RESEND_QUOTA_RETRY_MS;
         logger.error(
-          { to: email.to, resetsAt: new Date(resendQuotaExhaustedUntil).toISOString() },
-          "🚨 RESEND DAILY QUOTA EXCEEDED — emails are falling back to Gmail until midnight UTC. " +
+          { to: email.to, retryAfter: new Date(resendQuotaExhaustedUntil).toISOString() },
+          "🚨 RESEND DAILY QUOTA EXCEEDED — falling back to Gmail for 10 min, then retrying Resend. " +
             "Upgrade your Resend plan at https://resend.com/settings/billing to restore full deliverability.",
         );
       } else {
