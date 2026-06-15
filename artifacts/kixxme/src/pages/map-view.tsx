@@ -946,11 +946,13 @@ export default function MapView() {
         {showMapTutorial && (
           <div
             className="absolute inset-0 z-[800] flex flex-col items-center justify-end"
-            style={{ background: "rgba(6,5,16,0.90)", backdropFilter: "blur(22px)" }}
+            style={{ background: "rgba(6,5,16,0.90)", backdropFilter: "blur(22px)", paddingTop: "env(safe-area-inset-top)" }}
           >
             <div
-              className="w-full max-w-sm rounded-t-3xl px-6 pt-7 pb-8 flex flex-col gap-5"
+              className="w-full max-w-sm rounded-t-3xl px-6 pt-7 flex flex-col gap-5 overflow-y-auto"
               style={{
+                paddingBottom: "max(2rem, env(safe-area-inset-bottom))",
+                maxHeight: "calc(100dvh - env(safe-area-inset-top) - 1rem)",
                 background: "linear-gradient(180deg, rgba(20,14,40,0.98) 0%, rgba(10,8,22,0.99) 100%)",
                 border: "1px solid rgba(168,85,247,0.2)",
                 borderBottom: "none",
