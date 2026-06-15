@@ -30,7 +30,7 @@ import { notifyMissedCallByEmail } from "./live-notifications.js";
 // --- Tunables --------------------------------------------------------------
 
 /** Max distance for the "nearby" scope. */
-const NEARBY_KM = 100;
+const NEARBY_KM = 200;
 /** Queue rows not refreshed within this window are treated as gone. */
 const STALE_MS = 30_000;
 /** Ringing calls older than this are auto-expired to "missed". */

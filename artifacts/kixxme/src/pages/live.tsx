@@ -99,7 +99,7 @@ export default function Live() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [scope, setScope] = useState<LiveQueueRequestScope>("nearby");
+  const [scope, setScope] = useState<LiveQueueRequestScope>("worldwide");
   const [ageMin, setAgeMin] = useState(AGE_MIN);
   const [ageMax, setAgeMax] = useState(AGE_MAX);
   const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
@@ -132,14 +132,8 @@ export default function Live() {
     setShowLiveTutorial(true);
   };
 
-  // Pre-configure age slider from the user's own age (centered range).
-  useEffect(() => {
-    const age = myProfile?.age;
-    if (typeof age === "number" && age >= 18) {
-      setAgeMin(Math.max(AGE_MIN, age - 5));
-      setAgeMax(Math.min(AGE_MAX, age + 10));
-    }
-  }, [myProfile?.age]);
+  // Age range stays at the full default (18-70) so the match pool is as wide as
+  // possible. Users can manually narrow it with the slider if they want to filter.
 
   // Detect the user's country name once from profile coordinates.
   useEffect(() => {

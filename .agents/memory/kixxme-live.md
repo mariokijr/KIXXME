@@ -284,13 +284,20 @@ though both enqueue (POST /live/queue → 200) and poll cleanly with **no errors
   profile completeness, only Gold) can sit in queue indefinitely. The scope
   fallback below does NOT fix this — the UI must warn (see `getLiveProfileFlags`/
   idle banner) and the user must set an age.
-- **No coordinates + a location scope ⇒ never matches.** Default UI scope is
-  "nearby", which needs both sides' coords; "spain"/"europe" need the target's
-  coords; "city" needs a city. `effectiveScope` (applied in `loadSnapshot`)
-  downgrades the searcher's scope to "worldwide" when their own data can't
-  satisfy it, so the *stored* queue scope + `video_calls.filters` are already
-  effective — both match directions and skip/heartbeat/requeue see it, and it's
-  idempotent (self-heals legacy rows).
+- **No coordinates + a location scope ⇒ never matches.** "spain"/"europe" need
+  the target's coords; "city" needs a city. `effectiveScope` (applied in
+  `loadSnapshot`) downgrades the searcher's scope to "worldwide" when their own
+  data can't satisfy it.
+- **DEFAULT SCOPE BUG (now fixed): "nearby" was the default.** Two users in
+  different Spanish cities (Madrid–Barcelona = ~504 km > 200 km) never matched.
+  Fixed: default scope is now "worldwide". `NEARBY_KM` also corrected 100→200 to
+  match the UI label ("Radio máx. 200 km").
+- **AGE RANGE BUG (now fixed): a useEffect auto-narrowed to `[age−5, age+10]`.**
+  A user aged 30 got ageMax=40; a user aged 45 got ageMin=40 → `ageMutual` fails
+  (`45 <= 40` is false) → no match. Symptom: both `POST /live/queue` return 200,
+  both poll `GET /live/state`, but no match ever forms and both press "Cancelar"
+  after ~15s. Fixed: removed the auto-narrow effect; age range stays at the full
+  18–70 by default (users can manually narrow with the slider).
 **Why:** the failure is silent (200s, no logs); the cause is data (a block, a
 null age, or missing coords), not the matcher. Before suspecting matchmaking
 code, check the `blocks` table (both directions) and `age`/`latitude`/`longitude`
