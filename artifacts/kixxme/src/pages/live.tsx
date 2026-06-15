@@ -53,16 +53,36 @@ import {
 } from "lucide-react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 
-const SCOPES: { value: LiveQueueRequestScope; label: string; emoji: string }[] =
-  [
-    { value: "nearby", label: "Cerca de mí", emoji: "📍" },
-    { value: "city", label: "Mi ciudad", emoji: "🏙️" },
-    { value: "spain", label: "España", emoji: "🇪🇸" },
-    { value: "worldwide", label: "Internacional", emoji: "🌍" },
-  ];
+const SCOPES: {
+  value: LiveQueueRequestScope;
+  label: string;
+  emoji: string;
+  desc: string;
+}[] = [
+  { value: "nearby",    label: "Cerca de mí",  emoji: "📍", desc: "Radio máx. 200 km a tu alrededor" },
+  { value: "city",      label: "Mi ciudad",    emoji: "🏙️", desc: "Usuarios de tu ciudad o zona" },
+  { value: "spain",     label: "Mi país",      emoji: "🗺️", desc: "Todos los usuarios de tu país" },
+  { value: "worldwide", label: "Internacional", emoji: "🌍", desc: "Sin límite geográfico, todo el mundo" },
+];
 
 const AGE_MIN = 18;
-const AGE_MAX = 99;
+const AGE_MAX = 70;
+
+async function geocodeCountryName(
+  lat: number,
+  lon: number,
+): Promise<string | null> {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&zoom=3&format=json&accept-language=es`,
+      { headers: { "User-Agent": "KixxMe/1.0" } },
+    );
+    const j = await r.json();
+    return (j?.address?.country as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function partnerName(call: LiveCall): string {
   return call.partner.username || "Alguien";
@@ -79,8 +99,11 @@ export default function Live() {
   const qc = useQueryClient();
 
   const [scope, setScope] = useState<LiveQueueRequestScope>("nearby");
-  const [ageMin, setAgeMin] = useState(18);
-  const [ageMax, setAgeMax] = useState(45);
+  const [ageMin, setAgeMin] = useState(AGE_MIN);
+  const [ageMax, setAgeMax] = useState(AGE_MAX);
+  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
+  const [showLiveTutorial, setShowLiveTutorial] = useState(false);
+  const countryFetchedRef = useRef(false);
 
   // Local camera/mic intent. Drives both the in-call controls and the LiveKit
   // publish state (see `useLiveKitCall`); defaults on so a connected call starts
@@ -105,7 +128,29 @@ export default function Live() {
   const handleLivePrivacyAck = () => {
     setLivePrivacyAckedLocally(true);
     ackLiveMutation.mutate(undefined);
+    setShowLiveTutorial(true);
   };
+
+  // Pre-configure age slider from the user's own age (centered range).
+  useEffect(() => {
+    const age = myProfile?.age;
+    if (typeof age === "number" && age >= 18) {
+      setAgeMin(Math.max(AGE_MIN, age - 5));
+      setAgeMax(Math.min(AGE_MAX, age + 10));
+    }
+  }, [myProfile?.age]);
+
+  // Detect the user's country name once from profile coordinates.
+  useEffect(() => {
+    if (countryFetchedRef.current) return;
+    const lat = myProfile?.latitude;
+    const lon = myProfile?.longitude;
+    if (typeof lat !== "number" || typeof lon !== "number") return;
+    countryFetchedRef.current = true;
+    geocodeCountryName(lat, lon).then((name) => {
+      if (name) setDetectedCountry(name);
+    });
+  }, [myProfile?.latitude, myProfile?.longitude]);
 
   const { data, isLoading } = useGetLiveState({
     query: {
@@ -415,6 +460,9 @@ export default function Live() {
       searching={joinQueue.isPending}
       profile={data.profile ?? null}
       onCompleteProfile={() => setLocation("/profile")}
+      detectedCountry={detectedCountry}
+      showTutorial={showLiveTutorial}
+      onCloseTutorial={() => setShowLiveTutorial(false)}
     />
   );
 }
@@ -692,6 +740,109 @@ function AgeRangeSlider({
   );
 }
 
+const LIVE_TUTORIAL_SLIDES = [
+  {
+    emoji: "🎥",
+    title: "¿Cómo funciona Live?",
+    body: "KixxMe Live te empareja al azar con otro usuario que esté buscando en el mismo momento. Cuando ambos aceptéis, comienza la videollamada.",
+  },
+  {
+    emoji: "🗺️",
+    title: "Elige tu zona",
+    body: "Cerca de mí (máx. 200 km) · Mi ciudad · Mi país (detectado por GPS) · Internacional. La app detecta tu país automáticamente según tu ubicación.",
+  },
+  {
+    emoji: "🎚️",
+    title: "Filtra por edad",
+    body: "El deslizador de edad se configura automáticamente según la tuya. Puedes ajustarlo para ver solo el rango que te interesa.",
+  },
+  {
+    emoji: "📍",
+    title: "Tu ubicación",
+    body: "Solo usamos tu ubicación aproximada (ciudad o país) para emparejarte. Nunca compartimos tus coordenadas exactas con otros usuarios.",
+  },
+  {
+    emoji: "🛡️",
+    title: "Comunidad y respeto",
+    body: "Puedes reportar o bloquear a cualquier persona en cualquier momento durante la llamada. El contenido inapropiado puede suponer una sanción.",
+  },
+];
+
+function LiveTutorialModal({ onClose }: { onClose: () => void }) {
+  const [slide, setSlide] = useState(0);
+  const total = LIVE_TUTORIAL_SLIDES.length;
+  const s = LIVE_TUTORIAL_SLIDES[slide];
+  const isLast = slide === total - 1;
+  return (
+    <div
+      className="fixed inset-0 z-[800] flex flex-col items-center justify-end pb-8 px-5"
+      style={{ background: "rgba(5,3,16,0.93)", backdropFilter: "blur(10px)" }}
+    >
+      <div
+        className="w-full max-w-sm rounded-3xl p-7 space-y-5"
+        style={{
+          background: "rgba(13,11,26,0.98)",
+          border: "1px solid rgba(168,85,247,0.25)",
+          boxShadow: "0 0 60px rgba(168,85,247,0.18)",
+        }}
+      >
+        <div className="flex flex-col items-center text-center gap-3">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+            style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.14))",
+              boxShadow: "0 0 28px rgba(168,85,247,0.30)",
+            }}
+          >
+            {s.emoji}
+          </div>
+          <h2 className="font-display text-xl tracking-tight text-white">{s.title}</h2>
+          <p className="font-sans text-sm text-white/65 leading-relaxed">{s.body}</p>
+        </div>
+
+        <div className="flex justify-center gap-1.5">
+          {LIVE_TUTORIAL_SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setSlide(i)}
+              className="h-1.5 rounded-full transition-all duration-300"
+              style={{
+                width: i === slide ? 20 : 6,
+                background:
+                  i === slide
+                    ? "linear-gradient(90deg, hsl(273,85%,60%), hsl(330,85%,58%))"
+                    : "rgba(255,255,255,0.18)",
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          {slide > 0 && (
+            <button
+              onClick={() => setSlide(slide - 1)}
+              className="flex-1 h-12 rounded-xl border font-sans text-sm font-medium text-white/70"
+              style={{ borderColor: "rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.04)" }}
+            >
+              Anterior
+            </button>
+          )}
+          <button
+            onClick={isLast ? onClose : () => setSlide(slide + 1)}
+            className="flex-1 h-12 rounded-xl font-sans text-sm font-semibold text-white"
+            style={{
+              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+              boxShadow: "0 4px 20px rgba(168,85,247,0.35)",
+            }}
+          >
+            {isLast ? "¡Entendido, conectar!" : "Siguiente →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Idle({
   scope,
   setScope,
@@ -703,6 +854,9 @@ function Idle({
   searching,
   profile,
   onCompleteProfile,
+  detectedCountry,
+  showTutorial,
+  onCloseTutorial,
 }: {
   scope: LiveQueueRequestScope;
   setScope: (s: LiveQueueRequestScope) => void;
@@ -714,12 +868,17 @@ function Idle({
   searching: boolean;
   profile: LiveState["profile"];
   onCompleteProfile: () => void;
+  detectedCountry: string | null;
+  showTutorial: boolean;
+  onCloseTutorial: () => void;
 }) {
   const missingAge = profile != null && !profile.hasAge;
   const missingLocation = profile != null && !profile.hasLocation;
   const { data: stats } = useGetDiscoveryStats({ scope: "worldwide" });
   const online = stats?.online ?? 0;
   return (
+    <>
+    {showTutorial && <LiveTutorialModal onClose={onCloseTutorial} />}
     <div className="min-h-full pb-10">
       <Header />
       <div className="flex justify-center mt-2 mb-4">
@@ -795,11 +954,19 @@ function Idle({
           <div className="grid grid-cols-2 gap-2">
             {SCOPES.map((s) => {
               const active = scope === s.value;
+              const label =
+                s.value === "spain" && detectedCountry
+                  ? detectedCountry
+                  : s.label;
+              const desc =
+                s.value === "spain" && detectedCountry
+                  ? `Usuarios de ${detectedCountry}`
+                  : s.desc;
               return (
                 <button
                   key={s.value}
                   onClick={() => setScope(s.value)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all"
+                  className="flex flex-col gap-0.5 px-3 py-3 rounded-xl border text-left transition-all"
                   style={
                     active
                       ? {
@@ -816,8 +983,16 @@ function Idle({
                   }
                   data-testid={`scope-${s.value}`}
                 >
-                  <span className="text-base">{s.emoji}</span>
-                  <span className="font-sans text-sm font-medium">{s.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base leading-none">{s.emoji}</span>
+                    <span className="font-sans text-sm font-semibold leading-tight truncate">{label}</span>
+                  </div>
+                  <span
+                    className="font-sans text-[10px] leading-snug mt-0.5"
+                    style={{ color: active ? "rgba(255,255,255,0.72)" : "hsl(240,10%,52%)" }}
+                  >
+                    {desc}
+                  </span>
                 </button>
               );
             })}
@@ -831,7 +1006,7 @@ function Idle({
           <div className="flex items-center justify-between mb-2">
             <p className="font-display text-lg tracking-wide">Rango de edad</p>
             <span className="font-display text-lg text-gradient-brand tabular-nums">
-              {ageMin} – {ageMax >= AGE_MAX ? "99+" : ageMax}
+              {ageMin} – {ageMax >= AGE_MAX ? "70+" : ageMax}
             </span>
           </div>
           <AgeRangeSlider
@@ -866,6 +1041,7 @@ function Idle({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
