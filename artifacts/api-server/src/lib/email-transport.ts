@@ -154,27 +154,60 @@ function queuedGmailSend(email: OutboundEmail): Promise<void> {
 let warnedMissingEmailFrom = false;
 
 /**
+ * When Resend returns `daily_quota_exceeded`, we cache the exhaustion until
+ * the next midnight UTC so subsequent calls skip the Resend HTTP round-trip
+ * entirely and go straight to Gmail without flooding the logs with 429 warnings.
+ * Resets automatically on the next calendar day (Resend quota is UTC-daily).
+ */
+let resendQuotaExhaustedUntil = 0; // Unix ms; 0 = not exhausted
+
+function nextMidnightUtcMs(): number {
+  const now = new Date();
+  const midnight = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
+  return midnight.getTime();
+}
+
+function isResendQuotaExhausted(): boolean {
+  return Date.now() < resendQuotaExhaustedUntil;
+}
+
+/**
  * Deliver one email through the active provider.
  *
  * Priority:
- *   1. Resend — only when both RESEND_API_KEY and EMAIL_FROM are set.
- *      Falls back to Gmail on any Resend error.
+ *   1. Resend — only when both RESEND_API_KEY and EMAIL_FROM are set AND the
+ *      daily quota is not exhausted. When Resend returns `daily_quota_exceeded`
+ *      the exhaustion is cached until midnight UTC so subsequent sends skip
+ *      Resend without retrying and go straight to Gmail.
  *   2. Gmail (serialised queue + retry-after-aware retries) — used when
- *      Resend is unconfigured, EMAIL_FROM is missing, or Resend errors.
+ *      Resend is unconfigured, EMAIL_FROM is missing, quota is exhausted,
+ *      or any other Resend error occurs.
  */
 export async function deliverEmail(email: OutboundEmail): Promise<void> {
   const key = resendApiKey();
   const from = resendFrom();
 
-  if (key && from) {
+  if (key && from && !isResendQuotaExhausted()) {
     try {
       await sendViaResend(key, from, email);
       return;
     } catch (err) {
-      logger.warn(
-        { err: err instanceof Error ? err.message : String(err), to: email.to },
-        "Resend send failed; falling back to Gmail queue",
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("daily_quota_exceeded")) {
+        resendQuotaExhaustedUntil = nextMidnightUtcMs();
+        logger.error(
+          { to: email.to, resetsAt: new Date(resendQuotaExhaustedUntil).toISOString() },
+          "🚨 RESEND DAILY QUOTA EXCEEDED — emails are falling back to Gmail until midnight UTC. " +
+            "Upgrade your Resend plan at https://resend.com/settings/billing to restore full deliverability.",
+        );
+      } else {
+        logger.warn(
+          { err: msg, to: email.to },
+          "Resend send failed; falling back to Gmail queue",
+        );
+      }
     }
   } else if (key && !from && !warnedMissingEmailFrom) {
     warnedMissingEmailFrom = true;
@@ -182,6 +215,11 @@ export async function deliverEmail(email: OutboundEmail): Promise<void> {
       "RESEND_API_KEY is set but EMAIL_FROM is not — skipping Resend (gmail.com From " +
         'always 403s). Set EMAIL_FROM to "KixxMe <no-reply@kixxme.com>" once ' +
         "kixxme.com is verified at https://resend.com/domains.",
+    );
+  } else if (isResendQuotaExhausted()) {
+    logger.warn(
+      { to: email.to, resetsAt: new Date(resendQuotaExhaustedUntil).toISOString() },
+      "Resend quota exhausted (cached); routing via Gmail",
     );
   }
 
