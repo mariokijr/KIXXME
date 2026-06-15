@@ -140,6 +140,9 @@ export default function MapView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
+  // Draft strings for age inputs — let the user type freely; clamp only on blur.
+  const [ageMinDraft, setAgeMinDraft] = useState(String(DEFAULT_FILTERS.ageMin));
+  const [ageMaxDraft, setAgeMaxDraft] = useState(String(DEFAULT_FILTERS.ageMax));
 
   // ── Geocoding search ──────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -616,18 +619,19 @@ export default function MapView() {
               <span className="text-xs text-white/35 flex-shrink-0">Edad</span>
               <input
                 type="number"
+                inputMode="numeric"
                 min={18}
                 max={99}
-                value={filters.ageMin}
-                onChange={(e) =>
-                  setFilters((f) => ({
-                    ...f,
-                    ageMin: Math.min(
-                      Math.max(18, Number(e.target.value) || 18),
-                      f.ageMax
-                    ),
-                  }))
-                }
+                value={ageMinDraft}
+                onChange={(e) => setAgeMinDraft(e.target.value)}
+                onBlur={() => {
+                  const v = Math.min(
+                    Math.max(18, parseInt(ageMinDraft, 10) || 18),
+                    filters.ageMax
+                  );
+                  setAgeMinDraft(String(v));
+                  setFilters((f) => ({ ...f, ageMin: v }));
+                }}
                 className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
                 style={{
                   background: "rgba(255,255,255,0.08)",
@@ -637,18 +641,19 @@ export default function MapView() {
               <span className="text-white/25 text-xs">–</span>
               <input
                 type="number"
+                inputMode="numeric"
                 min={18}
                 max={99}
-                value={filters.ageMax}
-                onChange={(e) =>
-                  setFilters((f) => ({
-                    ...f,
-                    ageMax: Math.max(
-                      Math.min(99, Number(e.target.value) || 99),
-                      f.ageMin
-                    ),
-                  }))
-                }
+                value={ageMaxDraft}
+                onChange={(e) => setAgeMaxDraft(e.target.value)}
+                onBlur={() => {
+                  const v = Math.max(
+                    Math.min(99, parseInt(ageMaxDraft, 10) || 99),
+                    filters.ageMin
+                  );
+                  setAgeMaxDraft(String(v));
+                  setFilters((f) => ({ ...f, ageMax: v }));
+                }}
                 className="w-12 px-1.5 py-1 rounded-lg text-xs text-white text-center"
                 style={{
                   background: "rgba(255,255,255,0.08)",
@@ -657,7 +662,11 @@ export default function MapView() {
               />
               {filtersActive(filters) && (
                 <button
-                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS);
+                    setAgeMinDraft(String(DEFAULT_FILTERS.ageMin));
+                    setAgeMaxDraft(String(DEFAULT_FILTERS.ageMax));
+                  }}
                   className="text-xs text-white/35 underline flex-shrink-0"
                 >
                   ×
