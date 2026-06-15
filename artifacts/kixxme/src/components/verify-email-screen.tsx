@@ -13,16 +13,15 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { MailCheck, Loader2, AlertTriangle, MessageCircle } from "lucide-react";
+import { MailCheck, Loader2, AlertTriangle, MessageCircle, FolderOpen } from "lucide-react";
 import { Link } from "wouter";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 const GRADIENT = "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))";
 
 const VERIFY_MESSAGE =
-  "Te hemos enviado un código de verificación a tu correo electrónico. " +
-  "Cópialo y pégalo aquí para completar tu registro. Si no lo ves en tu " +
-  "bandeja de entrada, revisa la carpeta de spam o correo no deseado.";
+  "Te hemos enviado un código de 6 dígitos a tu correo electrónico. " +
+  "Cópialo y pégalo aquí para completar tu registro.";
 
 function maskEmail(email?: string | null): string {
   if (!email) return "tu correo";
@@ -190,6 +189,27 @@ export function VerifyEmailScreen({ email }: { email?: string | null }) {
           <p className="font-sans text-xs text-center text-foreground/80">
             {maskEmail(email)}
           </p>
+
+          {/* Spam folder warning — prominent callout */}
+          <div
+            className="rounded-xl border px-4 py-3 flex gap-3 items-start"
+            style={{
+              background: "rgba(251,191,36,0.08)",
+              borderColor: "rgba(251,191,36,0.30)",
+            }}
+          >
+            <FolderOpen className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#fbbf24" }} />
+            <div className="space-y-1">
+              <p className="font-sans text-xs font-semibold" style={{ color: "#fbbf24" }}>
+                ¿No ves el código?
+              </p>
+              <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+                Revisa la carpeta de <strong className="text-foreground/80">spam</strong> o{" "}
+                <strong className="text-foreground/80">correo no deseado</strong>. El email llega
+                desde <span className="text-foreground/70">support@kixxme.com</span>.
+              </p>
+            </div>
+          </div>
 
           {sendFailed && (
             <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 space-y-2">
