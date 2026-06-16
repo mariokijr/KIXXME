@@ -706,25 +706,29 @@ export function SwipeView({
   return (
     <div className="flex flex-col h-[calc(100dvh-72px)] relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
 
-      {/* ── Ambient orbs (T008) ── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
+      {/* ── Ambient orbs ── */}
+      <div className="absolute inset-0 pointer-events-none z-0">
         <div
-          className="absolute -top-16 left-1/4 w-[24rem] h-[24rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.32) 0%, rgba(168,85,247,0.07) 60%, transparent 80%)", filter: "blur(52px)" }}
+          className="absolute -top-16 left-1/4 w-[26rem] h-[26rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.55) 0%, rgba(168,85,247,0.12) 55%, transparent 75%)", filter: "blur(48px)" }}
         />
         <div
-          className="absolute top-1/3 -right-20 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.05) 65%, transparent 85%)", filter: "blur(48px)" }}
+          className="absolute top-1/3 -right-16 w-80 h-80 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.42) 0%, rgba(236,72,153,0.08) 60%, transparent 82%)", filter: "blur(44px)" }}
         />
         <div
-          className="absolute bottom-1/4 -left-12 w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%)", filter: "blur(44px)" }}
+          className="absolute bottom-1/4 -left-10 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.38) 0%, transparent 68%)", filter: "blur(40px)" }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[20rem] h-[20rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.10) 0%, transparent 65%)", filter: "blur(60px)" }}
         />
       </div>
 
       {/* ── Header: logo + mode toggle + feed chips + quota + matches ── */}
       <header
-        className="flex items-center gap-2 px-3 py-2.5 relative"
+        className="flex items-center gap-2 px-3 py-2.5 relative z-10"
         style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
       >
         {/* Glowing bottom border */}
@@ -821,7 +825,7 @@ export function SwipeView({
       </header>
 
       {/* ── Card area ── */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative z-10">
         <div className="relative w-full h-full">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -994,28 +998,69 @@ function DeckEmpty({
 }) {
   return (
     <div className="absolute inset-0 overflow-y-auto">
-      <div className="min-h-full flex flex-col items-center justify-center gap-5 text-center px-5 py-8">
-        <div
-          className="w-20 h-20 rounded-2xl flex items-center justify-center border border-primary/20"
-          style={{ background: "rgba(168,85,247,0.1)" }}
-        >
-          <Sparkles
-            className="w-10 h-10 text-primary"
-            style={{ filter: "drop-shadow(0 0 12px rgba(168,85,247,0.55))" }}
+      {/* Big centre bloom */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 50% 45%, rgba(168,85,247,0.28) 0%, rgba(236,72,153,0.14) 40%, transparent 70%)",
+        }}
+      />
+      <div className="relative min-h-full flex flex-col items-center justify-center gap-6 text-center px-5 py-8">
+        {/* Icon with gradient border ring */}
+        <div className="relative">
+          <div
+            className="absolute inset-0 rounded-2xl"
+            style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,0.9), rgba(236,72,153,0.7))",
+              filter: "blur(16px)",
+              transform: "scale(1.15)",
+              opacity: 0.55,
+            }}
           />
+          <div
+            className="relative w-24 h-24 rounded-2xl flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,0.22) 0%, rgba(236,72,153,0.14) 100%)",
+              border: "1.5px solid rgba(168,85,247,0.50)",
+              boxShadow: "0 0 28px rgba(168,85,247,0.35), inset 0 0 20px rgba(168,85,247,0.06)",
+            }}
+          >
+            <Sparkles
+              className="w-11 h-11"
+              style={{
+                color: "hsl(280,90%,78%)",
+                filter: "drop-shadow(0 0 14px rgba(168,85,247,0.90)) drop-shadow(0 0 4px rgba(236,72,153,0.60))",
+              }}
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <h3 className="font-display text-2xl tracking-wide text-foreground">{title}</h3>
+
+        <div className="space-y-2">
+          <h3
+            className="font-display text-2xl tracking-wide"
+            style={{
+              background: "linear-gradient(135deg, hsl(280,85%,82%) 0%, hsl(330,85%,75%) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            {title}
+          </h3>
           <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
             {subtitle}
           </p>
         </div>
+
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={onRestart}
             disabled={isFetching}
             className="flex items-center justify-center gap-2 h-12 rounded-2xl font-display text-base tracking-widest text-white hover:opacity-90 transition-opacity border-0 disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,52%))" }}
+            style={{
+              background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+              boxShadow: "0 4px 24px rgba(168,85,247,0.40), 0 1px 4px rgba(0,0,0,0.3)",
+            }}
             data-testid="button-deck-restart"
           >
             {isFetching ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
@@ -1023,13 +1068,17 @@ function DeckEmpty({
           </button>
           <button
             onClick={onGrid}
-            className="h-11 rounded-2xl font-sans text-sm text-muted-foreground border border-border/40 hover:text-foreground transition-colors"
+            className="h-11 rounded-2xl font-sans text-sm transition-colors"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.45)",
+            }}
             data-testid="button-deck-grid"
           >
             Ver en cuadrícula
           </button>
         </div>
-
       </div>
     </div>
   );
