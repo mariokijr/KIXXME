@@ -11,7 +11,7 @@ import faceCarlos from "@/assets/face-carlos.png";
 import faceMarcos from "@/assets/face-marcos.png";
 
 /* ─────────────────────────────────────────────
-   VIDEO CALL CARD — cinematic live call frame
+   VIDEO CALL CARD
 ───────────────────────────────────────────── */
 function VideoCallCard({
   img, name, startSecs = 0, accent = "#22c55e", callLabel = "EN VIVO",
@@ -29,52 +29,40 @@ function VideoCallCard({
     <motion.div
       animate={{
         boxShadow: [
-          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}30, 0 10px 34px rgba(0,0,0,0.75)`,
-          `0 0 0 2.5px ${accent}, 0 0 42px ${accent}aa, 0 0 90px ${accent}44, 0 10px 34px rgba(0,0,0,0.75)`,
-          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}30, 0 10px 34px rgba(0,0,0,0.75)`,
+          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}28, 0 10px 32px rgba(0,0,0,0.78)`,
+          `0 0 0 2.5px ${accent}, 0 0 40px ${accent}aa, 0 0 90px ${accent}40, 0 10px 32px rgba(0,0,0,0.78)`,
+          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}28, 0 10px 32px rgba(0,0,0,0.78)`,
         ],
       }}
-      transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-      style={{ width: 158, height: 230, borderRadius: 20, overflow: "hidden", position: "relative", flexShrink: 0 }}
+      transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      style={{ width: 142, height: 188, borderRadius: 18, overflow: "hidden", position: "relative", flexShrink: 0 }}
     >
       <img src={img} alt={name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to bottom, rgba(0,0,0,0.74), transparent)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.52) 36%, transparent 60%)" }} />
 
-      {/* Top scrim */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent)" }} />
-      {/* Bottom scrim */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.55) 36%, transparent 60%)" }} />
-
-      {/* Subtle color tint by accent */}
-      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}0a 0%, transparent 50%)`, pointerEvents: "none" }} />
-
-      {/* Top bar: live badge + timer */}
-      <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, background: `${accent}22`, border: `1px solid ${accent}77`, borderRadius: 99, padding: "3px 9px 3px 6px", backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "absolute", top: 9, left: 9, right: 9, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, background: `${accent}22`, border: `1px solid ${accent}77`, borderRadius: 99, padding: "3px 8px 3px 5px" }}>
           <motion.span
             animate={{ opacity: [1, 0.15, 1] }}
-            transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: 6, height: 6, borderRadius: "50%", background: accent, flexShrink: 0, boxShadow: `0 0 6px ${accent}` }}
+            transition={{ duration: 0.95, repeat: Infinity }}
+            style={{ width: 5.5, height: 5.5, borderRadius: "50%", background: accent, flexShrink: 0 }}
           />
-          <span style={{ fontSize: 8.5, fontWeight: 800, color: accent, fontFamily: "Inter,sans-serif", letterSpacing: "0.07em" }}>{callLabel}</span>
+          <span style={{ fontSize: 7.5, fontWeight: 800, color: accent, fontFamily: "Inter,sans-serif", letterSpacing: "0.07em" }}>{callLabel}</span>
         </div>
-        <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.88)", fontFamily: "'Courier New',monospace", fontWeight: 700, letterSpacing: "0.06em", textShadow: "0 0 8px rgba(255,255,255,0.4)" }}>
+        <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.86)", fontFamily: "'Courier New',monospace", fontWeight: 700 }}>
           {fmt(elapsed)}
         </span>
       </div>
 
-      {/* Bottom: name + controls */}
-      <div style={{ position: "absolute", bottom: 10, left: 10, right: 10 }}>
-        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, letterSpacing: "0.03em", lineHeight: 1.1, marginBottom: 8, textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>{name}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.26)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-            <Mic style={{ width: 12, height: 12, color: "white" }} />
-          </div>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(239,68,68,0.90)", boxShadow: "0 0 12px rgba(239,68,68,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <PhoneOff style={{ width: 12, height: 12, color: "white" }} />
-          </div>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.26)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-            <Video style={{ width: 12, height: 12, color: "white" }} />
-          </div>
+      <div style={{ position: "absolute", bottom: 9, left: 9, right: 9 }}>
+        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: "0.03em", lineHeight: 1.1, marginBottom: 7 }}>{name}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {[Mic, PhoneOff, Video].map((Icon, i) => (
+            <div key={i} style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? "rgba(239,68,68,0.90)" : "rgba(255,255,255,0.13)", border: i !== 1 ? "1px solid rgba(255,255,255,0.24)" : "none", boxShadow: i === 1 ? "0 0 10px rgba(239,68,68,0.50)" : "none" }}>
+              <Icon style={{ width: 11, height: 11, color: "white" }} />
+            </div>
+          ))}
         </div>
       </div>
     </motion.div>
@@ -82,30 +70,125 @@ function VideoCallCard({
 }
 
 /* ─────────────────────────────────────────────
-   PULSE CONNECTOR — neon signal between cards
+   PULSE CONNECTOR
 ───────────────────────────────────────────── */
 function PulseConnector() {
   return (
-    <div style={{ position: "relative", width: 42, height: 42, flexShrink: 0 }}>
+    <div style={{ position: "relative", width: 38, height: 38, flexShrink: 0 }}>
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
-          style={{
-            position: "absolute", inset: 0, borderRadius: "50%",
-            border: "1.5px solid rgba(168,85,247,0.60)",
-          }}
-          animate={{ scale: [1, 3.0], opacity: [0.80, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.72 }}
+          style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1.5px solid rgba(168,85,247,0.58)" }}
+          animate={{ scale: [1, 3.0], opacity: [0.78, 0] }}
+          transition={{ duration: 2.1, repeat: Infinity, ease: "easeOut", delay: i * 0.70 }}
         />
       ))}
       <div style={{
         position: "absolute", inset: 4, borderRadius: "50%",
         background: "conic-gradient(from 180deg, #a855f7, #ec4899, #6366f1, #a855f7)",
-        boxShadow: "0 0 18px rgba(168,85,247,1.0), 0 0 38px rgba(168,85,247,0.55), 0 0 70px rgba(168,85,247,0.25)",
+        boxShadow: "0 0 18px rgba(168,85,247,1.0), 0 0 36px rgba(168,85,247,0.55)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <KixxMeLogo size={15} />
+        <KixxMeLogo size={14} />
       </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   MAP PREVIEW — dark city map with user pins
+───────────────────────────────────────────── */
+const MAP_PINS = [
+  { x: 22, y: 26, photo: faceCarlos, isGold: true,  size: 32 },
+  { x: 70, y: 52, photo: faceMarcos, isGold: false, size: 30 },
+  { x: 83, y: 20, photo: null as null, grad: "linear-gradient(135deg,#a855f7,#6366f1)", isGold: false, size: 26 },
+  { x: 12, y: 58, photo: null as null, grad: "linear-gradient(135deg,#22c55e,#16a34a)", isGold: true,  size: 25 },
+  { x: 56, y: 74, photo: null as null, grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", isGold: false, size: 28 },
+  { x: 40, y: 14, photo: null as null, grad: "linear-gradient(135deg,#38bdf8,#6366f1)", isGold: false, size: 22 },
+  { x: 90, y: 66, photo: null as null, grad: "linear-gradient(135deg,#f97316,#ec4899)", isGold: false, size: 24 },
+];
+
+const MAP_BUILDINGS = [
+  { left: "4%",  top: "5%",  width: "19%", height: "17%" },
+  { left: "28%", top: "3%",  width: "14%", height: "13%" },
+  { left: "56%", top: "7%",  width: "12%", height: "16%" },
+  { left: "76%", top: "4%",  width: "16%", height: "17%" },
+  { left: "3%",  top: "34%", width: "20%", height: "21%" },
+  { left: "38%", top: "32%", width: "16%", height: "15%" },
+  { left: "63%", top: "37%", width: "14%", height: "14%" },
+  { left: "83%", top: "33%", width: "13%", height: "22%" },
+  { left: "5%",  top: "68%", width: "18%", height: "28%" },
+  { left: "31%", top: "66%", width: "15%", height: "30%" },
+  { left: "57%", top: "70%", width: "19%", height: "26%" },
+  { left: "82%", top: "68%", width: "14%", height: "28%" },
+];
+
+function MapPreview() {
+  return (
+    <div style={{ position: "absolute", inset: 0, background: "#060218", overflow: "hidden" }}>
+      {/* City grid */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 42px,rgba(168,85,247,0.055) 42px,rgba(168,85,247,0.055) 43.5px),repeating-linear-gradient(90deg,transparent,transparent 52px,rgba(168,85,247,0.055) 52px,rgba(168,85,247,0.055) 53.5px)",
+      }} />
+
+      {/* Building blocks */}
+      {MAP_BUILDINGS.map((b, i) => (
+        <div key={i} style={{ position: "absolute", left: b.left, top: b.top, width: b.width, height: b.height, background: "rgba(255,255,255,0.020)", borderRadius: 3 }} />
+      ))}
+
+      {/* Main roads */}
+      <div style={{ position: "absolute", top: "30%", left: 0, right: 0, height: 3, background: "rgba(139,92,246,0.16)" }} />
+      <div style={{ position: "absolute", top: "64%", left: 0, right: 0, height: 2.5, background: "rgba(139,92,246,0.12)" }} />
+      <div style={{ position: "absolute", left: "32%", top: 0, bottom: 0, width: 3, background: "rgba(139,92,246,0.14)" }} />
+      <div style={{ position: "absolute", left: "70%", top: 0, bottom: 0, width: 2.5, background: "rgba(139,92,246,0.10)" }} />
+
+      {/* YOU glow */}
+      <div style={{ position: "absolute", top: "44%", left: "47%", transform: "translate(-50%,-50%)", width: 110, height: 110, borderRadius: "50%", background: "radial-gradient(circle, rgba(56,189,248,0.20) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", top: "44%", left: "47%", transform: "translate(-50%,-50%)", width: 145, height: 145, borderRadius: "50%", border: "1px solid rgba(56,189,248,0.15)" }} />
+
+      {/* User pins */}
+      {MAP_PINS.map(({ x, y, photo, isGold, size, grad }, i) => (
+        <div key={i} style={{ position: "absolute", left: `${x}%`, top: `${y}%`, transform: "translate(-50%,-50%)" }}>
+          <div style={{
+            width: size, height: size, borderRadius: "50%", overflow: "hidden",
+            border: `1.5px solid ${isGold ? "#fbbf24" : "rgba(168,85,247,0.80)"}`,
+            background: photo ? "transparent" : (grad ?? undefined),
+            boxShadow: isGold
+              ? "0 0 11px rgba(251,191,36,0.60), 0 2px 8px rgba(0,0,0,0.55)"
+              : "0 0 9px rgba(168,85,247,0.45), 0 2px 6px rgba(0,0,0,0.50)",
+          }}>
+            {photo && <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+          </div>
+          {isGold && <div style={{ position: "absolute", top: -5, right: -5, fontSize: 9, lineHeight: 1 }}>👑</div>}
+        </div>
+      ))}
+
+      {/* YOU pin */}
+      <div style={{ position: "absolute", top: "44%", left: "47%", transform: "translate(-50%,-50%)" }}>
+        <motion.div
+          animate={{ scale: [1, 2.6], opacity: [0.55, 0] }}
+          transition={{ duration: 2.3, repeat: Infinity, ease: "easeOut" }}
+          style={{ position: "absolute", inset: -2, borderRadius: "50%", background: "rgba(56,189,248,0.50)" }}
+        />
+        <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#38bdf8", border: "2.5px solid white", boxShadow: "0 0 12px #38bdf8cc, 0 0 24px rgba(56,189,248,0.40)" }} />
+      </div>
+      {/* "Tú" label */}
+      <div style={{ position: "absolute", top: "44%", left: "calc(47% + 13px)", transform: "translateY(-50%)", background: "rgba(56,189,248,0.16)", border: "1px solid rgba(56,189,248,0.32)", borderRadius: 7, padding: "2px 6px" }}>
+        <span style={{ fontSize: 8, color: "rgba(56,189,248,0.92)", fontFamily: "Inter,sans-serif", fontWeight: 700 }}>Tú</span>
+      </div>
+
+      {/* Top bar */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 30, background: "linear-gradient(to bottom, rgba(6,2,24,0.80), transparent)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px" }}>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.46)", fontFamily: "Inter,sans-serif", fontWeight: 500, letterSpacing: "0.02em" }}>📍 Madrid, España</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(168,85,247,0.14)", border: "1px solid rgba(168,85,247,0.28)", borderRadius: 6, padding: "2px 8px" }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#a855f7", display: "inline-block" }} />
+          <span style={{ fontSize: 8, color: "rgba(168,85,247,0.90)", fontFamily: "Inter,sans-serif", fontWeight: 700 }}>Cerca de ti</span>
+        </div>
+      </div>
+
+      {/* Bottom vignette */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 36, background: "linear-gradient(to top, rgba(6,2,24,0.70), transparent)" }} />
     </div>
   );
 }
@@ -154,17 +237,17 @@ export default function Welcome() {
       <style>{`
         @keyframes blob1 {
           0%, 100% { transform: translate(0%, 0%) scale(1); }
-          30%  { transform: translate(14%, -18%) scale(1.16); }
-          65%  { transform: translate(-10%, 12%) scale(0.91); }
+          33%  { transform: translate(12%, -16%) scale(1.14); }
+          66%  { transform: translate(-9%, 11%) scale(0.91); }
         }
         @keyframes blob2 {
           0%, 100% { transform: translate(0%, 0%) scale(1); }
-          45%  { transform: translate(-15%, 16%) scale(1.14); }
-          80%  { transform: translate(11%, -10%) scale(0.94); }
+          45%  { transform: translate(-14%, 15%) scale(1.13); }
+          80%  { transform: translate(10%, -9%) scale(0.94); }
         }
         @keyframes blob3 {
           0%, 100% { transform: translate(0%, 0%) scale(1); }
-          55%  { transform: translate(13%, 15%) scale(1.10); }
+          55%  { transform: translate(12%, 14%) scale(1.09); }
         }
       `}</style>
 
@@ -173,7 +256,7 @@ export default function Welcome() {
       {/* ── HEADER ── */}
       <div
         className="relative z-10 sticky top-0"
-        style={{ background: "rgba(5,2,19,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderBottom: "1px solid rgba(168,85,247,0.12)" }}
+        style={{ background: "rgba(5,2,19,0.88)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderBottom: "1px solid rgba(168,85,247,0.12)" }}
       >
         <div className="flex items-center justify-between px-4 py-3 max-w-[430px] mx-auto">
           <button
@@ -224,139 +307,107 @@ export default function Welcome() {
         ))}
       </div>
 
-      {/* ── HERO LIVE STAGE ── */}
-      <div className="relative z-10 w-full overflow-hidden" style={{ paddingBottom: 6 }}>
+      {/* ── FEATURE HERO ── */}
+      <div className="relative z-10 px-4 pt-4 pb-2 max-w-[430px] mx-auto w-full flex flex-col gap-3">
 
-        {/* Animated aurora blobs */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div style={{
-            position: "absolute", top: "-15%", left: "-5%", width: "80%", height: "100%",
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.38) 0%, transparent 62%)",
-            filter: "blur(52px)", animation: "blob1 17s ease-in-out infinite",
-          }} />
-          <div style={{
-            position: "absolute", top: "0%", right: "-15%", width: "65%", height: "85%",
-            background: "radial-gradient(ellipse, rgba(236,72,153,0.32) 0%, transparent 62%)",
-            filter: "blur(46px)", animation: "blob2 22s ease-in-out infinite",
-          }} />
-          <div style={{
-            position: "absolute", bottom: "-10%", left: "15%", width: "60%", height: "65%",
-            background: "radial-gradient(ellipse, rgba(99,102,241,0.28) 0%, transparent 65%)",
-            filter: "blur(48px)", animation: "blob3 26s ease-in-out infinite",
-          }} />
-          {/* Warm gold accent */}
-          <div style={{
-            position: "absolute", top: "30%", left: "40%", width: "30%", height: "40%",
-            background: "radial-gradient(ellipse, rgba(251,191,36,0.10) 0%, transparent 70%)",
-            filter: "blur(40px)",
-          }} />
-        </div>
-
-        {/* "KIXXME LIVE" floating badge */}
-        <div className="relative z-10 flex justify-center" style={{ paddingTop: 20, paddingBottom: 18 }}>
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.08 }}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              background: "rgba(255,255,255,0.055)",
-              border: "1px solid rgba(168,85,247,0.30)",
-              borderRadius: 99, padding: "6px 18px 6px 12px",
-              backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
-              boxShadow: "0 0 0 1px rgba(168,85,247,0.08), 0 4px 24px rgba(0,0,0,0.40)",
-            }}
-          >
-            <motion.span
-              animate={{ opacity: [1, 0.12, 1] }}
-              transition={{ duration: 0.85, repeat: Infinity }}
-              style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", flexShrink: 0, boxShadow: "0 0 8px #ef4444dd" }}
-            />
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: "white", fontFamily: "Inter,sans-serif", letterSpacing: "0.09em" }}>KIXXME LIVE</span>
-            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.18)", flexShrink: 0 }} />
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.52)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>1.247 en línea</span>
-          </motion.div>
-        </div>
-
-        {/* ── Cards + Connector ── */}
-        <div className="relative z-10 flex justify-center items-end" style={{ gap: 16, paddingLeft: 14, paddingRight: 14 }}>
-
-          {/* Marcelo — left, tilted -7° */}
-          <motion.div
-            initial={{ opacity: 0, x: -28, scale: 0.91 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 0.70, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            style={{ rotate: -7, zIndex: 2, flexShrink: 0, transformOrigin: "bottom center" }}
-          >
-            <motion.div
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 4.3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <VideoCallCard img={faceCarlos} name="Marcelo, 26" startSecs={42} accent="#22c55e" callLabel="EN VIVO" />
-            </motion.div>
-          </motion.div>
-
-          {/* Pulse Connector */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.55, delay: 0.52, ease: [0.34, 1.56, 0.64, 1] }}
-            style={{ marginBottom: 22, flexShrink: 0 }}
-          >
-            <PulseConnector />
-          </motion.div>
-
-          {/* Marcos — right, tilted +6° */}
-          <motion.div
-            initial={{ opacity: 0, x: 28, scale: 0.91 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 0.70, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            style={{ rotate: 6, zIndex: 1, flexShrink: 0, transformOrigin: "bottom center" }}
-          >
-            <motion.div
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 4.9, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
-            >
-              <VideoCallCard img={faceMarcos} name="Marcos, 24" startSecs={127} accent="#a855f7" callLabel="LIVE" />
-            </motion.div>
-          </motion.div>
-        </div>
-
-        {/* Stats bar */}
+        {/* ── CARD 1: VIDEO CALLS ── */}
         <motion.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.62, delay: 0.58 }}
-          className="relative z-10 flex justify-center"
-          style={{ paddingTop: 22, paddingBottom: 2 }}
+          transition={{ duration: 0.68, delay: 0.10, ease: [0.22, 1, 0.36, 1] }}
+          style={{ borderRadius: 24, overflow: "hidden", border: "1px solid rgba(168,85,247,0.22)", boxShadow: "0 8px 50px rgba(0,0,0,0.60)", position: "relative" }}
         >
-          <div style={{
-            display: "inline-flex", alignItems: "stretch",
-            background: "rgba(255,255,255,0.042)",
-            border: "1px solid rgba(255,255,255,0.095)",
-            borderRadius: 18, overflow: "hidden",
-            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 0 0 1px rgba(168,85,247,0.08), 0 8px 32px rgba(0,0,0,0.45)",
-          }}>
-            {[
-              { value: "1.247", label: "EN LÍNEA", accent: "rgba(34,197,94,0.85)"  },
-              { value: "28s",   label: "AL MATCH",  accent: "rgba(168,85,247,0.85)" },
-              { value: "98K",   label: "USUARIOS",  accent: "rgba(56,189,248,0.85)" },
-            ].map(({ value, label, accent }, i) => (
-              <React.Fragment key={label}>
-                {i > 0 && <div style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,0.08)" }} />}
-                <div style={{ padding: "11px 22px", textAlign: "center" }}>
-                  <p style={{ fontSize: 17, fontWeight: 800, color: "white", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.05em", lineHeight: 1, textShadow: `0 0 12px ${accent}` }}>{value}</p>
-                  <p style={{ fontSize: 7.5, color: "rgba(255,255,255,0.40)", fontFamily: "Inter,sans-serif", letterSpacing: "0.10em", fontWeight: 600, marginTop: 4 }}>{label}</p>
-                </div>
-              </React.Fragment>
-            ))}
+          {/* Visual area */}
+          <div style={{ height: 222, position: "relative", background: "#060316", overflow: "hidden" }}>
+            {/* Aurora blobs (inside card) */}
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+              <div style={{ position: "absolute", top: "-20%", left: "-10%", width: "80%", height: "100%", background: "radial-gradient(ellipse, rgba(139,92,246,0.40) 0%, transparent 65%)", filter: "blur(50px)", animation: "blob1 16s ease-in-out infinite" }} />
+              <div style={{ position: "absolute", top: "0%", right: "-15%", width: "65%", height: "90%", background: "radial-gradient(ellipse, rgba(236,72,153,0.30) 0%, transparent 65%)", filter: "blur(44px)", animation: "blob2 21s ease-in-out infinite" }} />
+            </div>
+
+            {/* Feature label top-left */}
+            <div style={{ position: "absolute", top: 11, left: 12, zIndex: 3, display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(168,85,247,0.28)", borderRadius: 99, padding: "4px 10px 4px 8px" }}>
+              <Video style={{ width: 10, height: 10, color: "rgba(168,85,247,0.90)" }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.80)", fontFamily: "Inter,sans-serif", letterSpacing: "0.06em" }}>KIXXME LIVE</span>
+            </div>
+
+            {/* Two call cards */}
+            <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 14, paddingBottom: 12, paddingTop: 32, paddingLeft: 12, paddingRight: 12, zIndex: 2 }}>
+              {/* Marcelo */}
+              <motion.div
+                initial={{ opacity: 0, x: -18, scale: 0.93 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ duration: 0.60, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                style={{ rotate: -6, zIndex: 2, flexShrink: 0, transformOrigin: "bottom center" }}
+              >
+                <motion.div animate={{ y: [0, -11, 0] }} transition={{ duration: 4.3, repeat: Infinity, ease: "easeInOut" }}>
+                  <VideoCallCard img={faceCarlos} name="Marcelo, 26" startSecs={42} accent="#22c55e" callLabel="EN VIVO" />
+                </motion.div>
+              </motion.div>
+
+              {/* Connector */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.4 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.50, ease: [0.34, 1.56, 0.64, 1] }}
+                style={{ marginBottom: 20, flexShrink: 0 }}
+              >
+                <PulseConnector />
+              </motion.div>
+
+              {/* Marcos */}
+              <motion.div
+                initial={{ opacity: 0, x: 18, scale: 0.93 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ duration: 0.60, delay: 0.30, ease: [0.22, 1, 0.36, 1] }}
+                style={{ rotate: 5, zIndex: 1, flexShrink: 0, transformOrigin: "bottom center" }}
+              >
+                <motion.div animate={{ y: [0, -11, 0] }} transition={{ duration: 4.9, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}>
+                  <VideoCallCard img={faceMarcos} name="Marcos, 24" startSecs={127} accent="#a855f7" callLabel="LIVE" />
+                </motion.div>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Label */}
+          <div style={{ background: "rgba(6,2,22,0.97)", padding: "12px 16px 14px", display: "flex", alignItems: "center", gap: 11, borderTop: "1px solid rgba(168,85,247,0.10)" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: "linear-gradient(135deg, rgba(168,85,247,0.30), rgba(236,72,153,0.22))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(168,85,247,0.20)" }}>
+              <Video style={{ width: 16, height: 16, color: "rgba(168,85,247,0.90)" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "Inter,sans-serif", lineHeight: 1.2 }}>Videollamadas cara a cara</p>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.48)", fontFamily: "Inter,sans-serif", marginTop: 2 }}>Conéctate con chicos en tiempo real</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── CARD 2: MAP ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.68, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          style={{ borderRadius: 24, overflow: "hidden", border: "1px solid rgba(168,85,247,0.18)", boxShadow: "0 8px 50px rgba(0,0,0,0.55)" }}
+        >
+          {/* Map visual */}
+          <div style={{ height: 178, position: "relative" }}>
+            <MapPreview />
+          </div>
+
+          {/* Label */}
+          <div style={{ background: "rgba(6,2,22,0.97)", padding: "12px 16px 14px", display: "flex", alignItems: "center", gap: 11, borderTop: "1px solid rgba(168,85,247,0.08)" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: "linear-gradient(135deg, rgba(99,102,241,0.28), rgba(56,189,248,0.20))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(99,102,241,0.22)" }}>
+              <MapIcon style={{ width: 16, height: 16, color: "rgba(99,102,241,0.95)" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "Inter,sans-serif", lineHeight: 1.2 }}>Mapa en Tiempo Real</p>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.48)", fontFamily: "Inter,sans-serif", marginTop: 2 }}>Ve quién hay cerca de ti en el mapa</p>
+            </div>
           </div>
         </motion.div>
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto px-5 pt-4 pb-4 flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-[430px] mx-auto px-5 pt-3 pb-4 flex flex-col items-center">
 
         {/* Feature strip */}
         <motion.div
@@ -369,7 +420,7 @@ export default function Welcome() {
             <div
               key={label}
               className="flex-1 flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(168,85,247,0.14)" }}
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(168,85,247,0.13)" }}
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.28), rgba(236,72,153,0.18))" }}>
                 <Icon className="w-4 h-4 text-purple-300" />
