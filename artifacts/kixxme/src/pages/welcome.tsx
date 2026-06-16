@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Heart, X, BadgeCheck, MapPin, Menu, Shield, Video, Map as MapIcon, Mic, PhoneOff } from "lucide-react";
+import { Menu, Shield, Video, Map as MapIcon, Mic, PhoneOff } from "lucide-react";
 import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
@@ -9,15 +9,14 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import faceCarlos from "@/assets/face-carlos.png";
 import faceMarcos from "@/assets/face-marcos.png";
-import faceAlejandro from "@/assets/face-alejandro.png";
 
 /* ─────────────────────────────────────────────
-   VIDEO CALL CARD — animated live call frame
+   VIDEO CALL CARD — cinematic live call frame
 ───────────────────────────────────────────── */
 function VideoCallCard({
-  img, name, startSecs = 0, accent = "#22c55e", floatDelay = 0, callLabel = "EN VIVO",
+  img, name, startSecs = 0, accent = "#22c55e", callLabel = "EN VIVO",
 }: {
-  img: string; name: string; startSecs?: number; accent?: string; floatDelay?: number; callLabel?: string;
+  img: string; name: string; startSecs?: number; accent?: string; callLabel?: string;
 }) {
   const [elapsed, setElapsed] = React.useState(startSecs);
   React.useEffect(() => {
@@ -29,51 +28,52 @@ function VideoCallCard({
   return (
     <motion.div
       animate={{
-        y: [0, -7, 0],
         boxShadow: [
-          `0 0 0 1.5px ${accent}bb, 0 0 14px ${accent}55, 0 6px 22px rgba(0,0,0,0.65)`,
-          `0 0 0 2px ${accent}, 0 0 28px ${accent}99, 0 6px 22px rgba(0,0,0,0.65)`,
-          `0 0 0 1.5px ${accent}bb, 0 0 14px ${accent}55, 0 6px 22px rgba(0,0,0,0.65)`,
+          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}30, 0 10px 34px rgba(0,0,0,0.75)`,
+          `0 0 0 2.5px ${accent}, 0 0 42px ${accent}aa, 0 0 90px ${accent}44, 0 10px 34px rgba(0,0,0,0.75)`,
+          `0 0 0 1.5px ${accent}cc, 0 0 22px ${accent}66, 0 0 48px ${accent}30, 0 10px 34px rgba(0,0,0,0.75)`,
         ],
       }}
-      transition={{ duration: 3.4 + floatDelay * 0.7, repeat: Infinity, ease: "easeInOut", delay: floatDelay }}
-      style={{ width: "100%", height: 134, borderRadius: 16, overflow: "hidden", position: "relative" }}
+      transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+      style={{ width: 158, height: 230, borderRadius: 20, overflow: "hidden", position: "relative", flexShrink: 0 }}
     >
-      {/* Video feed */}
       <img src={img} alt={name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
 
       {/* Top scrim */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to bottom, rgba(0,0,0,0.62), transparent)" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to bottom, rgba(0,0,0,0.72), transparent)" }} />
       {/* Bottom scrim */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.42) 42%, transparent 66%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.55) 36%, transparent 60%)" }} />
+
+      {/* Subtle color tint by accent */}
+      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}0a 0%, transparent 50%)`, pointerEvents: "none" }} />
 
       {/* Top bar: live badge + timer */}
-      <div style={{ position: "absolute", top: 7, left: 7, right: 7, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 3, background: `${accent}28`, border: `1px solid ${accent}70`, borderRadius: 99, padding: "2px 6px 2px 4px" }}>
+      <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, background: `${accent}22`, border: `1px solid ${accent}77`, borderRadius: 99, padding: "3px 9px 3px 6px", backdropFilter: "blur(8px)" }}>
           <motion.span
-            animate={{ opacity: [1, 0.25, 1] }}
-            transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: 5, height: 5, borderRadius: "50%", background: accent, flexShrink: 0 }}
+            animate={{ opacity: [1, 0.15, 1] }}
+            transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
+            style={{ width: 6, height: 6, borderRadius: "50%", background: accent, flexShrink: 0, boxShadow: `0 0 6px ${accent}` }}
           />
-          <span style={{ fontSize: 7.5, fontWeight: 800, color: accent, fontFamily: "Inter,sans-serif", letterSpacing: "0.06em" }}>{callLabel}</span>
+          <span style={{ fontSize: 8.5, fontWeight: 800, color: accent, fontFamily: "Inter,sans-serif", letterSpacing: "0.07em" }}>{callLabel}</span>
         </div>
-        <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.80)", fontFamily: "'Courier New',monospace", fontWeight: 700, letterSpacing: "0.04em" }}>
+        <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.88)", fontFamily: "'Courier New',monospace", fontWeight: 700, letterSpacing: "0.06em", textShadow: "0 0 8px rgba(255,255,255,0.4)" }}>
           {fmt(elapsed)}
         </span>
       </div>
 
-      {/* Bottom: name + call controls */}
-      <div style={{ position: "absolute", bottom: 7, left: 7, right: 7 }}>
-        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: "0.02em", lineHeight: 1.1, marginBottom: 5 }}>{name}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Mic style={{ width: 9, height: 9, color: "white" }} />
+      {/* Bottom: name + controls */}
+      <div style={{ position: "absolute", bottom: 10, left: 10, right: 10 }}>
+        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, letterSpacing: "0.03em", lineHeight: 1.1, marginBottom: 8, textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>{name}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.26)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)" }}>
+            <Mic style={{ width: 12, height: 12, color: "white" }} />
           </div>
-          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(239,68,68,0.85)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <PhoneOff style={{ width: 9, height: 9, color: "white" }} />
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(239,68,68,0.90)", boxShadow: "0 0 12px rgba(239,68,68,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <PhoneOff style={{ width: 12, height: 12, color: "white" }} />
           </div>
-          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Video style={{ width: 9, height: 9, color: "white" }} />
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.26)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)" }}>
+            <Video style={{ width: 12, height: 12, color: "white" }} />
           </div>
         </div>
       </div>
@@ -82,182 +82,31 @@ function VideoCallCard({
 }
 
 /* ─────────────────────────────────────────────
-   RIGHT PANEL — "Personas cerca de ti" network
+   PULSE CONNECTOR — neon signal between cards
 ───────────────────────────────────────────── */
-const NODES = [
-  { x: 56, y: 10, r: 18, photo: null,         grad: "linear-gradient(135deg,hsl(273,85%,56%),hsl(240,80%,55%))", stroke: "rgba(168,85,247,0.75)" },
-  { x: 68, y: 52, r: 18, photo: faceMarcos,   grad: null,                                                          stroke: "rgba(255,255,255,0.22)" },
-  { x: 24, y: 88, r: 14, photo: null,         grad: "linear-gradient(135deg,hsl(186,86%,55%),hsl(220,80%,60%))", stroke: "rgba(34,211,238,0.65)"  },
-  { x: 62, y: 118,r: 16, photo: faceCarlos,   grad: null,                                                          stroke: "rgba(255,255,255,0.20)" },
-  { x: 78, y: 155,r: 13, photo: null,         grad: "linear-gradient(135deg,hsl(140,75%,48%),hsl(160,70%,43%))", stroke: "rgba(34,197,94,0.65)"   },
-  { x: 36, y: 160,r: 13, photo: faceAlejandro,grad: null,                                                          stroke: "rgba(255,255,255,0.18)" },
-] as const;
-
-const LINES: [number, number][] = [[0,1],[1,2],[2,3],[3,4],[3,5],[1,3]];
-
-function RightPanel() {
-  const W = 100; const SH = 192;
+function PulseConnector() {
   return (
-    <div style={{ width: W }}>
-      <p style={{ fontSize: 9, fontFamily: "Inter,sans-serif", color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 7, textAlign: "right", paddingRight: 2, whiteSpace: "nowrap" }}>
-        Personas cerca de ti
-      </p>
-
-      <div style={{ position: "relative", width: W, height: SH }}>
-        <svg width={W} height={SH} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
-          {LINES.map(([a, b], i) => {
-            const A = NODES[a]; const B = NODES[b];
-            return (
-              <line key={i}
-                x1={A.x + A.r} y1={A.y + A.r}
-                x2={B.x + B.r} y2={B.y + B.r}
-                stroke="rgba(139,92,246,0.38)"
-                strokeWidth="0.75"
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </svg>
-
-        {NODES.map((n, i) => (
-          <div key={i} style={{
-            position: "absolute", left: n.x, top: n.y,
-            width: n.r * 2, height: n.r * 2, borderRadius: "50%",
-            background: n.photo ? "#050315" : (n.grad as string),
-            border: `1.5px solid ${n.stroke}`,
-            overflow: "hidden",
-            boxShadow: "0 0 8px rgba(0,0,0,0.55)",
-          }}>
-            {n.photo && <img src={n.photo as string} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
-        <span style={{
-          display: "inline-block", padding: "5px 11px", borderRadius: 99,
-          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.16)",
-          fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700,
-          color: "rgba(255,255,255,0.82)", letterSpacing: "0.06em",
-        }}>
-          VER TODOS
-        </span>
+    <div style={{ position: "relative", width: 42, height: 42, flexShrink: 0 }}>
+      {[0, 1, 2].map(i => (
+        <motion.div
+          key={i}
+          style={{
+            position: "absolute", inset: 0, borderRadius: "50%",
+            border: "1.5px solid rgba(168,85,247,0.60)",
+          }}
+          animate={{ scale: [1, 3.0], opacity: [0.80, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.72 }}
+        />
+      ))}
+      <div style={{
+        position: "absolute", inset: 4, borderRadius: "50%",
+        background: "conic-gradient(from 180deg, #a855f7, #ec4899, #6366f1, #a855f7)",
+        boxShadow: "0 0 18px rgba(168,85,247,1.0), 0 0 38px rgba(168,85,247,0.55), 0 0 70px rgba(168,85,247,0.25)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <KixxMeLogo size={15} />
       </div>
     </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   CENTER PHONE — neon glow border + profile card
-───────────────────────────────────────────── */
-function CenterPhone({ innerW }: { innerW: number }) {
-  const BORDER = 3;
-  const innerH = Math.round(innerW * 2.14);
-  const BTN = 44;
-  const KBTN = 56;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        padding: BORDER,
-        borderRadius: 40,
-        background: "conic-gradient(from 175deg at 50% 50%, #a855f7 0%, #ec4899 28%, #6366f1 58%, #8b5cf6 78%, #a855f7 100%)",
-        boxShadow: [
-          "0 0 0 1px rgba(168,85,247,0.22)",
-          "0 0 40px rgba(168,85,247,0.80)",
-          "0 0 90px rgba(168,85,247,0.45)",
-          "0 0 160px rgba(236,72,153,0.25)",
-          "0 0 220px rgba(168,85,247,0.12)",
-          "0 24px 60px rgba(0,0,0,0.70)",
-        ].join(", "),
-      }}
-    >
-      <div style={{
-        width: innerW, height: innerH, borderRadius: 37,
-        background: "#08061c", overflow: "hidden",
-        display: "flex", flexDirection: "column",
-      }}>
-        {/* Notch */}
-        <div style={{ height: 22, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <div style={{ width: 52, height: 12, borderRadius: 7, background: "#000" }} />
-        </div>
-
-        {/* Photo + overlay content */}
-        <div style={{ flex: 1, position: "relative" }}>
-          <img
-            src={faceAlejandro} alt="Alejandro"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
-          />
-
-          {/* Colour tint at top */}
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "45%", background: "linear-gradient(to bottom, rgba(30,15,65,0.18), transparent)" }} />
-
-          {/* Bottom scrim */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(4,2,16,0.97) 0%, rgba(6,4,20,0.90) 26%, rgba(8,5,22,0.52) 50%, transparent 70%)" }} />
-
-          {/* En línea badge */}
-          <div style={{ position: "absolute", top: 11, left: 10, display: "flex", alignItems: "center", gap: 5, background: "rgba(34,197,94,0.90)", borderRadius: 99, padding: "3px 9px 3px 6px" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />
-            <span style={{ fontSize: 9.5, fontFamily: "Inter,sans-serif", fontWeight: 700, color: "white" }}>En línea</span>
-          </div>
-
-          {/* Bookmark heart top-right */}
-          <div style={{ position: "absolute", top: 11, right: 10, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.09)", border: "1.5px solid rgba(255,255,255,0.24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Heart style={{ width: 13, height: 13, color: "white" }} />
-          </div>
-
-          {/* Name + verified + distance + tags */}
-          <div style={{ position: "absolute", bottom: 68, left: 10, right: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(innerW * 0.154), color: "white", letterSpacing: "0.02em", lineHeight: 1 }}>
-                ALEJANDRO, 22
-              </span>
-              <BadgeCheck style={{ width: 17, height: 17, color: "hsl(199,89%,65%)", filter: "drop-shadow(0 0 4px rgba(56,189,248,0.65))", flexShrink: 0 }} />
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-              <MapPin style={{ width: 10, height: 10, color: "rgba(255,255,255,0.60)" }} />
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.62)", fontFamily: "Inter,sans-serif" }}>A 2 km de ti</span>
-            </div>
-
-            <div style={{ display: "flex", gap: 5 }}>
-              {["Activo", "Relación", "Chat"].map(tag => (
-                <span key={tag} style={{
-                  padding: "3px 9px", borderRadius: 99, fontSize: 9,
-                  color: "rgba(255,255,255,0.88)", background: "rgba(255,255,255,0.09)",
-                  border: "1px solid rgba(255,255,255,0.18)", fontFamily: "Inter,sans-serif",
-                }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
-            {/* ✕ */}
-            <div style={{ width: BTN, height: BTN, borderRadius: "50%", background: "rgba(14,10,30,0.93)", border: "1.5px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <X style={{ width: 18, height: 18, color: "rgba(255,255,255,0.82)" }} />
-            </div>
-
-            {/* K logo — neon ring, largest */}
-            <div style={{ padding: 2.5, borderRadius: "50%", background: "conic-gradient(from 180deg, #a855f7, #ec4899, #8b5cf6, #a855f7)", boxShadow: "0 0 20px rgba(168,85,247,0.70), 0 0 40px rgba(168,85,247,0.35)" }}>
-              <div style={{ width: KBTN - 5, height: KBTN - 5, borderRadius: "50%", background: "linear-gradient(135deg, #0e0927, #0a0718)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KixxMeLogo size={25} />
-              </div>
-            </div>
-
-            {/* ❤️ */}
-            <div style={{ width: BTN, height: BTN, borderRadius: "50%", background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 0 16px rgba(236,72,153,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Heart style={{ width: 18, height: 18, color: "white", fill: "white" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 
@@ -300,24 +149,31 @@ export default function Welcome() {
     }
   };
 
-  // Phone inner width: 46% of max container (430px) minus 2×3px border
-  const PHONE_INNER_W = 172;
-
   return (
-    <div className="min-h-[100dvh] flex flex-col" style={{ background: "#060413", overflowX: "hidden" }}>
-      <LegalSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="min-h-[100dvh] flex flex-col" style={{ background: "#050213", overflowX: "hidden" }}>
+      <style>{`
+        @keyframes blob1 {
+          0%, 100% { transform: translate(0%, 0%) scale(1); }
+          30%  { transform: translate(14%, -18%) scale(1.16); }
+          65%  { transform: translate(-10%, 12%) scale(0.91); }
+        }
+        @keyframes blob2 {
+          0%, 100% { transform: translate(0%, 0%) scale(1); }
+          45%  { transform: translate(-15%, 16%) scale(1.14); }
+          80%  { transform: translate(11%, -10%) scale(0.94); }
+        }
+        @keyframes blob3 {
+          0%, 100% { transform: translate(0%, 0%) scale(1); }
+          55%  { transform: translate(13%, 15%) scale(1.10); }
+        }
+      `}</style>
 
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div style={{ position: "absolute", top: "-8%", left: "20%", width: "60%", height: "50%", background: "radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, transparent 70%)", filter: "blur(44px)" }} />
-        <div style={{ position: "absolute", top: "5%", left: "-5%", width: "42%", height: "38%", background: "radial-gradient(ellipse, rgba(236,72,153,0.10) 0%, transparent 70%)", filter: "blur(32px)" }} />
-        <div style={{ position: "absolute", top: "10%", right: "-5%", width: "38%", height: "32%", background: "radial-gradient(ellipse, rgba(56,189,248,0.07) 0%, transparent 70%)", filter: "blur(32px)" }} />
-      </div>
+      <LegalSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* ── HEADER ── */}
       <div
         className="relative z-10 sticky top-0"
-        style={{ background: "rgba(6,4,19,0.80)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", borderBottom: "1px solid rgba(168,85,247,0.10)" }}
+        style={{ background: "rgba(5,2,19,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderBottom: "1px solid rgba(168,85,247,0.12)" }}
       >
         <div className="flex items-center justify-between px-4 py-3 max-w-[430px] mx-auto">
           <button
@@ -334,9 +190,9 @@ export default function Welcome() {
           <h1
             className="font-display text-[30px] tracking-widest leading-none"
             style={{
-              background: "linear-gradient(90deg, hsl(330,90%,68%), hsl(273,90%,72%), hsl(330,90%,68%))",
+              background: "linear-gradient(90deg, hsl(330,90%,68%), hsl(273,90%,74%), hsl(199,88%,68%), hsl(273,90%,74%), hsl(330,90%,68%))",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-              filter: "drop-shadow(0 0 18px rgba(168,85,247,0.60))",
+              filter: "drop-shadow(0 0 20px rgba(168,85,247,0.70))",
             }}
           >
             KIXXME
@@ -360,7 +216,7 @@ export default function Welcome() {
               background: active ? BRAND_GRADIENT : "rgba(255,255,255,0.06)",
               border: active ? "none" : "1px solid rgba(255,255,255,0.12)",
               color: active ? "white" : "rgba(255,255,255,0.58)",
-              boxShadow: active ? "0 0 14px rgba(168,85,247,0.38)" : "none",
+              boxShadow: active ? "0 0 14px rgba(168,85,247,0.42)" : "none",
             }}
           >
             <span>{icon}</span> {label}
@@ -368,42 +224,139 @@ export default function Welcome() {
         ))}
       </div>
 
-      {/* ── 3-PANEL PHONE MOCKUP ── */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto px-0 py-4">
-        <div
-          className="flex items-start"
-          style={{ gap: 6, paddingLeft: 0, paddingRight: 0, justifyContent: "center" }}
-        >
-          {/* LEFT — 2 stacked cards */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.65, delay: 0.10, ease: [0.22, 1, 0.36, 1] }}
-            style={{ width: 100, paddingTop: 30, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}
-          >
-            <VideoCallCard img={faceCarlos} name="Marcelo, 26" startSecs={42}  accent="#22c55e" floatDelay={0}   callLabel="EN VIVO" />
-            <VideoCallCard img={faceMarcos} name="Marcos, 24"  startSecs={127} accent="#a855f7" floatDelay={1.1} callLabel="LIVE"    />
-          </motion.div>
+      {/* ── HERO LIVE STAGE ── */}
+      <div className="relative z-10 w-full overflow-hidden" style={{ paddingBottom: 6 }}>
 
-          {/* CENTER — neon phone */}
-          <div style={{ flexShrink: 0 }}>
-            <CenterPhone innerW={PHONE_INNER_W} />
-          </div>
+        {/* Animated aurora blobs */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div style={{
+            position: "absolute", top: "-15%", left: "-5%", width: "80%", height: "100%",
+            background: "radial-gradient(ellipse, rgba(139,92,246,0.38) 0%, transparent 62%)",
+            filter: "blur(52px)", animation: "blob1 17s ease-in-out infinite",
+          }} />
+          <div style={{
+            position: "absolute", top: "0%", right: "-15%", width: "65%", height: "85%",
+            background: "radial-gradient(ellipse, rgba(236,72,153,0.32) 0%, transparent 62%)",
+            filter: "blur(46px)", animation: "blob2 22s ease-in-out infinite",
+          }} />
+          <div style={{
+            position: "absolute", bottom: "-10%", left: "15%", width: "60%", height: "65%",
+            background: "radial-gradient(ellipse, rgba(99,102,241,0.28) 0%, transparent 65%)",
+            filter: "blur(48px)", animation: "blob3 26s ease-in-out infinite",
+          }} />
+          {/* Warm gold accent */}
+          <div style={{
+            position: "absolute", top: "30%", left: "40%", width: "30%", height: "40%",
+            background: "radial-gradient(ellipse, rgba(251,191,36,0.10) 0%, transparent 70%)",
+            filter: "blur(40px)",
+          }} />
+        </div>
 
-          {/* RIGHT — avatar network */}
+        {/* "KIXXME LIVE" floating badge */}
+        <div className="relative z-10 flex justify-center" style={{ paddingTop: 20, paddingBottom: 18 }}>
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.65, delay: 0.20, ease: [0.22, 1, 0.36, 1] }}
-            style={{ width: 100, paddingTop: 130, flexShrink: 0 }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.08 }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "rgba(255,255,255,0.055)",
+              border: "1px solid rgba(168,85,247,0.30)",
+              borderRadius: 99, padding: "6px 18px 6px 12px",
+              backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
+              boxShadow: "0 0 0 1px rgba(168,85,247,0.08), 0 4px 24px rgba(0,0,0,0.40)",
+            }}
           >
-            <RightPanel />
+            <motion.span
+              animate={{ opacity: [1, 0.12, 1] }}
+              transition={{ duration: 0.85, repeat: Infinity }}
+              style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", flexShrink: 0, boxShadow: "0 0 8px #ef4444dd" }}
+            />
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: "white", fontFamily: "Inter,sans-serif", letterSpacing: "0.09em" }}>KIXXME LIVE</span>
+            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.18)", flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.52)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>1.247 en línea</span>
           </motion.div>
         </div>
+
+        {/* ── Cards + Connector ── */}
+        <div className="relative z-10 flex justify-center items-end" style={{ gap: 16, paddingLeft: 14, paddingRight: 14 }}>
+
+          {/* Marcelo — left, tilted -7° */}
+          <motion.div
+            initial={{ opacity: 0, x: -28, scale: 0.91 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.70, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            style={{ rotate: -7, zIndex: 2, flexShrink: 0, transformOrigin: "bottom center" }}
+          >
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 4.3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <VideoCallCard img={faceCarlos} name="Marcelo, 26" startSecs={42} accent="#22c55e" callLabel="EN VIVO" />
+            </motion.div>
+          </motion.div>
+
+          {/* Pulse Connector */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.55, delay: 0.52, ease: [0.34, 1.56, 0.64, 1] }}
+            style={{ marginBottom: 22, flexShrink: 0 }}
+          >
+            <PulseConnector />
+          </motion.div>
+
+          {/* Marcos — right, tilted +6° */}
+          <motion.div
+            initial={{ opacity: 0, x: 28, scale: 0.91 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.70, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            style={{ rotate: 6, zIndex: 1, flexShrink: 0, transformOrigin: "bottom center" }}
+          >
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 4.9, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
+            >
+              <VideoCallCard img={faceMarcos} name="Marcos, 24" startSecs={127} accent="#a855f7" callLabel="LIVE" />
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Stats bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.62, delay: 0.58 }}
+          className="relative z-10 flex justify-center"
+          style={{ paddingTop: 22, paddingBottom: 2 }}
+        >
+          <div style={{
+            display: "inline-flex", alignItems: "stretch",
+            background: "rgba(255,255,255,0.042)",
+            border: "1px solid rgba(255,255,255,0.095)",
+            borderRadius: 18, overflow: "hidden",
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            boxShadow: "0 0 0 1px rgba(168,85,247,0.08), 0 8px 32px rgba(0,0,0,0.45)",
+          }}>
+            {[
+              { value: "1.247", label: "EN LÍNEA", accent: "rgba(34,197,94,0.85)"  },
+              { value: "28s",   label: "AL MATCH",  accent: "rgba(168,85,247,0.85)" },
+              { value: "98K",   label: "USUARIOS",  accent: "rgba(56,189,248,0.85)" },
+            ].map(({ value, label, accent }, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <div style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,0.08)" }} />}
+                <div style={{ padding: "11px 22px", textAlign: "center" }}>
+                  <p style={{ fontSize: 17, fontWeight: 800, color: "white", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.05em", lineHeight: 1, textShadow: `0 0 12px ${accent}` }}>{value}</p>
+                  <p style={{ fontSize: 7.5, color: "rgba(255,255,255,0.40)", fontFamily: "Inter,sans-serif", letterSpacing: "0.10em", fontWeight: 600, marginTop: 4 }}>{label}</p>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </motion.div>
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto px-5 pt-1 pb-4 flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-[430px] mx-auto px-5 pt-4 pb-4 flex flex-col items-center">
 
         {/* Feature strip */}
         <motion.div
@@ -416,7 +369,7 @@ export default function Welcome() {
             <div
               key={label}
               className="flex-1 flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(168,85,247,0.13)" }}
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(168,85,247,0.14)" }}
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.28), rgba(236,72,153,0.18))" }}>
                 <Icon className="w-4 h-4 text-purple-300" />
@@ -438,7 +391,7 @@ export default function Welcome() {
             type="button"
             onClick={() => setLocation("/signup")}
             className="w-full h-[54px] rounded-2xl font-display text-[22px] tracking-wider border-0 text-white shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            style={{ background: BRAND_GRADIENT, boxShadow: "0 4px 32px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.4)" }}
+            style={{ background: BRAND_GRADIENT, boxShadow: "0 4px 32px rgba(168,85,247,0.50), 0 2px 8px rgba(0,0,0,0.4)" }}
             data-testid="button-signup"
           >
             CREAR CUENTA
