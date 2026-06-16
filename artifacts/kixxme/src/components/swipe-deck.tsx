@@ -24,6 +24,8 @@ import {
   RefreshCw,
   Sparkles,
   Flag,
+  MessageCircle,
+  Lock,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -51,6 +53,8 @@ import {
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { ReportDialog } from "@/components/report-dialog";
 import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
+import { useStartConversation } from "@/lib/use-start-conversation";
 
 // ---------------------------------------------------------------------------
 // Activity-based feed filter (persisted in localStorage)
@@ -581,11 +585,14 @@ export function SwipeView({
   const [detail, setDetail] = useState<PublicProfile | null>(null);
 
   const { session } = useAuth();
+  const [, setLocation] = useLocation();
+  const { start: startConversation } = useStartConversation();
 
   const { data: ownProfile } = useGetMyProfile({
     query: { enabled: !!session, queryKey: getGetMyProfileQueryKey() },
   });
-  void ownProfile;
+
+  const isGold = ownProfile?.plan === "gold";
 
   const setFeed = (f: DiscoverFeed) => {
     setFeedState(f);
@@ -614,6 +621,15 @@ export function SwipeView({
 
   const top = profiles[index] ?? null;
   const hasNext = profiles[index + 1] != null;
+
+  const handleSendMessage = () => {
+    if (!top) return;
+    if (!isGold) {
+      setLocation("/premium");
+      return;
+    }
+    startConversation(top.id);
+  };
 
   const invalidateQuota = () =>
     qc.invalidateQueries({ queryKey: getGetLikeQuotaQueryKey() });
@@ -729,7 +745,7 @@ export function SwipeView({
       </header>
 
       {/* ── Card area ── */}
-      <div className="flex-1 min-h-0 px-3 pt-2.5 pb-1">
+      <div className="flex-1 min-h-0">
         <div className="relative w-full h-full">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
@@ -788,41 +804,78 @@ export function SwipeView({
         </div>
       </div>
 
-      {/* ── Action buttons ── */}
+      {/* ── Action bar (Badoo/Tinder-style) ── */}
       {!isLoading && !isError && top && (
-        <div className="flex items-center justify-center gap-5 px-6 pt-1 pb-3.5">
-          {/* Pass */}
-          <ActionButton
+        <div className="flex items-center gap-2.5 px-4 pt-2 pb-3">
+          {/* Pass / X */}
+          <button
             onClick={() => act("pass")}
-            label="No me interesa"
-            size="lg"
-            gradient="rgba(22,18,45,0.98)"
-            testid="button-pass"
+            aria-label="No me interesa"
+            data-testid="button-pass"
+            className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            style={{
+              background: "rgba(16,14,32,0.97)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "0 4px 18px rgba(0,0,0,0.55)",
+            }}
           >
-            <X className="w-7 h-7 text-rose-400" />
-          </ActionButton>
+            <X className="w-6 h-6 text-rose-400" />
+          </button>
+
+          {/* Enviar mensaje — Gold-only wide pill */}
+          <button
+            onClick={handleSendMessage}
+            aria-label="Enviar mensaje"
+            data-testid="button-send-message"
+            className="flex-1 h-[58px] rounded-full flex items-center justify-center gap-2 font-sans text-sm transition-all active:scale-[0.97] min-w-0"
+            style={{
+              background: "rgba(16,14,32,0.97)",
+              border: `1px solid ${isGold ? "rgba(255,255,255,0.10)" : "rgba(251,191,36,0.35)"}`,
+              boxShadow: "0 4px 18px rgba(0,0,0,0.55)",
+            }}
+          >
+            {isGold ? (
+              <>
+                <MessageCircle className="w-[17px] h-[17px] text-white/55 flex-shrink-0" />
+                <span className="text-white/60 truncate">Enviar mensaje...</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span className="text-amber-400 truncate">Enviar mensaje...</span>
+              </>
+            )}
+          </button>
 
           {/* SuperLike */}
-          <ActionButton
+          <button
             onClick={() => act("superlike")}
-            label="SuperLike"
-            size="sm"
-            gradient="linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))"
-            testid="button-superlike"
+            aria-label="SuperLike"
+            data-testid="button-superlike"
+            className="w-[48px] h-[48px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            style={{
+              background: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
+              boxShadow: "0 0 16px rgba(56,189,248,0.40)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
           >
             <Star className="w-5 h-5 text-white" fill="white" />
-          </ActionButton>
+          </button>
 
-          {/* Like */}
-          <ActionButton
+          {/* Like / Heart */}
+          <button
             onClick={() => act("like")}
-            label="Me gusta"
-            size="lg"
-            gradient="linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))"
-            testid="button-like"
+            aria-label="Me gusta"
+            data-testid="button-like"
+            className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            style={{
+              background: "linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))",
+              boxShadow: "0 0 20px rgba(236,72,153,0.45)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
           >
-            <Heart className="w-7 h-7 text-white" fill="white" />
-          </ActionButton>
+            <Heart className="w-6 h-6 text-white" fill="white" />
+          </button>
         </div>
       )}
 

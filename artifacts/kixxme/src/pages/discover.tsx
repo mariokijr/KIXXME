@@ -417,7 +417,7 @@ function EmptyState({
   );
 }
 
-export function UserCard({
+function UserCardInner({
   user,
   grad,
   onMessage,
@@ -453,14 +453,12 @@ export function UserCard({
             : "rgba(255,255,255,0.10)",
         boxShadow:
           user.plan === "gold"
-            ? "0 0 40px rgba(251,191,36,0.35), 0 0 80px rgba(251,191,36,0.12), 0 6px 28px rgba(0,0,0,0.65)"
+            ? "0 0 22px rgba(251,191,36,0.28), 0 4px 14px rgba(0,0,0,0.55)"
             : user.plan === "plus"
-            ? "0 0 30px rgba(168,85,247,0.32), 0 0 60px rgba(168,85,247,0.12), 0 6px 24px rgba(0,0,0,0.6)"
+            ? "0 0 18px rgba(168,85,247,0.26), 0 4px 14px rgba(0,0,0,0.5)"
             : featured
-            ? "0 0 28px rgba(168,85,247,0.22), 0 0 56px rgba(236,72,153,0.10), 0 6px 20px rgba(0,0,0,0.55)"
-            : user.is_online
-            ? "0 0 18px rgba(74,222,128,0.16), 0 4px 14px rgba(0,0,0,0.4)"
-            : "0 4px 14px rgba(0,0,0,0.4)",
+            ? "0 0 16px rgba(168,85,247,0.18), 0 4px 12px rgba(0,0,0,0.45)"
+            : "0 4px 12px rgba(0,0,0,0.38)",
       }}
     >
       {user.avatar_url ? (
@@ -483,10 +481,10 @@ export function UserCard({
       {/* Plan-colour ambient tint at the top of the card */}
       {user.plan === "gold" && (
         <div
-          className="absolute top-0 left-0 right-0 h-20 pointer-events-none animate-shimmer-gold"
+          className="absolute top-0 left-0 right-0 h-20 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(251,191,36,0.32) 0%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(251,191,36,0.28) 0%, transparent 100%)",
           }}
         />
       )}
@@ -635,3 +633,5 @@ export function UserCard({
     </div>
   );
 }
+
+export const UserCard = React.memo(UserCardInner);
