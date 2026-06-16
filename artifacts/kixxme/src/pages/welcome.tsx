@@ -560,7 +560,7 @@ export default function Welcome() {
             type="button"
             variant="outline"
             onClick={() => setLocation("/login")}
-            className="w-full h-[52px] rounded-2xl font-display text-[20px] tracking-wider border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md"
+            className="w-full h-[52px] rounded-2xl font-display text-[20px] tracking-wider border border-white/10 bg-white/[0.08] text-white hover:bg-white/[0.13] hover:border-white/20 transition-all"
             data-testid="button-login"
           >
             INICIAR SESIÓN
@@ -579,7 +579,7 @@ export default function Welcome() {
                 variant="outline"
                 disabled={loadingProvider !== null}
                 onClick={() => handleProvider("google")}
-                className="w-full h-[50px] gap-3 rounded-2xl border border-white/10 bg-white/5 text-white text-[15px] font-medium hover:bg-white/10 transition-all backdrop-blur-md"
+                className="w-full h-[50px] gap-3 rounded-2xl border border-white/10 bg-white/[0.08] text-white text-[15px] font-medium hover:bg-white/[0.13] transition-all"
                 data-testid="button-google"
               >
                 {loadingProvider === "google" ? (

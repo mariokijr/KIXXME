@@ -62,8 +62,8 @@ export default function Signup() {
   return (
     <div className="min-h-[100dvh] flex flex-col relative bg-[#0a0715] overflow-x-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <img src={bgImage} alt="" className="w-full h-full object-cover opacity-50 mix-blend-screen" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0715]/60 via-[#0a0715]/80 to-[#0a0715]" />
+        <img src={bgImage} alt="" className="w-full h-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0715]/70 via-[#0a0715]/85 to-[#0a0715]" />
       </div>
 
       <div className="flex-1 relative z-10 w-full max-w-sm mx-auto px-6 py-10 flex flex-col">
@@ -96,7 +96,7 @@ export default function Signup() {
                         <Input
                           placeholder="Nombre de usuario"
                           {...field}
-                          className="h-[52px] rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base backdrop-blur-md transition-colors"
+                          className="h-[52px] rounded-2xl border-white/10 bg-white/[0.08] text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base transition-colors"
                           data-testid="input-username"
                         />
                       </FormControl>
@@ -113,7 +113,7 @@ export default function Signup() {
                         <Input
                           placeholder="Correo electrónico"
                           {...field}
-                          className="h-[52px] rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base backdrop-blur-md transition-colors"
+                          className="h-[52px] rounded-2xl border-white/10 bg-white/[0.08] text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base transition-colors"
                           data-testid="input-email"
                         />
                       </FormControl>
@@ -131,7 +131,7 @@ export default function Signup() {
                           type="password"
                           placeholder="Contraseña"
                           {...field}
-                          className="h-[52px] rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base backdrop-blur-md transition-colors"
+                          className="h-[52px] rounded-2xl border-white/10 bg-white/[0.08] text-white placeholder:text-white/40 focus-visible:border-[#ec4899] focus-visible:ring-1 focus-visible:ring-[#ec4899] px-5 text-base transition-colors"
                           data-testid="input-password"
                         />
                       </FormControl>
@@ -166,7 +166,7 @@ export default function Signup() {
                     variant="outline"
                     disabled={loadingProvider !== null}
                     onClick={() => handleProvider("google")}
-                    className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md gap-3 font-medium"
+                    className="w-full h-[52px] rounded-2xl border border-white/10 bg-white/[0.08] text-white hover:bg-white/[0.13] hover:border-white/20 transition-all gap-3 font-medium"
                     data-testid="button-google"
                   >
                     <GoogleIcon />
