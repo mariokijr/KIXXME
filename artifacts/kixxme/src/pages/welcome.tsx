@@ -42,9 +42,6 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white", flexShrink: 0 }} />
           LIVE
         </span>
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontFamily: "Inter,sans-serif", fontWeight: 600, letterSpacing: "0.05em" }}>
-          KixxMe Live
-        </span>
         <Video style={{ width: 12, height: 12, color: "rgba(168,85,247,0.8)" }} />
       </div>
 
@@ -401,7 +398,7 @@ function PhoneShell({
    FEATURE PILLS
 ───────────────────────────────────────────────────────────── */
 const FEATURES = [
-  { icon: "🎥", label: "Videollamadas Gold" },
+  { icon: "🎥", label: "KixxMe Live" },
   { icon: "🗺️", label: "Mapa en tiempo real" },
   { icon: "💜", label: "Perfiles verificados" },
 ];
@@ -474,7 +471,7 @@ export default function Welcome() {
           screen={<ProfileCardScreen w={CW} />}
           showAppHeader
           width={CW} height={CH}
-          style={{ top: "0%", left: `calc(50% - ${CW / 2}px)`, transform: "rotate(2.5deg)", zIndex: 4 }}
+          style={{ top: "5%", left: `calc(50% - ${CW / 2}px)`, transform: "rotate(2.5deg)", zIndex: 4 }}
           enterDelay={0}
           floatDelay={0}
         />
