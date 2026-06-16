@@ -10,7 +10,9 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { LegalFooter } from "@/components/legal-footer";
+import { LegalSidebar } from "@/components/legal-sidebar";
 import { motion } from "framer-motion";
+import { Menu } from "lucide-react";
 import bgImage from "@/assets/bg-neon-bokeh.png";
 
 const formSchema = z.object({
@@ -24,6 +26,7 @@ export default function Signup() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [loadingProvider, setLoadingProvider] = React.useState<"google" | null>(null);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,13 +64,33 @@ export default function Signup() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative bg-[#0a0715] overflow-x-hidden">
+      <LegalSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Background Image */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img src={bgImage} alt="" className="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0715]/70 via-[#0a0715]/85 to-[#0a0715]" />
       </div>
 
+      {/* Ambient glows */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div style={{ position: "absolute", top: "-15%", right: "5%", width: "55%", height: "45%", background: "radial-gradient(ellipse, rgba(236,72,153,0.12) 0%, transparent 70%)", filter: "blur(40px)" }} />
+        <div style={{ position: "absolute", top: "10%", left: "-5%", width: "40%", height: "35%", background: "radial-gradient(ellipse, rgba(139,92,246,0.10) 0%, transparent 70%)", filter: "blur(32px)" }} />
+      </div>
+
+      {/* Hamburger menu button */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="absolute top-4 left-4 z-20 w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95"
+        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}
+        aria-label="Menú"
+      >
+        <Menu className="w-5 h-5 text-white/75" />
+      </button>
+
       <div className="flex-1 relative z-10 w-full max-w-sm mx-auto px-6 py-10 flex flex-col">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex-1 flex flex-col justify-center"
@@ -140,6 +163,22 @@ export default function Signup() {
                   )}
                 />
 
+                {/* Legal disclaimer */}
+                <div
+                  className="rounded-xl px-4 py-3 text-[12px] leading-relaxed text-white/55"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                >
+                  KixxMe es exclusivo para mayores de 18 años. Al continuar confirmas que tienes al menos 18 años y aceptas nuestros{" "}
+                  <Link href="/legal/terminos" className="text-[#d946ef] hover:text-[#e879f9] underline underline-offset-2 transition-colors">
+                    Términos
+                  </Link>
+                  {" "}y{" "}
+                  <Link href="/legal/privacidad" className="text-[#d946ef] hover:text-[#e879f9] underline underline-offset-2 transition-colors">
+                    Política de privacidad
+                  </Link>
+                  .
+                </div>
+
                 <Button
                   type="submit"
                   disabled={isSubmitting}
@@ -147,7 +186,7 @@ export default function Signup() {
                   style={{ background: "linear-gradient(135deg, hsl(330,85%,50%), hsl(273,85%,55%))" }}
                   data-testid="button-submit"
                 >
-                  {isSubmitting ? "CREANDO..." : "ÚNETE GRATIS"}
+                  {isSubmitting ? "CREANDO..." : "CREAR CUENTA"}
                 </Button>
               </form>
             </Form>
@@ -159,7 +198,6 @@ export default function Signup() {
                   <span className="text-xs uppercase tracking-wider font-semibold text-white/30">O continúa con</span>
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
-
                 <div className="flex flex-col gap-3">
                   <Button
                     type="button"
@@ -172,7 +210,6 @@ export default function Signup() {
                     <GoogleIcon />
                     {loadingProvider === "google" ? "Conectando..." : "Google"}
                   </Button>
-
                 </div>
               </>
             )}
@@ -202,4 +239,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-

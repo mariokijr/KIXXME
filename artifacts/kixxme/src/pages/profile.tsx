@@ -388,7 +388,16 @@ export default function Profile() {
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 40%, rgba(236,72,153,0.40) 70%, transparent 100%)" }}
         />
-        <h1 className="font-display text-2xl tracking-wide">
+        <h1
+          className="font-display text-2xl tracking-wide"
+          style={{
+            background: "linear-gradient(110deg, hsl(290,90%,82%) 0%, hsl(273,85%,74%) 45%, hsl(330,90%,70%) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.40)) drop-shadow(0 0 6px rgba(236,72,153,0.20))",
+          }}
+        >
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
         <div className="flex items-center gap-2">

@@ -559,42 +559,52 @@ function UserCardInner({
 
       <button
         onClick={onToggleLike}
-        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-sm transition-transform active:scale-90"
-        style={{ background: "rgba(0,0,0,0.4)" }}
+        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border backdrop-blur-sm transition-all active:scale-90 hover:scale-105"
+        style={{
+          background: user.liked_by_me
+            ? "linear-gradient(135deg, hsl(330,85%,52%), hsl(273,85%,55%))"
+            : "rgba(0,0,0,0.45)",
+          borderColor: user.liked_by_me ? "rgba(236,72,153,0.50)" : "rgba(255,255,255,0.20)",
+          boxShadow: user.liked_by_me ? "0 0 14px rgba(236,72,153,0.50), 0 0 6px rgba(168,85,247,0.30)" : "none",
+        }}
         aria-label={user.liked_by_me ? "Quitar me gusta" : "Me gusta"}
       >
         <Heart
           className="w-5 h-5 transition-colors"
           style={{
-            color: user.liked_by_me ? "hsl(330,85%,60%)" : "white",
-            fill: user.liked_by_me ? "hsl(330,85%,60%)" : "transparent",
+            color: "white",
+            fill: user.liked_by_me ? "white" : "transparent",
           }}
         />
       </button>
 
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
-        style={{ background: "rgba(0,0,0,0.5)" }}
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2"
+        style={{
+          background: "linear-gradient(180deg, rgba(8,5,22,0.60) 0%, rgba(14,8,32,0.80) 55%, rgba(8,5,22,0.90) 100%)",
+          backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
+        }}
       >
         <Link href={`/profile/${user.id}`}>
           <button
-            className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-white/30"
-            style={{ background: "rgba(255,255,255,0.12)" }}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-white/20 transition-all hover:border-white/35 hover:bg-white/15 active:scale-95"
+            style={{ background: "rgba(255,255,255,0.10)" }}
           >
             Ver
           </button>
         </Link>
         <button
           onClick={onMessage}
-          className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-primary/50"
-          style={{ background: "rgba(168,85,247,0.3)" }}
+          className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-primary/40 transition-all hover:border-primary/70 active:scale-95"
+          style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.35), rgba(236,72,153,0.22))", boxShadow: "0 0 10px rgba(168,85,247,0.20)" }}
         >
           Mensaje
         </button>
         <button
           onClick={() => setReportOpen(true)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:text-red-400 border border-white/20"
-          style={{ background: "rgba(0,0,0,0.4)" }}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-white/60 hover:text-red-400 border border-white/15 hover:border-red-400/40 transition-all active:scale-95"
+          style={{ background: "rgba(0,0,0,0.35)" }}
           aria-label="Reportar"
           title="Reportar"
           data-testid="button-report-card"

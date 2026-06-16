@@ -3,12 +3,13 @@ import { useLocation } from "wouter";
 import {
   Heart, X, Star, BadgeCheck,
   MapPin, Video, PhoneOff, Mic, Camera,
+  Menu, Bell, ShieldCheck, Map, Sparkles,
 } from "lucide-react";
 import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
+import { LegalSidebar } from "@/components/legal-sidebar";
 import { Button } from "@/components/ui/button";
-import { LegalFooter } from "@/components/legal-footer";
 import { motion } from "framer-motion";
 import faceCarlos from "@/assets/face-carlos.png";
 import faceMarcos from "@/assets/face-marcos.png";
@@ -17,45 +18,22 @@ import faceAlejandro from "@/assets/face-alejandro.png";
 const BRAND_GRADIENT = "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))";
 
 /* ─────────────────────────────────────────────────────────────
-   SCREEN: Video call — two guys face-to-face (KixxMe Live)
+   SCREEN: Video call
 ───────────────────────────────────────────────────────────── */
-const FACE_CARLOS = faceCarlos;
-const FACE_MARCOS = faceMarcos;
-const FACE_ALEJANDRO = faceAlejandro;
-
 function VideoCallScreen({ w, h }: { w: number; h: number }) {
   const r = Math.max(12, Math.floor(w * 0.12));
-
   return (
     <div style={{ position: "absolute", inset: 0, background: "#040310", display: "flex", flexDirection: "column" }}>
-      {/* Live badge header */}
-      <div style={{
-        height: 30, flexShrink: 0, display: "flex", alignItems: "center",
-        justifyContent: "space-between", padding: "0 10px",
-        background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.05)",
-      }}>
-        <span style={{
-          display: "flex", alignItems: "center", gap: 3,
-          padding: "1px 6px", borderRadius: 99,
-          background: "rgba(239,68,68,0.9)", fontSize: 8, fontWeight: 700, color: "white",
-        }}>
+      <div style={{ height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 10px", background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 3, padding: "1px 6px", borderRadius: 99, background: "rgba(239,68,68,0.9)", fontSize: 8, fontWeight: 700, color: "white" }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white", flexShrink: 0 }} />
           LIVE
         </span>
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontFamily: "Inter,sans-serif", fontWeight: 600, letterSpacing: "0.05em" }}>
-          KixxMe Live
-        </span>
+        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontFamily: "Inter,sans-serif", fontWeight: 600, letterSpacing: "0.05em" }}>KixxMe Live</span>
         <Video style={{ width: 12, height: 12, color: "rgba(168,85,247,0.8)" }} />
       </div>
-
-      {/* Caller 1 — Marcelo */}
       <div style={{ flex: 1, position: "relative", margin: "4px 4px 2px 4px", borderRadius: r, overflow: "hidden" }}>
-        <img
-          src={FACE_CARLOS}
-          alt="Marcelo"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-        />
-        {/* purple tint overlay */}
+        <img src={faceCarlos} alt="Marcelo" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(88,28,220,0.25) 0%, transparent 60%)" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8, display: "flex", alignItems: "center", gap: 4 }}>
@@ -63,37 +41,21 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
           <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcelo, 26</span>
         </div>
       </div>
-
-      {/* Caller 2 — Marcos */}
       <div style={{ flex: 1, position: "relative", margin: "2px 4px 4px 4px", borderRadius: r, overflow: "hidden" }}>
-        <img
-          src={FACE_MARCOS}
-          alt="Marcos"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-        />
-        {/* pink tint overlay */}
+        <img src={faceMarcos} alt="Marcos" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(180,20,120,0.2) 0%, transparent 60%)" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 45%)" }} />
         <div style={{ position: "absolute", bottom: 6, left: 8 }}>
           <span style={{ fontSize: 9, color: "white", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>Marcos, 24</span>
         </div>
       </div>
-
-      {/* Controls */}
-      <div style={{
-        height: 40, flexShrink: 0, display: "flex", alignItems: "center",
-        justifyContent: "center", gap: 12, paddingBottom: 4,
-      }}>
+      <div style={{ height: 40, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 4 }}>
         {[
           { Icon: Mic, bg: "rgba(255,255,255,0.08)", sz: 11 },
           { Icon: PhoneOff, bg: "rgba(239,68,68,0.85)", sz: 13 },
           { Icon: Camera, bg: "rgba(255,255,255,0.08)", sz: 11 },
         ].map(({ Icon, bg, sz }, i) => (
-          <div key={i} style={{
-            width: i === 1 ? 30 : 26, height: i === 1 ? 30 : 26,
-            borderRadius: "50%", background: bg,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+          <div key={i} style={{ width: i === 1 ? 30 : 26, height: i === 1 ? 30 : 26, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon style={{ width: sz, height: sz, color: "white" }} />
           </div>
         ))}
@@ -108,86 +70,35 @@ function VideoCallScreen({ w, h }: { w: number; h: number }) {
 function ProfileCardScreen({ w }: { w: number }) {
   return (
     <div style={{ position: "absolute", inset: 0, background: "#0a0820" }}>
-      {/* Face photo */}
-      <img
-        src={FACE_ALEJANDRO}
-        alt="Alejandro"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "75%", objectFit: "cover", objectPosition: "top" }}
-      />
-      {/* brand tint */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(160deg, rgba(88,28,220,0.18) 0%, transparent 50%)",
-      }} />
-      {/* Top badges */}
+      <img src={faceAlejandro} alt="Alejandro" style={{ position: "absolute", inset: 0, width: "100%", height: "75%", objectFit: "cover", objectPosition: "top" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(88,28,220,0.18) 0%, transparent 50%)" }} />
       <div style={{ position: "absolute", top: 10, left: 8, display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{
-          display: "flex", alignItems: "center", gap: 3,
-          padding: "2px 7px", borderRadius: 99,
-          background: "rgba(34,197,94,0.85)", fontSize: 8, fontWeight: 600, color: "white",
-        }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 99, background: "rgba(34,197,94,0.85)", fontSize: 8, fontWeight: 600, color: "white" }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white", flexShrink: 0 }} />
           En línea
         </span>
         <BadgeCheck style={{ width: 14, height: 14, color: "hsl(199,89%,65%)", filter: "drop-shadow(0 0 3px rgba(56,189,248,0.5))" }} />
       </div>
-      {/* Swipe hint (faint) */}
-      <div style={{
-        position: "absolute", top: "28%", left: 8,
-        padding: "3px 8px", borderRadius: 8,
-        border: "2.5px solid rgba(34,197,94,0.6)", color: "rgba(34,197,94,0.8)",
-        fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: "0.08em",
-        transform: "rotate(-14deg)", opacity: 0.8,
-      }}>ME GUSTA</div>
-      {/* Gradient overlay */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 55%)",
-      }} />
-      {/* Info */}
+      <div style={{ position: "absolute", top: "28%", left: 8, padding: "3px 8px", borderRadius: 8, border: "2.5px solid rgba(34,197,94,0.6)", color: "rgba(34,197,94,0.8)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: "0.08em", transform: "rotate(-14deg)", opacity: 0.8 }}>ME GUSTA</div>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 55%)" }} />
       <div style={{ position: "absolute", bottom: 44, left: 10, right: 10 }}>
-        <p style={{
-          fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.13),
-          color: "white", lineHeight: 1.1, letterSpacing: "0.03em",
-        }}>Alejandro, 22</p>
+        <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.13), color: "white", lineHeight: 1.1, letterSpacing: "0.03em" }}>Alejandro, 22</p>
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
-          <span style={{
-            padding: "1px 6px", borderRadius: 99, fontSize: 8,
-            background: "rgba(168,85,247,0.4)", border: "1px solid rgba(168,85,247,0.5)",
-            color: "rgba(255,255,255,0.9)", fontFamily: "Inter,sans-serif", fontWeight: 500,
-          }}>Activo</span>
-          <span style={{
-            padding: "1px 6px", borderRadius: 99, fontSize: 8,
-            background: "rgba(236,72,153,0.35)", border: "1px solid rgba(236,72,153,0.45)",
-            color: "rgba(255,255,255,0.9)", fontFamily: "Inter,sans-serif", fontWeight: 500,
-          }}>Relación</span>
+          <span style={{ padding: "1px 6px", borderRadius: 99, fontSize: 8, background: "rgba(168,85,247,0.4)", border: "1px solid rgba(168,85,247,0.5)", color: "rgba(255,255,255,0.9)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>Activo</span>
+          <span style={{ padding: "1px 6px", borderRadius: 99, fontSize: 8, background: "rgba(236,72,153,0.35)", border: "1px solid rgba(236,72,153,0.45)", color: "rgba(255,255,255,0.9)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>Relación</span>
           <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 8, color: "rgba(255,255,255,0.5)", fontFamily: "Inter,sans-serif" }}>
             <MapPin style={{ width: 8, height: 8 }} />2 km
           </span>
         </div>
       </div>
-      {/* Action buttons */}
-      <div style={{
-        position: "absolute", bottom: 8, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: Math.floor(w * 0.09),
-      }}>
+      <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: Math.floor(w * 0.09) }}>
         {[
           { Icon: X, bg: "rgba(16,12,36,0.92)", border: "1.5px solid rgba(255,255,255,0.12)", color: "hsl(0,84%,65%)", size: 0.18 },
           { Icon: Star, bg: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))", border: "none", color: "white", size: 0.14, fill: true, shadow: "0 0 10px rgba(56,189,248,0.4)" },
           { Icon: Heart, bg: BRAND_GRADIENT, border: "none", color: "white", size: 0.18, fill: true, shadow: "0 0 12px rgba(168,85,247,0.45)" },
         ].map(({ Icon, bg, border, color, size, fill, shadow }, i) => (
-          <div key={i} style={{
-            width: Math.floor(w * size), height: Math.floor(w * size),
-            borderRadius: "50%", background: bg,
-            border: border as string | undefined,
-            boxShadow: shadow,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon style={{
-              width: Math.floor(w * size * 0.5), height: Math.floor(w * size * 0.5),
-              color, fill: fill ? color : "transparent",
-            }} />
+          <div key={i} style={{ width: Math.floor(w * size), height: Math.floor(w * size), borderRadius: "50%", background: bg, border: border as string | undefined, boxShadow: shadow, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon style={{ width: Math.floor(w * size * 0.5), height: Math.floor(w * size * 0.5), color, fill: fill ? color : "transparent" }} />
           </div>
         ))}
       </div>
@@ -199,112 +110,44 @@ function ProfileCardScreen({ w }: { w: number }) {
    SCREEN: Real-time map
 ───────────────────────────────────────────────────────────── */
 const MAP_DOTS = [
-  // right-half — main visible strip
-  { x: 52, y: 12, gold: true,  pulse: true  },
-  { x: 68, y: 22, gold: false, pulse: false },
-  { x: 80, y: 15, gold: true,  pulse: false },
-  { x: 60, y: 36, gold: true,  pulse: true  },
-  { x: 75, y: 46, gold: false, pulse: false },
-  { x: 88, y: 30, gold: true,  pulse: false },
-  { x: 64, y: 58, gold: false, pulse: true  },
-  { x: 84, y: 62, gold: true,  pulse: false },
-  { x: 55, y: 72, gold: false, pulse: false },
-  { x: 70, y: 78, gold: true,  pulse: true  },
-  { x: 90, y: 52, gold: false, pulse: false },
-  { x: 58, y: 48, gold: true,  pulse: false },
-  { x: 78, y: 38, gold: false, pulse: true  },
-  { x: 93, y: 70, gold: true,  pulse: false },
-  { x: 62, y: 85, gold: false, pulse: false },
-  { x: 82, y: 20, gold: true,  pulse: true  },
-  // left-half
-  { x: 20, y: 25, gold: true,  pulse: false },
-  { x: 32, y: 48, gold: false, pulse: true  },
-  { x: 14, y: 65, gold: true,  pulse: false },
-  { x: 42, y: 20, gold: false, pulse: false },
-  { x: 28, y: 68, gold: true,  pulse: true  },
-  { x: 10, y: 40, gold: false, pulse: false },
-  { x: 38, y: 75, gold: true,  pulse: false },
-  { x: 22, y: 85, gold: false, pulse: true  },
+  { x: 52, y: 12, gold: true,  pulse: true  }, { x: 68, y: 22, gold: false, pulse: false },
+  { x: 80, y: 15, gold: true,  pulse: false }, { x: 60, y: 36, gold: true,  pulse: true  },
+  { x: 75, y: 46, gold: false, pulse: false }, { x: 88, y: 30, gold: true,  pulse: false },
+  { x: 64, y: 58, gold: false, pulse: true  }, { x: 84, y: 62, gold: true,  pulse: false },
+  { x: 55, y: 72, gold: false, pulse: false }, { x: 70, y: 78, gold: true,  pulse: true  },
+  { x: 90, y: 52, gold: false, pulse: false }, { x: 58, y: 48, gold: true,  pulse: false },
+  { x: 78, y: 38, gold: false, pulse: true  }, { x: 93, y: 70, gold: true,  pulse: false },
+  { x: 62, y: 85, gold: false, pulse: false }, { x: 82, y: 20, gold: true,  pulse: true  },
+  { x: 20, y: 25, gold: true,  pulse: false }, { x: 32, y: 48, gold: false, pulse: true  },
+  { x: 14, y: 65, gold: true,  pulse: false }, { x: 42, y: 20, gold: false, pulse: false },
+  { x: 28, y: 68, gold: true,  pulse: true  }, { x: 10, y: 40, gold: false, pulse: false },
+  { x: 38, y: 75, gold: true,  pulse: false }, { x: 22, y: 85, gold: false, pulse: true  },
 ];
 
 function MapScreen({ w }: { w: number }) {
   const dotR = Math.floor(w * 0.075);
   return (
     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(150deg, #070520 0%, #050318 100%)", overflow: "hidden" }}>
-      {/* Grid lines */}
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-        {[12, 25, 38, 51, 64, 77, 90].map(y => (
-          <line key={`h${y}`} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}
-            stroke="rgba(139,92,246,0.1)" strokeWidth="0.8" />
-        ))}
-        {[10, 22, 34, 46, 58, 70, 82, 94].map(x => (
-          <line key={`v${x}`} x1={`${x}%`} y1="0" x2={`${x}%`} y2="100%"
-            stroke="rgba(139,92,246,0.1)" strokeWidth="0.8" />
-        ))}
-        {/* Continent blobs */}
+        {[12, 25, 38, 51, 64, 77, 90].map(y => <line key={`h${y}`} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke="rgba(139,92,246,0.1)" strokeWidth="0.8" />)}
+        {[10, 22, 34, 46, 58, 70, 82, 94].map(x => <line key={`v${x}`} x1={`${x}%`} y1="0" x2={`${x}%`} y2="100%" stroke="rgba(139,92,246,0.1)" strokeWidth="0.8" />)}
         <ellipse cx="30%" cy="40%" rx="18%" ry="14%" fill="rgba(139,92,246,0.06)" />
         <ellipse cx="65%" cy="38%" rx="16%" ry="12%" fill="rgba(139,92,246,0.06)" />
         <ellipse cx="20%" cy="65%" rx="10%" ry="8%" fill="rgba(139,92,246,0.06)" />
         <ellipse cx="72%" cy="62%" rx="12%" ry="9%" fill="rgba(139,92,246,0.06)" />
       </svg>
-
-      {/* Ambient purple glow */}
-      <div style={{
-        position: "absolute", top: "20%", left: "55%", transform: "translateX(-50%)",
-        width: "70%", height: "50%", borderRadius: "50%",
-        background: "radial-gradient(rgba(139,92,246,0.22), transparent 70%)",
-        filter: "blur(12px)",
-      }} />
-
-
-      {/* User dots */}
+      <div style={{ position: "absolute", top: "20%", left: "55%", transform: "translateX(-50%)", width: "70%", height: "50%", borderRadius: "50%", background: "radial-gradient(rgba(139,92,246,0.22), transparent 70%)", filter: "blur(12px)" }} />
       {MAP_DOTS.map((dot, i) => (
-        <div key={i} style={{
-          position: "absolute",
-          left: `${dot.x}%`, top: `${dot.y}%`,
-          transform: "translate(-50%,-50%)",
-          zIndex: dot.gold ? 2 : 1,
-        }}>
-          {dot.pulse && (
-            <div style={{
-              position: "absolute", inset: -dotR * 0.7,
-              borderRadius: "50%",
-              border: `1.5px solid ${dot.gold ? "rgba(168,85,247,0.45)" : "rgba(56,189,248,0.35)"}`,
-              animation: "ping 2.4s cubic-bezier(0,0,0.2,1) infinite",
-            }} />
-          )}
-          <div style={{
-            width: dotR * (dot.gold ? 2.2 : 1.8),
-            height: dotR * (dot.gold ? 2.2 : 1.8),
-            borderRadius: "50%",
-            background: dot.gold
-              ? "linear-gradient(135deg, hsl(273,90%,68%), hsl(330,90%,60%))"
-              : "linear-gradient(135deg, hsl(199,95%,60%), hsl(240,80%,55%))",
-            boxShadow: dot.gold
-              ? "0 0 10px rgba(168,85,247,0.7), 0 0 20px rgba(168,85,247,0.3)"
-              : "0 0 8px rgba(56,189,248,0.6), 0 0 16px rgba(56,189,248,0.25)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            border: `1.5px solid ${dot.gold ? "rgba(200,130,255,0.7)" : "rgba(120,220,255,0.6)"}`,
-          }}>
-            {dot.gold && (
-              <span style={{ fontSize: dotR * 0.7, lineHeight: 1, userSelect: "none" }}>👑</span>
-            )}
+        <div key={i} style={{ position: "absolute", left: `${dot.x}%`, top: `${dot.y}%`, transform: "translate(-50%,-50%)", zIndex: dot.gold ? 2 : 1 }}>
+          {dot.pulse && <div style={{ position: "absolute", inset: -dotR * 0.7, borderRadius: "50%", border: `1.5px solid ${dot.gold ? "rgba(168,85,247,0.45)" : "rgba(56,189,248,0.35)"}`, animation: "ping 2.4s cubic-bezier(0,0,0.2,1) infinite" }} />}
+          <div style={{ width: dotR * (dot.gold ? 2.2 : 1.8), height: dotR * (dot.gold ? 2.2 : 1.8), borderRadius: "50%", background: dot.gold ? "linear-gradient(135deg, hsl(273,90%,68%), hsl(330,90%,60%))" : "linear-gradient(135deg, hsl(199,95%,60%), hsl(240,80%,55%))", boxShadow: dot.gold ? "0 0 10px rgba(168,85,247,0.7), 0 0 20px rgba(168,85,247,0.3)" : "0 0 8px rgba(56,189,248,0.6), 0 0 16px rgba(56,189,248,0.25)", display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px solid ${dot.gold ? "rgba(200,130,255,0.7)" : "rgba(120,220,255,0.6)"}` }}>
+            {dot.gold && <span style={{ fontSize: dotR * 0.7, lineHeight: 1, userSelect: "none" }}>👑</span>}
           </div>
         </div>
       ))}
-
-      {/* Bottom pill — anchored to right so it's in the visible strip */}
-      <div style={{
-        position: "absolute", bottom: 8, right: 6,
-        padding: "3px 8px", borderRadius: 99,
-        background: "rgba(5,4,18,0.82)", border: "1px solid rgba(139,92,246,0.30)",
-        backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", gap: 5,
-      }}>
+      <div style={{ position: "absolute", bottom: 8, right: 6, padding: "3px 8px", borderRadius: 99, background: "rgba(5,4,18,0.82)", border: "1px solid rgba(139,92,246,0.30)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", gap: 5 }}>
         <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0, boxShadow: "0 0 5px #22c55e" }} />
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.80)", fontFamily: "Inter,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>
-          Personas cerca de ti
-        </span>
+        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.80)", fontFamily: "Inter,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>Personas cerca de ti</span>
       </div>
     </div>
   );
@@ -313,22 +156,10 @@ function MapScreen({ w }: { w: number }) {
 /* ─────────────────────────────────────────────────────────────
    PHONE SHELL
 ───────────────────────────────────────────────────────────── */
-function PhoneShell({
-  screen,
-  showAppHeader,
-  width,
-  height,
-  style,
-  floatDelay = 0,
-  enterDelay = 0,
-}: {
-  screen: React.ReactNode;
-  showAppHeader?: boolean;
-  width: number;
-  height: number;
-  style: React.CSSProperties;
-  floatDelay?: number;
-  enterDelay?: number;
+function PhoneShell({ screen, showAppHeader, width, height, style, floatDelay = 0, enterDelay = 0 }: {
+  screen: React.ReactNode; showAppHeader?: boolean;
+  width: number; height: number;
+  style: React.CSSProperties; floatDelay?: number; enterDelay?: number;
 }) {
   const r = 34;
   return (
@@ -343,51 +174,18 @@ function PhoneShell({
         transition={{ duration: 5.5 + floatDelay * 0.8, delay: floatDelay, repeat: Infinity, ease: "easeInOut" }}
         style={{ width: "100%", height: "100%" }}
       >
-        {/* Outer shell */}
-        <div style={{
-          width: "100%", height: "100%", borderRadius: r,
-          background: "rgba(6,4,20,0.97)",
-          border: "2px solid rgba(255,255,255,0.13)",
-          boxShadow: "0 28px 70px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}>
-          {/* Status bar */}
-          <div style={{
-            height: 24, flexShrink: 0, display: "flex",
-            alignItems: "center", justifyContent: "center",
-            background: "rgba(0,0,0,0.45)",
-          }}>
-            <div style={{
-              width: 56, height: 12, borderRadius: 7,
-              background: "rgba(0,0,0,0.9)",
-              border: "1.5px solid rgba(255,255,255,0.09)",
-            }} />
+        <div style={{ width: "100%", height: "100%", borderRadius: r, background: "rgba(6,4,20,0.97)", border: "2px solid rgba(255,255,255,0.13)", boxShadow: "0 28px 70px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div style={{ height: 24, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.45)" }}>
+            <div style={{ width: 56, height: 12, borderRadius: 7, background: "rgba(0,0,0,0.9)", border: "1.5px solid rgba(255,255,255,0.09)" }} />
           </div>
-
-          {/* App header */}
           {showAppHeader && (
-            <div style={{
-              height: 30, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "0 10px",
-              background: "rgba(8,6,18,0.9)",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
-            }}>
+            <div style={{ height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 10px", background: "rgba(8,6,18,0.9)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <KixxMeLogo size={11} withWordmark />
-              <div style={{
-                width: 22, height: 22, borderRadius: "50%",
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Heart style={{ width: 10, height: 10, color: "hsl(273,85%,65%)" }} />
               </div>
             </div>
           )}
-
-          {/* Screen content */}
           <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
             {screen}
           </div>
@@ -398,22 +196,27 @@ function PhoneShell({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   FEATURE PILLS
-───────────────────────────────────────────────────────────── */
-const FEATURES = [
-  { icon: "🎥", label: "Videollamadas Gold" },
-  { icon: "🗺️", label: "Mapa en tiempo real" },
-  { icon: "💜", label: "Perfiles verificados" },
-];
-
-/* ─────────────────────────────────────────────────────────────
    WELCOME PAGE
 ───────────────────────────────────────────────────────────── */
+const CATEGORY_CHIPS = [
+  { icon: "🚀", label: "Descubre", active: true },
+  { icon: "📍", label: "Cerca",    active: false },
+  { icon: "🟢", label: "En línea", active: false },
+  { icon: "⭐", label: "Nuevos",   active: false },
+];
+
+const FEATURE_CARDS = [
+  { Icon: Video,       label: "Videollamadas",      sub: "Conecta cara a cara"  },
+  { Icon: Map,         label: "Mapa en tiempo real", sub: "Descubre chicos cerca" },
+  { Icon: ShieldCheck, label: "Perfiles verificados",sub: "Mayor seguridad"      },
+];
+
 export default function Welcome() {
   const { loginWithProvider } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [loadingProvider, setLoadingProvider] = useState<"google" | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleProvider = async (provider: "google") => {
     setLoadingProvider(provider);
@@ -429,112 +232,159 @@ export default function Welcome() {
     }
   };
 
-  /* Phone dimensions */
-  const CW = 200; const CH = 395; // center (profile)
-  const LW = 168; const LH = 330; // left (video call)
-  const RW = 168; const RH = 330; // right (map)
+  const CW = 200; const CH = 395;
+  const LW = 168; const LH = 330;
+  const RW = 168; const RH = 330;
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative" style={{ background: "#060413", overflowX: "hidden", overflowY: "clip" }}>
+      <LegalSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* ── BACKGROUND glows ── */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div style={{
-          position: "absolute", top: "-10%", left: "20%", width: "60%", height: "55%",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }} />
-        <div style={{
-          position: "absolute", top: "5%", left: "-5%", width: "40%", height: "35%",
-          background: "radial-gradient(ellipse, rgba(236,72,153,0.07) 0%, transparent 70%)",
-          filter: "blur(30px)",
-        }} />
-        <div style={{
-          position: "absolute", top: "8%", right: "-5%", width: "40%", height: "35%",
-          background: "radial-gradient(ellipse, rgba(56,189,248,0.06) 0%, transparent 70%)",
-          filter: "blur(30px)",
-        }} />
+        <div style={{ position: "absolute", top: "-10%", left: "20%", width: "60%", height: "55%", background: "radial-gradient(ellipse, rgba(139,92,246,0.15) 0%, transparent 70%)", filter: "blur(40px)" }} />
+        <div style={{ position: "absolute", top: "5%", left: "-5%", width: "40%", height: "35%", background: "radial-gradient(ellipse, rgba(236,72,153,0.09) 0%, transparent 70%)", filter: "blur(30px)" }} />
+        <div style={{ position: "absolute", top: "8%", right: "-5%", width: "40%", height: "35%", background: "radial-gradient(ellipse, rgba(56,189,248,0.07) 0%, transparent 70%)", filter: "blur(30px)" }} />
+        <div style={{ position: "absolute", bottom: "10%", left: "30%", width: "40%", height: "30%", background: "radial-gradient(ellipse, rgba(168,85,247,0.10) 0%, transparent 70%)", filter: "blur(50px)" }} />
       </div>
 
-      {/* ── PHONE MOCKUPS (absolute, z:1) ── */}
-      <div className="absolute top-0 left-0 right-0 z-[1]" style={{ height: "70vh", overflow: "visible" }}>
+      {/* ── HEADER BAR ── */}
+      <div
+        className="absolute top-0 left-0 right-0 z-[20]"
+        style={{
+          background: "rgba(6,4,19,0.78)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(168,85,247,0.10)",
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
+          {/* Hamburger */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}
+            aria-label="Menú"
+            data-testid="button-hamburger"
+          >
+            <Menu className="w-5 h-5 text-white/80" />
+          </button>
 
-        {/* LEFT — Video call */}
+          {/* KIXXME title */}
+          <h1
+            className="font-display text-[28px] tracking-widest leading-none"
+            style={{
+              background: "linear-gradient(90deg, hsl(330,90%,68%), hsl(273,90%,72%), hsl(330,90%,68%))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              filter: "drop-shadow(0 0 16px rgba(168,85,247,0.55))",
+            }}
+          >
+            KIXXME
+          </h1>
+
+          {/* Notification bell (decorative) */}
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-xl" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
+            <Bell className="w-5 h-5 text-white/65" />
+            <span
+              className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              3
+            </span>
+          </div>
+        </div>
+
+        {/* Tagline */}
+        <p className="text-center text-white/45 text-[12px] font-medium pb-2.5 tracking-wide">
+          Conoce chicos. Chatea. Haz videollamadas.
+        </p>
+      </div>
+
+      {/* ── CATEGORY CHIPS ── */}
+      <div
+        className="absolute left-0 right-0 z-[19] flex justify-center gap-2 px-3"
+        style={{ top: 88 }}
+      >
+        {CATEGORY_CHIPS.map(({ icon, label, active }) => (
+          <div
+            key={label}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-sans font-semibold flex-shrink-0"
+            style={{
+              background: active
+                ? "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))"
+                : "rgba(255,255,255,0.07)",
+              border: active ? "none" : "1px solid rgba(255,255,255,0.10)",
+              color: active ? "white" : "rgba(255,255,255,0.60)",
+              boxShadow: active ? "0 0 12px rgba(168,85,247,0.35)" : "none",
+            }}
+          >
+            <span>{icon}</span> {label}
+          </div>
+        ))}
+      </div>
+
+      {/* ── PHONE MOCKUPS ── */}
+      <div className="absolute top-0 left-0 right-0 z-[1]" style={{ height: "70vh", overflow: "visible" }}>
         <PhoneShell
           screen={<VideoCallScreen w={LW} h={LH} />}
           width={LW} height={LH}
           style={{ top: "4%", left: -6, transform: "rotate(-9deg)", zIndex: 2, opacity: 0.93 }}
-          enterDelay={0.15}
-          floatDelay={0.8}
+          enterDelay={0.15} floatDelay={0.8}
         />
-
-        {/* CENTER — Profile card (front & center)
-             Use calc-based left so framer-motion's animated y/scale don't drop translateX(-50%) */}
         <PhoneShell
           screen={<ProfileCardScreen w={CW} />}
           showAppHeader
           width={CW} height={CH}
           style={{ top: "0%", left: `calc(50% - ${CW / 2}px)`, transform: "rotate(2.5deg)", zIndex: 4 }}
-          enterDelay={0}
-          floatDelay={0}
+          enterDelay={0} floatDelay={0}
         />
-
-        {/* RIGHT — Map */}
         <PhoneShell
           screen={<MapScreen w={RW} />}
           showAppHeader
           width={RW} height={RH}
           style={{ top: "6%", right: -6, transform: "rotate(9deg)", zIndex: 3, opacity: 0.93 }}
-          enterDelay={0.25}
-          floatDelay={1.5}
+          enterDelay={0.25} floatDelay={1.5}
         />
       </div>
 
-      {/* Gradient scrim — phones fade into content */}
+      {/* Gradient scrim */}
       <div className="absolute inset-0 z-[2] pointer-events-none" style={{
         background: "linear-gradient(to top, #060413 44%, rgba(6,4,19,0.97) 54%, rgba(6,4,19,0.5) 66%, rgba(6,4,19,0.06) 80%, transparent 100%)",
       }} />
 
-      {/* Flow spacer — pushes content below the phone zone */}
+      {/* Flow spacer */}
       <div style={{ height: "48vh", flexShrink: 0 }} aria-hidden="true" />
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 w-full max-w-md mx-auto px-5 pt-1 pb-8 flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-md mx-auto px-5 pt-2 pb-4 flex flex-col items-center">
 
-        {/* Logo + tagline */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-          className="flex flex-col items-center mb-5"
-        >
-          <KixxMeLogo size={54} badge glow />
-          <h1 className="mt-3 font-display text-5xl tracking-tight text-gradient-brand leading-none">
-            KIXXME
-          </h1>
-          <p className="mt-2 text-[13px] font-medium text-white/45 text-center leading-snug">
-            Conoce chicos. Chatea. Haz videollamadas.
-          </p>
-        </motion.div>
-
-        {/* Feature pills */}
+        {/* Feature strip */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.55, ease: "easeOut" }}
-          className="flex items-center justify-center gap-2 flex-wrap mb-6"
+          transition={{ duration: 0.6, delay: 0.45, ease: "easeOut" }}
+          className="flex items-stretch justify-center gap-2 w-full mb-6"
         >
-          {FEATURES.map(({ icon, label }) => (
+          {FEATURE_CARDS.map(({ Icon, label, sub }) => (
             <div
               key={label}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-sans font-medium text-white/70"
+              className="flex-1 flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center"
               style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.09)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(168,85,247,0.14)",
               }}
             >
-              <span className="text-[13px]">{icon}</span>
-              {label}
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.28), rgba(236,72,153,0.18))" }}
+              >
+                <Icon className="w-4 h-4 text-purple-300" />
+              </div>
+              <p className="text-[10px] font-sans font-semibold text-white/85 leading-tight">{label}</p>
+              <p className="text-[9px] font-sans text-white/40 leading-tight">{sub}</p>
             </div>
           ))}
         </motion.div>
@@ -543,14 +393,14 @@ export default function Welcome() {
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.65, ease: "easeOut" }}
+          transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
           className="flex flex-col gap-3 w-full"
         >
           <Button
             type="button"
             onClick={() => setLocation("/signup")}
-            className="w-full h-[52px] rounded-2xl font-display text-[22px] tracking-wider border-0 text-white shadow-xl glow-purple hover:scale-[1.02] active:scale-[0.98] transition-all"
-            style={{ background: BRAND_GRADIENT }}
+            className="w-full h-[54px] rounded-2xl font-display text-[22px] tracking-wider border-0 text-white shadow-xl glow-purple hover:scale-[1.02] active:scale-[0.98] transition-all"
+            style={{ background: BRAND_GRADIENT, boxShadow: "0 4px 32px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.4)" }}
             data-testid="button-signup"
           >
             CREAR CUENTA
@@ -560,7 +410,8 @@ export default function Welcome() {
             type="button"
             variant="outline"
             onClick={() => setLocation("/login")}
-            className="w-full h-[52px] rounded-2xl font-display text-[20px] tracking-wider border border-white/10 bg-white/[0.08] text-white hover:bg-white/[0.13] hover:border-white/20 transition-all"
+            className="w-full h-[52px] rounded-2xl font-display text-[20px] tracking-wider border text-white hover:bg-white/[0.08] transition-all"
+            style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)" }}
             data-testid="button-login"
           >
             INICIAR SESIÓN
@@ -569,11 +420,10 @@ export default function Welcome() {
           {SOCIAL_AUTH_ENABLED && (
             <>
               <div className="flex items-center gap-3 my-0.5">
-                <span className="h-px flex-1 bg-white/8" />
-                <span className="text-[11px] font-medium text-white/35">o continúa con</span>
-                <span className="h-px flex-1 bg-white/8" />
+                <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
+                <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>o continúa con</span>
+                <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
               </div>
-
               <Button
                 type="button"
                 variant="outline"
@@ -589,7 +439,6 @@ export default function Welcome() {
                 )}
                 Continuar con Google
               </Button>
-
             </>
           )}
         </motion.div>
@@ -604,41 +453,64 @@ export default function Welcome() {
         >
           <div className="flex items-center gap-3 w-full">
             <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Síguenos
-            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.3)" }}>Síguenos</span>
             <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
           </div>
-
           <div className="flex items-center gap-3">
             {[
               { href: "https://www.instagram.com/kixxmeapp", label: "Instagram", Icon: InstagramIcon },
-              { href: "https://www.tiktok.com/@kixxmeapp", label: "TikTok", Icon: TikTokIcon },
-              { href: "https://x.com/kixxmeapp", label: "X", Icon: XIcon },
+              { href: "https://www.tiktok.com/@kixxmeapp",  label: "TikTok",    Icon: TikTokIcon    },
+              { href: "https://x.com/kixxmeapp",            label: "X",         Icon: XIcon         },
             ].map(({ href, label, Icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Síguenos en ${label}`}
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`Síguenos en ${label}`}
                 className="flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-105 active:scale-95"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  color: "rgba(255,255,255,0.5)",
-                }}
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)" }}
               >
                 <Icon />
               </a>
             ))}
           </div>
         </motion.div>
-
-        <LegalFooter />
       </div>
 
-      {/* Ping animation for map dots */}
+      {/* ── FAKE BOTTOM NAV (decorative) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+        className="relative z-10 w-full max-w-md mx-auto mt-3"
+        style={{
+          background: "rgba(6,5,15,0.92)",
+          backdropFilter: "blur(20px)",
+          borderTop: "1px solid rgba(168,85,247,0.14)",
+          borderRadius: "16px 16px 0 0",
+        }}
+      >
+        {/* Gradient line */}
+        <div className="absolute top-0 left-4 right-4 h-[1.5px] rounded-full" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.85) 30%, rgba(236,72,153,0.70) 60%, transparent 100%)" }} />
+        <div className="flex justify-around items-center h-14 px-2">
+          {[
+            { emoji: "✨", label: "Descubrir", active: true  },
+            { emoji: "💬", label: "Chats",     active: false },
+            { emoji: "🗺️", label: "Mapa",      active: false },
+            { emoji: "❤️", label: "Favoritos", active: false },
+            { emoji: "👤", label: "Perfil",    active: false },
+          ].map(({ emoji, label, active }) => (
+            <div key={label} className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1">
+              <span className="text-[18px] leading-none">{emoji}</span>
+              <span className="text-[9px] font-sans font-medium leading-none" style={{ color: active ? "hsl(273,85%,72%)" : "hsl(240,10%,45%)" }}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Footer */}
+      <div className="relative z-10 pb-4 pt-2 text-center">
+        <span className="text-[11px] font-sans" style={{ color: "rgba(255,255,255,0.22)" }}>🔒 kixxme.com</span>
+      </div>
+
       <style>{`
         @keyframes ping {
           75%, 100% { transform: scale(2); opacity: 0; }
