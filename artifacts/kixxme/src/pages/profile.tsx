@@ -364,25 +364,20 @@ export default function Profile() {
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
           className="absolute top-0 right-1/4 w-[28rem] h-[28rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.38) 0%, rgba(168,85,247,0.10) 60%, transparent 80%)", filter: "blur(48px)", transform: "translateY(-25%)" }}
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.28) 0%, rgba(168,85,247,0.06) 60%, transparent 80%)", filter: "blur(48px)", transform: "translateY(-25%)" }}
         />
         <div
           className="absolute top-1/2 -left-24 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.30) 0%, rgba(236,72,153,0.06) 65%, transparent 85%)", filter: "blur(44px)" }}
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, rgba(236,72,153,0.04) 65%, transparent 85%)", filter: "blur(44px)" }}
         />
         <div
           className="absolute bottom-0 right-0 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 70%)", filter: "blur(42px)", transform: "translate(20%,20%)" }}
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(42px)", transform: "translate(20%,20%)" }}
         />
         {/* Centre vertical glow — warms the form */}
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%)", filter: "blur(60px)" }}
-        />
-        {/* Bottom indigo */}
-        <div
-          className="absolute bottom-1/4 left-1/4 w-80 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)", filter: "blur(52px)" }}
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)", filter: "blur(60px)" }}
         />
       </div>
 
@@ -393,16 +388,7 @@ export default function Profile() {
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 40%, rgba(236,72,153,0.40) 70%, transparent 100%)" }}
         />
-        <h1
-          className="font-display text-2xl tracking-wide"
-          style={{
-            background: "linear-gradient(110deg, hsl(290,90%,82%) 0%, hsl(273,85%,74%) 45%, hsl(330,90%,70%) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.40)) drop-shadow(0 0 6px rgba(236,72,153,0.20))",
-          }}
-        >
+        <h1 className="font-display text-2xl tracking-wide">
           {isOnboarding ? "Completa tu perfil" : "Mi perfil"}
         </h1>
         <div className="flex items-center gap-2">
@@ -466,35 +452,17 @@ export default function Profile() {
           <p className="font-display text-lg leading-tight truncate text-foreground">
             {profile.username || "Sin nombre aún"}
           </p>
-          {/* Plan badge */}
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            {profile.plan === "gold" && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider"
-                style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.22), rgba(245,158,11,0.14))", border: "1px solid rgba(251,191,36,0.50)", color: "hsl(45,90%,62%)", boxShadow: "0 0 8px rgba(251,191,36,0.22)" }}
-              >
-                👑 Gold
-              </span>
-            )}
-            {profile.plan === "plus" && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider"
-                style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(139,92,246,0.14))", border: "1px solid rgba(168,85,247,0.50)", color: "hsl(273,80%,72%)", boxShadow: "0 0 8px rgba(168,85,247,0.22)" }}
-              >
-                💎 Plus
-              </span>
-            )}
-            {profile.is_verified && (
-              <span className="inline-flex items-center gap-1 text-xs font-sans text-sky-400">
-                <BadgeCheck className="w-3.5 h-3.5" />
-                Verificado
-              </span>
-            )}
-          </div>
-          <p className="font-sans text-xs text-muted-foreground mt-0.5">
-            {profile.city ? `${profile.city} · ` : ""}
-            {profile.age ? `${profile.age} años` : "Edita tu perfil abajo"}
-          </p>
+          {profile.is_verified ? (
+            <span className="inline-flex items-center gap-1 text-xs font-sans text-sky-400 mt-0.5">
+              <BadgeCheck className="w-3.5 h-3.5" />
+              Verificado
+            </span>
+          ) : (
+            <p className="font-sans text-xs text-muted-foreground mt-0.5">
+              {profile.city ? `${profile.city} · ` : ""}
+              {profile.age ? `${profile.age} años` : "Edita tu perfil abajo"}
+            </p>
+          )}
         </div>
       </div>
 

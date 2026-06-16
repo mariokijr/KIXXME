@@ -29,7 +29,7 @@ import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { useAuth } from "@/lib/auth";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { gradFor, initialsFor, formatLocation } from "@/lib/profile-format";
+import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
 import { ReportDialog } from "@/components/report-dialog";
@@ -225,25 +225,20 @@ function GridDiscover({
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
           className="absolute -top-20 left-1/4 w-[26rem] h-[26rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.42) 0%, rgba(168,85,247,0.12) 55%, transparent 75%)", filter: "blur(44px)" }}
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.30) 0%, rgba(168,85,247,0.08) 55%, transparent 75%)", filter: "blur(44px)" }}
         />
         <div
           className="absolute top-1/3 -right-20 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.34) 0%, rgba(236,72,153,0.08) 60%, transparent 80%)", filter: "blur(50px)" }}
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.06) 60%, transparent 80%)", filter: "blur(50px)" }}
         />
         <div
           className="absolute bottom-1/4 -left-8 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 70%)", filter: "blur(40px)" }}
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(40px)" }}
         />
         {/* Extra warm accent at top-right */}
         <div
           className="absolute top-0 right-0 w-48 h-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.09) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
-        />
-        {/* Deep bottom accent */}
-        <div
-          className="absolute bottom-0 left-1/3 w-96 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)", filter: "blur(52px)", transform: "translateY(30%)" }}
+          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
         />
       </div>
       <header
@@ -439,30 +434,30 @@ function UserCardInner({
   superLikePending?: boolean;
   featured?: boolean;
 }) {
-  const loc = formatLocation(user.city, user.distance_km);
+  const distance = formatDistance(user.distance_km);
   const [reportOpen, setReportOpen] = useState(false);
 
   return (
     <div
       className={`relative rounded-2xl overflow-hidden border group${featured ? " col-span-2" : ""}`}
       style={{
-        background: "rgba(13,11,26,0.88)",
+        background: "rgba(13,11,26,0.85)",
         aspectRatio: featured ? "16/9" : "3/4",
         borderColor:
           user.plan === "gold"
-            ? "rgba(251,191,36,0.88)"
+            ? "rgba(251,191,36,0.70)"
             : user.plan === "plus"
-            ? "rgba(168,85,247,0.78)"
+            ? "rgba(168,85,247,0.60)"
             : featured
-            ? "rgba(168,85,247,0.42)"
+            ? "rgba(168,85,247,0.35)"
             : "rgba(255,255,255,0.10)",
         boxShadow:
           user.plan === "gold"
-            ? "0 0 0 1px rgba(251,191,36,0.22), 0 0 32px rgba(251,191,36,0.50), 0 0 10px rgba(251,191,36,0.25), 0 4px 18px rgba(0,0,0,0.60)"
+            ? "0 0 22px rgba(251,191,36,0.28), 0 4px 14px rgba(0,0,0,0.55)"
             : user.plan === "plus"
-            ? "0 0 0 1px rgba(168,85,247,0.18), 0 0 26px rgba(168,85,247,0.48), 0 0 8px rgba(168,85,247,0.24), 0 4px 16px rgba(0,0,0,0.55)"
+            ? "0 0 18px rgba(168,85,247,0.26), 0 4px 14px rgba(0,0,0,0.5)"
             : featured
-            ? "0 0 22px rgba(168,85,247,0.28), 0 4px 14px rgba(0,0,0,0.48)"
+            ? "0 0 16px rgba(168,85,247,0.18), 0 4px 12px rgba(0,0,0,0.45)"
             : "0 4px 12px rgba(0,0,0,0.38)",
       }}
     >
@@ -507,9 +502,9 @@ function UserCardInner({
         {user.is_online && (
           <span
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-sans font-medium text-white"
-            style={{ background: "rgba(34,197,94,0.88)", boxShadow: "0 0 8px rgba(34,197,94,0.55)" }}
+            style={{ background: "rgba(34,197,94,0.85)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
             En línea
           </span>
         )}
@@ -564,52 +559,42 @@ function UserCardInner({
 
       <button
         onClick={onToggleLike}
-        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border backdrop-blur-sm transition-all active:scale-90 hover:scale-105"
-        style={{
-          background: user.liked_by_me
-            ? "linear-gradient(135deg, hsl(330,85%,52%), hsl(273,85%,55%))"
-            : "rgba(0,0,0,0.45)",
-          borderColor: user.liked_by_me ? "rgba(236,72,153,0.50)" : "rgba(255,255,255,0.20)",
-          boxShadow: user.liked_by_me ? "0 0 14px rgba(236,72,153,0.50), 0 0 6px rgba(168,85,247,0.30)" : "none",
-        }}
+        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-sm transition-transform active:scale-90"
+        style={{ background: "rgba(0,0,0,0.4)" }}
         aria-label={user.liked_by_me ? "Quitar me gusta" : "Me gusta"}
       >
         <Heart
           className="w-5 h-5 transition-colors"
           style={{
-            color: "white",
-            fill: user.liked_by_me ? "white" : "transparent",
+            color: user.liked_by_me ? "hsl(330,85%,60%)" : "white",
+            fill: user.liked_by_me ? "hsl(330,85%,60%)" : "transparent",
           }}
         />
       </button>
 
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2"
-        style={{
-          background: "linear-gradient(180deg, rgba(8,5,22,0.60) 0%, rgba(14,8,32,0.80) 55%, rgba(8,5,22,0.90) 100%)",
-          backdropFilter: "blur(4px)",
-          WebkitBackdropFilter: "blur(4px)",
-        }}
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
+        style={{ background: "rgba(0,0,0,0.5)" }}
       >
         <Link href={`/profile/${user.id}`}>
           <button
-            className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-white/20 transition-all hover:border-white/35 hover:bg-white/15 active:scale-95"
-            style={{ background: "rgba(255,255,255,0.10)" }}
+            className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-white/30"
+            style={{ background: "rgba(255,255,255,0.12)" }}
           >
             Ver
           </button>
         </Link>
         <button
           onClick={onMessage}
-          className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-primary/50 transition-all hover:border-primary/80 active:scale-95"
-          style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.58), rgba(236,72,153,0.40))", boxShadow: "0 0 18px rgba(168,85,247,0.45), 0 0 6px rgba(236,72,153,0.25)" }}
+          className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-white border border-primary/50"
+          style={{ background: "rgba(168,85,247,0.3)" }}
         >
           Mensaje
         </button>
         <button
           onClick={() => setReportOpen(true)}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-white/60 hover:text-red-400 border border-white/15 hover:border-red-400/40 transition-all active:scale-95"
-          style={{ background: "rgba(0,0,0,0.35)" }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:text-red-400 border border-white/20"
+          style={{ background: "rgba(0,0,0,0.4)" }}
           aria-label="Reportar"
           title="Reportar"
           data-testid="button-report-card"
@@ -627,10 +612,14 @@ function UserCardInner({
         </p>
         <div className="flex items-center justify-between mt-0.5">
           <span className="font-sans text-xs text-white/70 truncate">
-            {user.age ? `${user.age}` : ""}
-            {user.age && loc ? " · " : ""}
-            {loc || (!user.age ? "Nuevo usuario" : "")}
+            {[user.age, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
           </span>
+          {distance && (
+            <span className="flex items-center gap-0.5 font-sans text-[10px] flex-shrink-0 ml-1" style={{ color: "rgba(200,170,255,0.7)" }}>
+              <MapPin className="w-2.5 h-2.5" />
+              {distance}
+            </span>
+          )}
         </div>
       </div>
 
