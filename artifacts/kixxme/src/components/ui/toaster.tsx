@@ -39,7 +39,7 @@ export function Toaster() {
         const [emoji, rest] = splitEmoji(titleStr);
 
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} duration={4000} {...props}>
             {/* Icon bubble */}
             {emoji && (
               <div
