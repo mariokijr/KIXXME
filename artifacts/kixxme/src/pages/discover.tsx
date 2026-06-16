@@ -225,20 +225,25 @@ function GridDiscover({
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
           className="absolute -top-20 left-1/4 w-[26rem] h-[26rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.30) 0%, rgba(168,85,247,0.08) 55%, transparent 75%)", filter: "blur(44px)" }}
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.42) 0%, rgba(168,85,247,0.12) 55%, transparent 75%)", filter: "blur(44px)" }}
         />
         <div
           className="absolute top-1/3 -right-20 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.06) 60%, transparent 80%)", filter: "blur(50px)" }}
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.34) 0%, rgba(236,72,153,0.08) 60%, transparent 80%)", filter: "blur(50px)" }}
         />
         <div
           className="absolute bottom-1/4 -left-8 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(40px)" }}
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 70%)", filter: "blur(40px)" }}
         />
         {/* Extra warm accent at top-right */}
         <div
           className="absolute top-0 right-0 w-48 h-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
+          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.09) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
+        />
+        {/* Deep bottom accent */}
+        <div
+          className="absolute bottom-0 left-1/3 w-96 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)", filter: "blur(52px)", transform: "translateY(30%)" }}
         />
       </div>
       <header
@@ -441,23 +446,23 @@ function UserCardInner({
     <div
       className={`relative rounded-2xl overflow-hidden border group${featured ? " col-span-2" : ""}`}
       style={{
-        background: "rgba(13,11,26,0.85)",
+        background: "rgba(13,11,26,0.88)",
         aspectRatio: featured ? "16/9" : "3/4",
         borderColor:
           user.plan === "gold"
-            ? "rgba(251,191,36,0.70)"
+            ? "rgba(251,191,36,0.88)"
             : user.plan === "plus"
-            ? "rgba(168,85,247,0.60)"
+            ? "rgba(168,85,247,0.78)"
             : featured
-            ? "rgba(168,85,247,0.35)"
+            ? "rgba(168,85,247,0.42)"
             : "rgba(255,255,255,0.10)",
         boxShadow:
           user.plan === "gold"
-            ? "0 0 22px rgba(251,191,36,0.28), 0 4px 14px rgba(0,0,0,0.55)"
+            ? "0 0 0 1px rgba(251,191,36,0.22), 0 0 32px rgba(251,191,36,0.50), 0 0 10px rgba(251,191,36,0.25), 0 4px 18px rgba(0,0,0,0.60)"
             : user.plan === "plus"
-            ? "0 0 18px rgba(168,85,247,0.26), 0 4px 14px rgba(0,0,0,0.5)"
+            ? "0 0 0 1px rgba(168,85,247,0.18), 0 0 26px rgba(168,85,247,0.48), 0 0 8px rgba(168,85,247,0.24), 0 4px 16px rgba(0,0,0,0.55)"
             : featured
-            ? "0 0 16px rgba(168,85,247,0.18), 0 4px 12px rgba(0,0,0,0.45)"
+            ? "0 0 22px rgba(168,85,247,0.28), 0 4px 14px rgba(0,0,0,0.48)"
             : "0 4px 12px rgba(0,0,0,0.38)",
       }}
     >
@@ -502,9 +507,9 @@ function UserCardInner({
         {user.is_online && (
           <span
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-sans font-medium text-white"
-            style={{ background: "rgba(34,197,94,0.85)" }}
+            style={{ background: "rgba(34,197,94,0.88)", boxShadow: "0 0 8px rgba(34,197,94,0.55)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             En línea
           </span>
         )}
@@ -596,8 +601,8 @@ function UserCardInner({
         </Link>
         <button
           onClick={onMessage}
-          className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-primary/40 transition-all hover:border-primary/70 active:scale-95"
-          style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.35), rgba(236,72,153,0.22))", boxShadow: "0 0 10px rgba(168,85,247,0.20)" }}
+          className="px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold text-white border border-primary/50 transition-all hover:border-primary/80 active:scale-95"
+          style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.58), rgba(236,72,153,0.40))", boxShadow: "0 0 18px rgba(168,85,247,0.45), 0 0 6px rgba(236,72,153,0.25)" }}
         >
           Mensaje
         </button>
