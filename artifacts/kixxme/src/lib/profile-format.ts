@@ -26,7 +26,19 @@ export function formatDistance(km: number | null | undefined): string | null {
   if (km == null) return null;
   if (km < 1) return "< 1 km";
   if (km < 10) return `${km.toFixed(1)} km`;
-  return `${Math.round(km)} km`;
+  if (km < 500) return `${Math.round(km)} km`;
+  return null;
+}
+
+export function formatLocation(
+  city: string | null | undefined,
+  distanceKm: number | null | undefined,
+): string | null {
+  const dist = formatDistance(distanceKm);
+  if (city && dist) return `${city} · ${dist}`;
+  if (city) return city;
+  if (dist) return dist;
+  return null;
 }
 
 /**

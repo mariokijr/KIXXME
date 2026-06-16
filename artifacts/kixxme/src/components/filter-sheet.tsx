@@ -6,9 +6,6 @@ import {
   ORIENTATION_LABELS,
 } from "@/lib/profile-format";
 
-// ---------------------------------------------------------------------------
-// Filter state types
-// ---------------------------------------------------------------------------
 export interface DiscoverFilters {
   ageMin: number | null;
   ageMax: number | null;
@@ -18,6 +15,7 @@ export interface DiscoverFilters {
   lookingFor: string | null;
   orientation: string | null;
   distanceMaxKm: number | null;
+  internationalFallback: boolean;
 }
 
 export const DEFAULT_FILTERS: DiscoverFilters = {
@@ -29,6 +27,7 @@ export const DEFAULT_FILTERS: DiscoverFilters = {
   lookingFor: null,
   orientation: null,
   distanceMaxKm: null,
+  internationalFallback: true,
 };
 
 export function countActiveFilters(f: DiscoverFilters): number {
@@ -44,7 +43,6 @@ export function countActiveFilters(f: DiscoverFilters): number {
   return n;
 }
 
-/** Convert filters to `GET /profiles` query params object. */
 export function filtersToParams(
   f: DiscoverFilters,
 ): Record<string, string | number | boolean | undefined> {
@@ -60,9 +58,6 @@ export function filtersToParams(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Pill chip selector
-// ---------------------------------------------------------------------------
 function ChipGrid({
   options,
   value,
@@ -108,14 +103,15 @@ function ChipGrid({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Distance options (Gold)
-// ---------------------------------------------------------------------------
-const DISTANCE_OPTIONS = [5, 20, 50, 100, 250] as const;
+const DISTANCE_OPTIONS: { km: number | null; label: string }[] = [
+  { km: 10, label: "10 km" },
+  { km: 25, label: "25 km" },
+  { km: 50, label: "50 km" },
+  { km: 100, label: "100 km" },
+  { km: 250, label: "250 km" },
+  { km: null, label: "Todo el mundo" },
+];
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 interface FilterSheetProps {
   open: boolean;
   onClose: () => void;
@@ -127,8 +123,6 @@ interface FilterSheetProps {
 export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSheetProps) {
   const [draft, setDraft] = useState<DiscoverFilters>(filters);
   const isPaid = plan === "plus" || plan === "gold";
-  // Basic filters (age, distance, role, looking_for, orientation, online) are free for all.
-  // Only verified_only is Plus+.
   const canVerifiedFilter = isPaid;
 
   const set = <K extends keyof DiscoverFilters>(k: K, v: DiscoverFilters[K]) =>
@@ -146,27 +140,20 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
     onClose();
   };
 
-  const upsell = (tier: "plus" | "gold") => {
-    window.location.href = "/premium";
-  };
-
   if (!open) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[95] bg-black/60"
         style={{ backdropFilter: "blur(4px)" }}
         onClick={onClose}
       />
 
-      {/* Sheet */}
       <div
         className="fixed inset-x-0 bottom-0 z-[96] flex flex-col rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-250"
         style={{ background: "rgba(14,12,30,0.98)", maxHeight: "88dvh" }}
       >
-        {/* Handle + header */}
         <div className="flex-shrink-0 flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-primary" />
@@ -181,8 +168,38 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
           </button>
         </div>
 
-        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+
+          {/* Distance */}
+          <section>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Distancia máxima
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {DISTANCE_OPTIONS.map(({ km, label }) => {
+                const active = draft.distanceMaxKm === km;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => set("distanceMaxKm", draft.distanceMaxKm === km ? null : km)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={
+                      active
+                        ? { background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }
+                        : {
+                            background: "rgba(255,255,255,0.06)",
+                            color: "rgba(255,255,255,0.75)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                          }
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           {/* Age range */}
           <section>
@@ -249,7 +266,7 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
             </div>
           </section>
 
-          {/* Verified only — Plus+ filter */}
+          {/* Verified only — Plus+ */}
           <section>
             <div className="flex items-center justify-between">
               <div>
@@ -271,7 +288,7 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
                 role="switch"
                 aria-checked={draft.verifiedOnly}
                 onClick={() => {
-                  if (!canVerifiedFilter) { upsell("plus"); return; }
+                  if (!canVerifiedFilter) { window.location.href = "/premium"; return; }
                   set("verifiedOnly", !draft.verifiedOnly);
                 }}
                 className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
@@ -289,84 +306,69 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
             </div>
           </section>
 
-          {/* Role — free for all */}
+          {/* Role */}
           <section>
-            <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rol</p>
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
             <ChipGrid
               options={ROLE_LABELS}
               value={draft.role}
               onChange={(v) => set("role", v)}
-              locked={false}
-              onLockTap={() => {}}
             />
           </section>
 
-          {/* Looking for — free for all */}
+          {/* Looking for */}
           <section>
-            <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Busca</p>
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Busca</p>
             <ChipGrid
               options={LOOKING_FOR_LABELS}
               value={draft.lookingFor}
               onChange={(v) => set("lookingFor", v)}
-              locked={false}
-              onLockTap={() => {}}
             />
           </section>
 
-          {/* Orientation — free for all */}
+          {/* Orientation */}
           <section>
-            <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Orientación</p>
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Orientación</p>
             <ChipGrid
               options={ORIENTATION_LABELS}
               value={draft.orientation}
               onChange={(v) => set("orientation", v)}
-              locked={false}
-              onLockTap={() => {}}
             />
           </section>
 
-          {/* Distance max — free for all */}
+          {/* International fallback */}
           <section>
-            <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Distancia máxima
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {DISTANCE_OPTIONS.map((km) => {
-                const active = draft.distanceMaxKm === km;
-                return (
-                  <button
-                    key={km}
-                    type="button"
-                    onClick={() => set("distanceMaxKm", draft.distanceMaxKm === km ? null : km)}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                    style={
-                      active
-                        ? { background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }
-                        : {
-                            background: "rgba(255,255,255,0.06)",
-                            color: "rgba(255,255,255,0.75)",
-                            border: "1px solid rgba(255,255,255,0.1)",
-                          }
-                    }
-                  >
-                    {km < 1000 ? `${km} km` : "Ilimitado"}
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">Fallback internacional</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Mostrar perfiles internacionales si no hay suficientes cerca
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={draft.internationalFallback}
+                onClick={() => set("internationalFallback", !draft.internationalFallback)}
+                className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
+                style={{
+                  background: draft.internationalFallback
+                    ? "linear-gradient(135deg,#8b5cf6,#ec4899)"
+                    : "rgba(255,255,255,0.12)",
+                }}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
+                  style={{ transform: draft.internationalFallback ? "translateX(20px)" : "translateX(0)" }}
+                />
+              </button>
             </div>
           </section>
         </div>
 
-        {/* Footer actions */}
-        <div className="flex-shrink-0 flex gap-3 px-5 py-4 border-t border-white/[0.07]">
+        <div className="flex-shrink-0 flex gap-3 px-5 py-4 border-t border-white/[0.07]"
+          style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+        >
           <button
             type="button"
             onClick={resetAndClose}

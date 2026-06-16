@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -26,6 +27,7 @@ import {
   Flag,
   MessageCircle,
   Lock,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -44,7 +46,7 @@ import { usePassProfile } from "@workspace/api-client-react";
 import { playSound } from "@/lib/sound";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import {
-  gradFor, initialsFor, formatDistance,
+  gradFor, initialsFor, formatLocation,
   ROLE_LABELS, LOOKING_FOR_LABELS, ORIENTATION_LABELS,
   ZODIAC_LABELS, ALCOHOL_LABELS, EXERCISE_LABELS, PETS_LABELS,
   formatHeightCm,
@@ -55,6 +57,13 @@ import { ReportDialog } from "@/components/report-dialog";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useStartConversation } from "@/lib/use-start-conversation";
+import {
+  FilterSheet,
+  type DiscoverFilters,
+  DEFAULT_FILTERS,
+  countActiveFilters,
+  filtersToParams,
+} from "@/components/filter-sheet";
 
 // ---------------------------------------------------------------------------
 // Activity-based feed filter (persisted in localStorage)
@@ -83,6 +92,23 @@ function readFeed(): DiscoverFeed {
 
 function saveFeed(f: DiscoverFeed) {
   try { localStorage.setItem(SWIPE_FEED_KEY, f); } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// Discover filters (persisted in localStorage)
+// ---------------------------------------------------------------------------
+const DISCOVER_FILTERS_KEY = "kixxme:discover-filters";
+
+function readFilters(): DiscoverFilters {
+  try {
+    const raw = localStorage.getItem(DISCOVER_FILTERS_KEY);
+    if (raw) return { ...DEFAULT_FILTERS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_FILTERS };
+}
+
+function saveFilters(f: DiscoverFilters) {
+  try { localStorage.setItem(DISCOVER_FILTERS_KEY, JSON.stringify(f)); } catch { /* ignore */ }
 }
 
 type Decision = "like" | "pass" | "superlike";
@@ -166,7 +192,7 @@ const SwipeCard = forwardRef<
     }
   };
 
-  const distance = formatDistance(profile.distance_km);
+  const loc = formatLocation(profile.city, profile.distance_km);
 
   return (
     <motion.div
@@ -254,13 +280,12 @@ const SwipeCard = forwardRef<
                 />
               )}
             </div>
-            <div className="flex items-center gap-3 mt-1 text-white/75 font-sans text-[13px]">
-              {profile.city && <span className="truncate">{profile.city}</span>}
-              {distance && (
-                <span className="flex items-center gap-1 flex-shrink-0">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {distance}
-                </span>
+            <div className="flex items-center gap-1 mt-1 text-white/75 font-sans text-[13px]">
+              {loc && (
+                <>
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{loc}</span>
+                </>
               )}
             </div>
             {(profile.role || profile.looking_for) && (
@@ -359,7 +384,7 @@ function ProfileDetailSheet({
       : profile.avatar_url
         ? [profile.avatar_url]
         : [];
-  const distance = formatDistance(profile.distance_km);
+  const loc = formatLocation(profile.city, profile.distance_km);
   const [reportOpen, setReportOpen] = useState(false);
 
   return (
@@ -436,10 +461,10 @@ function ProfileDetailSheet({
               Verificado
             </span>
           )}
-          {distance && (
+          {loc && (
             <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-sans text-muted-foreground border border-border/40">
               <MapPin className="w-3.5 h-3.5" />
-              {distance}
+              {loc}
             </span>
           )}
           {profile.gender && (
@@ -581,6 +606,8 @@ export function SwipeView({
   const passMut = usePassProfile();
 
   const [feed, setFeedState] = useState<DiscoverFeed>(readFeed);
+  const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
 
@@ -593,6 +620,8 @@ export function SwipeView({
   });
 
   const isGold = ownProfile?.plan === "gold";
+  const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
+  const activeFilterCount = countActiveFilters(filters);
 
   const setFeed = (f: DiscoverFeed) => {
     setFeedState(f);
@@ -600,7 +629,16 @@ export function SwipeView({
     setIndex(0);
   };
 
-  const queryParams = { feed };
+  const setFilters = (f: DiscoverFilters) => {
+    setFiltersState(f);
+    saveFilters(f);
+    setIndex(0);
+  };
+
+  const queryParams = useMemo(
+    () => ({ feed, ...filtersToParams(filters) }),
+    [feed, filters],
+  );
   const queryKey = getListProfilesQueryKey(queryParams);
 
   const {
@@ -722,6 +760,28 @@ export function SwipeView({
         </div>
 
         <QuotaBar />
+
+        {/* Filter button */}
+        <button
+          onClick={() => setFilterOpen(true)}
+          className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors"
+          style={{
+            background: activeFilterCount > 0 ? "rgba(139,92,246,0.2)" : "rgba(255,255,255,0.04)",
+            borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.55)" : "rgba(255,255,255,0.15)",
+          }}
+          aria-label="Filtros"
+          data-testid="button-filters"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-primary" />
+          {activeFilterCount > 0 && (
+            <span
+              className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+            >
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
 
         <Link href="/matches">
           <button
@@ -886,6 +946,14 @@ export function SwipeView({
           onAction={handleDetailAction}
         />
       )}
+
+      <FilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={filters}
+        onChange={setFilters}
+        plan={plan}
+      />
     </div>
   );
 }

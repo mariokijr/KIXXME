@@ -1,0 +1,285 @@
+Quiero mejorar el sistema de Descubrir/Filtros de KixxMe para que se sienta como una app de citas premium tipo Tinder, pero sin romper nada de lo que ya funciona.
+
+OBJETIVO PRINCIPAL
+
+Cada usuario debe ver primero personas de su zona real.
+
+Ejemplos:
+
+* Si un usuario está en Alicante, debe ver primero gente de Alicante y alrededores.
+* Si un usuario está en Buenos Aires, debe ver primero gente de Buenos Aires y alrededores.
+* Si un usuario está en Ciudad de México, debe ver primero gente de Ciudad de México y alrededores.
+
+No quiero una prioridad global por países.
+
+La prioridad siempre debe ser la ubicación del usuario actual.
+
+Solo deben aparecer perfiles internacionales si:
+
+* El usuario amplía manualmente el filtro.
+* El usuario selecciona “Todo el mundo”.
+* No hay suficientes personas cerca y entra el fallback inteligente.
+
+Nunca quiero que la pantalla quede vacía.
+
+━━━━━━━━━━━━━━━━━━━
+FILTROS TIPO TINDER
+━━━━━━━━━━━━━━━━━━━
+
+Añadir un botón “Filtros” visible en Descubrir.
+
+Al pulsarlo, abrir un modal o bottom-sheet con estilo KixxMe.
+
+Filtros:
+
+1. Distancia máxima
+
+* 5 km
+* 10 km
+* 25 km
+* 50 km
+* 100 km
+* 250 km
+* Mi país
+* Todo el mundo
+
+Comportamiento:
+
+* Por defecto usar una distancia inteligente (50 km o 100 km).
+* Si el usuario selecciona “Mi país”, mostrar usuarios del mismo país priorizando cercanía.
+* Si selecciona “Todo el mundo”, permitir usuarios internacionales.
+
+2. Edad
+
+* Edad mínima
+* Edad máxima
+
+3. Estado
+
+* Todos
+* Solo en línea
+
+4. Verificación
+
+* Todos
+* Solo verificados
+
+5. Fallback internacional
+
+Switch:
+
+“Mostrar perfiles internacionales cuando no haya suficientes personas cerca”
+
+Activado por defecto.
+
+━━━━━━━━━━━━━━━━━━━
+FILTRO SOLO EN LÍNEA
+━━━━━━━━━━━━━━━━━━━
+
+Este filtro es muy importante.
+
+Si el usuario activa “Solo en línea”:
+
+* Descubrir debe mostrar únicamente usuarios conectados en ese momento.
+* Debe funcionar tanto en el modo tarjetas como en el modo deslizar.
+* Debe afectar al sistema de match (like/no like).
+
+Es decir:
+
+Cuando el usuario deslice a izquierda o derecha, todos los perfiles visibles deben estar realmente en línea.
+
+El filtro debe combinarse con el de distancia.
+
+Ejemplos:
+
+* Solo en línea + 25 km
+* Solo en línea + Mi país
+* Solo en línea + Todo el mundo
+
+Si no hay suficientes personas en línea:
+
+Mostrar un mensaje bonito:
+
+“No hay más personas en línea cerca de ti. Amplía la distancia o desactiva el filtro.”
+
+No mezclar usuarios offline cuando el filtro esté activo.
+
+━━━━━━━━━━━━━━━━━━━
+ALGORITMO DE PRIORIDAD
+━━━━━━━━━━━━━━━━━━━
+
+Ordenar perfiles por este orden:
+
+1. Dentro de la distancia elegida.
+2. Misma ciudad.
+3. Misma provincia/región.
+4. Mismo país.
+5. Internacional (solo si aplica fallback).
+
+Dentro de cada grupo, ordenar por:
+
+* Usuarios en línea.
+* Actividad reciente.
+* Compatibilidad.
+* Distancia.
+
+Ampliación automática:
+
+25 km → 50 km → 100 km → 250 km → mismo país → internacional.
+
+Nunca dejar Descubrir vacío.
+
+━━━━━━━━━━━━━━━━━━━
+MENSAJES DIRECTOS DESDE DESCUBRIR
+━━━━━━━━━━━━━━━━━━━
+
+En el modo deslizar (like/no like), añadir un botón extra de mensaje.
+
+Ejemplo de acciones debajo de la tarjeta:
+
+❌ No me gusta
+💬 Mensaje
+❤️ Me gusta
+⭐ Super Like
+
+Funcionamiento:
+
+* El usuario puede enviar un mensaje sin necesidad de hacer match previamente.
+* Solo los usuarios Gold pueden iniciar conversaciones sin match.
+* El receptor puede responder aunque no sea Gold.
+* Si un usuario no Gold pulsa el botón mensaje:
+
+Mostrar modal de upgrade:
+
+“Envía mensajes antes del match con Gold.”
+
+Botón:
+
+“Pasar a Gold”
+
+Importante:
+
+* No romper el sistema actual de matches.
+* El like mutuo sigue creando match automáticamente.
+* El mensaje directo es una función adicional exclusiva de Gold.
+* Si esta funcionalidad ya existe, reutilizarla y mostrar el botón en la interfaz de deslizar.
+
+━━━━━━━━━━━━━━━━━━━
+DISTANCIAS Y UBICACIÓN
+━━━━━━━━━━━━━━━━━━━
+
+Evitar mostrar números enormes.
+
+No mostrar:
+
+“9170 km”
+
+Mostrar:
+
+* “Alicante · 12 km”
+* “Madrid · 45 km”
+* “España”
+* “Argentina 🇦🇷”
+* “México 🇲🇽”
+
+Si no hay ubicación:
+
+“Ubicación no disponible”
+
+━━━━━━━━━━━━━━━━━━━
+GUARDAR PREFERENCIAS
+━━━━━━━━━━━━━━━━━━━
+
+Guardar para cada usuario:
+
+* Distancia elegida.
+* Edad mínima.
+* Edad máxima.
+* Solo en línea.
+* Solo verificados.
+* Fallback internacional.
+
+Las preferencias deben mantenerse al cerrar y abrir la app.
+
+Si ya existe infraestructura de preferencias, reutilizarla.
+
+━━━━━━━━━━━━━━━━━━━
+MAPA
+━━━━━━━━━━━━━━━━━━━
+
+En el mapa:
+
+* Priorizar usuarios con localización activa.
+* Añadir filtro “Solo en línea”.
+* Respetar privacidad y show_on_map.
+* Si es posible, añadir clusters por ciudad:
+
+Madrid · 124
+Barcelona · 98
+Buenos Aires · 35
+
+Si es demasiado complejo, dejarlo para una segunda fase.
+
+━━━━━━━━━━━━━━━━━━━
+PREMIUM FUTURO
+━━━━━━━━━━━━━━━━━━━
+
+Preparar la estructura para una futura función Gold:
+
+“Modo viaje”
+
+Permitir elegir ubicación manual:
+
+* Madrid
+* Barcelona
+* Buenos Aires
+* Ciudad de México
+
+No activar pagos nuevos todavía.
+
+━━━━━━━━━━━━━━━━━━━
+PRIVACIDAD
+━━━━━━━━━━━━━━━━━━━
+
+No mostrar ubicación exacta.
+
+Usar ciudad o distancia aproximada.
+
+Respetar:
+
+* show_on_map
+* privacidad existente
+* permisos de ubicación
+
+━━━━━━━━━━━━━━━━━━━
+REQUISITOS TÉCNICOS
+━━━━━━━━━━━━━━━━━━━
+
+Antes de modificar la base de datos:
+
+* Revisar campos existentes:
+    * país
+    * ciudad
+    * lat/lng
+    * last_seen
+    * online
+    * verificación
+    * preferencias
+
+Si faltan campos:
+
+* Proponer migraciones antes de ejecutarlas.
+
+Importante:
+
+* No romper login.
+* No romper Google OAuth.
+* No romper Premium.
+* No romper chats.
+* No romper mapa.
+* No romper perfiles.
+* No romper Live.
+
+Implementarlo de forma incremental.
+
+Ejecutar typecheck, build y tests al finalizar.
