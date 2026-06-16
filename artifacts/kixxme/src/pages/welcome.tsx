@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Heart, X, BadgeCheck, MapPin, Menu, Bell, Shield, Video, Map as MapIcon } from "lucide-react";
+import { Heart, X, BadgeCheck, MapPin, Menu, Shield, Video, Map as MapIcon, Mic, PhoneOff } from "lucide-react";
 import { useAuth, SOCIAL_AUTH_ENABLED } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
@@ -12,42 +12,72 @@ import faceMarcos from "@/assets/face-marcos.png";
 import faceAlejandro from "@/assets/face-alejandro.png";
 
 /* ─────────────────────────────────────────────
-   LEFT CARD — floating profile card (no frame)
+   VIDEO CALL CARD — animated live call frame
 ───────────────────────────────────────────── */
-function LeftCard({
-  img, name, status, live, online,
+function VideoCallCard({
+  img, name, startSecs = 0, accent = "#22c55e", floatDelay = 0, callLabel = "EN VIVO",
 }: {
-  img: string; name: string; status: string; live?: boolean; online?: boolean;
+  img: string; name: string; startSecs?: number; accent?: string; floatDelay?: number; callLabel?: string;
 }) {
+  const [elapsed, setElapsed] = React.useState(startSecs);
+  React.useEffect(() => {
+    const id = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
   return (
-    <div
-      style={{
-        width: "100%", height: 140, borderRadius: 16, overflow: "hidden",
-        position: "relative",
-        border: "1.5px solid rgba(255,255,255,0.11)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.60)",
+    <motion.div
+      animate={{
+        y: [0, -7, 0],
+        boxShadow: [
+          `0 0 0 1.5px ${accent}bb, 0 0 14px ${accent}55, 0 6px 22px rgba(0,0,0,0.65)`,
+          `0 0 0 2px ${accent}, 0 0 28px ${accent}99, 0 6px 22px rgba(0,0,0,0.65)`,
+          `0 0 0 1.5px ${accent}bb, 0 0 14px ${accent}55, 0 6px 22px rgba(0,0,0,0.65)`,
+        ],
       }}
+      transition={{ duration: 3.4 + floatDelay * 0.7, repeat: Infinity, ease: "easeInOut", delay: floatDelay }}
+      style={{ width: "100%", height: 134, borderRadius: 16, overflow: "hidden", position: "relative" }}
     >
+      {/* Video feed */}
       <img src={img} alt={name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)" }} />
 
-      {live && (
-        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", alignItems: "center", gap: 3, background: "rgba(239,68,68,0.93)", borderRadius: 99, padding: "2px 7px" }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "white" }} />
-          <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, color: "white" }}>LIVE</span>
+      {/* Top scrim */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to bottom, rgba(0,0,0,0.62), transparent)" }} />
+      {/* Bottom scrim */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.42) 42%, transparent 66%)" }} />
+
+      {/* Top bar: live badge + timer */}
+      <div style={{ position: "absolute", top: 7, left: 7, right: 7, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 3, background: `${accent}28`, border: `1px solid ${accent}70`, borderRadius: 99, padding: "2px 6px 2px 4px" }}>
+          <motion.span
+            animate={{ opacity: [1, 0.25, 1] }}
+            transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+            style={{ width: 5, height: 5, borderRadius: "50%", background: accent, flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 7.5, fontWeight: 800, color: accent, fontFamily: "Inter,sans-serif", letterSpacing: "0.06em" }}>{callLabel}</span>
         </div>
-      )}
+        <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.80)", fontFamily: "'Courier New',monospace", fontWeight: 700, letterSpacing: "0.04em" }}>
+          {fmt(elapsed)}
+        </span>
+      </div>
 
-      <div style={{ position: "absolute", bottom: 8, left: 8 }}>
-        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, lineHeight: 1.1, letterSpacing: "0.02em" }}>{name}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
-          {online
-            ? <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
-            : <MapPin style={{ width: 9, height: 9, color: "rgba(255,255,255,0.65)" }} />}
-          <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.70)", fontFamily: "Inter,sans-serif" }}>{status}</span>
+      {/* Bottom: name + call controls */}
+      <div style={{ position: "absolute", bottom: 7, left: 7, right: 7 }}>
+        <p style={{ color: "white", fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: "0.02em", lineHeight: 1.1, marginBottom: 5 }}>{name}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Mic style={{ width: 9, height: 9, color: "white" }} />
+          </div>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(239,68,68,0.85)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <PhoneOff style={{ width: 9, height: 9, color: "white" }} />
+          </div>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Video style={{ width: 9, height: 9, color: "white" }} />
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -312,10 +342,7 @@ export default function Welcome() {
             KIXXME
           </h1>
 
-          <div className="relative w-10 h-10 flex items-center justify-center rounded-xl" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
-            <Bell className="w-5 h-5 text-white/65" />
-            <span className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: BRAND_GRADIENT }}>3</span>
-          </div>
+          <div className="w-10 h-10" />
         </div>
 
         <p className="text-center text-white/45 text-[12.5px] font-medium pb-2.5 tracking-wide">
@@ -354,8 +381,8 @@ export default function Welcome() {
             transition={{ duration: 0.65, delay: 0.10, ease: [0.22, 1, 0.36, 1] }}
             style={{ width: 100, paddingTop: 30, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}
           >
-            <LeftCard img={faceCarlos}  name="Marcelo, 26" status="En línea"      live online />
-            <LeftCard img={faceMarcos}  name="Marcos, 24"  status="A 5 km de ti"               />
+            <VideoCallCard img={faceCarlos} name="Marcelo, 26" startSecs={42}  accent="#22c55e" floatDelay={0}   callLabel="EN VIVO" />
+            <VideoCallCard img={faceMarcos} name="Marcos, 24"  startSecs={127} accent="#a855f7" floatDelay={1.1} callLabel="LIVE"    />
           </motion.div>
 
           {/* CENTER — neon phone */}
