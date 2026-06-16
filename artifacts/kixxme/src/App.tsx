@@ -239,13 +239,13 @@ function Router() {
         </div>
       }
     >
-      <AnimatePresence mode="sync" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={routeKey}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.12, ease: "easeOut" }}
+          transition={{ duration: 0.08, ease: "easeOut" }}
           style={{ minHeight: "100%", willChange: "opacity" }}
         >
           <Switch>
