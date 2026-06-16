@@ -167,6 +167,7 @@ export default function MapView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [filters, setFilters] = useState<MapFilters>(DEFAULT_FILTERS);
+  const [onlineOnly, setOnlineOnly] = useState(false);
 
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -244,9 +245,10 @@ export default function MapView() {
           // When slider is at max (70) treat as "70+" — no upper bound.
           if (filters.ageMax < AGE_SLIDER_MAX && p.age > filters.ageMax) return false;
         }
+        if (onlineOnly && !p.is_online) return false;
         return true;
       }),
-    [users, filters]
+    [users, filters, onlineOnly]
   );
 
   // Include ALL filtered users — even those without distance_km (viewer has no GPS).
@@ -560,6 +562,20 @@ export default function MapView() {
               </span>
             )}
 
+
+            {/* Online-only toggle */}
+            <button
+              onClick={() => setOnlineOnly((v) => !v)}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full font-sans text-xs font-medium flex-shrink-0 transition-all"
+              style={{
+                background: onlineOnly ? "rgba(34,197,94,0.18)" : "rgba(255,255,255,0.06)",
+                border: onlineOnly ? "1px solid rgba(34,197,94,0.7)" : "1px solid rgba(255,255,255,0.15)",
+                color: onlineOnly ? "hsl(142,72%,65%)" : "rgba(255,255,255,0.38)",
+              }}
+            >
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineOnly ? "bg-green-400" : "bg-white/25"}`} />
+              En línea
+            </button>
 
             {/* Visibility toggle — pill button */}
             <button

@@ -704,7 +704,23 @@ export function SwipeView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-72px)]">
+    <div className="flex flex-col h-[calc(100dvh-72px)] relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+
+      {/* ── Ambient orbs (T008) ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div
+          className="absolute -top-16 left-1/4 w-[24rem] h-[24rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.32) 0%, rgba(168,85,247,0.07) 60%, transparent 80%)", filter: "blur(52px)" }}
+        />
+        <div
+          className="absolute top-1/3 -right-20 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.05) 65%, transparent 85%)", filter: "blur(48px)" }}
+        />
+        <div
+          className="absolute bottom-1/4 -left-12 w-64 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%)", filter: "blur(44px)" }}
+        />
+      </div>
 
       {/* ── Header: logo + mode toggle + feed chips + quota + matches ── */}
       <header
@@ -823,12 +839,16 @@ export function SwipeView({
           ) : !top ? (
             <DeckEmpty
               title={
-                profiles.length === 0 && feed === "online"
+                profiles.length === 0 && filters.onlineOnly
+                  ? "No hay personas en línea cerca de ti"
+                  : profiles.length === 0 && feed === "online"
                   ? "Nadie en línea ahora mismo"
                   : "¡Has visto todos los perfiles!"
               }
               subtitle={
-                profiles.length === 0 && feed === "online"
+                profiles.length === 0 && filters.onlineOnly
+                  ? "Amplía la distancia o desactiva el filtro 'Solo en línea'."
+                  : profiles.length === 0 && feed === "online"
                   ? "Cambia de sección para ver más perfiles."
                   : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
               }

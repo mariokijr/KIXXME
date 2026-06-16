@@ -29,7 +29,7 @@ import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { useAuth } from "@/lib/auth";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
-import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
+import { gradFor, initialsFor, formatLocation } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
 import { ReportDialog } from "@/components/report-dialog";
@@ -434,7 +434,7 @@ function UserCardInner({
   superLikePending?: boolean;
   featured?: boolean;
 }) {
-  const distance = formatDistance(user.distance_km);
+  const loc = formatLocation(user.city, user.distance_km);
   const [reportOpen, setReportOpen] = useState(false);
 
   return (
@@ -612,14 +612,10 @@ function UserCardInner({
         </p>
         <div className="flex items-center justify-between mt-0.5">
           <span className="font-sans text-xs text-white/70 truncate">
-            {[user.age, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
+            {user.age ? `${user.age}` : ""}
+            {user.age && loc ? " · " : ""}
+            {loc || (!user.age ? "Nuevo usuario" : "")}
           </span>
-          {distance && (
-            <span className="flex items-center gap-0.5 font-sans text-[10px] flex-shrink-0 ml-1" style={{ color: "rgba(200,170,255,0.7)" }}>
-              <MapPin className="w-2.5 h-2.5" />
-              {distance}
-            </span>
-          )}
         </div>
       </div>
 
