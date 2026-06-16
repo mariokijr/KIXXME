@@ -888,77 +888,77 @@ export function SwipeView({
         </div>
       </div>
 
-      {/* ── Action bar (Badoo/Tinder-style) ── */}
+      {/* ── Action bar ── */}
       {!isLoading && !isError && top && (
-        <div className="flex items-center gap-2.5 px-4 pt-2 pb-3">
-          {/* Pass / X */}
+        <div className="flex items-center justify-center gap-4 px-4 pt-2 pb-3">
+          {/* Pass / X — white circle */}
           <button
             onClick={() => act("pass")}
             aria-label="No me interesa"
             data-testid="button-pass"
-            className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
-              background: "rgba(16,14,32,0.97)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              boxShadow: "0 4px 18px rgba(0,0,0,0.55)",
+              background: "#fff",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.40)",
             }}
           >
-            <X className="w-6 h-6 text-rose-400" />
+            <X className="w-7 h-7 text-gray-600" strokeWidth={2.5} />
           </button>
 
-          {/* Enviar mensaje — Gold-only wide pill */}
-          <button
-            onClick={handleSendMessage}
-            aria-label="Enviar mensaje"
-            data-testid="button-send-message"
-            className="flex-1 h-[58px] rounded-full flex items-center justify-center gap-2 font-sans text-sm transition-all active:scale-[0.97] min-w-0"
-            style={{
-              background: "rgba(16,14,32,0.97)",
-              border: `1px solid ${isGold ? "rgba(255,255,255,0.10)" : "rgba(251,191,36,0.35)"}`,
-              boxShadow: "0 4px 18px rgba(0,0,0,0.55)",
-            }}
-          >
-            {isGold ? (
-              <>
-                <MessageCircle className="w-[17px] h-[17px] text-white/55 flex-shrink-0" />
-                <span className="text-white/60 truncate">Enviar mensaje...</span>
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-amber-400 truncate">Enviar mensaje...</span>
-              </>
-            )}
-          </button>
-
-          {/* SuperLike */}
+          {/* SuperLike — smaller, middle */}
           <button
             onClick={() => act("superlike")}
             aria-label="SuperLike"
             data-testid="button-superlike"
-            className="w-[48px] h-[48px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
-              background: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
-              boxShadow: "0 0 16px rgba(56,189,248,0.40)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: "#fff",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.30)",
             }}
           >
-            <Star className="w-5 h-5 text-white" fill="white" />
+            <Star className="w-5 h-5 text-sky-500" fill="currentColor" />
           </button>
 
-          {/* Like / Heart */}
+          {/* Like / Heart — white circle */}
           <button
             onClick={() => act("like")}
             aria-label="Me gusta"
             data-testid="button-like"
-            className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
-              background: "linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))",
-              boxShadow: "0 0 20px rgba(236,72,153,0.45)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: "#fff",
+              boxShadow: "0 4px 20px rgba(236,72,153,0.35), 0 2px 10px rgba(0,0,0,0.25)",
             }}
           >
-            <Heart className="w-6 h-6 text-white" fill="white" />
+            <Heart className="w-7 h-7 text-rose-500" fill="currentColor" />
+          </button>
+        </div>
+      )}
+
+      {/* Mensaje (Gold) — below action bar, subtle */}
+      {!isLoading && !isError && top && (
+        <div className="flex justify-center pb-2 -mt-1">
+          <button
+            onClick={handleSendMessage}
+            aria-label="Enviar mensaje"
+            data-testid="button-send-message"
+            className="flex items-center justify-center gap-1.5 px-5 h-9 rounded-full font-sans text-xs transition-all active:scale-[0.97]"
+            style={{
+              background: isGold ? "rgba(255,255,255,0.10)" : "rgba(251,191,36,0.12)",
+              border: isGold ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(251,191,36,0.40)",
+            }}
+          >
+            {isGold ? (
+              <>
+                <MessageCircle className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
+                <span className="text-white/50">Enviar mensaje</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                <span className="text-amber-400">Enviar mensaje</span>
+              </>
+            )}
           </button>
         </div>
       )}
