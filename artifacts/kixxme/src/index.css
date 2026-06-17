@@ -318,4 +318,30 @@
   .animate-live-feature-in,
   .animate-shimmer-gold,
   .animate-float-up { animation: none; }
+  /* Plan-tier card pulses */
+  [style*="kixx-gold-pulse"],
+  [style*="kixx-plus-glow"] { animation: none !important; }
+}
+
+/* Typing indicator dots */
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0);   opacity: 0.4; }
+  30%            { transform: translateY(-5px); opacity: 1;   }
+}
+
+/* Plan-tier card border glow pulses */
+@keyframes kixx-gold-pulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(251,191,36,0.28), 0 0 6px rgba(251,191,36,0.14), 0 4px 16px rgba(0,0,0,0.55); }
+  50%       { box-shadow: 0 0 38px rgba(251,191,36,0.62), 0 0 14px rgba(251,191,36,0.36), 0 4px 20px rgba(0,0,0,0.60); }
+}
+@keyframes kixx-plus-glow {
+  0%, 100% { box-shadow: 0 0 14px rgba(168,85,247,0.26), 0 4px 14px rgba(0,0,0,0.50); }
+  50%       { box-shadow: 0 0 28px rgba(168,85,247,0.52), 0 4px 18px rgba(0,0,0,0.55); }
+}
+
+/* Shimmer sweep used on Gold featured card border */
+@keyframes kixx-border-sweep {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 1.0; }
+  100% { opacity: 0.5; }
 }

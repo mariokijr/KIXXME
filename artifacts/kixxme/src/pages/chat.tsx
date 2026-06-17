@@ -104,6 +104,12 @@ export default function Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Typing indicator state
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const typingClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingBroadcast = useRef<number>(0);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   const { data: serverMessages = [], isLoading } = useListMessages(conversationId ?? "", {
     query: {
       queryKey: getListMessagesQueryKey(conversationId ?? ""),
@@ -184,9 +190,10 @@ export default function Chat() {
     }
   }, [localMessages, myId]);
 
-  // Realtime: other users' new messages + any updates (deletes / read receipts).
+  // Realtime: messages (INSERT/UPDATE) + typing broadcast.
   useEffect(() => {
     if (!conversationId) return;
+
     const channel = supabase
       .channel(`chat:${conversationId}`)
       .on(
@@ -202,6 +209,9 @@ export default function Chat() {
           if (msg.sender_id === myId) return; // our own handled optimistically
           setLocalMessages((prev) => mergeMessages(prev, [msg]));
           markRead.mutate({ id: conversationId });
+          // Stop typing indicator when a real message arrives
+          setIsOtherTyping(false);
+          if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
         }
       )
       .on(
@@ -219,10 +229,21 @@ export default function Chat() {
           );
         }
       )
+      .on("broadcast", { event: "typing" }, (payload) => {
+        // Ignore our own broadcasts
+        if ((payload.payload as { userId?: string })?.userId === myId) return;
+        setIsOtherTyping(true);
+        if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
+        typingClearTimer.current = setTimeout(() => setIsOtherTyping(false), 3000);
+      })
       .subscribe();
+
+    channelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
+      channelRef.current = null;
+      if (typingClearTimer.current) clearTimeout(typingClearTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, myId]);
@@ -734,6 +755,33 @@ export default function Chat() {
         {lastMineRead && (
           <p className="text-right font-sans text-[10px] text-muted-foreground pr-1">Visto</p>
         )}
+
+        {/* Typing indicator */}
+        {isOtherTyping && (
+          <div className="flex items-end gap-2 px-4 pb-1">
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted">
+              {otherUser?.avatar_url
+                ? <img src={otherUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {(otherUser?.username ?? "?").slice(0, 1).toUpperCase()}
+                  </div>
+              }
+            </div>
+            <div
+              className="flex items-center gap-1 px-3.5 py-3 rounded-2xl rounded-bl-sm"
+              style={{ background: "rgba(255,255,255,0.09)" }}
+            >
+              {[0, 0.18, 0.36].map((delay) => (
+                <span
+                  key={delay}
+                  className="block w-1.5 h-1.5 rounded-full bg-white/60"
+                  style={{ animation: `typingDot 1.2s ${delay}s infinite ease-in-out` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -834,7 +882,19 @@ export default function Chat() {
             <textarea
               ref={inputRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                // Broadcast typing event (max once every 2 s to avoid spam)
+                const now = Date.now();
+                if (channelRef.current && conversationId && now - lastTypingBroadcast.current > 2000) {
+                  lastTypingBroadcast.current = now;
+                  channelRef.current.send({
+                    type: "broadcast",
+                    event: "typing",
+                    payload: { userId: myId },
+                  });
+                }
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Escribe un mensaje..."
               rows={1}

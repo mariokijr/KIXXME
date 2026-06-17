@@ -175,14 +175,14 @@ const SwipeCard = forwardRef<
       <div
         className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
         style={{
-          background: "linear-gradient(to top, rgba(4,2,18,0.98) 0%, rgba(10,5,28,0.88) 28%, rgba(22,8,50,0.55) 58%, transparent 100%)",
+          background: "linear-gradient(to top, rgba(8,2,22,0.98) 0%, rgba(14,5,32,0.90) 26%, rgba(26,8,54,0.60) 56%, transparent 100%)",
         }}
       />
-      {/* Neon bleed at very bottom edge */}
+      {/* Neon bleed at very bottom edge — stronger brand glow */}
       <div
-        className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
         style={{
-          background: "linear-gradient(to top, rgba(139,92,246,0.14) 0%, rgba(236,72,153,0.06) 45%, transparent 100%)",
+          background: "linear-gradient(to top, rgba(139,92,246,0.26) 0%, rgba(236,72,153,0.14) 40%, transparent 100%)",
         }}
       />
 
@@ -682,9 +682,10 @@ export function SwipeView({
           <h1
             className="font-display text-[26px] leading-tight tracking-wide"
             style={{
-              background: "linear-gradient(110deg, #fff 0%, rgba(255,255,255,0.85) 100%)",
+              background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
             }}
           >
             Descubrir

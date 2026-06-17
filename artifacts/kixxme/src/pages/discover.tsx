@@ -302,9 +302,10 @@ function GridDiscover({
             <h1
               className="font-display text-[26px] leading-tight tracking-wide"
               style={{
-                background: "linear-gradient(110deg, #fff 0%, rgba(255,255,255,0.85) 100%)",
+                background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
               }}
             >
               {source === "likes" ? "Tus Me gusta" : "En línea"}
@@ -522,20 +523,18 @@ function UserCardInner({
         aspectRatio: featured ? "16/9" : "3/4",
         borderColor:
           user.plan === "gold"
-            ? "rgba(251,191,36,0.70)"
+            ? "rgba(251,191,36,0.75)"
             : user.plan === "plus"
-            ? "rgba(168,85,247,0.60)"
+            ? "rgba(168,85,247,0.65)"
             : featured
-            ? "rgba(168,85,247,0.35)"
+            ? "rgba(168,85,247,0.40)"
             : "rgba(255,255,255,0.10)",
-        boxShadow:
+        animation:
           user.plan === "gold"
-            ? "0 0 22px rgba(251,191,36,0.28), 0 4px 14px rgba(0,0,0,0.55)"
+            ? "kixx-gold-pulse 2.8s ease-in-out infinite"
             : user.plan === "plus"
-            ? "0 0 18px rgba(168,85,247,0.26), 0 4px 14px rgba(0,0,0,0.5)"
-            : featured
-            ? "0 0 16px rgba(168,85,247,0.18), 0 4px 12px rgba(0,0,0,0.45)"
-            : "0 4px 12px rgba(0,0,0,0.38)",
+            ? "kixx-plus-glow 3.2s ease-in-out infinite"
+            : undefined,
       }}
     >
       {user.avatar_url ? (
@@ -558,19 +557,19 @@ function UserCardInner({
       {/* Plan-colour ambient tint at the top of the card */}
       {user.plan === "gold" && (
         <div
-          className="absolute top-0 left-0 right-0 h-20 pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(251,191,36,0.28) 0%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(251,191,36,0.42) 0%, rgba(251,191,36,0.14) 55%, transparent 100%)",
           }}
         />
       )}
       {user.plan === "plus" && (
         <div
-          className="absolute top-0 left-0 right-0 h-16 pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-20 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(168,85,247,0.26) 0%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(168,85,247,0.40) 0%, rgba(168,85,247,0.10) 60%, transparent 100%)",
           }}
         />
       )}
@@ -686,7 +685,11 @@ function UserCardInner({
 
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-3 pointer-events-none"
-        style={{ background: "linear-gradient(to top, rgba(4,2,16,0.98) 0%, rgba(14,6,36,0.82) 40%, rgba(30,10,55,0.35) 70%, transparent 100%)" }}
+        style={{ background: user.plan === "gold"
+          ? "linear-gradient(to top, rgba(18,8,36,0.98) 0%, rgba(28,10,52,0.86) 38%, rgba(38,16,60,0.42) 64%, transparent 100%)"
+          : user.plan === "plus"
+          ? "linear-gradient(to top, rgba(14,5,38,0.98) 0%, rgba(22,8,48,0.84) 40%, rgba(30,10,55,0.38) 65%, transparent 100%)"
+          : "linear-gradient(to top, rgba(4,2,16,0.98) 0%, rgba(14,6,36,0.85) 40%, rgba(26,8,50,0.32) 68%, transparent 100%)" }}
       >
         <p className={`font-display text-white leading-tight tracking-wide truncate${featured ? " text-xl" : " text-base"}`}>
           {user.username}
