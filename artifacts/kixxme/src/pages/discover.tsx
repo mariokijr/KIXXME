@@ -30,7 +30,6 @@ import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { useAuth } from "@/lib/auth";
-import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
@@ -140,6 +139,24 @@ export default function Discover() {
   );
 }
 
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="flex-shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-medium border transition-all"
+      style={{
+        background: "linear-gradient(135deg, rgba(139,92,246,0.22), rgba(236,72,153,0.15))",
+        borderColor: "rgba(168,85,247,0.50)",
+        color: "#c4b5fd",
+      }}
+    >
+      {label}
+      <X className="w-2.5 h-2.5 opacity-70" />
+    </button>
+  );
+}
+
 function GridDiscover({
   mode,
   setMode,
@@ -159,7 +176,7 @@ function GridDiscover({
   // Filters (only applied to the "En línea" online grid; likes list is unfiltered).
   const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const activeFilterCount = source === "online" ? countActiveFilters(filters) : 0;
+  const activeFilterCount = countActiveFilters(filters);
 
   const setFilters = (f: DiscoverFilters) => {
     setFiltersState(f);
@@ -236,10 +253,7 @@ function GridDiscover({
     }
   };
 
-  const onlineCount = profiles.filter((u) => u.is_online).length;
   const isEmpty = !isLoading && (isError || profiles.length === 0);
-
-  const heading = source === "likes" ? "Tus Me gusta" : "En línea ahora";
 
   return (
     <div className="min-h-full relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
@@ -268,58 +282,53 @@ function GridDiscover({
           style={{ background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 65%)", filter: "blur(60px)" }}
         />
       </div>
-      <header
-        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative"
+      {/* ── Compact top bar: mode toggle + filter + matches ── */}
+      <div
+        className="sticky top-0 z-20 px-3 py-2.5 relative"
         style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
         <div
-          className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.75) 30%, rgba(236,72,153,0.65) 60%, rgba(139,92,246,0.55) 80%, transparent 100%)" }}
-        />
-        {/* Downward glow bloom from header */}
-        <div
-          className="absolute -bottom-6 left-0 right-0 h-8 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.10) 0%, transparent 100%)" }}
+          className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.90) 20%, rgba(168,85,247,1.0) 40%, rgba(236,72,153,0.85) 58%, rgba(168,85,247,0.90) 76%, rgba(139,92,246,0.80) 88%, transparent 100%)", boxShadow: "0 0 12px 1px rgba(168,85,247,0.40)" }}
         />
         <div className="flex items-center gap-2">
-          <KixxMeLogo size={22} withWordmark />
-          {!isLoading && !isError && onlineCount > 0 && (
-            <span
-              className="flex items-center gap-1.5 text-[10px] font-sans px-2 py-0.5 rounded-full border border-green-500/30 text-green-400"
-              style={{ background: "rgba(34,197,94,0.08)" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              {onlineCount} en línea
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Filter button — only visible in "En línea" grid */}
-          {source === "online" && (
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors"
-              style={{
-                background: activeFilterCount > 0 ? "rgba(139,92,246,0.18)" : "rgba(255,255,255,0.04)",
-                borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.55)" : "rgba(255,255,255,0.15)",
-              }}
-              aria-label="Filtros"
-            >
-              <SlidersHorizontal className="w-4 h-4" style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.55)" }} />
-              {activeFilterCount > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          )}
+          {/* Mode toggle — takes all available space */}
+          <div className="flex-1 min-w-0">
+            <ModeToggle mode={mode} setMode={setMode} />
+          </div>
+
+          {/* Filter button — always visible in online/likes mode */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all"
+            style={{
+              background: activeFilterCount > 0
+                ? "linear-gradient(135deg, rgba(139,92,246,0.35), rgba(236,72,153,0.25))"
+                : "rgba(255,255,255,0.05)",
+              borderColor: activeFilterCount > 0 ? "rgba(168,85,247,0.70)" : "rgba(255,255,255,0.12)",
+              boxShadow: activeFilterCount > 0 ? "0 0 12px rgba(168,85,247,0.35)" : undefined,
+            }}
+            aria-label="Filtros"
+          >
+            <SlidersHorizontal
+              className="w-4 h-4"
+              style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.50)" }}
+            />
+            {activeFilterCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
+          {/* Matches button */}
           <Link href="/matches">
             <button
-              className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+              className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 transition-colors"
               style={{ background: "rgba(255,255,255,0.04)" }}
               aria-label="Emparejamientos"
               data-testid="link-matches"
@@ -328,10 +337,7 @@ function GridDiscover({
               {likesBadge > 0 && (
                 <span
                   className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                  }}
+                  style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
                   data-testid="badge-likes"
                 >
                   {likesBadge > 99 ? "99+" : likesBadge}
@@ -340,9 +346,36 @@ function GridDiscover({
             </button>
           </Link>
         </div>
-      </header>
 
-      {/* Filter sheet — En línea grid */}
+        {/* Active filter chips — shown inline when filters are on */}
+        {activeFilterCount > 0 && (
+          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
+            {filters.countryOnly && (
+              <FilterChip label="🌍 Mi país" onRemove={() => setFilters({ ...filters, countryOnly: false })} />
+            )}
+            {filters.distanceMaxKm != null && (
+              <FilterChip label={`📍 ${filters.distanceMaxKm} km`} onRemove={() => setFilters({ ...filters, distanceMaxKm: null })} />
+            )}
+            {filters.onlineOnly && (
+              <FilterChip label="🟢 En línea" onRemove={() => setFilters({ ...filters, onlineOnly: false })} />
+            )}
+            {filters.verifiedOnly && (
+              <FilterChip label="✓ Verificados" onRemove={() => setFilters({ ...filters, verifiedOnly: false })} />
+            )}
+            {(filters.ageMin != null || filters.ageMax != null) && (
+              <FilterChip
+                label={`👤 ${filters.ageMin ?? 18}–${filters.ageMax ?? 99} años`}
+                onRemove={() => setFilters({ ...filters, ageMin: null, ageMax: null })}
+              />
+            )}
+            {filters.role && (
+              <FilterChip label={filters.role} onRemove={() => setFilters({ ...filters, role: null })} />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Filter sheet */}
       <FilterSheet
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
@@ -350,31 +383,6 @@ function GridDiscover({
         onChange={setFilters}
         plan={plan}
       />
-
-      <div className="relative z-10 px-4 pt-3 flex justify-center">
-        <ModeToggle mode={mode} setMode={setMode} />
-      </div>
-
-      <div className="relative z-10 px-4 pt-4 pb-2">
-        <h2
-          className="font-display text-3xl tracking-wide leading-tight"
-          style={{
-            background: "linear-gradient(110deg, hsl(290,90%,80%) 0%, hsl(273,85%,72%) 40%, hsl(330,90%,68%) 80%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 0 28px rgba(168,85,247,0.50)) drop-shadow(0 0 8px rgba(236,72,153,0.25))",
-          }}
-        >
-          {heading}
-        </h2>
-        {!isLoading && !isError && profiles.length > 0 && (
-          <p className="text-muted-foreground font-sans text-sm mt-1">
-            {profiles.length} perfil{profiles.length !== 1 ? "es" : ""}
-          </p>
-        )}
-      </div>
-
-      <div className="relative z-10 mx-4 mb-3 h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 25%, rgba(236,72,153,0.50) 55%, rgba(168,85,247,0.40) 80%, transparent 100%)", boxShadow: "0 0 8px rgba(168,85,247,0.25)" }} />
 
       {isLoading ? (
         <div className="relative z-10 flex flex-col items-center justify-center py-20 gap-4">
