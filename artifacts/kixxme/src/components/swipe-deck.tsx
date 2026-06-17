@@ -82,7 +82,7 @@ interface SwipeCardHandle {
   fly: (dir: Decision) => void;
 }
 
-const SPRING = { type: "spring" as const, stiffness: 320, damping: 32 };
+const SPRING = { type: "spring" as const, stiffness: 600, damping: 36 };
 
 function ProfileMedia({
   profile,
@@ -131,12 +131,12 @@ const SwipeCard = forwardRef<
     if (decidedRef.current) return;
     decidedRef.current = true;
     setDecided(true);
-    const tx = dir === "like" ? 800 : dir === "pass" ? -800 : 0;
-    const ty = dir === "superlike" ? -1000 : 60;
-    animate(x, tx, { duration: 0.32, ease: "easeOut" });
+    const tx = dir === "like" ? 900 : dir === "pass" ? -900 : 0;
+    const ty = dir === "superlike" ? -1000 : 40;
+    animate(x, tx, { duration: 0.20, ease: [0.25, 0.46, 0.45, 0.94] });
     animate(y, ty, {
-      duration: 0.32,
-      ease: "easeOut",
+      duration: 0.20,
+      ease: [0.25, 0.46, 0.45, 0.94],
       onComplete: () => onDecision(dir),
     });
   };
@@ -166,12 +166,11 @@ const SwipeCard = forwardRef<
         x,
         y,
         rotate,
+        willChange: "transform",
         boxShadow: "0 28px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.09), 0 0 40px rgba(139,92,246,0.12)",
       }}
       drag={!decided}
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={1}
-      dragTransition={{ bounceStiffness: 0, bounceDamping: 0 }}
+      dragMomentum={false}
       onDragEnd={handleDragEnd}
       data-testid="swipe-card"
     >
