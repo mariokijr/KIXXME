@@ -59,6 +59,11 @@ export const profileDetailsTable = pgTable("profile_details", {
   // Boost: when set (and in the future), this user appears first in Descubrir.
   // Expires automatically — no cleanup needed, the sort just checks > now().
   boostExpiresAt: timestamp("boost_expires_at", { withTimezone: true }),
+
+  // Modo invisible (Gold only): when true, viewing another profile does NOT
+  // record a visitor footprint on the target user's visitor list.
+  invisibleMode: boolean("invisible_mode").notNull().default(false),
+
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

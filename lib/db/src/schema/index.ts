@@ -24,3 +24,5 @@ export * from "./plan-grants";
 export * from "./device-tokens";
 export * from "./free-trial-uses";
 export * from "./user-interests";
+export * from "./message-reactions";
+export * from "./web-push-subscriptions";

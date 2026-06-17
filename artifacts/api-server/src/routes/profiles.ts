@@ -59,6 +59,8 @@ import {
   getShowOnMap,
   setShowOnMap,
   getMapOptOutIds,
+  getInvisibleMode,
+  setInvisibleMode,
 } from "../lib/profile-details.js";
 import {
   getUserInterests,
@@ -817,12 +819,13 @@ router.get("/profiles/me", async (req, res) => {
     return;
   }
 
-  const [details, tutorialCompletedAt, isSystem, interests, privacyAcks] = await Promise.all([
+  const [details, tutorialCompletedAt, isSystem, interests, privacyAcks, invisibleMode] = await Promise.all([
     getProfileDetails(auth.userId),
     getTutorialCompletedAt(auth.userId),
     isSystemAccount(auth.userId),
     getUserInterests(auth.userId),
     getPrivacyAcks(auth.userId),
+    getInvisibleMode(auth.userId),
   ]);
   res.json({
     ...data,
@@ -832,6 +835,7 @@ router.get("/profiles/me", async (req, res) => {
     is_system: isSystem,
     map_privacy_acked: privacyAcks.mapAcked,
     live_privacy_acked: privacyAcks.liveAcked,
+    invisible_mode: invisibleMode,
   });
 });
 
@@ -1078,6 +1082,56 @@ router.post("/profiles/me/live-privacy-ack", async (req, res) => {
   if (!auth) return;
   await ackLivePrivacy(auth.userId);
   res.status(204).end();
+});
+
+// Invisible mode (Gold only) — skip visitor footprint when viewing profiles
+router.put("/profiles/me/invisible-mode", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const plan = await getPlan(auth.userId);
+  if (plan !== "gold") {
+    res.status(402).json({ error: "Se requiere Gold para el modo invisible" });
+    return;
+  }
+  const body = req.body as { invisible_mode?: unknown };
+  if (typeof body.invisible_mode !== "boolean") {
+    res.status(400).json({ error: "invisible_mode must be a boolean" });
+    return;
+  }
+  await setInvisibleMode(auth.userId, body.invisible_mode);
+  res.json({ success: true });
+});
+
+// Username search (used by Discover search bar)
+router.get("/profiles/search", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (!q) { res.json([]); return; }
+
+  const { hidden } = await getVisibilityContext(auth.userId);
+  const hiddenIds = [...hidden];
+
+  const { data: rows } = await supabase
+    .from("profiles")
+    .select(PUBLIC_COLUMNS)
+    .ilike("username", `%${q}%`)
+    .neq("id", auth.userId)
+    .limit(20);
+
+  if (!rows?.length) { res.json([]); return; }
+
+  const visible = rows.filter((r) => !hiddenIds.includes(r.id));
+  if (!visible.length) { res.json([]); return; }
+
+  const detailsMap = await getProfileDetailsForUsers(visible.map((r) => r.id));
+  const profiles = visible.map((r) =>
+    toPublic(r as ProfileRow, null, new Set(), new Set(), {
+      ...detailsMap.get(r.id),
+      interests: [],
+    }),
+  );
+  res.json(profiles);
 });
 
 router.get("/profiles/me/likes", async (req, res) => {
@@ -1559,10 +1613,15 @@ router.get("/profiles/:id", async (req, res) => {
   }
 
   // Record the visit for "who viewed my profile". Fire-and-forget, throttled,
-  // and skipped when either user has blocked the other.
+  // and skipped when either user has blocked the other OR the viewer has
+  // invisible mode on (Gold feature: browse without leaving footprints).
   if (viewer && viewer.userId !== id) {
     void (async () => {
-      if (!(await isBlockedBetween(viewer.userId, id))) {
+      const [blocked, viewerIsInvisible] = await Promise.all([
+        isBlockedBetween(viewer.userId, id),
+        getInvisibleMode(viewer.userId),
+      ]);
+      if (!blocked && !viewerIsInvisible) {
         await recordProfileVisit(viewer.userId, id);
       }
     })();

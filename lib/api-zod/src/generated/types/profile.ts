@@ -56,6 +56,9 @@ export interface Profile {
   map_privacy_acked?: boolean;
   /** Whether the user has acknowledged the Live privacy notice (shown once on first visit). */
   live_privacy_acked?: boolean;
+  /** Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.
+   */
+  invisible_mode?: boolean;
   /** Whether this is an internal system/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.
    */
   is_system?: boolean;

@@ -23,6 +23,7 @@ import { VoiceRecorder, type RecordedAudio } from "@/components/voice-recorder";
 import { AudioBubble } from "@/components/audio-bubble";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { downscaleImage, blobToBase64, audioExt } from "@/lib/chat-media";
+import { formatLastSeen } from "@/lib/profile-format";
 import {
   useListMessages,
   getListMessagesQueryKey,
@@ -470,9 +471,17 @@ export default function Chat() {
       }}
     >
       <header
-        className="flex-shrink-0 px-4 py-3 flex items-center gap-3 border-b border-border/30 relative"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        className="flex-shrink-0 px-4 py-3 flex items-center gap-3 relative"
+        style={{ background: "rgba(8,7,18,0.95)", backdropFilter: "blur(24px)" }}
       >
+        {/* Neon separator line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1.5px] pointer-events-none"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.80) 25%, rgba(236,72,153,0.65) 55%, rgba(139,92,246,0.70) 80%, transparent 100%)",
+            boxShadow: "0 0 8px rgba(168,85,247,0.30)",
+          }}
+        />
         <button
           onClick={() => setLocation("/chats")}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
@@ -508,9 +517,14 @@ export default function Chat() {
           </p>
           <p className="font-sans text-xs text-muted-foreground leading-none">
             {otherUser?.is_online ? (
-              <span className="text-green-400">En línea</span>
+              <span className="flex items-center gap-1" style={{ color: "hsl(142,71%,52%)" }}>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "hsl(142,71%,52%)" }} />
+                En línea
+              </span>
+            ) : formatLastSeen(otherUser?.last_active_at) ? (
+              <span className="text-muted-foreground/80">Visto {formatLastSeen(otherUser?.last_active_at)}</span>
             ) : (
-              "Desconectado"
+              <span className="text-muted-foreground/60">Desconectado</span>
             )}
           </p>
         </button>

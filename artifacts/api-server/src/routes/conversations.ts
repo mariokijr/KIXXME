@@ -489,3 +489,49 @@ router.post("/conversations/:id/read", async (req, res) => {
 });
 
 export default router;
+
+// ---------------------------------------------------------------------------
+// Typing indicator — Supabase Realtime broadcast
+// ---------------------------------------------------------------------------
+
+router.post("/conversations/:id/typing", async (req, res) => {
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const { id } = req.params as { id: string };
+
+  // Verify membership — load the conversation and check participant.
+  const { data: conv } = await supabase
+    .from("conversations")
+    .select("user1_id, user2_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!conv) { res.status(404).json({ error: "Conversación no encontrada" }); return; }
+  if (conv.user1_id !== auth.userId && conv.user2_id !== auth.userId) {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
+
+  // Broadcast via Supabase Realtime HTTP endpoint (no persistent WS needed).
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (supabaseUrl && serviceKey) {
+    void fetch(`${supabaseUrl}/realtime/v1/api/broadcast`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
+        messages: [{
+          topic:   `realtime:typing:${id}`,
+          event:   "typing",
+          payload: { userId: auth.userId },
+        }],
+      }),
+    }).catch(() => { /* fire-and-forget */ });
+  }
+
+  res.status(204).end();
+});

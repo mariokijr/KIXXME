@@ -396,3 +396,35 @@ export async function markEmailVerified(
   const verifiedAt = row?.emailVerifiedAt ?? ts;
   return { verifiedAt, firstSet: verifiedAt.getTime() === ts.getTime() };
 }
+
+// ---------------------------------------------------------------------------
+// Invisible mode (Gold only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the user has invisible mode enabled. Defaults to false.
+ * Kept as a dedicated accessor (not in getProfileDetails) because it is a
+ * private setting that must never leak into public profile responses.
+ */
+export async function getInvisibleMode(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ invisibleMode: profileDetailsTable.invisibleMode })
+    .from(profileDetailsTable)
+    .where(eq(profileDetailsTable.userId, userId))
+    .limit(1);
+  return row?.invisibleMode ?? false;
+}
+
+/** Set invisible mode on or off (Gold gate enforced in the route). */
+export async function setInvisibleMode(
+  userId: string,
+  value: boolean,
+): Promise<void> {
+  await db
+    .insert(profileDetailsTable)
+    .values({ userId, invisibleMode: value })
+    .onConflictDoUpdate({
+      target: profileDetailsTable.userId,
+      set: { invisibleMode: value },
+    });
+}

@@ -146,6 +146,7 @@ export const GetMyProfileResponse = zod.object({
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
   "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
+  "invisible_mode": zod.boolean().optional().describe('Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -208,6 +209,7 @@ export const UpdateMyProfileResponse = zod.object({
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
   "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
+  "invisible_mode": zod.boolean().optional().describe('Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -268,9 +270,24 @@ export const CompleteTutorialResponse = zod.object({
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
   "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
+  "invisible_mode": zod.boolean().optional().describe('Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
+})
+
+
+/**
+ * When invisible mode is ON the server skips recording visitor footprints when this user views other profiles. Requires an active Gold subscription.
+
+ * @summary Toggle invisible mode (Gold only)
+ */
+export const SetInvisibleModeBody = zod.object({
+  "invisible_mode": zod.boolean()
+})
+
+export const SetInvisibleModeResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -401,6 +418,49 @@ export const GetDiscoveryStatsResponse = zod.object({
   "registered": zod.number().describe('Registered users in scope (excludes viewer + hidden users).'),
   "online": zod.number().describe('Users in scope active within the online window.')
 })
+
+
+/**
+ * Returns up to 20 public profiles whose username starts with or contains the query string. Blocked, deactivated, and moderated users are excluded. Requires authentication.
+
+ * @summary Search users by username (for Discover search bar)
+ */
+export const SearchProfilesQueryParams = zod.object({
+  "q": zod.coerce.string().describe('Search string (min 1 char, matched case-insensitively against username).')
+})
+
+export const SearchProfilesResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "age": zod.number().nullish(),
+  "city": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "avatar_url": zod.string().nullish(),
+  "distance_km": zod.number().nullish(),
+  "lat_approx": zod.number().nullish().describe('Approximate latitude rounded to ~1 km precision. Populated only on GET \/map\/users responses; null on all other endpoints.\n'),
+  "lng_approx": zod.number().nullish().describe('Approximate longitude rounded to ~1 km precision. Populated only on GET \/map\/users responses; null on all other endpoints.\n'),
+  "is_online": zod.boolean().optional(),
+  "is_verified": zod.boolean().optional(),
+  "liked_by_me": zod.boolean().optional(),
+  "blocked_by_me": zod.boolean().optional(),
+  "plan": zod.enum(['free', 'plus', 'gold']).nullish().describe('Entitlement tier, used for the Gold priority badge.'),
+  "role": zod.enum(['activo', 'pasivo', 'versatil', 'versatil_activo', 'versatil_pasivo', 'sin_preferencias', 'no_decir']).nullish().describe('Rol\/Preferencia (single-select).'),
+  "looking_for": zod.enum(['amistad', 'chat', 'citas', 'relacion', 'encuentros', 'lo_que_surja']).nullish().describe('Qué buscas (single-select).'),
+  "orientation": zod.enum(['gay', 'bisexual', 'curioso', 'heteroflexible', 'pansexual', 'demisexual', 'asexual', 'en_exploracion', 'no_decir']).nullish().describe('Orientación sexual (single-select).'),
+  "height_cm": zod.number().nullish().describe('Altura en centímetros (e.g. 175).'),
+  "zodiac_sign": zod.enum(['aries', 'tauro', 'geminis', 'cancer', 'leo', 'virgo', 'libra', 'escorpio', 'sagitario', 'capricornio', 'acuario', 'piscis']).nullish().describe('Signo zodiacal.'),
+  "alcohol": zod.enum(['no_bebo', 'ocasionalmente', 'fines_semana', 'frecuentemente']).nullish().describe('Hábito de consumo de alcohol.'),
+  "tobacco": zod.enum(['no_fumo', 'fumo_ocasionalmente', 'fumo', 'intentando_dejarlo']).nullish().describe('Hábito de tabaco.'),
+  "exercise": zod.enum(['todos_dias', 'frecuentemente', 'a_veces', 'nunca']).nullish().describe('Frecuencia de ejercicio.'),
+  "pets": zod.enum(['tengo_perro', 'tengo_gato', 'tengo_mascotas', 'no_mascotas', 'me_encantan']).nullish().describe('Relación con mascotas.'),
+  "interests": zod.array(zod.string()).nullish().describe('List of interest\/tag slugs selected by the user (e.g. \"gimnasio\", \"viajes\"). Up to 20 items from the pre-defined allowlist.\n'),
+  "matched": zod.boolean().optional().describe('True when there is a mutual like with the viewer. Populated by the likes grid (Cuadrícula) and the matches list (Empareja); omitted on generic discovery responses.'),
+  "last_active_at": zod.string().nullish().describe('ISO timestamp of the user\'s last activity (used to compute last-seen copy).'),
+  "created_at": zod.string().optional()
+})
+export const SearchProfilesResponse = zod.array(SearchProfilesResponseItem)
 
 
 /**
@@ -723,6 +783,7 @@ export const UpdateMyLocationResponse = zod.object({
   "tutorial_completed": zod.boolean().optional().describe('Whether the user finished the mandatory onboarding tutorial. Private to the owner (never exposed on PublicProfile).\n'),
   "map_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the map privacy notice (shown once on first visit).'),
   "live_privacy_acked": zod.boolean().optional().describe('Whether the user has acknowledged the Live privacy notice (shown once on first visit).'),
+  "invisible_mode": zod.boolean().optional().describe('Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.\n'),
   "is_system": zod.boolean().optional().describe('Whether this is an internal system\/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.\n'),
   "created_at": zod.string().optional(),
   "updated_at": zod.string().optional()
@@ -1103,6 +1164,16 @@ export const MarkConversationReadResponse = zod.object({
 
 
 /**
+ * Emits a Supabase Realtime broadcast on channel `typing:{id}` so the other participant can show "está escribiendo…". Fire-and-forget: always returns 204 regardless of whether the other user is subscribed.
+
+ * @summary Broadcast a typing indicator to the other participant
+ */
+export const SendTypingIndicatorParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
  * @summary Delete one of the current user's messages
  */
 export const DeleteMessageParams = zod.object({
@@ -1112,6 +1183,41 @@ export const DeleteMessageParams = zod.object({
 export const DeleteMessageResponse = zod.object({
   "success": zod.boolean()
 })
+
+
+/**
+ * @summary Add an emoji reaction to a message
+ */
+export const AddReactionParams = zod.object({
+  "messageId": zod.coerce.string()
+})
+
+export const AddReactionBody = zod.object({
+  "emoji": zod.string().describe('Emoji to react with. Must be one of the allowed set.')
+})
+
+export const AddReactionResponseItem = zod.object({
+  "emoji": zod.string().describe('The emoji character (e.g. \"❤️\").'),
+  "count": zod.number().describe('Total number of users who reacted with this emoji.'),
+  "reacted_by_me": zod.boolean().describe('Whether the current user has reacted with this emoji.')
+}).describe('Aggregated emoji reaction count on a message.')
+export const AddReactionResponse = zod.array(AddReactionResponseItem)
+
+
+/**
+ * @summary Remove an emoji reaction from a message
+ */
+export const RemoveReactionParams = zod.object({
+  "messageId": zod.coerce.string(),
+  "emoji": zod.coerce.string()
+})
+
+export const RemoveReactionResponseItem = zod.object({
+  "emoji": zod.string().describe('The emoji character (e.g. \"❤️\").'),
+  "count": zod.number().describe('Total number of users who reacted with this emoji.'),
+  "reacted_by_me": zod.boolean().describe('Whether the current user has reacted with this emoji.')
+}).describe('Aggregated emoji reaction count on a message.')
+export const RemoveReactionResponse = zod.array(RemoveReactionResponseItem)
 
 
 /**
@@ -2420,6 +2526,34 @@ export const UnregisterDeviceBody = zod.object({
 })
 
 export const UnregisterDeviceResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Upserts a browser PushSubscription so the server can deliver web push notifications. The endpoint uniquely identifies the subscription; sending the same endpoint again just refreshes p256dh/auth keys.
+
+ * @summary Save a VAPID web-push subscription for the current user
+ */
+export const SubscribePushWebBody = zod.object({
+  "endpoint": zod.string().describe('The subscription endpoint URL.'),
+  "p256dh": zod.string().describe('Public key for payload encryption.'),
+  "auth": zod.string().describe('Auth secret for payload encryption.')
+}).describe('Browser PushSubscription serialized to JSON.')
+
+export const SubscribePushWebResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a VAPID web-push subscription (on logout or permission revoke)
+ */
+export const UnsubscribePushWebBody = zod.object({
+  "endpoint": zod.string()
+})
+
+export const UnsubscribePushWebResponse = zod.object({
   "success": zod.boolean()
 })
 

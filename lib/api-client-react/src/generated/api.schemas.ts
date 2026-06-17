@@ -35,6 +35,35 @@ export interface UnregisterDeviceBody {
   token: string;
 }
 
+/**
+ * Aggregated emoji reaction count on a message.
+ */
+export interface ReactionSummary {
+  /** The emoji character (e.g. "❤️"). */
+  emoji: string;
+  /** Total number of users who reacted with this emoji. */
+  count: number;
+  /** Whether the current user has reacted with this emoji. */
+  reacted_by_me: boolean;
+}
+
+export interface AddReactionBody {
+  /** Emoji to react with. Must be one of the allowed set. */
+  emoji: string;
+}
+
+/**
+ * Browser PushSubscription serialized to JSON.
+ */
+export interface WebPushSubscribeBody {
+  /** The subscription endpoint URL. */
+  endpoint: string;
+  /** Public key for payload encryption. */
+  p256dh: string;
+  /** Auth secret for payload encryption. */
+  auth: string;
+}
+
 export type CheckoutRequestTier = typeof CheckoutRequestTier[keyof typeof CheckoutRequestTier];
 
 
@@ -622,6 +651,9 @@ export interface Profile {
   map_privacy_acked?: boolean;
   /** Whether the user has acknowledged the Live privacy notice (shown once on first visit). */
   live_privacy_acked?: boolean;
+  /** Gold only. When true the server skips recording visitor footprints when this user views other profiles. Always false for non-Gold.
+   */
+  invisible_mode?: boolean;
   /** Whether this is an internal system/support account. Private to the owner (never exposed on PublicProfile); used to skip onboarding.
    */
   is_system?: boolean;
@@ -1852,6 +1884,10 @@ export type RefreshSession200 = {
   session: Session;
 };
 
+export type SetInvisibleModeBody = {
+  invisible_mode: boolean;
+};
+
 export type UploadAvatar200 = {
   avatar_url: string;
 };
@@ -1956,6 +1992,13 @@ export const GetDiscoveryStatsScope = {
   worldwide: 'worldwide',
 } as const;
 
+export type SearchProfilesParams = {
+/**
+ * Search string (min 1 char, matched case-insensitively against username).
+ */
+q: string;
+};
+
 export type ListMapUsersParams = {
 scope?: ListMapUsersScope;
 search_lat?: number;
@@ -2059,4 +2102,8 @@ export const ListAdminTicketsStatus = {
   closed: 'closed',
   urgent: 'urgent',
 } as const;
+
+export type UnsubscribePushWebBody = {
+  endpoint: string;
+};
 

@@ -25,6 +25,7 @@ import type {
   AccountActionConfirmRequest,
   AccountActionConfirmResponse,
   AccountStatus,
+  AddReactionBody,
   AdminCreateTicketRequest,
   AdminFlagList,
   AdminReportDetail,
@@ -89,6 +90,7 @@ import type {
   Profile,
   ProfilePhoto,
   PublicProfile,
+  ReactionSummary,
   ReceivedLikesResponse,
   RefreshSession200,
   RefreshSessionBody,
@@ -102,7 +104,9 @@ import type {
   ReviewFlagRequest,
   ReviewVerificationRequest,
   RewardsState,
+  SearchProfilesParams,
   SendMessageRequest,
+  SetInvisibleModeBody,
   SetPhotoAsAvatar200,
   SetTicketStatusRequest,
   SignUpRequest,
@@ -120,6 +124,7 @@ import type {
   SuspendUserRequest,
   TrialStatusResponse,
   UnregisterDeviceBody,
+  UnsubscribePushWebBody,
   UpdateInterestsRequest,
   UpdateProfileRequest,
   UploadAvatar200,
@@ -127,7 +132,8 @@ import type {
   UploadChatImage201,
   UploadPhotoRequest,
   UploadSupportAttachment201,
-  WarnUserRequest
+  WarnUserRequest,
+  WebPushSubscribeBody
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1152,6 +1158,79 @@ export const useAckLivePrivacy = <TError = ErrorType<ErrorResponse>,
       return useMutation(getAckLivePrivacyMutationOptions(options));
     }
 
+export const getSetInvisibleModeUrl = () => {
+
+
+
+
+  return `/api/profiles/me/invisible-mode`
+}
+
+/**
+ * When invisible mode is ON the server skips recording visitor footprints when this user views other profiles. Requires an active Gold subscription.
+
+ * @summary Toggle invisible mode (Gold only)
+ */
+export const setInvisibleMode = async (setInvisibleModeBody: SetInvisibleModeBody, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSetInvisibleModeUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setInvisibleModeBody,)
+  }
+);}
+
+
+
+
+export const getSetInvisibleModeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInvisibleMode>>, TError,{data: BodyType<SetInvisibleModeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setInvisibleMode>>, TError,{data: BodyType<SetInvisibleModeBody>}, TContext> => {
+
+const mutationKey = ['setInvisibleMode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setInvisibleMode>>, {data: BodyType<SetInvisibleModeBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setInvisibleMode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetInvisibleModeMutationResult = NonNullable<Awaited<ReturnType<typeof setInvisibleMode>>>
+    export type SetInvisibleModeMutationBody = BodyType<SetInvisibleModeBody>
+    export type SetInvisibleModeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Toggle invisible mode (Gold only)
+ */
+export const useSetInvisibleMode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInvisibleMode>>, TError,{data: BodyType<SetInvisibleModeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setInvisibleMode>>,
+        TError,
+        {data: BodyType<SetInvisibleModeBody>},
+        TContext
+      > => {
+      return useMutation(getSetInvisibleModeMutationOptions(options));
+    }
+
 export const getGetProfileUrl = (id: string,) => {
 
 
@@ -1458,6 +1537,92 @@ export function useGetDiscoveryStats<TData = Awaited<ReturnType<typeof getDiscov
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDiscoveryStatsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSearchProfilesUrl = (params: SearchProfilesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profiles/search?${stringifiedParams}` : `/api/profiles/search`
+}
+
+/**
+ * Returns up to 20 public profiles whose username starts with or contains the query string. Blocked, deactivated, and moderated users are excluded. Requires authentication.
+
+ * @summary Search users by username (for Discover search bar)
+ */
+export const searchProfiles = async (params: SearchProfilesParams, options?: RequestInit): Promise<PublicProfile[]> => {
+
+  return customFetch<PublicProfile[]>(getSearchProfilesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchProfilesQueryKey = (params?: SearchProfilesParams,) => {
+    return [
+    `/api/profiles/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchProfilesQueryOptions = <TData = Awaited<ReturnType<typeof searchProfiles>>, TError = ErrorType<ErrorResponse>>(params: SearchProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchProfilesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchProfiles>>> = ({ signal }) => searchProfiles(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof searchProfiles>>>
+export type SearchProfilesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Search users by username (for Discover search bar)
+ */
+
+export function useSearchProfiles<TData = Awaited<ReturnType<typeof searchProfiles>>, TError = ErrorType<ErrorResponse>>(
+ params: SearchProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchProfilesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -3833,6 +3998,78 @@ export const useMarkConversationRead = <TError = ErrorType<ErrorResponse>,
       return useMutation(getMarkConversationReadMutationOptions(options));
     }
 
+export const getSendTypingIndicatorUrl = (id: string,) => {
+
+
+
+
+  return `/api/conversations/${id}/typing`
+}
+
+/**
+ * Emits a Supabase Realtime broadcast on channel `typing:{id}` so the other participant can show "está escribiendo…". Fire-and-forget: always returns 204 regardless of whether the other user is subscribed.
+
+ * @summary Broadcast a typing indicator to the other participant
+ */
+export const sendTypingIndicator = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getSendTypingIndicatorUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendTypingIndicatorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendTypingIndicator>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendTypingIndicator>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['sendTypingIndicator'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendTypingIndicator>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendTypingIndicator(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendTypingIndicatorMutationResult = NonNullable<Awaited<ReturnType<typeof sendTypingIndicator>>>
+
+    export type SendTypingIndicatorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Broadcast a typing indicator to the other participant
+ */
+export const useSendTypingIndicator = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendTypingIndicator>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendTypingIndicator>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getSendTypingIndicatorMutationOptions(options));
+    }
+
 export const getDeleteMessageUrl = (messageId: string,) => {
 
 
@@ -3901,6 +4138,150 @@ export const useDeleteMessage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeleteMessageMutationOptions(options));
+    }
+
+export const getAddReactionUrl = (messageId: string,) => {
+
+
+
+
+  return `/api/messages/${messageId}/react`
+}
+
+/**
+ * @summary Add an emoji reaction to a message
+ */
+export const addReaction = async (messageId: string,
+    addReactionBody: AddReactionBody, options?: RequestInit): Promise<ReactionSummary[]> => {
+
+  return customFetch<ReactionSummary[]>(getAddReactionUrl(messageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addReactionBody,)
+  }
+);}
+
+
+
+
+export const getAddReactionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addReaction>>, TError,{messageId: string;data: BodyType<AddReactionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addReaction>>, TError,{messageId: string;data: BodyType<AddReactionBody>}, TContext> => {
+
+const mutationKey = ['addReaction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addReaction>>, {messageId: string;data: BodyType<AddReactionBody>}> = (props) => {
+          const {messageId,data} = props ?? {};
+
+          return  addReaction(messageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddReactionMutationResult = NonNullable<Awaited<ReturnType<typeof addReaction>>>
+    export type AddReactionMutationBody = BodyType<AddReactionBody>
+    export type AddReactionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Add an emoji reaction to a message
+ */
+export const useAddReaction = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addReaction>>, TError,{messageId: string;data: BodyType<AddReactionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addReaction>>,
+        TError,
+        {messageId: string;data: BodyType<AddReactionBody>},
+        TContext
+      > => {
+      return useMutation(getAddReactionMutationOptions(options));
+    }
+
+export const getRemoveReactionUrl = (messageId: string,
+    emoji: string,) => {
+
+
+
+
+  return `/api/messages/${messageId}/react/${emoji}`
+}
+
+/**
+ * @summary Remove an emoji reaction from a message
+ */
+export const removeReaction = async (messageId: string,
+    emoji: string, options?: RequestInit): Promise<ReactionSummary[]> => {
+
+  return customFetch<ReactionSummary[]>(getRemoveReactionUrl(messageId,emoji),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveReactionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeReaction>>, TError,{messageId: string;emoji: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeReaction>>, TError,{messageId: string;emoji: string}, TContext> => {
+
+const mutationKey = ['removeReaction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeReaction>>, {messageId: string;emoji: string}> = (props) => {
+          const {messageId,emoji} = props ?? {};
+
+          return  removeReaction(messageId,emoji,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveReactionMutationResult = NonNullable<Awaited<ReturnType<typeof removeReaction>>>
+
+    export type RemoveReactionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove an emoji reaction from a message
+ */
+export const useRemoveReaction = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeReaction>>, TError,{messageId: string;emoji: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeReaction>>,
+        TError,
+        {messageId: string;emoji: string},
+        TContext
+      > => {
+      return useMutation(getRemoveReactionMutationOptions(options));
     }
 
 export const getCreateStripeCheckoutUrl = () => {
@@ -8326,6 +8707,150 @@ export const useUnregisterDevice = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUnregisterDeviceMutationOptions(options));
+    }
+
+export const getSubscribePushWebUrl = () => {
+
+
+
+
+  return `/api/push/web/subscribe`
+}
+
+/**
+ * Upserts a browser PushSubscription so the server can deliver web push notifications. The endpoint uniquely identifies the subscription; sending the same endpoint again just refreshes p256dh/auth keys.
+
+ * @summary Save a VAPID web-push subscription for the current user
+ */
+export const subscribePushWeb = async (webPushSubscribeBody: WebPushSubscribeBody, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSubscribePushWebUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      webPushSubscribeBody,)
+  }
+);}
+
+
+
+
+export const getSubscribePushWebMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof subscribePushWeb>>, TError,{data: BodyType<WebPushSubscribeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof subscribePushWeb>>, TError,{data: BodyType<WebPushSubscribeBody>}, TContext> => {
+
+const mutationKey = ['subscribePushWeb'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof subscribePushWeb>>, {data: BodyType<WebPushSubscribeBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  subscribePushWeb(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubscribePushWebMutationResult = NonNullable<Awaited<ReturnType<typeof subscribePushWeb>>>
+    export type SubscribePushWebMutationBody = BodyType<WebPushSubscribeBody>
+    export type SubscribePushWebMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save a VAPID web-push subscription for the current user
+ */
+export const useSubscribePushWeb = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof subscribePushWeb>>, TError,{data: BodyType<WebPushSubscribeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof subscribePushWeb>>,
+        TError,
+        {data: BodyType<WebPushSubscribeBody>},
+        TContext
+      > => {
+      return useMutation(getSubscribePushWebMutationOptions(options));
+    }
+
+export const getUnsubscribePushWebUrl = () => {
+
+
+
+
+  return `/api/push/web/unsubscribe`
+}
+
+/**
+ * @summary Remove a VAPID web-push subscription (on logout or permission revoke)
+ */
+export const unsubscribePushWeb = async (unsubscribePushWebBody: UnsubscribePushWebBody, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getUnsubscribePushWebUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      unsubscribePushWebBody,)
+  }
+);}
+
+
+
+
+export const getUnsubscribePushWebMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsubscribePushWeb>>, TError,{data: BodyType<UnsubscribePushWebBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsubscribePushWeb>>, TError,{data: BodyType<UnsubscribePushWebBody>}, TContext> => {
+
+const mutationKey = ['unsubscribePushWeb'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsubscribePushWeb>>, {data: BodyType<UnsubscribePushWebBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  unsubscribePushWeb(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsubscribePushWebMutationResult = NonNullable<Awaited<ReturnType<typeof unsubscribePushWeb>>>
+    export type UnsubscribePushWebMutationBody = BodyType<UnsubscribePushWebBody>
+    export type UnsubscribePushWebMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a VAPID web-push subscription (on logout or permission revoke)
+ */
+export const useUnsubscribePushWeb = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsubscribePushWeb>>, TError,{data: BodyType<UnsubscribePushWebBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unsubscribePushWeb>>,
+        TError,
+        {data: BodyType<UnsubscribePushWebBody>},
+        TContext
+      > => {
+      return useMutation(getUnsubscribePushWebMutationOptions(options));
     }
 
 export const getGetMyVisitorsUrl = () => {

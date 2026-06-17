@@ -41,6 +41,7 @@ import {
   PETS_LABELS,
   formatHeightCm,
   interestLabel,
+  formatLastSeen,
 } from "@/lib/profile-format";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
@@ -199,11 +200,19 @@ export default function PublicProfile() {
 
   return (
     <div
-      className="min-h-[100dvh] text-foreground flex flex-col"
+      className="min-h-[100dvh] text-foreground flex flex-col relative"
       style={{ background: "radial-gradient(ellipse 90% 55% at 50% 0%, hsl(270 35% 10%) 0%, hsl(238 25% 5%) 60%)" }}
     >
-      <header className="sticky top-0 z-20 px-4 py-3 flex items-center gap-3 border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.85)", backdropFilter: "blur(20px)" }}>
+      {/* Ambient background orbs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-1/3 w-[32rem] h-[32rem] rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.32) 0%, rgba(168,85,247,0.07) 58%, transparent 78%)", filter: "blur(52px)", transform: "translateY(-35%)" }} />
+        <div className="absolute top-1/2 -left-20 w-72 h-72 rounded-full" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, transparent 68%)", filter: "blur(44px)" }} />
+        <div className="absolute bottom-1/4 right-0 w-64 h-64 rounded-full" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)", filter: "blur(40px)", transform: "translateX(30%)" }} />
+      </div>
+      <header className="sticky top-0 z-20 px-4 py-3 flex items-center gap-3 relative"
+        style={{ background: "rgba(8,7,18,0.88)", backdropFilter: "blur(24px)" }}>
+        {/* Neon separator line */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px]" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.80) 25%, rgba(236,72,153,0.65) 55%, rgba(139,92,246,0.70) 80%, transparent 100%)", boxShadow: "0 0 8px rgba(168,85,247,0.28)" }} />
         <button
           onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/discover")}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
@@ -243,13 +252,18 @@ export default function PublicProfile() {
               </Avatar>
             )}
           </div>
-          {profile.is_online && (
+          {profile.is_online ? (
             <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-sans font-medium text-white flex items-center gap-1.5"
-              style={{ background: "rgba(13,11,26,0.85)", backdropFilter: "blur(8px)" }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: "hsl(142,71%,45%)" }} />
+              style={{ background: "rgba(13,11,26,0.85)", backdropFilter: "blur(8px)", boxShadow: "0 0 14px rgba(34,197,94,0.40)" }}>
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "hsl(142,71%,45%)", boxShadow: "0 0 6px rgba(34,197,94,0.80)" }} />
               En línea
             </span>
-          )}
+          ) : formatLastSeen(profile.last_active_at) ? (
+            <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-sans font-medium flex items-center gap-1.5"
+              style={{ background: "rgba(13,11,26,0.80)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.55)" }}>
+              Visto {formatLastSeen(profile.last_active_at)}
+            </span>
+          ) : null}
           {activePhotoId && (
             <button
               onClick={() => setPhotoReportOpen(true)}
