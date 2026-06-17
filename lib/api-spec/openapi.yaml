@@ -4932,6 +4932,23 @@ components:
           type: string
       required: [id, other_user, created_at]
 
+    MessageReplyPreview:
+      type: object
+      description: Snapshot of the message being replied to.
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+          nullable: true
+        sender_id:
+          type: string
+        type:
+          type: string
+          enum: [text, image, audio]
+          description: The type of the original message.
+      required: [id, sender_id, type]
+
     Message:
       type: object
       properties:
@@ -4962,6 +4979,17 @@ components:
         deleted_at:
           type: string
           nullable: true
+        reactions:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ReactionSummary"
+          description: Aggregated emoji reactions on this message.
+        reply_to:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MessageReplyPreview"
+          description: Quoted message preview when this message is a reply.
       required: [id, conversation_id, sender_id, created_at]
 
     LocationUpdateRequest:
@@ -5002,6 +5030,9 @@ components:
           type: integer
           minimum: 1
           maximum: 60
+        reply_to_id:
+          type: string
+          description: Optional ID of the message being replied to.
 
     LiveQueueRequest:
       type: object

@@ -29,6 +29,8 @@ import {
   MessageCircle,
   Lock,
   SlidersHorizontal,
+  Search,
+  ArrowLeft,
 } from "lucide-react";
 import {
   useListProfiles,
@@ -40,6 +42,8 @@ import {
   useGetMyProfile,
   getGetMyProfileQueryKey,
   useUnlikeProfile,
+  useSearchProfiles,
+  getSearchProfilesQueryKey,
   type PublicProfile,
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications";
@@ -583,6 +587,13 @@ export function SwipeView({
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
   const [history, setHistory] = useState<{ profile: PublicProfile; dir: Decision }[]>([]);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const { data: searchResults = [], isFetching: searchFetching } = useSearchProfiles(
+    { q: searchQ },
+    { query: { enabled: searchMode && searchQ.trim().length >= 2, queryKey: getSearchProfilesQueryKey({ q: searchQ }) } }
+  );
 
   const { session } = useAuth();
   const [, setLocation] = useLocation();
@@ -703,40 +714,77 @@ export function SwipeView({
 
       {/* ══ Header: Badoo-style — title left, icons right ══ */}
       <div className="px-4 pt-3 pb-2 flex items-start justify-between">
-        {/* Left: title + subtitle */}
-        <div>
-          <h1
-            className="font-display text-[26px] leading-tight tracking-wide"
-            style={{
-              background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
-            }}
-          >
-            Descubrir
-          </h1>
-          <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
-            {activeFilterCount > 0
-              ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
-              : (FEED_OPTIONS.find(o => o.key === feed)?.emoji ?? "✨") + " " + (FEED_OPTIONS.find(o => o.key === feed)?.label ?? "Para ti")}
-          </p>
-        </div>
+        {searchMode ? (
+          /* ── Search input ── */
+          <div className="flex-1 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setSearchMode(false); setSearchQ(""); }}
+              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-muted-foreground hover:text-white"
+              style={{ background: "rgba(255,255,255,0.07)" }}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                autoFocus
+                type="search"
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="Buscar por usuario..."
+                className="w-full pl-8 pr-4 py-2 rounded-xl font-sans text-sm text-foreground placeholder:text-muted-foreground border border-border/50 focus:outline-none focus:border-primary/50 bg-input/40"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Left: title + subtitle */}
+            <div>
+              <h1
+                className="font-display text-[26px] leading-tight tracking-wide"
+                style={{
+                  background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
+                }}
+              >
+                Descubrir
+              </h1>
+              <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
+                {activeFilterCount > 0
+                  ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
+                  : (FEED_OPTIONS.find(o => o.key === feed)?.emoji ?? "✨") + " " + (FEED_OPTIONS.find(o => o.key === feed)?.label ?? "Para ti")}
+              </p>
+            </div>
 
-        {/* Right: 3 icon buttons */}
-        <div className="flex items-center gap-1.5 pt-0.5">
-          {/* Rewind / restart deck */}
-          <button
-            onClick={restart}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
-            aria-label="Reiniciar"
-          >
-            <RefreshCw className="w-4 h-4 text-white/55" />
-          </button>
+            {/* Right: icon buttons */}
+            <div className="flex items-center gap-1.5 pt-0.5">
+              {/* Search */}
+              <button
+                type="button"
+                onClick={() => { setSearchMode(true); setTimeout(() => searchInputRef.current?.focus(), 80); }}
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                aria-label="Buscar"
+              >
+                <Search className="w-4 h-4 text-white/55" />
+              </button>
 
-          {/* Matches */}
-          <Link href="/matches">
+              {/* Rewind / restart deck */}
+              <button
+                onClick={restart}
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                aria-label="Reiniciar"
+              >
+                <RefreshCw className="w-4 h-4 text-white/55" />
+              </button>
+
+              {/* Matches */}
+              <Link href="/matches">
             <button
               className="relative w-10 h-10 rounded-full flex items-center justify-center transition-colors"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
@@ -784,8 +832,54 @@ export function SwipeView({
             )}
           </button>
         </div>
+          </>
+        )}
       </div>
 
+      {/* ── Search results overlay ── */}
+      {searchMode && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+          {searchQ.trim().length < 2 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Search className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-sans text-sm text-muted-foreground">Escribe al menos 2 caracteres</p>
+            </div>
+          ) : searchFetching ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <p className="font-sans text-sm text-muted-foreground">Sin resultados para «{searchQ}»</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {searchResults.map((user) => (
+                <Link key={user.id} href={`/profile/${user.id}`}>
+                  <div
+                    className="rounded-2xl overflow-hidden aspect-[3/4] relative cursor-pointer"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} className="w-full h-full object-cover" alt={user.username} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white/30">
+                        {(user.username ?? "?")[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 p-3" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)" }}>
+                      <p className="font-sans text-sm font-semibold text-white truncate">{user.username}</p>
+                      {user.city && <p className="font-sans text-[11px] text-white/60 truncate">{user.city}</p>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!searchMode && (<>
       {/* Mode toggle + quota row */}
       <div className="px-4 pb-2 flex items-center justify-between gap-2">
         <ModeToggle mode={mode} setMode={setMode} />
@@ -976,6 +1070,7 @@ export function SwipeView({
         feed={feed}
         onFeedChange={setFeed}
       />
+      </>)}
     </div>
   );
 }

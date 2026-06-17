@@ -1045,6 +1045,29 @@ export interface Conversation {
   created_at: string;
 }
 
+/**
+ * The type of the original message.
+ */
+export type MessageReplyPreviewType = typeof MessageReplyPreviewType[keyof typeof MessageReplyPreviewType];
+
+
+export const MessageReplyPreviewType = {
+  text: 'text',
+  image: 'image',
+  audio: 'audio',
+} as const;
+
+/**
+ * Snapshot of the message being replied to.
+ */
+export interface MessageReplyPreview {
+  id: string;
+  content?: string | null;
+  sender_id: string;
+  /** The type of the original message. */
+  type: MessageReplyPreviewType;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -1057,6 +1080,10 @@ export interface Message {
   created_at: string;
   read_at?: string | null;
   deleted_at?: string | null;
+  /** Aggregated emoji reactions on this message. */
+  reactions?: ReactionSummary[] | null;
+  /** Quoted message preview when this message is a reply. */
+  reply_to?: MessageReplyPreview | null;
 }
 
 export interface LocationUpdateRequest {
@@ -1081,6 +1108,8 @@ export interface SendMessageRequest {
      * @maximum 60
      */
   audio_duration?: number;
+  /** Optional ID of the message being replied to. */
+  reply_to_id?: string;
 }
 
 /**

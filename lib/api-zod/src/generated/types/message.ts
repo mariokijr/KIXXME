@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MessageReplyPreview } from './messageReplyPreview';
+import type { ReactionSummary } from './reactionSummary';
 
 export interface Message {
   id: string;
@@ -18,4 +20,8 @@ export interface Message {
   created_at: string;
   read_at?: string | null;
   deleted_at?: string | null;
+  /** Aggregated emoji reactions on this message. */
+  reactions?: ReactionSummary[] | null;
+  /** Quoted message preview when this message is a reply. */
+  reply_to?: MessageReplyPreview | null;
 }

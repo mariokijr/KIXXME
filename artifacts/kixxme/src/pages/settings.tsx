@@ -5,6 +5,7 @@ import {
   useConfirmAccountAction,
   useGetSubscription,
   useGetMyProfile,
+  useSetInvisibleMode,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,7 @@ import {
   Zap,
   FileText,
   User,
+  Eye,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -97,6 +99,9 @@ export default function Settings() {
   const requestCode = useRequestAccountActionCode();
   const confirmAction = useConfirmAccountAction();
   const { data: subscription } = useGetSubscription();
+  const setInvisibleMode = useSetInvisibleMode();
+  const isInvisible = myProfile?.invisible_mode ?? false;
+  const plan = (myProfile?.plan ?? "free") as string;
 
   const showCancelSubscription =
     !!subscription?.has_active_subscription &&
@@ -480,6 +485,75 @@ export default function Settings() {
             </span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
+
+          {/* ── Invisible mode ── */}
+          <div
+            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40"
+            style={{ background: "rgba(13,11,26,0.7)" }}
+            data-testid="row-invisible-mode"
+          >
+            <Eye className="w-5 h-5 text-primary flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-base tracking-wide text-foreground">
+                  Modo invisible
+                </span>
+                {plan !== "gold" && (
+                  <span
+                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                    style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}
+                  >
+                    Gold
+                  </span>
+                )}
+              </div>
+              <p className="font-sans text-xs text-muted-foreground">
+                No apareces en Descubrir ni en el Mapa
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isInvisible}
+              disabled={setInvisibleMode.isPending}
+              onClick={() => {
+                if (plan !== "gold") { setLocation("/premium"); return; }
+                setInvisibleMode.mutate(
+                  { data: { invisible_mode: !isInvisible } },
+                  {
+                    onSuccess: () =>
+                      toast({
+                        title: isInvisible
+                          ? "Modo invisible desactivado"
+                          : "Modo invisible activado",
+                      }),
+                    onError: () =>
+                      toast({
+                        title: "No se pudo cambiar el modo invisible",
+                        variant: "destructive",
+                      }),
+                  }
+                );
+              }}
+              className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-60"
+              style={{
+                background:
+                  plan === "gold" && isInvisible
+                    ? "linear-gradient(135deg,#8b5cf6,#ec4899)"
+                    : "rgba(255,255,255,0.12)",
+              }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
+                style={{
+                  transform:
+                    plan === "gold" && isInvisible
+                      ? "translateX(20px)"
+                      : "translateX(0)",
+                }}
+              />
+            </button>
+          </div>
         </div>
 
         {/* ══ SOPORTE ══ */}

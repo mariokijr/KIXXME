@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { inArray } from "drizzle-orm";
 import { supabase } from "../lib/supabase.js";
 import { requireAuth } from "../lib/auth.js";
 import { isOnline } from "../lib/geo.js";
@@ -23,6 +24,7 @@ import {
 } from "../lib/message-notifications.js";
 import { pushNewMessage } from "../lib/push-notifications.js";
 import { clearEmailClaim } from "../lib/email-policy.js";
+import { db, messageReactionsTable, messageReplyRefsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -263,7 +265,60 @@ router.get("/conversations/:id/messages", async (req, res) => {
   // caught up — the next offline message can notify again.
   void clearEmailClaim("message", messageDedupKey(id, auth.userId));
 
-  res.json(messages ?? []);
+  const msgList = messages ?? [];
+  if (msgList.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const msgIds = msgList.map((m) => m.id as string);
+
+  // Batch-load reactions + reply-refs from Replit Postgres (one query each).
+  const [rawReactions, rawReplies] = await Promise.all([
+    db
+      .select()
+      .from(messageReactionsTable)
+      .where(inArray(messageReactionsTable.messageId, msgIds)),
+    db
+      .select()
+      .from(messageReplyRefsTable)
+      .where(inArray(messageReplyRefsTable.messageId, msgIds)),
+  ]);
+
+  // Aggregate reactions → Map<messageId, Map<emoji, {count, reacted_by_me}>>
+  const reactionMap = new Map<string, Map<string, { count: number; reacted_by_me: boolean }>>();
+  for (const r of rawReactions) {
+    let emojiMap = reactionMap.get(r.messageId);
+    if (!emojiMap) { emojiMap = new Map(); reactionMap.set(r.messageId, emojiMap); }
+    const existing = emojiMap.get(r.emoji) ?? { count: 0, reacted_by_me: false };
+    emojiMap.set(r.emoji, {
+      count: existing.count + 1,
+      reacted_by_me: existing.reacted_by_me || r.userId === auth.userId,
+    });
+  }
+
+  // Build reply-ref map
+  const replyMap = new Map(rawReplies.map((r) => [r.messageId, r]));
+
+  // Enrich messages
+  const enriched = msgList.map((msg) => {
+    const emojiMap = reactionMap.get(msg.id as string);
+    const reactions = emojiMap
+      ? Array.from(emojiMap.entries()).map(([emoji, v]) => ({ emoji, ...v }))
+      : null;
+    const replyRef = replyMap.get(msg.id as string);
+    const reply_to = replyRef
+      ? {
+          id: replyRef.replyToMessageId,
+          content: replyRef.replyToContent ?? null,
+          sender_id: replyRef.replyToSenderId,
+          type: (replyRef.replyToType ?? "text") as "text" | "image" | "audio",
+        }
+      : null;
+    return { ...msg, reactions, reply_to };
+  });
+
+  res.json(enriched);
 });
 
 router.post("/conversations/:id/messages", async (req, res) => {
@@ -271,11 +326,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
   if (!auth) return;
 
   const { id } = req.params;
-  const { content, image_url, audio_url, audio_duration } = req.body as {
+  const { content, image_url, audio_url, audio_duration, reply_to_id } = req.body as {
     content?: string;
     image_url?: string;
     audio_url?: string;
     audio_duration?: number;
+    reply_to_id?: string;
   };
 
   const trimmed = content?.trim() ?? "";
@@ -327,6 +383,40 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .eq("id", id);
 
   res.status(201).json(message);
+
+  // If this is a reply, snapshot the original message to message_reply_refs.
+  if (reply_to_id && message) {
+    void (async () => {
+      try {
+        const { data: original } = await supabase
+          .from("messages")
+          .select("id, content, image_url, audio_url, sender_id, deleted_at")
+          .eq("id", reply_to_id)
+          .single();
+        if (original && !original.deleted_at) {
+          const replyToType = original.image_url
+            ? "image"
+            : original.audio_url
+            ? "audio"
+            : "text";
+          const replyToContent =
+            replyToType === "text" ? ((original.content as string | null)?.slice(0, 100) ?? null) : null;
+          await db
+            .insert(messageReplyRefsTable)
+            .values({
+              messageId: message.id as string,
+              replyToMessageId: reply_to_id,
+              replyToContent,
+              replyToSenderId: original.sender_id as string,
+              replyToType,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (err) {
+        req.log.warn({ err }, "conversations: reply_ref insert failed (non-fatal)");
+      }
+    })();
+  }
 
   // Fire-and-forget spam/copy-paste detection AFTER responding — never blocks
   // or fails the send. Raises a `spam_pattern` review flag when the same body

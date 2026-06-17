@@ -13,12 +13,16 @@ import {
   Sparkles,
   X,
   SlidersHorizontal,
+  Search,
+  ArrowLeft,
 } from "lucide-react";
 import {
   useListMyLikes,
   getListMyLikesQueryKey,
   useListProfiles,
   getListProfilesQueryKey,
+  useSearchProfiles,
+  getSearchProfilesQueryKey,
   useUnlikeProfile,
   useGetMyProfile,
   useGetStripeTrialStatus,
@@ -176,6 +180,15 @@ function GridDiscover({
   const { data: ownProfile } = useGetMyProfile({});
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
+  // ── Search ──
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const { data: searchResults = [], isFetching: searchFetching } = useSearchProfiles(
+    { q: searchQ },
+    { query: { enabled: searchMode && searchQ.trim().length >= 2, queryKey: getSearchProfilesQueryKey({ q: searchQ }) } }
+  );
+
   // Filters for the "En línea" online grid (separate key, 100 km default so
   // users see people nearby first; likes list is unfiltered regardless).
   const [filters, setFiltersState] = useState<DiscoverFilters>(readOnlineFilters);
@@ -304,79 +317,117 @@ function GridDiscover({
         className="sticky top-0 z-20 px-4 pt-3 pb-0 relative"
         style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
-        {/* Row 1: title + 3 icon buttons */}
+        {/* Row 1: title + icon buttons */}
         <div className="flex items-start justify-between mb-2">
-          <div>
-            <h1
-              className="font-display text-[26px] leading-tight tracking-wide"
-              style={{
-                background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
-              }}
-            >
-              {source === "likes" ? "Tus Me gusta" : "En línea"}
-            </h1>
-            <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
-                : source === "likes" ? "Perfiles que te han gustado" : "Activos ahora mismo"}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 pt-0.5">
-            {/* Matches */}
-            <Link href="/matches">
+          {searchMode ? (
+            /* ── Search input row ── */
+            <div className="flex-1 flex items-center gap-2">
               <button
-                className="relative w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
-                aria-label="Emparejamientos"
-                data-testid="link-matches"
+                type="button"
+                onClick={() => { setSearchMode(false); setSearchQ(""); }}
+                className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-muted-foreground hover:text-white"
+                style={{ background: "rgba(255,255,255,0.07)" }}
               >
-                <Heart className="w-4 h-4" style={{ color: "hsl(330,85%,62%)" }} />
-                {likesBadge > 0 && (
-                  <span
-                    className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
-                    style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-                    data-testid="badge-likes"
-                  >
-                    {likesBadge > 99 ? "99+" : likesBadge}
-                  </span>
-                )}
+                <ArrowLeft className="w-4 h-4" />
               </button>
-            </Link>
-            {/* Filters */}
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
-              style={{
-                background: activeFilterCount > 0
-                  ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
-                  : "rgba(255,255,255,0.06)",
-                border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
-                boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
-              }}
-              aria-label="Filtros"
-            >
-              <SlidersHorizontal
-                className="w-4 h-4"
-                style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
-              />
-              {activeFilterCount > 0 && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
-                  style={{ background: "hsl(330,85%,52%)" }}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  autoFocus
+                  type="search"
+                  value={searchQ}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  placeholder="Buscar por usuario..."
+                  className="w-full pl-8 pr-4 py-2 rounded-xl font-sans text-sm text-foreground placeholder:text-muted-foreground border border-border/50 focus:outline-none focus:border-primary/50 bg-input/40"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <h1
+                  className="font-display text-[26px] leading-tight tracking-wide"
+                  style={{
+                    background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 35%, hsl(330,90%,82%) 65%, #fff 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: "drop-shadow(0 0 22px rgba(168,85,247,0.55))",
+                  }}
                 >
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
+                  {source === "likes" ? "Tus Me gusta" : "En línea"}
+                </h1>
+                <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
+                  {activeFilterCount > 0
+                    ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
+                    : source === "likes" ? "Perfiles que te han gustado" : "Activos ahora mismo"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                {/* Search */}
+                <button
+                  type="button"
+                  onClick={() => { setSearchMode(true); setTimeout(() => searchInputRef.current?.focus(), 80); }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                  aria-label="Buscar"
+                >
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                </button>
+                {/* Matches */}
+                <Link href="/matches">
+                  <button
+                    className="relative w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                    aria-label="Emparejamientos"
+                    data-testid="link-matches"
+                  >
+                    <Heart className="w-4 h-4" style={{ color: "hsl(330,85%,62%)" }} />
+                    {likesBadge > 0 && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                        data-testid="badge-likes"
+                      >
+                        {likesBadge > 99 ? "99+" : likesBadge}
+                      </span>
+                    )}
+                  </button>
+                </Link>
+                {/* Filters */}
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                  style={{
+                    background: activeFilterCount > 0
+                      ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
+                      : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
+                    boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
+                  }}
+                  aria-label="Filtros"
+                >
+                  <SlidersHorizontal
+                    className="w-4 h-4"
+                    style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
+                  />
+                  {activeFilterCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      style={{ background: "hsl(330,85%,52%)" }}
+                    >
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Row 2: mode toggle */}
-        <div className="pb-2">
+        {/* Row 2: mode toggle (hidden in search mode) */}
+        <div className={`pb-2 ${searchMode ? "hidden" : ""}`}>
           <ModeToggle mode={mode} setMode={setMode} />
         </div>
 
@@ -399,7 +450,44 @@ function GridDiscover({
         plan={plan}
       />
 
-      {isLoading ? (
+      {/* ── Search results ── */}
+      {searchMode && (
+        <div className="relative z-10 px-4 pb-6">
+          {searchQ.trim().length < 2 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Search className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-sans text-sm text-muted-foreground">Escribe al menos 2 caracteres</p>
+            </div>
+          ) : searchFetching ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Users className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-sans text-sm text-muted-foreground">Sin resultados para «{searchQ}»</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {searchResults.map((user, i) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  grad={gradFor(user.id)}
+                  onMessage={() => start(user.id)}
+                  onToggleLike={() => handleToggleLike(user)}
+                  onSuperLike={() => handleSuperLike(user)}
+                  superLikePending={likeActions.isPending}
+                  featured={i === 0}
+                />
+              ))}
+              <div className="col-span-2 h-20" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {!searchMode && (isLoading ? (
         <div className="relative z-10 flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="font-sans text-sm text-muted-foreground">
@@ -431,7 +519,7 @@ function GridDiscover({
           {/* Subtle bottom fade so content doesn't crash into nav */}
           <div className="col-span-2 h-20" />
         </div>
-      )}
+      ))}
     </div>
   );
 }

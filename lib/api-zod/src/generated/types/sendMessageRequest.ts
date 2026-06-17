@@ -15,4 +15,6 @@ export interface SendMessageRequest {
      * @maximum 60
      */
   audio_duration?: number;
+  /** Optional ID of the message being replied to. */
+  reply_to_id?: string;
 }

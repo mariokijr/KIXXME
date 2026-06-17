@@ -16,6 +16,7 @@ import {
   Lock,
   Phone,
   X,
+  Reply,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ReportDialog } from "@/components/report-dialog";
@@ -37,8 +38,11 @@ import {
   useBlockProfile,
   useUnblockProfile,
   useCreateLiveCall,
+  useAddReaction,
+  useRemoveReaction,
   Message,
   PublicProfile,
+  ReactionSummary,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -67,6 +71,8 @@ function parseCallMessage(content: string | null | undefined): CallMsgPayload | 
     return p._call ? p : null;
   } catch { return null; }
 }
+
+const ALLOWED_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥", "👏", "🙏"];
 
 function mergeMessages(local: Message[], incoming: Message[]): Message[] {
   const map = new Map<string, Message>();
@@ -98,6 +104,10 @@ export default function Chat() {
   const [preparingImage, setPreparingImage] = useState(false);
   const [recorderActive, setRecorderActive] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
+  const [reactionOverrides, setReactionOverrides] = useState<Map<string, ReactionSummary[]>>(new Map());
+  const [replyingTo, setReplyingTo] = useState<{ id: string; content: string | null; senderId: string; type: string } | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitScrollRef = useRef(false);
@@ -138,6 +148,8 @@ export default function Chat() {
   const unblockUser = useUnblockProfile();
   const createLiveCall = useCreateLiveCall();
   const confirm = useConfirm();
+  const addReaction = useAddReaction();
+  const removeReaction = useRemoveReaction();
 
   // Reset local state when switching conversations so messages never bleed across chats.
   useEffect(() => {
@@ -253,6 +265,8 @@ export default function Chat() {
     const content = text.trim();
     if (!content || !conversationId) return;
     setText("");
+    const replyRef = replyingTo;
+    setReplyingTo(null);
 
     const optimistic: Message = {
       id: `opt-${Date.now()}`,
@@ -267,7 +281,7 @@ export default function Chat() {
     setLocalMessages((prev) => mergeMessages(prev, [optimistic]));
 
     sendMessage.mutate(
-      { id: conversationId, data: { content } },
+      { id: conversationId, data: { content, reply_to_id: replyRef?.id } },
       {
         onSuccess: (real) => {
           setLocalMessages((prev) =>
@@ -432,6 +446,49 @@ export default function Chat() {
       }
     );
   };
+
+  const handleReact = useCallback((msgId: string, emoji: string, currentReactions: ReactionSummary[]) => {
+    const already = currentReactions.find((r) => r.emoji === emoji && r.reacted_by_me);
+    if (already) {
+      setReactionOverrides((prev) => {
+        const next = new Map(prev);
+        const updated = (next.get(msgId) ?? currentReactions)
+          .map((r) => r.emoji === emoji ? { ...r, count: r.count - 1, reacted_by_me: false } : r)
+          .filter((r) => r.count > 0);
+        next.set(msgId, updated);
+        return next;
+      });
+      removeReaction.mutate(
+        { messageId: msgId, emoji },
+        {
+          onSuccess: (reactions) =>
+            setReactionOverrides((prev) => { const next = new Map(prev); next.set(msgId, reactions); return next; }),
+          onError: () =>
+            setReactionOverrides((prev) => { const next = new Map(prev); next.delete(msgId); return next; }),
+        }
+      );
+    } else {
+      setReactionOverrides((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(msgId) ?? currentReactions;
+        const existing = cur.find((r) => r.emoji === emoji);
+        const updated = existing
+          ? cur.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, reacted_by_me: true } : r)
+          : [...cur, { emoji, count: 1, reacted_by_me: true }];
+        next.set(msgId, updated);
+        return next;
+      });
+      addReaction.mutate(
+        { messageId: msgId, data: { emoji } },
+        {
+          onSuccess: (reactions) =>
+            setReactionOverrides((prev) => { const next = new Map(prev); next.set(msgId, reactions); return next; }),
+          onError: () =>
+            setReactionOverrides((prev) => { const next = new Map(prev); next.delete(msgId); return next; }),
+        }
+      );
+    }
+  }, [addReaction, removeReaction]);
 
   const handleUnblock = () => {
     if (!otherUser) return;
@@ -611,7 +668,7 @@ export default function Chat() {
         )}
       </header>
 
-      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => setActiveMsg(null)}>
+      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => { setActiveMsg(null); setReactionPickerMsgId(null); }}>
         {isLoading && localMessages.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -667,8 +724,54 @@ export default function Chat() {
             }
 
             return (
-              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[78%] flex flex-col items-stretch">
+              <div
+                key={msg.id}
+                className={`flex ${isMine ? "justify-end" : "justify-start"} group relative`}
+                onPointerDown={() => {
+                  if (isDeleted || isOptimistic) return;
+                  longPressTimerRef.current = setTimeout(() => setReactionPickerMsgId(msg.id), 500);
+                }}
+                onPointerUp={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
+                onPointerLeave={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
+              >
+                <div className="max-w-[78%] flex flex-col items-stretch relative">
+                  {/* ── Emoji picker (long-press to open) ── */}
+                  {reactionPickerMsgId === msg.id && !isDeleted && (
+                    <div
+                      className={`absolute z-50 bottom-full mb-1 ${isMine ? "right-0" : "left-0"}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div
+                        className="flex items-center gap-0.5 p-1.5 rounded-2xl shadow-xl border"
+                        style={{ background: "rgba(20,15,40,0.97)", borderColor: "rgba(139,92,246,0.45)" }}
+                      >
+                        {ALLOWED_EMOJIS.map((emoji) => {
+                          const rr = reactionOverrides.get(msg.id) ?? (msg.reactions ?? []);
+                          const rFound = rr.find((rx) => rx.emoji === emoji);
+                          return (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={() => { handleReact(msg.id, emoji, rr); setReactionPickerMsgId(null); }}
+                              className="w-9 h-9 text-xl flex items-center justify-center rounded-xl transition-transform hover:scale-125 active:scale-95"
+                              style={rFound?.reacted_by_me ? { background: "rgba(139,92,246,0.3)" } : {}}
+                            >
+                              {emoji}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); setReactionPickerMsgId(null); }}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div
                     className="rounded-2xl overflow-hidden"
                     style={
@@ -686,6 +789,27 @@ export default function Chat() {
                             }
                     }
                   >
+                    {/* ── Reply preview (quoted bubble) ── */}
+                    {msg.reply_to && !isDeleted && (
+                      <div
+                        className="mx-2 mt-2 px-2.5 py-1.5 rounded-xl select-none"
+                        style={{
+                          background: "rgba(0,0,0,0.22)",
+                          borderLeft: "2.5px solid rgba(255,255,255,0.28)",
+                        }}
+                      >
+                        <p className="font-sans text-[10px] font-semibold text-white/50 mb-0.5">
+                          {msg.reply_to.sender_id === myId ? "Tú" : (otherUser?.username ?? "...")}
+                        </p>
+                        <p className="font-sans text-xs text-white/65 truncate leading-tight">
+                          {msg.reply_to.type === "image"
+                            ? "📷 Foto"
+                            : msg.reply_to.type === "audio"
+                            ? "🎤 Nota de voz"
+                            : (msg.reply_to.content ?? "Mensaje")}
+                        </p>
+                      </div>
+                    )}
                     {isDeleted ? (
                       <p className="px-4 py-2.5 font-sans text-sm italic text-muted-foreground">
                         Mensaje eliminado
@@ -718,35 +842,83 @@ export default function Chat() {
                       </p>
                     )}
                     {!isDeleted && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isMine && !isOptimistic) {
-                            setActiveMsg(activeMsg === msg.id ? null : msg.id);
-                          }
-                        }}
+                      <div
                         className={`w-full flex items-center gap-1 px-3 pb-1.5 ${
                           isMine ? "justify-end" : "justify-start"
                         } ${msg.image_url || msg.audio_url ? "pt-0.5" : ""}`}
                       >
-                        <span
-                          className={`font-sans text-[10px] ${
+                        {!isOptimistic && (
+                          <button
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReplyingTo({
+                                id: msg.id,
+                                content: msg.content ?? null,
+                                senderId: msg.sender_id,
+                                type: msg.image_url ? "image" : msg.audio_url ? "audio" : "text",
+                              });
+                              inputRef.current?.focus();
+                            }}
+                            className="opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity text-white/50 hover:text-white/80 flex-shrink-0"
+                            title="Responder"
+                          >
+                            <Reply className="w-3 h-3" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isMine && !isOptimistic) {
+                              setActiveMsg(activeMsg === msg.id ? null : msg.id);
+                            }
+                          }}
+                          className={`flex items-center gap-1 font-sans text-[10px] ${
                             isMine ? "text-white/60" : "text-white/40"
                           }`}
                         >
                           {timeLabel(msg.created_at)}
-                        </span>
-                        {isMine &&
-                          !isOptimistic &&
-                          (msg.read_at ? (
-                            <CheckCheck className="w-3 h-3 text-white/80" />
-                          ) : (
-                            <Check className="w-3 h-3 text-white/50" />
-                          ))}
-                      </button>
+                          {isMine &&
+                            !isOptimistic &&
+                            (msg.read_at ? (
+                              <CheckCheck className="w-3 h-3 text-white/80" />
+                            ) : (
+                              <Check className="w-3 h-3 text-white/50" />
+                            ))}
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* ── Reactions row ── */}
+                  {(() => {
+                    const reactions = reactionOverrides.get(msg.id) ?? (msg.reactions ?? []);
+                    if (reactions.length === 0 || isDeleted) return null;
+                    return (
+                      <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
+                        {reactions.map((r) => (
+                          <button
+                            key={r.emoji}
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); handleReact(msg.id, r.emoji, reactions); }}
+                            className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-sans border transition-all active:scale-95"
+                            style={
+                              r.reacted_by_me
+                                ? { background: "rgba(139,92,246,0.28)", borderColor: "rgba(139,92,246,0.65)", color: "white" }
+                                : { background: "rgba(255,255,255,0.07)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.72)" }
+                            }
+                          >
+                            <span>{r.emoji}</span>
+                            <span className="font-bold">{r.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {isMine && activeMsg === msg.id && !isDeleted && (
                     <button
@@ -873,6 +1045,31 @@ export default function Chat() {
                 <Send className="w-4 h-4" />
               )}
               Enviar
+            </button>
+          </div>
+        )}
+
+        {/* ── Reply bar ── */}
+        {replyingTo && (
+          <div
+            className="flex items-start gap-2 px-3 py-2 rounded-xl border border-primary/30 mb-2"
+            style={{ background: "rgba(139,92,246,0.09)" }}
+          >
+            <Reply className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-sans text-[11px] font-semibold text-primary">
+                {replyingTo.senderId === myId ? "Tú" : (otherUser?.username ?? "...")}
+              </p>
+              <p className="font-sans text-xs text-muted-foreground truncate">
+                {replyingTo.type === "image" ? "📷 Foto" : replyingTo.type === "audio" ? "🎤 Nota de voz" : (replyingTo.content ?? "Mensaje")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="w-3 h-3" />
             </button>
           </div>
         )}

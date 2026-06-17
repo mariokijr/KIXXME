@@ -696,7 +696,18 @@ export const ListMessagesResponseItem = zod.object({
   "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
-  "deleted_at": zod.string().nullish()
+  "deleted_at": zod.string().nullish(),
+  "reactions": zod.array(zod.object({
+  "emoji": zod.string().describe('The emoji character (e.g. \"❤️\").'),
+  "count": zod.number().describe('Total number of users who reacted with this emoji.'),
+  "reacted_by_me": zod.boolean().describe('Whether the current user has reacted with this emoji.')
+}).describe('Aggregated emoji reaction count on a message.')).nullish().describe('Aggregated emoji reactions on this message.'),
+  "reply_to": zod.object({
+  "id": zod.string(),
+  "content": zod.string().nullish(),
+  "sender_id": zod.string(),
+  "type": zod.enum(['text', 'image', 'audio']).describe('The type of the original message.')
+}).describe('Snapshot of the message being replied to.').nullish().describe('Quoted message preview when this message is a reply.')
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
 
@@ -716,7 +727,8 @@ export const SendMessageBody = zod.object({
   "content": zod.string().optional(),
   "image_url": zod.string().optional(),
   "audio_url": zod.string().optional(),
-  "audio_duration": zod.number().min(1).max(sendMessageBodyAudioDurationMax).optional()
+  "audio_duration": zod.number().min(1).max(sendMessageBodyAudioDurationMax).optional(),
+  "reply_to_id": zod.string().optional().describe('Optional ID of the message being replied to.')
 })
 
 
@@ -2000,7 +2012,18 @@ export const GetAdminReportResponse = zod.object({
   "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
-  "deleted_at": zod.string().nullish()
+  "deleted_at": zod.string().nullish(),
+  "reactions": zod.array(zod.object({
+  "emoji": zod.string().describe('The emoji character (e.g. \"❤️\").'),
+  "count": zod.number().describe('Total number of users who reacted with this emoji.'),
+  "reacted_by_me": zod.boolean().describe('Whether the current user has reacted with this emoji.')
+}).describe('Aggregated emoji reaction count on a message.')).nullish().describe('Aggregated emoji reactions on this message.'),
+  "reply_to": zod.object({
+  "id": zod.string(),
+  "content": zod.string().nullish(),
+  "sender_id": zod.string(),
+  "type": zod.enum(['text', 'image', 'audio']).describe('The type of the original message.')
+}).describe('Snapshot of the message being replied to.').nullish().describe('Quoted message preview when this message is a reply.')
 }).nullish(),
   "messageContext": zod.array(zod.object({
   "id": zod.string(),
@@ -2012,7 +2035,18 @@ export const GetAdminReportResponse = zod.object({
   "audio_duration": zod.number().nullish().describe('Voice-note length in seconds (1–60)'),
   "created_at": zod.string(),
   "read_at": zod.string().nullish(),
-  "deleted_at": zod.string().nullish()
+  "deleted_at": zod.string().nullish(),
+  "reactions": zod.array(zod.object({
+  "emoji": zod.string().describe('The emoji character (e.g. \"❤️\").'),
+  "count": zod.number().describe('Total number of users who reacted with this emoji.'),
+  "reacted_by_me": zod.boolean().describe('Whether the current user has reacted with this emoji.')
+}).describe('Aggregated emoji reaction count on a message.')).nullish().describe('Aggregated emoji reactions on this message.'),
+  "reply_to": zod.object({
+  "id": zod.string(),
+  "content": zod.string().nullish(),
+  "sender_id": zod.string(),
+  "type": zod.enum(['text', 'image', 'audio']).describe('The type of the original message.')
+}).describe('Snapshot of the message being replied to.').nullish().describe('Quoted message preview when this message is a reply.')
 })),
   "call": zod.object({
   "id": zod.string(),

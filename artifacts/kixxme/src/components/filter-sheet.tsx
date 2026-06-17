@@ -4,6 +4,7 @@ import {
   ROLE_LABELS,
   LOOKING_FOR_LABELS,
   ORIENTATION_LABELS,
+  INTEREST_CATEGORIES,
 } from "@/lib/profile-format";
 
 // ---------------------------------------------------------------------------
@@ -48,6 +49,7 @@ export interface DiscoverFilters {
   orientation: string | null;
   distanceMaxKm: number | null;
   countryOnly: boolean;
+  interests: string[];
 }
 
 export const DEFAULT_FILTERS: DiscoverFilters = {
@@ -62,6 +64,7 @@ export const DEFAULT_FILTERS: DiscoverFilters = {
   orientation: null,
   distanceMaxKm: null,
   countryOnly: false,
+  interests: [],
 };
 
 export const DISCOVER_FILTERS_KEY = "kixxme:discover-filters";
@@ -119,6 +122,7 @@ export function countOnlineActiveFilters(f: DiscoverFilters): number {
   if (f.orientation) n++;
   const defaultKm = ONLINE_DEFAULT_FILTERS.distanceMaxKm;
   if (f.distanceMaxKm !== defaultKm || f.countryOnly) n++;
+  if ((f.interests ?? []).length > 0) n++;
   return n;
 }
 
@@ -134,6 +138,7 @@ export function countActiveFilters(f: DiscoverFilters): number {
   if (f.lookingFor) n++;
   if (f.orientation) n++;
   if (f.distanceMaxKm != null || f.countryOnly) n++;
+  if ((f.interests ?? []).length > 0) n++;
   return n;
 }
 
@@ -150,6 +155,7 @@ export function filtersToParams(
     orientation: f.orientation ?? undefined,
     distance_max_km: f.distanceMaxKm ?? undefined,
     country_only: f.countryOnly || undefined,
+    interests: (f.interests ?? []).length > 0 ? f.interests.join(",") : undefined,
   };
 }
 
@@ -525,6 +531,56 @@ export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFe
               value={draft.orientation}
               onChange={(v) => set("orientation", v)}
             />
+          </section>
+
+          {/* Interests */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Intereses en común
+              </p>
+              {(draft.interests ?? []).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => set("interests", [])}
+                  className="text-[11px] text-muted-foreground hover:text-white transition-colors"
+                >
+                  Limpiar ({(draft.interests ?? []).length})
+                </button>
+              )}
+            </div>
+            {INTEREST_CATEGORIES.map((cat) => (
+              <div key={cat.label} className="mb-3">
+                <p className="text-[10px] text-muted-foreground/60 mb-1.5">{cat.label}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {cat.tags.map(({ slug, label }) => {
+                    const active = (draft.interests ?? []).includes(slug);
+                    return (
+                      <button
+                        key={slug}
+                        type="button"
+                        onClick={() => {
+                          const cur = draft.interests ?? [];
+                          set("interests", active ? cur.filter((s) => s !== slug) : [...cur, slug]);
+                        }}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        style={
+                          active
+                            ? { background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }
+                            : {
+                                background: "rgba(255,255,255,0.06)",
+                                color: "rgba(255,255,255,0.75)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                              }
+                        }
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </section>
 
         </div>

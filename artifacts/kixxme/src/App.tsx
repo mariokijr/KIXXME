@@ -13,6 +13,7 @@ import { LimitUpsellProvider } from "@/lib/limit-upsell";
 import { GoldUpsellProvider } from "@/lib/gold-upsell";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { useGeolocation } from "@/lib/use-geolocation";
+import { useWebPush } from "@/lib/web-push";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { ModerationGate } from "@/components/moderation-gate";
 import { EmailVerificationGate } from "@/components/email-verification-gate";
@@ -175,6 +176,11 @@ function AdminRoute({ component: Component }: { component: React.ComponentType<a
   return <Component />;
 }
 
+function PushSetup() {
+  useWebPush();
+  return null;
+}
+
 function LocationSync() {
   const { session } = useAuth();
   const { request } = useGeolocation();
@@ -299,6 +305,7 @@ function App() {
                   <GoldUpsellProvider>
                     <ConfirmProvider>
                       <LocationSync />
+                      <PushSetup />
                       <ModerationGate>
                         <EmailVerificationGate>
                           <OnboardingGate>

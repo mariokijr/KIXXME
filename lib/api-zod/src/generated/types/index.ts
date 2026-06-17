@@ -105,6 +105,8 @@ export * from './mapUsersResponse';
 export * from './mapVisibilityRequest';
 export * from './matchNotification';
 export * from './message';
+export * from './messageReplyPreview';
+export * from './messageReplyPreviewType';
 export * from './moderationActionItem';
 export * from './myModerationStatus';
 export * from './myModerationStatusState';

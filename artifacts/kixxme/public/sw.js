@@ -41,6 +41,40 @@ self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload = {};
+  try { payload = event.data.json(); } catch { return; }
+  const { title = "KixxMe", body = "", url = "/", tag = "default", icon } = payload;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: icon ?? "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url },
+      tag,
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/";
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((list) => {
+        for (const client of list) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            return client.focus().then(() => client.navigate(url));
+          }
+        }
+        return clients.openWindow(url);
+      })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
