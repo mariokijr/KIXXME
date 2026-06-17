@@ -74,6 +74,48 @@ export function saveFilters(f: DiscoverFilters) {
   try { localStorage.setItem(DISCOVER_FILTERS_KEY, JSON.stringify(f)); } catch { /* ignore */ }
 }
 
+// ---------------------------------------------------------------------------
+// Online-grid specific filter state (separate key + nearby-first defaults)
+// ---------------------------------------------------------------------------
+
+/** Default for the "En línea" grid: 100 km radius so users see nearby people first. */
+export const ONLINE_DEFAULT_FILTERS: DiscoverFilters = {
+  ...DEFAULT_FILTERS,
+  distanceMaxKm: 100,
+};
+
+export const ONLINE_FILTERS_KEY = "kixxme:online-filters";
+
+export function readOnlineFilters(): DiscoverFilters {
+  try {
+    const raw = localStorage.getItem(ONLINE_FILTERS_KEY);
+    if (raw) return { ...ONLINE_DEFAULT_FILTERS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...ONLINE_DEFAULT_FILTERS };
+}
+
+export function saveOnlineFilters(f: DiscoverFilters) {
+  try { localStorage.setItem(ONLINE_FILTERS_KEY, JSON.stringify(f)); } catch { /* ignore */ }
+}
+
+/**
+ * Active-filter count for the online grid.
+ * Distance is only "active" when it differs from the 100 km online default.
+ */
+export function countOnlineActiveFilters(f: DiscoverFilters): number {
+  let n = 0;
+  if (f.ageMin != null) n++;
+  if (f.ageMax != null) n++;
+  if (f.onlineOnly) n++;
+  if (f.verifiedOnly) n++;
+  if (f.role) n++;
+  if (f.lookingFor) n++;
+  if (f.orientation) n++;
+  const defaultKm = ONLINE_DEFAULT_FILTERS.distanceMaxKm;
+  if (f.distanceMaxKm !== defaultKm || f.countryOnly) n++;
+  return n;
+}
+
 export function countActiveFilters(f: DiscoverFilters): number {
   let n = 0;
   if (f.ageMin != null) n++;

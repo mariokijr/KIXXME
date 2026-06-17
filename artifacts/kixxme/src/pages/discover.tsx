@@ -41,6 +41,9 @@ import {
   saveFilters,
   countActiveFilters,
   filtersToParams,
+  readOnlineFilters,
+  saveOnlineFilters,
+  countOnlineActiveFilters,
 } from "@/components/filter-sheet";
 
 const TRIAL_BANNER_KEY = "kixxme:trial-banner-dismissed";
@@ -173,14 +176,15 @@ function GridDiscover({
   const { data: ownProfile } = useGetMyProfile({});
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
-  // Filters (only applied to the "En línea" online grid; likes list is unfiltered).
-  const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
+  // Filters for the "En línea" online grid (separate key, 100 km default so
+  // users see people nearby first; likes list is unfiltered regardless).
+  const [filters, setFiltersState] = useState<DiscoverFilters>(readOnlineFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const activeFilterCount = countActiveFilters(filters);
+  const activeFilterCount = countOnlineActiveFilters(filters);
 
   const setFilters = (f: DiscoverFilters) => {
     setFiltersState(f);
-    saveFilters(f);
+    saveOnlineFilters(f);
   };
 
   // "En línea" grid uses the main GET /profiles with online_only=true + user filters
