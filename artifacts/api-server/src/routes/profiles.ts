@@ -469,7 +469,7 @@ router.get("/profiles", async (req, res) => {
   );
 
   // Post-toPublic JS filters (need computed fields like is_online, distance_km).
-  if (onlineOnly) profiles = profiles.filter((p) => p.is_online);
+  if (onlineOnly || feed === "online") profiles = profiles.filter((p) => p.is_online);
   if (distanceMaxKm != null && !Number.isNaN(distanceMaxKm)) {
     profiles = profiles.filter((p) => p.distance_km != null && p.distance_km <= distanceMaxKm);
   }

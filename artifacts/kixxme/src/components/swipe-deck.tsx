@@ -1069,6 +1069,7 @@ export function SwipeView({
         plan={plan}
         feed={feed}
         onFeedChange={setFeed}
+        viewerHasLocation={ownProfile?.latitude != null}
       />
       </>)}
     </div>

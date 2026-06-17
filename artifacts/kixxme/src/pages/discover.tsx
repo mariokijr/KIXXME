@@ -451,6 +451,7 @@ function GridDiscover({
         filters={filters}
         onChange={setFilters}
         plan={plan}
+        viewerHasLocation={ownProfile?.latitude != null}
       />
 
       {/* ── Search results ── */}

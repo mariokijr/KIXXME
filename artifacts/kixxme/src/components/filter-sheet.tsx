@@ -246,9 +246,10 @@ interface FilterSheetProps {
   plan: "free" | "plus" | "gold";
   feed?: DiscoverFeed;
   onFeedChange?: (f: DiscoverFeed) => void;
+  viewerHasLocation?: boolean;
 }
 
-export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFeedChange }: FilterSheetProps) {
+export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFeedChange, viewerHasLocation = true }: FilterSheetProps) {
   const [draft, setDraft] = useState<DiscoverFilters>(filters);
   const [draftFeed, setDraftFeed] = useState<DiscoverFeed>(feed ?? "recommended");
   const isPaid = plan === "plus" || plan === "gold";
@@ -360,6 +361,13 @@ export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFe
                 );
               })}
             </div>
+            {/* Location warning */}
+            {!viewerHasLocation && (draft.distanceMaxKm != null || draft.countryOnly) && (
+              <p className="mt-2 text-[11px] flex items-center gap-1.5" style={{ color: "hsl(40,90%,65%)" }}>
+                <span>📍</span>
+                Activa tu ubicación en el Mapa para usar este filtro
+              </p>
+            )}
           </section>
 
           {/* Age range */}
