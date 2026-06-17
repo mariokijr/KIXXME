@@ -469,7 +469,11 @@ router.get("/profiles", async (req, res) => {
   );
 
   // Post-toPublic JS filters (need computed fields like is_online, distance_km).
-  if (onlineOnly || feed === "online") profiles = profiles.filter((p) => p.is_online);
+  // onlineOnly=true (strict filter checkbox) enforces the 5-min is_online window.
+  // feed=online alone uses the DB-side 15-min pre-filter as the definition of
+  // "recently active" — tightening it to 5 min here produced empty results on
+  // small networks because too few users are active within any 5-min window.
+  if (onlineOnly) profiles = profiles.filter((p) => p.is_online);
   if (distanceMaxKm != null && !Number.isNaN(distanceMaxKm)) {
     profiles = profiles.filter((p) => p.distance_km != null && p.distance_km <= distanceMaxKm);
   }

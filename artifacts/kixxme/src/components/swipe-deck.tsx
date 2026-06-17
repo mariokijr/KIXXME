@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -50,6 +51,7 @@ import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
 import { usePassProfile } from "@workspace/api-client-react";
 import { playSound } from "@/lib/sound";
+import { useGeolocation } from "@/lib/use-geolocation";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import {
   gradFor, initialsFor, formatLocation,
@@ -605,6 +607,19 @@ export function SwipeView({
 
   const isGold = ownProfile?.plan === "gold";
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
+
+  // Auto-request geolocation when a distance filter is selected but the viewer
+  // has no stored coordinates yet. Once the PUT /profiles/me/location call
+  // succeeds, useGeolocation invalidates getListProfilesQueryKey so the deck
+  // refetches with the viewer's real coordinates and the bounding box applies.
+  const geo = useGeolocation();
+  useEffect(() => {
+    const needsLoc = filters.distanceMaxKm != null || filters.countryOnly;
+    if (needsLoc && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+      geo.request();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.distanceMaxKm, filters.countryOnly, ownProfile?.latitude]);
   const activeFilterCount = countActiveFilters(filters) + (feed !== "recommended" ? 1 : 0);
 
   const setFeed = (f: DiscoverFeed) => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -35,6 +35,7 @@ import { useNotifications } from "@/lib/notifications";
 import { useLikeActions } from "@/lib/like-actions";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import { useAuth } from "@/lib/auth";
+import { useGeolocation } from "@/lib/use-geolocation";
 import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
@@ -195,6 +196,19 @@ function GridDiscover({
   const [filters, setFiltersState] = useState<DiscoverFilters>(readOnlineFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilterCount = countOnlineActiveFilters(filters);
+
+  // Auto-request geolocation when a distance filter is active but the viewer has
+  // no stored coordinates. useGeolocation PUTs /profiles/me/location on success
+  // and invalidates getListProfilesQueryKey, triggering a fresh fetch with
+  // real coordinates so the bounding-box / distance filter actually works.
+  const geo = useGeolocation();
+  useEffect(() => {
+    const needsLoc = filters.distanceMaxKm != null || filters.countryOnly;
+    if (needsLoc && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+      geo.request();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.distanceMaxKm, filters.countryOnly, ownProfile?.latitude]);
 
   const setFilters = (f: DiscoverFilters) => {
     setFiltersState(f);
