@@ -40,9 +40,9 @@ export function ModeToggle({
             style={
               active
                 ? {
-                    background:
-                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                    background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
                     color: "white",
+                    boxShadow: "0 0 18px rgba(168,85,247,0.55), 0 0 6px rgba(236,72,153,0.35)",
                   }
                 : { color: "hsl(240,10%,55%)" }
             }

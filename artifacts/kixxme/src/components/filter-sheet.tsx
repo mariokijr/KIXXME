@@ -39,6 +39,8 @@ export function saveFeed(f: DiscoverFeed) {
 export interface DiscoverFilters {
   ageMin: number | null;
   ageMax: number | null;
+  heightMin: number | null;
+  heightMax: number | null;
   onlineOnly: boolean;
   verifiedOnly: boolean;
   role: string | null;
@@ -51,6 +53,8 @@ export interface DiscoverFilters {
 export const DEFAULT_FILTERS: DiscoverFilters = {
   ageMin: null,
   ageMax: null,
+  heightMin: null,
+  heightMax: null,
   onlineOnly: false,
   verifiedOnly: false,
   role: null,
@@ -106,6 +110,8 @@ export function countOnlineActiveFilters(f: DiscoverFilters): number {
   let n = 0;
   if (f.ageMin != null) n++;
   if (f.ageMax != null) n++;
+  if (f.heightMin != null) n++;
+  if (f.heightMax != null) n++;
   if (f.onlineOnly) n++;
   if (f.verifiedOnly) n++;
   if (f.role) n++;
@@ -120,6 +126,8 @@ export function countActiveFilters(f: DiscoverFilters): number {
   let n = 0;
   if (f.ageMin != null) n++;
   if (f.ageMax != null) n++;
+  if (f.heightMin != null) n++;
+  if (f.heightMax != null) n++;
   if (f.onlineOnly) n++;
   if (f.verifiedOnly) n++;
   if (f.role) n++;
@@ -377,6 +385,42 @@ export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFe
                   value={draft.ageMax ?? ""}
                   onChange={(e) => set("ageMax", e.target.value ? parseInt(e.target.value, 10) : null)}
                   placeholder="99"
+                  className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder:text-muted-foreground/50 outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Height range */}
+          <section>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Altura (cm)
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground mb-1 block">Mínima</label>
+                <input
+                  type="number"
+                  min={140}
+                  max={220}
+                  value={draft.heightMin ?? ""}
+                  onChange={(e) => set("heightMin", e.target.value ? parseInt(e.target.value, 10) : null)}
+                  placeholder="—"
+                  className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder:text-muted-foreground/50 outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
+                />
+              </div>
+              <span className="text-muted-foreground text-sm mt-4">—</span>
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground mb-1 block">Máxima</label>
+                <input
+                  type="number"
+                  min={140}
+                  max={220}
+                  value={draft.heightMax ?? ""}
+                  onChange={(e) => set("heightMax", e.target.value ? parseInt(e.target.value, 10) : null)}
+                  placeholder="—"
                   className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder:text-muted-foreground/50 outline-none"
                   style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
                 />

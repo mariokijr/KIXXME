@@ -52,11 +52,24 @@ export default function Matches() {
   const isEmpty = !isLoading && (isError || matches.length === 0);
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+      {/* Ambient orbs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-20 left-1/3 w-[24rem] h-[24rem] rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.32) 0%, transparent 68%)", filter: "blur(52px)" }} />
+        <div className="absolute bottom-1/3 -right-16 w-64 h-64 rounded-full" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.25) 0%, transparent 68%)", filter: "blur(44px)" }} />
+      </div>
       <header
-        className="sticky top-0 z-20 px-4 py-3 flex items-center gap-3 border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        className="sticky top-0 z-20 px-4 py-3 flex items-center gap-3 relative"
+        style={{ background: "rgba(8,7,18,0.95)", backdropFilter: "blur(28px)" }}
       >
+        {/* Neon gradient line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1.5px]"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.80) 25%, rgba(236,72,153,0.70) 55%, rgba(139,92,246,0.70) 80%, transparent 100%)",
+            boxShadow: "0 0 8px rgba(168,85,247,0.35)",
+          }}
+        />
         <button
           onClick={() => setLocation("/discover")}
           className="p-1 -ml-1"
@@ -65,9 +78,22 @@ export default function Matches() {
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="font-display text-2xl tracking-wide">Empareja</h1>
+        <h1
+          className="font-display text-2xl tracking-wide"
+          style={{
+            background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 40%, hsl(330,90%,82%) 75%, #fff 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.45))",
+          }}
+        >
+          Empareja
+        </h1>
         {!isLoading && !isEmpty && (
-          <span className="font-sans text-sm text-muted-foreground ml-auto">
+          <span
+            className="font-sans text-sm ml-auto px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(168,85,247,0.12)", color: "hsl(273,80%,72%)", border: "1px solid rgba(168,85,247,0.25)" }}
+          >
             {matches.length}
           </span>
         )}

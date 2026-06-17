@@ -50,16 +50,50 @@ export default function Chats() {
   const hasContent = conversations.length > 0 || !!official;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+      {/* ── Ambient background orbs ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div
+          className="absolute -top-28 -left-16 w-[28rem] h-[28rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.38) 0%, rgba(168,85,247,0.10) 52%, transparent 72%)", filter: "blur(56px)" }}
+        />
+        <div
+          className="absolute bottom-1/3 -right-20 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.30) 0%, transparent 68%)", filter: "blur(48px)" }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[26rem] h-[26rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 65%)", filter: "blur(60px)" }}
+        />
+      </div>
+
       <header
-        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.9)", backdropFilter: "blur(20px)" }}
+        className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative"
+        style={{ background: "rgba(8,7,18,0.95)", backdropFilter: "blur(28px)" }}
       >
-        <h1 className="font-display text-2xl tracking-wide">Mensajes</h1>
+        {/* Neon gradient line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1.5px]"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.80) 25%, rgba(236,72,153,0.70) 55%, rgba(139,92,246,0.70) 80%, transparent 100%)",
+            boxShadow: "0 0 8px rgba(168,85,247,0.35)",
+          }}
+        />
+        <h1
+          className="font-display text-2xl tracking-wide"
+          style={{
+            background: "linear-gradient(110deg, hsl(273,90%,85%) 0%, hsl(290,85%,80%) 40%, hsl(330,90%,82%) 75%, #fff 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0 0 18px rgba(168,85,247,0.45))",
+          }}
+        >
+          Mensajes
+        </h1>
         <Link href="/discover">
           <button
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)" }}
+            className="w-9 h-9 flex items-center justify-center rounded-xl border text-muted-foreground hover:text-foreground transition-colors"
+            style={{ background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.22)" }}
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -169,6 +203,14 @@ function OfficialCard({ ticket, onClick }: { ticket: SupportTicket; onClick: () 
   );
 }
 
+function planBorderStyle(plan?: string | null): React.CSSProperties {
+  if (plan === "gold")
+    return { border: "2px solid rgba(251,191,36,0.70)", boxShadow: "0 0 10px rgba(251,191,36,0.30)" };
+  if (plan === "plus")
+    return { border: "2px solid rgba(168,85,247,0.55)", boxShadow: "0 0 8px rgba(168,85,247,0.22)" };
+  return { border: "1.5px solid rgba(255,255,255,0.10)" };
+}
+
 function ConvCard({ conv, onClick }: { conv: Conversation; onClick: () => void }) {
   const u = conv.other_user;
   const initials = (u.username || "?").slice(0, 2).toUpperCase();
@@ -179,31 +221,44 @@ function ConvCard({ conv, onClick }: { conv: Conversation; onClick: () => void }
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/20 hover:bg-white/[0.02] transition-colors text-left"
+      className="w-full flex items-center gap-3 px-4 py-3.5 border-b transition-colors text-left relative z-10"
+      style={{
+        borderBottomColor: "rgba(168,85,247,0.10)",
+        background: hasUnread ? "rgba(168,85,247,0.04)" : "transparent",
+      }}
     >
       <div className="relative flex-shrink-0">
-        <Avatar className="w-12 h-12 rounded-xl border border-border/30">
+        <Avatar className="w-12 h-12 rounded-xl overflow-hidden" style={planBorderStyle(u.plan)}>
           {u.avatar_url && <AvatarImage src={u.avatar_url} className="object-cover" />}
           <AvatarFallback className="font-display text-lg bg-card text-primary">{initials}</AvatarFallback>
         </Avatar>
         {u.is_online && (
           <span
             className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
-            style={{ background: "hsl(142,71%,45%)", borderColor: "hsl(238,25%,6%)" }}
+            style={{ background: "hsl(142,71%,45%)", borderColor: "hsl(238,25%,6%)", boxShadow: "0 0 6px rgba(34,197,94,0.55)" }}
           />
+        )}
+        {u.plan === "gold" && (
+          <span
+            className="absolute -top-1.5 -right-1.5 text-sm leading-none"
+            style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.8))" }}
+          >👑</span>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-display text-base text-foreground tracking-wide truncate flex items-center gap-1">
             {u.username}
-            {u.is_verified && <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />}
+            {u.is_verified && (
+              <BadgeCheck className="w-4 h-4 text-sky-400 flex-shrink-0" style={{ filter: "drop-shadow(0 0 4px rgba(56,189,248,0.55))" }} />
+            )}
           </span>
           {conv.last_message_at && (
             <span
               className={`font-sans text-xs ml-2 flex-shrink-0 ${
-                hasUnread ? "text-primary font-semibold" : "text-muted-foreground"
+                hasUnread ? "font-semibold" : "text-muted-foreground"
               }`}
+              style={hasUnread ? { color: "hsl(273,80%,72%)" } : undefined}
             >
               {timeAgo(conv.last_message_at)}
             </span>
@@ -220,7 +275,7 @@ function ConvCard({ conv, onClick }: { conv: Conversation; onClick: () => void }
           {hasUnread && (
             <span
               className="flex-shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full text-[11px] font-bold text-white"
-              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", boxShadow: "0 0 8px rgba(168,85,247,0.50)" }}
             >
               {unread > 99 ? "99+" : unread}
             </span>

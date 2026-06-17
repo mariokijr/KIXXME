@@ -39,9 +39,17 @@ export default function LesGustas() {
     <div className="min-h-screen pb-24" style={{ background: "radial-gradient(ellipse 100% 50% at 50% 0%, hsl(270 30% 8%) 0%, hsl(238 25% 4%) 60%)" }}>
       {/* Header */}
       <div
-        className="sticky top-0 z-20 flex items-center gap-3 px-4 py-4 border-b border-border/30"
-        style={{ background: "rgba(8,7,18,0.92)", backdropFilter: "blur(20px)" }}
+        className="sticky top-0 z-20 flex items-center gap-3 px-4 py-4 relative"
+        style={{ background: "rgba(8,7,18,0.95)", backdropFilter: "blur(28px)" }}
       >
+        {/* Neon gradient line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1.5px]"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(236,72,153,0.75) 25%, rgba(168,85,247,0.70) 55%, rgba(236,72,153,0.65) 80%, transparent 100%)",
+            boxShadow: "0 0 8px rgba(236,72,153,0.35)",
+          }}
+        />
         <button
           type="button"
           onClick={() => setLocation("/profile")}
@@ -50,7 +58,15 @@ export default function LesGustas() {
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </button>
         <div className="flex-1">
-          <h1 className="font-display text-xl tracking-widest text-foreground">
+          <h1
+            className="font-display text-xl tracking-widest"
+            style={{
+              background: "linear-gradient(110deg, hsl(330,90%,80%) 0%, hsl(273,85%,78%) 50%, hsl(330,90%,82%) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 14px rgba(236,72,153,0.45))",
+            }}
+          >
             Les gustas
           </h1>
           {count > 0 && (
@@ -59,7 +75,7 @@ export default function LesGustas() {
             </p>
           )}
         </div>
-        <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+        <Heart className="w-5 h-5 text-pink-400 fill-pink-400" style={{ filter: "drop-shadow(0 0 6px rgba(236,72,153,0.7))" }} />
       </div>
 
       <div className="max-w-xl mx-auto px-4 pt-4">

@@ -23,6 +23,7 @@ import {
   MapPin,
   BadgeCheck,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Flag,
   MessageCircle,
@@ -38,6 +39,7 @@ import {
   getGetLikeQuotaQueryKey,
   useGetMyProfile,
   getGetMyProfileQueryKey,
+  useUnlikeProfile,
   type PublicProfile,
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications";
@@ -573,12 +575,14 @@ export function SwipeView({
   const likesBadge = newLikes + newMatches;
   const likeActions = useLikeActions();
   const passMut = usePassProfile();
+  const unlikeMut = useUnlikeProfile();
 
   const [feed, setFeedState] = useState<DiscoverFeed>(readFeed);
   const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
   const [filterOpen, setFilterOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
+  const [history, setHistory] = useState<{ profile: PublicProfile; dir: Decision }[]>([]);
 
   const { session } = useAuth();
   const [, setLocation] = useLocation();
@@ -626,8 +630,18 @@ export function SwipeView({
 
   const cardRef = useRef<SwipeCardHandle>(null);
 
-  const top = profiles[index] ?? null;
-  const hasNext = profiles[index + 1] != null;
+  // Client-side height filter applied on top of server results.
+  const visibleProfiles = useMemo(() => {
+    let ps = profiles;
+    if (filters.heightMin != null)
+      ps = ps.filter((p) => p.height_cm != null && p.height_cm >= filters.heightMin!);
+    if (filters.heightMax != null)
+      ps = ps.filter((p) => p.height_cm != null && p.height_cm <= filters.heightMax!);
+    return ps;
+  }, [profiles, filters.heightMin, filters.heightMax]);
+
+  const top = visibleProfiles[index] ?? null;
+  const hasNext = visibleProfiles[index + 1] != null;
 
   const handleSendMessage = () => {
     if (!top) return;
@@ -642,8 +656,9 @@ export function SwipeView({
     qc.invalidateQueries({ queryKey: getGetLikeQuotaQueryKey() });
 
   const handleDecision = (dir: Decision) => {
-    const profile = profiles[index];
+    const profile = visibleProfiles[index];
     if (profile) {
+      setHistory((h) => [...h, { profile, dir }]);
       if (dir === "like") {
         likeActions.like(profile, { onSettled: invalidateQuota });
       } else if (dir === "superlike") {
@@ -669,7 +684,18 @@ export function SwipeView({
 
   const restart = () => {
     setIndex(0);
+    setHistory([]);
     refetch();
+  };
+
+  const rewind = () => {
+    if (history.length === 0 || index === 0) return;
+    const last = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setIndex((i) => Math.max(0, i - 1));
+    if (last.dir === "like" || last.dir === "superlike") {
+      unlikeMut.mutate({ id: last.profile.id });
+    }
   };
 
   return (
@@ -796,11 +822,15 @@ export function SwipeView({
               title={
                 profiles.length === 0 && feed === "online"
                   ? "Nadie en línea ahora mismo"
+                  : visibleProfiles.length === 0 && profiles.length > 0
+                  ? "Ningún perfil coincide con los filtros"
                   : "¡Has visto todos los perfiles!"
               }
               subtitle={
                 profiles.length === 0 && feed === "online"
                   ? "Cambia de sección para ver más perfiles."
+                  : visibleProfiles.length === 0 && profiles.length > 0
+                  ? "Prueba a ampliar el rango de altura u otros filtros."
                   : "Vuelve más tarde para descubrir caras nuevas o explora en cuadrícula."
               }
               onRestart={restart}
@@ -837,13 +867,32 @@ export function SwipeView({
 
       {/* ── Action bar (Badoo/Tinder-style) ── */}
       {!isLoading && !isError && top && (
-        <div className="flex items-center gap-2.5 px-4 pt-2 pb-3">
+        <div className="flex items-center gap-2 px-4 pt-2 pb-3">
+          {/* Rewind — Gold-only: undo last swipe */}
+          <button
+            onClick={isGold ? rewind : () => setLocation("/premium")}
+            disabled={isGold && history.length === 0}
+            aria-label="Deshacer"
+            data-testid="button-rewind"
+            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90 disabled:opacity-30"
+            style={{
+              background: "rgba(16,14,32,0.97)",
+              border: `1px solid ${isGold ? "rgba(251,191,36,0.30)" : "rgba(251,191,36,0.15)"}`,
+              boxShadow: "0 3px 12px rgba(0,0,0,0.50)",
+            }}
+          >
+            <RotateCcw
+              className="w-4 h-4"
+              style={{ color: isGold ? "rgba(251,191,36,0.80)" : "rgba(251,191,36,0.35)" }}
+            />
+          </button>
+
           {/* Pass / X */}
           <button
             onClick={() => act("pass")}
             aria-label="No me interesa"
             data-testid="button-pass"
-            className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
+            className="w-[54px] h-[54px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
               background: "rgba(16,14,32,0.97)",
               border: "1px solid rgba(251,113,133,0.20)",

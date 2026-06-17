@@ -209,14 +209,22 @@ function GridDiscover({
   } = source === "likes" ? likesQuery : onlineQuery;
 
   // Sort "En línea" profiles by distance (closest first, nulls last).
-  const profiles =
-    source === "online"
-      ? [...rawProfiles].sort((a, b) => {
-          if (a.distance_km == null) return 1;
-          if (b.distance_km == null) return -1;
-          return a.distance_km - b.distance_km;
-        })
-      : rawProfiles;
+  const profiles = useMemo(() => {
+    const sorted =
+      source === "online"
+        ? [...rawProfiles].sort((a, b) => {
+            if (a.distance_km == null) return 1;
+            if (b.distance_km == null) return -1;
+            return a.distance_km - b.distance_km;
+          })
+        : rawProfiles;
+    let ps = sorted;
+    if (filters.heightMin != null)
+      ps = ps.filter((p) => p.height_cm != null && p.height_cm >= filters.heightMin!);
+    if (filters.heightMax != null)
+      ps = ps.filter((p) => p.height_cm != null && p.height_cm <= filters.heightMax!);
+    return ps;
+  }, [rawProfiles, source, filters.heightMin, filters.heightMax]);
 
   const { start } = useStartConversation();
   const likeActions = useLikeActions();
@@ -686,24 +694,31 @@ function UserCardInner({
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-3 pointer-events-none"
         style={{ background: user.plan === "gold"
-          ? "linear-gradient(to top, rgba(18,8,36,0.98) 0%, rgba(28,10,52,0.86) 38%, rgba(38,16,60,0.42) 64%, transparent 100%)"
+          ? "linear-gradient(to top, rgba(14,4,30,0.99) 0%, rgba(24,8,48,0.90) 35%, rgba(36,12,58,0.55) 62%, transparent 100%)"
           : user.plan === "plus"
-          ? "linear-gradient(to top, rgba(14,5,38,0.98) 0%, rgba(22,8,48,0.84) 40%, rgba(30,10,55,0.38) 65%, transparent 100%)"
-          : "linear-gradient(to top, rgba(4,2,16,0.98) 0%, rgba(14,6,36,0.85) 40%, rgba(26,8,50,0.32) 68%, transparent 100%)" }}
+          ? "linear-gradient(to top, rgba(10,3,32,0.99) 0%, rgba(18,5,44,0.88) 38%, rgba(28,8,52,0.48) 64%, transparent 100%)"
+          : "linear-gradient(to top, rgba(4,2,16,0.99) 0%, rgba(12,5,32,0.90) 38%, rgba(22,6,44,0.45) 65%, transparent 100%)" }}
       >
         <p className={`font-display text-white leading-tight tracking-wide truncate${featured ? " text-xl" : " text-base"}`}>
           {user.username}
         </p>
-        <div className="flex items-center justify-between mt-0.5">
+        <div className="flex items-center justify-between mt-0.5 gap-1">
           <span className="font-sans text-xs text-white/70 truncate">
-            {[user.age, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
+            {[user.age ? `${user.age}a` : null, user.city].filter(Boolean).join(" · ") || "Nuevo usuario"}
           </span>
-          {distance && (
-            <span className="flex items-center gap-0.5 font-sans text-[10px] flex-shrink-0 ml-1" style={{ color: "rgba(200,170,255,0.7)" }}>
-              <MapPin className="w-2.5 h-2.5" />
-              {distance}
-            </span>
-          )}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {(user as any).height_cm && (
+              <span className="font-sans text-[10px]" style={{ color: "rgba(168,210,255,0.65)" }}>
+                {(user as any).height_cm}cm
+              </span>
+            )}
+            {distance && (
+              <span className="flex items-center gap-0.5 font-sans text-[10px]" style={{ color: "rgba(200,170,255,0.70)" }}>
+                <MapPin className="w-2.5 h-2.5" />
+                {distance}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
