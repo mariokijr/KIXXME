@@ -60,6 +60,7 @@ import {
   setShowOnMap,
   getMapOptOutIds,
   getInvisibleMode,
+  getInvisibleUserIds,
   setInvisibleMode,
 } from "../lib/profile-details.js";
 import {
@@ -403,6 +404,10 @@ router.get("/profiles", async (req, res) => {
     );
   });
 
+  // Filter invisible-mode users from Descubrir (they opted out of appearing).
+  const invisibleIds = await getInvisibleUserIds(rows.map((r) => r.id));
+  if (invisibleIds.size > 0) rows = rows.filter((r) => !invisibleIds.has(r.id));
+
   // JS-side advanced filters (Plus/Gold gated already resolved above).
   if (filterRole) rows = rows.filter((r) => detailsMap.get(r.id)?.role === filterRole);
   if (filterLookingFor) rows = rows.filter((r) => detailsMap.get(r.id)?.looking_for === filterLookingFor);
@@ -659,9 +664,13 @@ router.get("/map/users", async (req, res) => {
     );
   }
 
-  // "Mostrarme en el mapa": drop anyone who opted out (invisible to everyone).
-  const optedOut = await getMapOptOutIds(rows.map((r) => r.id));
-  rows = rows.filter((row) => !optedOut.has(row.id));
+  // "Mostrarme en el mapa": drop anyone who opted out of the map, and anyone
+  // who has invisible mode on (they disappear from all discovery surfaces).
+  const [optedOut, invisibleMapIds] = await Promise.all([
+    getMapOptOutIds(rows.map((r) => r.id)),
+    getInvisibleUserIds(rows.map((r) => r.id)),
+  ]);
+  rows = rows.filter((row) => !optedOut.has(row.id) && !invisibleMapIds.has(row.id));
 
   // Calidad mínima (part 2): require role + "qué busca" and a minimum bio.
   const detailsMap = await getProfileDetailsForUsers(rows.map((r) => r.id));

@@ -1,5 +1,5 @@
 import { db, profileDetailsTable } from "@workspace/db";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 /**
  * Extra profile attributes that don't exist on the Supabase `profiles` table
@@ -263,6 +263,31 @@ export async function getMapOptOutIds(
     if (row.showOnMap === false) out.add(row.userId);
   }
   return out;
+}
+
+/**
+ * Returns the subset of `userIds` that currently have invisible mode enabled.
+ * Used by Descubrir and the world map to hide those users from others' feeds.
+ * Batched over the candidate set — never throws (returns empty set on error).
+ */
+export async function getInvisibleUserIds(
+  userIds: string[],
+): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  try {
+    const rows = await db
+      .select({ userId: profileDetailsTable.userId })
+      .from(profileDetailsTable)
+      .where(
+        and(
+          inArray(profileDetailsTable.userId, userIds),
+          eq(profileDetailsTable.invisibleMode, true),
+        ),
+      );
+    return new Set(rows.map((r) => r.userId));
+  } catch {
+    return new Set();
+  }
 }
 
 /**
