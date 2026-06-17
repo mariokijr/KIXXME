@@ -60,43 +60,18 @@ import { useStartConversation } from "@/lib/use-start-conversation";
 import {
   FilterSheet,
   type DiscoverFilters,
+  type DiscoverFeed,
+  FEED_OPTIONS,
   DEFAULT_FILTERS,
   countActiveFilters,
   filtersToParams,
   readFilters,
   saveFilters,
+  readFeed,
+  saveFeed,
 } from "@/components/filter-sheet";
 
-// ---------------------------------------------------------------------------
-// Activity-based feed filter (persisted in localStorage)
-// ---------------------------------------------------------------------------
-const SWIPE_FEED_KEY = "kixxme:swipe-feed";
-type DiscoverFeed = "recommended" | "online" | "new" | "popular" | "compatible";
-
-const FEED_OPTIONS: { key: DiscoverFeed; emoji: string; label: string }[] = [
-  { key: "recommended", emoji: "✨", label: "Para ti" },
-  { key: "online",      emoji: "🟢", label: "En línea" },
-  { key: "new",         emoji: "🆕", label: "Nuevos" },
-  { key: "popular",     emoji: "🔥", label: "Populares" },
-  { key: "compatible",  emoji: "❤️", label: "Compatibles" },
-];
-
-function readFeed(): DiscoverFeed {
-  try {
-    const v = localStorage.getItem(SWIPE_FEED_KEY);
-    if (
-      v === "recommended" || v === "online" || v === "new" ||
-      v === "popular" || v === "compatible"
-    ) return v;
-  } catch { /* ignore */ }
-  return "recommended";
-}
-
-function saveFeed(f: DiscoverFeed) {
-  try { localStorage.setItem(SWIPE_FEED_KEY, f); } catch { /* ignore */ }
-}
-
-// Discover filters: read/save helpers live in filter-sheet.tsx (shared with grid view).
+// Discover filters + feed: read/save helpers live in filter-sheet.tsx (shared with grid view).
 
 type Decision = "like" | "pass" | "superlike";
 
@@ -615,7 +590,7 @@ export function SwipeView({
 
   const isGold = ownProfile?.plan === "gold";
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
-  const activeFilterCount = countActiveFilters(filters);
+  const activeFilterCount = countActiveFilters(filters) + (feed !== "recommended" ? 1 : 0);
 
   const setFeed = (f: DiscoverFeed) => {
     setFeedState(f);
@@ -715,7 +690,9 @@ export function SwipeView({
             Descubrir
           </h1>
           <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
-            {activeFilterCount > 0 ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}` : "¡Conoce gente nueva!"}
+            {activeFilterCount > 0
+              ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
+              : (FEED_OPTIONS.find(o => o.key === feed)?.emoji ?? "✨") + " " + (FEED_OPTIONS.find(o => o.key === feed)?.label ?? "Para ti")}
           </p>
         </div>
 
@@ -782,33 +759,9 @@ export function SwipeView({
         </div>
       </div>
 
-      {/* Mode toggle + feed chips row */}
-      <div className="px-4 pb-2 flex items-center gap-2">
+      {/* Mode toggle + quota row */}
+      <div className="px-4 pb-2 flex items-center justify-between gap-2">
         <ModeToggle mode={mode} setMode={setMode} />
-        <div
-          className="flex items-center gap-1.5 flex-1 overflow-x-auto min-w-0"
-          style={{ scrollbarWidth: "none" } as React.CSSProperties}
-        >
-          {FEED_OPTIONS.map(({ key, emoji, label }) => {
-            const active = feed === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setFeed(key)}
-                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-sans font-semibold transition-all duration-150"
-                style={
-                  active
-                    ? { background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", color: "white", boxShadow: "0 0 10px rgba(168,85,247,0.45)" }
-                    : { background: "rgba(255,255,255,0.05)", color: "hsl(240,10%,58%)", border: "1px solid rgba(255,255,255,0.08)" }
-                }
-                data-testid={`chip-feed-${key}`}
-              >
-                <span className="text-[9px] leading-none">{emoji}</span>
-                {label}
-              </button>
-            );
-          })}
-        </div>
         <QuotaBar />
       </div>
 
@@ -970,6 +923,8 @@ export function SwipeView({
         filters={filters}
         onChange={setFilters}
         plan={plan}
+        feed={feed}
+        onFeedChange={setFeed}
       />
     </div>
   );

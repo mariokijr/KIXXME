@@ -6,6 +6,36 @@ import {
   ORIENTATION_LABELS,
 } from "@/lib/profile-format";
 
+// ---------------------------------------------------------------------------
+// Feed options — moved here so FilterSheet owns the full filter surface
+// ---------------------------------------------------------------------------
+export type DiscoverFeed = "recommended" | "online" | "new" | "popular" | "compatible";
+
+export const SWIPE_FEED_KEY = "kixxme:swipe-feed";
+
+export const FEED_OPTIONS: { key: DiscoverFeed; emoji: string; label: string }[] = [
+  { key: "recommended", emoji: "✨", label: "Para ti" },
+  { key: "online",      emoji: "🟢", label: "En línea" },
+  { key: "new",         emoji: "🆕", label: "Nuevos" },
+  { key: "popular",     emoji: "🔥", label: "Populares" },
+  { key: "compatible",  emoji: "❤️", label: "Compatibles" },
+];
+
+export function readFeed(): DiscoverFeed {
+  try {
+    const v = localStorage.getItem(SWIPE_FEED_KEY);
+    if (
+      v === "recommended" || v === "online" || v === "new" ||
+      v === "popular" || v === "compatible"
+    ) return v;
+  } catch { /* ignore */ }
+  return "recommended";
+}
+
+export function saveFeed(f: DiscoverFeed) {
+  try { localStorage.setItem(SWIPE_FEED_KEY, f); } catch { /* ignore */ }
+}
+
 export interface DiscoverFilters {
   ageMin: number | null;
   ageMax: number | null;
@@ -158,10 +188,13 @@ interface FilterSheetProps {
   filters: DiscoverFilters;
   onChange: (f: DiscoverFilters) => void;
   plan: "free" | "plus" | "gold";
+  feed?: DiscoverFeed;
+  onFeedChange?: (f: DiscoverFeed) => void;
 }
 
-export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSheetProps) {
+export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFeedChange }: FilterSheetProps) {
   const [draft, setDraft] = useState<DiscoverFilters>(filters);
+  const [draftFeed, setDraftFeed] = useState<DiscoverFeed>(feed ?? "recommended");
   const isPaid = plan === "plus" || plan === "gold";
   const canVerifiedFilter = isPaid;
 
@@ -170,6 +203,7 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
 
   const applyAndClose = () => {
     onChange(draft);
+    onFeedChange?.(draftFeed);
     onClose();
   };
 
@@ -177,6 +211,8 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
     const fresh = { ...DEFAULT_FILTERS };
     setDraft(fresh);
     onChange(fresh);
+    setDraftFeed("recommended");
+    onFeedChange?.("recommended");
     onClose();
   };
 
@@ -209,6 +245,35 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+
+          {/* ── Mostrar (feed) ── */}
+          <section>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Mostrar
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {FEED_OPTIONS.map(({ key, emoji, label }) => {
+                const active = draftFeed === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setDraftFeed(key)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all"
+                    style={
+                      active
+                        ? { background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff", boxShadow: "0 0 14px rgba(168,85,247,0.45)" }
+                        : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.1)" }
+                    }
+                    data-testid={`filter-feed-${key}`}
+                  >
+                    <span>{emoji}</span>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           {/* Distance */}
           <section>
