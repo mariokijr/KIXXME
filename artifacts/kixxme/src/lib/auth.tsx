@@ -188,9 +188,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Kick off a Google OAuth sign-in. supabase-js redirects the whole
   // browser to Google; on return it lands on /auth/callback with tokens
   // in the URL hash (implicit flow).
+  // On Capacitor (Android/iOS) the webview origin is https://localhost, which
+  // Supabase won't allow as a redirect URL. Use the live domain instead so
+  // Android App Links can intercept the callback and open the app.
   const loginWithProvider = async (provider: "google") => {
     const baseNoSlash = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const redirectTo = `${window.location.origin}${baseNoSlash}/auth/callback`;
+    const isNative =
+      typeof (window as { Capacitor?: { isNativePlatform?: () => boolean } })
+        .Capacitor?.isNativePlatform === "function" &&
+      (window as { Capacitor?: { isNativePlatform?: () => boolean } })
+        .Capacitor!.isNativePlatform!();
+    const redirectTo = isNative
+      ? "https://kixxme.com/auth/callback"
+      : `${window.location.origin}${baseNoSlash}/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },

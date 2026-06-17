@@ -14,6 +14,7 @@ import { GoldUpsellProvider } from "@/lib/gold-upsell";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useWebPush } from "@/lib/web-push";
+import { useCapacitorDeepLinks } from "@/lib/capacitor-deep-links";
 import { KixxMeLogo } from "@/components/brand/kixxme-logo";
 import { ModerationGate } from "@/components/moderation-gate";
 import { EmailVerificationGate } from "@/components/email-verification-gate";
@@ -181,6 +182,11 @@ function PushSetup() {
   return null;
 }
 
+function DeepLinkSetup() {
+  useCapacitorDeepLinks();
+  return null;
+}
+
 function LocationSync() {
   const { session } = useAuth();
   const { request } = useGeolocation();
@@ -307,6 +313,7 @@ function App() {
                     <ConfirmProvider>
                       <LocationSync />
                       <PushSetup />
+                      <DeepLinkSetup />
                       <ModerationGate>
                         <EmailVerificationGate>
                           <OnboardingGate>

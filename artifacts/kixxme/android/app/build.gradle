@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Load signing credentials from keystore.properties (not committed to git).
+// Copy keystore.properties.example → keystore.properties and fill in values.
+def keystorePropertiesFile = file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.kixxme.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +24,18 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            def storeFilePath = keystoreProperties['storeFile'] ?: System.getenv('ANDROID_KEYSTORE_FILE')
+            storeFile storeFilePath ? file(storeFilePath) : null
+            storePassword keystoreProperties['storePassword'] ?: System.getenv('ANDROID_STORE_PASSWORD') ?: ''
+            keyAlias keystoreProperties['keyAlias'] ?: System.getenv('ANDROID_KEY_ALIAS') ?: ''
+            keyPassword keystoreProperties['keyPassword'] ?: System.getenv('ANDROID_KEY_PASSWORD') ?: ''
+        }
+    }
     buildTypes {
         release {
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : null
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

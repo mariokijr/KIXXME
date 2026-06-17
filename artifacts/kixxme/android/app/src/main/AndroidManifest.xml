@@ -22,6 +22,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Link: Android intercepts https://kixxme.com/auth/callback
+                 so Google OAuth can redirect back into the app after login.
+                 Requires assetlinks.json on the domain (public/.well-known/).    -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="kixxme.com"
+                    android:pathPrefix="/auth/callback" />
+            </intent-filter>
+
         </activity>
 
         <provider
