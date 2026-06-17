@@ -1,0 +1,234 @@
+Quiero rediseñar la experiencia de Descubrir sin romper nada de lo que ya existe.
+
+IMPORTANTE:
+
+Mantener exactamente como está el sistema actual de:
+
+* ❌ No me gusta
+* ❤️ Me gusta
+* ⭐ Super Like
+* 💬 Enviar mensaje
+
+El botón “Enviar mensaje” debe seguir siendo exclusivo para usuarios Gold.
+
+El receptor no necesita ser Gold, pero quien inicia la conversación sí.
+
+No quiero eliminar ninguna funcionalidad actual, solo mejorar la experiencia de descubrimiento.
+
+━━━━━━━━━━━━━━━━━━━
+PRIORIDAD POR UBICACIÓN
+━━━━━━━━━━━━━━━━━━━
+
+La app debe priorizar automáticamente la ubicación del usuario actual.
+
+Ejemplos:
+
+* Si un usuario está en Bilbao, debe ver primero gente de Bilbao y alrededores.
+* Si un usuario está en Buenos Aires, debe ver primero gente de Buenos Aires y alrededores.
+* Si un usuario está en Ciudad de México, debe ver primero gente de Ciudad de México y alrededores.
+
+La prioridad nunca debe ser global.
+
+Cada usuario debe tener un feed personalizado según dónde está.
+
+━━━━━━━━━━━━━━━━━━━
+FILTROS MANUALES
+━━━━━━━━━━━━━━━━━━━
+
+Añadir un botón visible de filtros en Descubrir.
+
+Al pulsarlo, abrir un modal o bottom-sheet con estilo KixxMe.
+
+Opciones:
+
+1. Distancia máxima
+
+* 5 km
+* 10 km
+* 25 km
+* 50 km
+* 100 km
+* 250 km
+* 500 km
+* Mi país
+* Todo el mundo
+
+Comportamiento:
+
+* Por defecto usar una distancia inteligente.
+* Priorizar siempre la gente más cercana.
+* Si el usuario elige “Mi país”, mostrar usuarios del mismo país.
+* Si elige “Todo el mundo”, mostrar usuarios internacionales.
+
+━━━━━━━━━━━━━━━━━━━
+FILTRO EN LÍNEA
+━━━━━━━━━━━━━━━━━━━
+
+Añadir un filtro:
+
+☑ Solo usuarios en línea
+
+Cuando esté activado:
+
+* En las tarjetas solo deben aparecer usuarios online.
+* Debe afectar directamente al sistema de deslizar.
+* Like, Super Like, No me gusta y Mensaje deben funcionar solo con usuarios online.
+
+El filtro debe combinarse con la distancia.
+
+Ejemplos:
+
+* Usuarios en línea a 25 km.
+* Usuarios en línea a 100 km.
+* Usuarios en línea en mi país.
+* Usuarios en línea en todo el mundo.
+
+Si no hay suficientes usuarios online:
+
+Mostrar un mensaje:
+
+“No hay más personas en línea cerca de ti. Amplía la distancia o desactiva el filtro.”
+
+No mezclar usuarios offline cuando este filtro esté activo.
+
+━━━━━━━━━━━━━━━━━━━
+FILTRO DE EDAD
+━━━━━━━━━━━━━━━━━━━
+
+Añadir:
+
+* Edad mínima.
+* Edad máxima.
+
+━━━━━━━━━━━━━━━━━━━
+FILTRO DE VERIFICADOS
+━━━━━━━━━━━━━━━━━━━
+
+Opciones:
+
+* Todos.
+* Solo verificados.
+
+━━━━━━━━━━━━━━━━━━━
+ALGORITMO DE DESCUBRIMIENTO
+━━━━━━━━━━━━━━━━━━━
+
+Ordenar perfiles por prioridad:
+
+1. Usuarios dentro del radio seleccionado.
+2. Misma ciudad.
+3. Misma provincia/región/estado.
+4. Mismo país.
+5. Internacional (solo si el usuario elige “Todo el mundo”).
+
+Dentro de cada grupo, priorizar:
+
+* Usuarios en línea.
+* Actividad reciente.
+* Distancia.
+* Compatibilidad.
+
+Si faltan usuarios:
+
+Ampliar automáticamente:
+
+25 km → 50 km → 100 km → 250 km → 500 km → mismo país → internacional.
+
+Nunca dejar Descubrir vacío.
+
+━━━━━━━━━━━━━━━━━━━
+MOSTRAR DISTANCIA
+━━━━━━━━━━━━━━━━━━━
+
+No mostrar números enormes.
+
+Evitar:
+
+“9170 km”
+
+Mostrar:
+
+* “Bilbao · 12 km”
+* “Madrid · 48 km”
+* “España”
+* “Argentina 🇦🇷”
+* “México 🇲🇽”
+
+Si no hay ubicación:
+
+“Ubicación no disponible”
+
+━━━━━━━━━━━━━━━━━━━
+GUARDAR PREFERENCIAS
+━━━━━━━━━━━━━━━━━━━
+
+Guardar por usuario:
+
+* Distancia elegida.
+* Edad mínima.
+* Edad máxima.
+* Solo usuarios en línea.
+* Solo verificados.
+* Mi país / Todo el mundo.
+
+Las preferencias deben mantenerse al cerrar y abrir la app.
+
+━━━━━━━━━━━━━━━━━━━
+PRIVACIDAD
+━━━━━━━━━━━━━━━━━━━
+
+No mostrar la ubicación exacta.
+
+Usar:
+
+* Ciudad.
+* País.
+* Distancia aproximada.
+
+Respetar:
+
+* show_on_map
+* privacidad existente
+* permisos de ubicación
+
+━━━━━━━━━━━━━━━━━━━
+REQUISITOS TÉCNICOS
+━━━━━━━━━━━━━━━━━━━
+
+Antes de hacer migraciones:
+
+Revisar qué campos existen ya para:
+
+* país
+* ciudad
+* latitud
+* longitud
+* online
+* last_seen
+* verificación
+* preferencias
+
+Si falta algo:
+
+Proponer migraciones antes de ejecutarlas.
+
+IMPORTANTE:
+
+* No romper login.
+* No romper Google OAuth.
+* No romper Gold.
+* No romper chats.
+* No romper mapa.
+* No romper perfiles.
+* No romper Live.
+* No romper el sistema actual de matches.
+
+Implementarlo de forma incremental.
+
+Ejecutar:
+
+* typecheck
+* build
+* tests
+
+al finalizar.

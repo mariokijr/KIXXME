@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,13 +12,15 @@ import {
   Flag,
   Sparkles,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   useListMyLikes,
   getListMyLikesQueryKey,
-  useListOnlineProfiles,
-  getListOnlineProfilesQueryKey,
+  useListProfiles,
+  getListProfilesQueryKey,
   useUnlikeProfile,
+  useGetMyProfile,
   useGetStripeTrialStatus,
   getGetStripeTrialStatusQueryKey,
   PublicProfile,
@@ -33,6 +35,14 @@ import { gradFor, initialsFor, formatDistance } from "@/lib/profile-format";
 import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle";
 import { SwipeView } from "@/components/swipe-deck";
 import { ReportDialog } from "@/components/report-dialog";
+import {
+  FilterSheet,
+  type DiscoverFilters,
+  readFilters,
+  saveFilters,
+  countActiveFilters,
+  filtersToParams,
+} from "@/components/filter-sheet";
 
 const TRIAL_BANNER_KEY = "kixxme:trial-banner-dismissed";
 
@@ -143,17 +153,34 @@ function GridDiscover({
   const qc = useQueryClient();
   const { newLikes, newMatches } = useNotifications();
   const likesBadge = newLikes + newMatches;
+  const { data: ownProfile } = useGetMyProfile({});
+  const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
-  // Only the active source actually fetches; the other stays disabled.
+  // Filters (only applied to the "En línea" online grid; likes list is unfiltered).
+  const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = source === "online" ? countActiveFilters(filters) : 0;
+
+  const setFilters = (f: DiscoverFilters) => {
+    setFiltersState(f);
+    saveFilters(f);
+  };
+
+  // "En línea" grid uses the main GET /profiles with online_only=true + user filters
+  // so that distance / age / country filters apply correctly.
+  const onlineParams = useMemo(
+    () => ({ online_only: true, ...filtersToParams(filters) }),
+    [filters],
+  );
+  const onlineQueryKey = getListProfilesQueryKey(onlineParams);
+
   const likesQuery = useListMyLikes({
     query: { queryKey: getListMyLikesQueryKey(), enabled: source === "likes" },
   });
-  const onlineQuery = useListOnlineProfiles({
-    query: {
-      queryKey: getListOnlineProfilesQueryKey(),
-      enabled: source === "online",
-    },
+  const onlineQuery = useListProfiles(onlineParams, {
+    query: { queryKey: onlineQueryKey, enabled: source === "online" },
   });
+
   const {
     data: rawProfiles = [],
     isLoading,
@@ -161,8 +188,6 @@ function GridDiscover({
   } = source === "likes" ? likesQuery : onlineQuery;
 
   // Sort "En línea" profiles by distance (closest first, nulls last).
-  // The backend already returns distance_km for each profile; sorting
-  // client-side is safe here because the online list is relatively small.
   const profiles =
     source === "online"
       ? [...rawProfiles].sort((a, b) => {
@@ -178,10 +203,7 @@ function GridDiscover({
 
   const invalidate = () =>
     qc.invalidateQueries({
-      queryKey:
-        source === "likes"
-          ? getListMyLikesQueryKey()
-          : getListOnlineProfilesQueryKey(),
+      queryKey: source === "likes" ? getListMyLikesQueryKey() : onlineQueryKey,
     });
 
   const handleToggleLike = (user: PublicProfile) => {
@@ -271,29 +293,63 @@ function GridDiscover({
             </span>
           )}
         </div>
-        <Link href="/matches">
-          <button
-            className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="Emparejamientos"
-            data-testid="link-matches"
-          >
-            <Heart className="w-4 h-4 text-primary" />
-            {likesBadge > 0 && (
-              <span
-                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                }}
-                data-testid="badge-likes"
-              >
-                {likesBadge > 99 ? "99+" : likesBadge}
-              </span>
-            )}
-          </button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Filter button — only visible in "En línea" grid */}
+          {source === "online" && (
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors"
+              style={{
+                background: activeFilterCount > 0 ? "rgba(139,92,246,0.18)" : "rgba(255,255,255,0.04)",
+                borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.55)" : "rgba(255,255,255,0.15)",
+              }}
+              aria-label="Filtros"
+            >
+              <SlidersHorizontal className="w-4 h-4" style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.55)" }} />
+              {activeFilterCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          )}
+          <Link href="/matches">
+            <button
+              className="relative w-9 h-9 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              aria-label="Emparejamientos"
+              data-testid="link-matches"
+            >
+              <Heart className="w-4 h-4 text-primary" />
+              {likesBadge > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
+                  }}
+                  data-testid="badge-likes"
+                >
+                  {likesBadge > 99 ? "99+" : likesBadge}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
       </header>
+
+      {/* Filter sheet — En línea grid */}
+      <FilterSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        filters={filters}
+        onChange={setFilters}
+        plan={plan}
+      />
 
       <div className="relative z-10 px-4 pt-3 flex justify-center">
         <ModeToggle mode={mode} setMode={setMode} />
@@ -318,7 +374,7 @@ function GridDiscover({
         )}
       </div>
 
-      <div className="divider-brand mx-4 mb-1 relative z-10" />
+      <div className="relative z-10 mx-4 mb-3 h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 25%, rgba(236,72,153,0.50) 55%, rgba(168,85,247,0.40) 80%, transparent 100%)", boxShadow: "0 0 8px rgba(168,85,247,0.25)" }} />
 
       {isLoading ? (
         <div className="relative z-10 flex flex-col items-center justify-center py-20 gap-4">
@@ -349,6 +405,8 @@ function GridDiscover({
               featured={i === 0}
             />
           ))}
+          {/* Subtle bottom fade so content doesn't crash into nav */}
+          <div className="col-span-2 h-20" />
         </div>
       )}
     </div>
@@ -507,9 +565,9 @@ function UserCardInner({
         {user.is_online && (
           <span
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-sans font-medium text-white"
-            style={{ background: "rgba(34,197,94,0.85)" }}
+            style={{ background: "rgba(22,163,74,0.92)", boxShadow: "0 0 10px rgba(34,197,94,0.65), 0 0 4px rgba(34,197,94,0.40)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             En línea
           </span>
         )}

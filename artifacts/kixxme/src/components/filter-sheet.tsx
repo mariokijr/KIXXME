@@ -15,7 +15,7 @@ export interface DiscoverFilters {
   lookingFor: string | null;
   orientation: string | null;
   distanceMaxKm: number | null;
-  internationalFallback: boolean;
+  countryOnly: boolean;
 }
 
 export const DEFAULT_FILTERS: DiscoverFilters = {
@@ -27,8 +27,22 @@ export const DEFAULT_FILTERS: DiscoverFilters = {
   lookingFor: null,
   orientation: null,
   distanceMaxKm: null,
-  internationalFallback: true,
+  countryOnly: false,
 };
+
+export const DISCOVER_FILTERS_KEY = "kixxme:discover-filters";
+
+export function readFilters(): DiscoverFilters {
+  try {
+    const raw = localStorage.getItem(DISCOVER_FILTERS_KEY);
+    if (raw) return { ...DEFAULT_FILTERS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_FILTERS };
+}
+
+export function saveFilters(f: DiscoverFilters) {
+  try { localStorage.setItem(DISCOVER_FILTERS_KEY, JSON.stringify(f)); } catch { /* ignore */ }
+}
 
 export function countActiveFilters(f: DiscoverFilters): number {
   let n = 0;
@@ -39,7 +53,7 @@ export function countActiveFilters(f: DiscoverFilters): number {
   if (f.role) n++;
   if (f.lookingFor) n++;
   if (f.orientation) n++;
-  if (f.distanceMaxKm != null) n++;
+  if (f.distanceMaxKm != null || f.countryOnly) n++;
   return n;
 }
 
@@ -55,6 +69,7 @@ export function filtersToParams(
     looking_for: f.lookingFor ?? undefined,
     orientation: f.orientation ?? undefined,
     distance_max_km: f.distanceMaxKm ?? undefined,
+    country_only: f.countryOnly || undefined,
   };
 }
 
@@ -103,14 +118,39 @@ function ChipGrid({
   );
 }
 
-const DISTANCE_OPTIONS: { km: number | null; label: string }[] = [
-  { km: 10, label: "10 km" },
-  { km: 25, label: "25 km" },
-  { km: 50, label: "50 km" },
-  { km: 100, label: "100 km" },
-  { km: 250, label: "250 km" },
-  { km: null, label: "Todo el mundo" },
+type DistanceOption =
+  | { kind: "km"; km: number; label: string }
+  | { kind: "country"; label: string }
+  | { kind: "world"; label: string };
+
+const DISTANCE_OPTIONS: DistanceOption[] = [
+  { kind: "km", km: 5,   label: "5 km" },
+  { kind: "km", km: 10,  label: "10 km" },
+  { kind: "km", km: 25,  label: "25 km" },
+  { kind: "km", km: 50,  label: "50 km" },
+  { kind: "km", km: 100, label: "100 km" },
+  { kind: "km", km: 250, label: "250 km" },
+  { kind: "km", km: 500, label: "500 km" },
+  { kind: "country",     label: "Mi país" },
+  { kind: "world",       label: "Todo el mundo" },
 ];
+
+function isDistanceActive(draft: DiscoverFilters, opt: DistanceOption): boolean {
+  if (opt.kind === "km")      return !draft.countryOnly && draft.distanceMaxKm === opt.km;
+  if (opt.kind === "country") return draft.countryOnly;
+  return !draft.countryOnly && draft.distanceMaxKm === null;
+}
+
+function applyDistance(prev: DiscoverFilters, opt: DistanceOption): DiscoverFilters {
+  const active = isDistanceActive(prev, opt);
+  if (opt.kind === "km") {
+    return { ...prev, distanceMaxKm: active ? null : opt.km, countryOnly: false };
+  }
+  if (opt.kind === "country") {
+    return { ...prev, distanceMaxKm: null, countryOnly: !active };
+  }
+  return { ...prev, distanceMaxKm: null, countryOnly: false };
+}
 
 interface FilterSheetProps {
   open: boolean;
@@ -176,13 +216,13 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
               Distancia máxima
             </p>
             <div className="flex flex-wrap gap-2">
-              {DISTANCE_OPTIONS.map(({ km, label }) => {
-                const active = draft.distanceMaxKm === km;
+              {DISTANCE_OPTIONS.map((opt) => {
+                const active = isDistanceActive(draft, opt);
                 return (
                   <button
-                    key={label}
+                    key={opt.label}
                     type="button"
-                    onClick={() => set("distanceMaxKm", draft.distanceMaxKm === km ? null : km)}
+                    onClick={() => setDraft((prev) => applyDistance(prev, opt))}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={
                       active
@@ -194,7 +234,7 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
                           }
                     }
                   >
-                    {label}
+                    {opt.label}
                   </button>
                 );
               })}
@@ -336,34 +376,6 @@ export function FilterSheet({ open, onClose, filters, onChange, plan }: FilterSh
             />
           </section>
 
-          {/* International fallback */}
-          <section>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">Fallback internacional</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Mostrar perfiles internacionales si no hay suficientes cerca
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={draft.internationalFallback}
-                onClick={() => set("internationalFallback", !draft.internationalFallback)}
-                className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-                style={{
-                  background: draft.internationalFallback
-                    ? "linear-gradient(135deg,#8b5cf6,#ec4899)"
-                    : "rgba(255,255,255,0.12)",
-                }}
-              >
-                <span
-                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
-                  style={{ transform: draft.internationalFallback ? "translateX(20px)" : "translateX(0)" }}
-                />
-              </button>
-            </div>
-          </section>
         </div>
 
         <div className="flex-shrink-0 flex gap-3 px-5 py-4 border-t border-white/[0.07]"

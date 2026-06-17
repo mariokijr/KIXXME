@@ -11,6 +11,7 @@ import {
   withinMapScope,
   boxAround,
   type MapScope,
+  detectCountryBbox,
 } from "../lib/geo.js";
 import {
   getBlockRelations,
@@ -259,6 +260,7 @@ router.get("/profiles", async (req, res) => {
   const distanceMaxKm = req.query.distance_max_km
     ? parseFloat(req.query.distance_max_km as string)
     : null;
+  const countryOnly = req.query.country_only === "true";
 
   const { data: me } = await supabase
     .from("profiles")
@@ -366,6 +368,20 @@ router.get("/profiles", async (req, res) => {
     rows = rows.filter((row) =>
       withinMapScope(me ?? null, row.latitude, row.longitude, scope),
     );
+  }
+
+  // "Mi país" filter: restrict to the same country as the caller (bounding box).
+  // When the caller has no coordinates, the filter is ignored (shows all).
+  if (countryOnly) {
+    const callerBbox = detectCountryBbox(me?.latitude, me?.longitude);
+    if (callerBbox) {
+      rows = rows.filter((row) =>
+        row.latitude != null &&
+        row.longitude != null &&
+        row.latitude  >= callerBbox.latMin && row.latitude  <= callerBbox.latMax &&
+        row.longitude >= callerBbox.lngMin && row.longitude <= callerBbox.lngMax,
+      );
+    }
   }
 
   // Calidad mínima (part 2): require a role + "qué busca" and a minimum bio.

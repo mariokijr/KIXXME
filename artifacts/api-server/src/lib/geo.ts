@@ -139,6 +139,52 @@ export function scopeBoxFor(
   return boxAround(viewer.latitude, viewer.longitude, radius);
 }
 
+// ---------------------------------------------------------------------------
+// Country detection for the "Mi país" discover filter
+// ---------------------------------------------------------------------------
+
+/**
+ * Approximate bounding boxes for major countries. Used by detectCountryBbox()
+ * to locate the caller's country and restrict the candidate set. Bboxes are
+ * deliberately generous — haversine / calidad-mínima do the precise cut.
+ */
+const COUNTRY_BBOXES: { code: string; box: BBox }[] = [
+  { code: "ES", box: { latMin: 27.4, latMax: 44.0, lngMin: -18.3, lngMax:  4.6 } }, // Spain (incl. Canarias)
+  { code: "PT", box: { latMin: 36.8, latMax: 42.2, lngMin:  -9.5, lngMax: -6.2 } }, // Portugal
+  { code: "FR", box: { latMin: 41.3, latMax: 51.1, lngMin:  -5.2, lngMax:  9.6 } }, // France
+  { code: "DE", box: { latMin: 47.3, latMax: 55.1, lngMin:   5.9, lngMax: 15.0 } }, // Germany
+  { code: "IT", box: { latMin: 35.5, latMax: 47.1, lngMin:   6.6, lngMax: 18.5 } }, // Italy
+  { code: "GB", box: { latMin: 49.7, latMax: 61.0, lngMin:  -8.2, lngMax:  2.0 } }, // UK
+  { code: "NL", box: { latMin: 50.7, latMax: 53.6, lngMin:   3.3, lngMax:  7.3 } }, // Netherlands
+  { code: "MX", box: { latMin: 14.5, latMax: 32.7, lngMin:-118.5, lngMax:-86.7 } }, // Mexico
+  { code: "AR", box: { latMin:-55.1, latMax:-21.8, lngMin: -73.6, lngMax:-53.6 } }, // Argentina
+  { code: "CO", box: { latMin: -4.2, latMax: 13.4, lngMin: -79.0, lngMax:-66.8 } }, // Colombia
+  { code: "CL", box: { latMin:-55.9, latMax:-17.5, lngMin: -75.6, lngMax:-66.4 } }, // Chile
+  { code: "PE", box: { latMin:-18.4, latMax:  0.1, lngMin: -81.4, lngMax:-68.7 } }, // Peru
+  { code: "VE", box: { latMin:  0.6, latMax: 12.2, lngMin: -73.4, lngMax:-59.8 } }, // Venezuela
+  { code: "EC", box: { latMin: -5.0, latMax:  1.5, lngMin: -81.1, lngMax:-75.2 } }, // Ecuador
+  { code: "CU", box: { latMin: 19.8, latMax: 23.2, lngMin: -85.0, lngMax:-74.1 } }, // Cuba
+  { code: "BR", box: { latMin:-33.8, latMax:  5.3, lngMin: -73.9, lngMax:-34.8 } }, // Brazil
+  { code: "US", box: { latMin: 24.4, latMax: 49.4, lngMin:-124.8, lngMax:-66.9 } }, // USA (contiguous)
+  { code: "CA", box: { latMin: 41.7, latMax: 70.0, lngMin:-141.0, lngMax:-52.6 } }, // Canada
+];
+
+/**
+ * Returns the bounding box of the country whose bbox contains the given point,
+ * or null when the point is unrecognised. Callers treat null as "worldwide"
+ * (no country filter applied).
+ */
+export function detectCountryBbox(
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+): BBox | null {
+  if (lat == null || lng == null) return null;
+  for (const { box } of COUNTRY_BBOXES) {
+    if (inBox(lat, lng, box)) return box;
+  }
+  return null;
+}
+
 /**
  * Precise JS refinement applied after the bounding-box pre-filter. Radius scopes
  * use haversine against the viewer; spain/europe re-check the box; worldwide

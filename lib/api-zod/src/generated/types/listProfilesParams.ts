@@ -54,7 +54,11 @@ looking_for?: string;
  */
 orientation?: string;
 /**
- * Maximum distance in km. Gold only — silently ignored for free/Plus users.
+ * Maximum distance in km. Free for all users.
  */
 distance_max_km?: number;
+/**
+ * When true, restrict results to users in the same country as the caller (derived from lat/lng). Free for all users.
+ */
+country_only?: boolean;
 };

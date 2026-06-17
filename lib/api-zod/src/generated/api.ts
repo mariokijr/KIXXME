@@ -350,7 +350,8 @@ export const ListProfilesQueryParams = zod.object({
   "role": zod.coerce.string().optional().describe('Filter by sexual role (activo\/pasivo\/versatil\/…). Plus\/Gold only.'),
   "looking_for": zod.coerce.string().optional().describe('Filter by what the user is looking for. Plus\/Gold only.'),
   "orientation": zod.coerce.string().optional().describe('Filter by orientation. Plus\/Gold only.'),
-  "distance_max_km": zod.coerce.number().optional().describe('Maximum distance in km. Gold only — silently ignored for free\/Plus users.')
+  "distance_max_km": zod.coerce.number().optional().describe('Maximum distance in km. Free for all users.'),
+  "country_only": zod.coerce.boolean().optional().describe('When true, restrict results to users in the same country as the caller (derived from lat\/lng). Free for all users.')
 })
 
 export const ListProfilesResponseItem = zod.object({

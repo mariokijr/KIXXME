@@ -513,9 +513,15 @@ paths:
         - name: distance_max_km
           in: query
           required: false
-          description: Maximum distance in km. Gold only — silently ignored for free/Plus users.
+          description: Maximum distance in km. Free for all users.
           schema:
             type: number
+        - name: country_only
+          in: query
+          required: false
+          description: When true, restrict results to users in the same country as the caller (derived from lat/lng). Free for all users.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Array of public profiles

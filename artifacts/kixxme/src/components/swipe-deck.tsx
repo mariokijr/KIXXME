@@ -63,6 +63,8 @@ import {
   DEFAULT_FILTERS,
   countActiveFilters,
   filtersToParams,
+  readFilters,
+  saveFilters,
 } from "@/components/filter-sheet";
 
 // ---------------------------------------------------------------------------
@@ -94,22 +96,7 @@ function saveFeed(f: DiscoverFeed) {
   try { localStorage.setItem(SWIPE_FEED_KEY, f); } catch { /* ignore */ }
 }
 
-// ---------------------------------------------------------------------------
-// Discover filters (persisted in localStorage)
-// ---------------------------------------------------------------------------
-const DISCOVER_FILTERS_KEY = "kixxme:discover-filters";
-
-function readFilters(): DiscoverFilters {
-  try {
-    const raw = localStorage.getItem(DISCOVER_FILTERS_KEY);
-    if (raw) return { ...DEFAULT_FILTERS, ...JSON.parse(raw) };
-  } catch { /* ignore */ }
-  return { ...DEFAULT_FILTERS };
-}
-
-function saveFilters(f: DiscoverFilters) {
-  try { localStorage.setItem(DISCOVER_FILTERS_KEY, JSON.stringify(f)); } catch { /* ignore */ }
-}
+// Discover filters: read/save helpers live in filter-sheet.tsx (shared with grid view).
 
 type Decision = "like" | "pass" | "superlike";
 

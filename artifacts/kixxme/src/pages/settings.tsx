@@ -4,6 +4,7 @@ import {
   useRequestAccountActionCode,
   useConfirmAccountAction,
   useGetSubscription,
+  useGetMyProfile,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +22,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  ChevronLeft,
   ChevronRight,
   Settings as SettingsIcon,
   PauseCircle,
@@ -34,12 +34,12 @@ import {
   LogOut,
   KeyRound,
   CreditCard,
-  HelpCircle,
   MessageSquare,
   HeadphonesIcon,
   Check,
   Zap,
   FileText,
+  User,
 } from "lucide-react";
 
 type DeactivationType = "1m" | "3m" | "6m" | "indefinite";
@@ -86,6 +86,7 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const { data: myProfile } = useGetMyProfile({});
 
   const [duration, setDuration] = useState<DeactivationType>("1m");
   const [verifyOpen, setVerifyOpen] = useState(false);
@@ -211,36 +212,68 @@ export default function Settings() {
     );
   };
 
+  const planLabel =
+    myProfile?.plan === "gold" ? "Gold" :
+    myProfile?.plan === "plus" ? "Plus" : null;
+  const planColor =
+    myProfile?.plan === "gold" ? "hsl(45,90%,60%)" :
+    myProfile?.plan === "plus" ? "hsl(273,75%,72%)" : null;
+
   return (
-    <div className="min-h-full pb-10">
+    <div className="min-h-full pb-24 relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+      {/* Aurora ambient background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-24 left-1/4 w-[28rem] h-[28rem] rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.30) 0%, rgba(168,85,247,0.08) 55%, transparent 72%)", filter: "blur(56px)" }} />
+        <div className="absolute bottom-1/3 -right-16 w-72 h-72 rounded-full" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, transparent 68%)", filter: "blur(48px)" }} />
+      </div>
+
       <header
-        className="px-4 py-3 flex items-center gap-3 sticky top-0 z-10 relative"
-        style={{ background: "rgba(8,7,18,0.88)", backdropFilter: "blur(20px)" }}
+        className="sticky top-0 z-20 px-5 py-4 flex items-center gap-3 relative"
+        style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
         <div
-          className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.55) 35%, rgba(236,72,153,0.40) 65%, transparent 100%)" }}
+          className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.95) 20%, rgba(168,85,247,1.0) 38%, rgba(236,72,153,0.90) 55%, rgba(168,85,247,0.95) 72%, rgba(139,92,246,0.85) 85%, transparent 100%)", boxShadow: "0 0 14px 1px rgba(168,85,247,0.45), 0 0 5px rgba(236,72,153,0.30)" }}
         />
+        <SettingsIcon className="w-5 h-5 text-primary flex-shrink-0" />
+        <h1 className="font-display text-2xl tracking-wide flex-1">Ajustes</h1>
+      </header>
+
+      {/* Account info card */}
+      <div className="relative z-10 px-5 pt-5 pb-1">
         <button
           type="button"
           onClick={() => setLocation("/profile")}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-          data-testid="button-settings-back"
+          className="w-full flex items-center gap-3 p-4 rounded-2xl border transition-colors"
+          style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(168,85,247,0.22)" }}
         >
-          <ChevronLeft className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg,rgba(139,92,246,0.4),rgba(236,72,153,0.3))", border: "1px solid rgba(168,85,247,0.35)" }}>
+            {myProfile?.avatar_url ? (
+              <img src={myProfile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <User className="w-5 h-5 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <p className="font-display text-base tracking-wide text-white truncate">
+              {myProfile?.username ?? user?.email?.split("@")[0] ?? "Mi perfil"}
+            </p>
+            <p className="font-sans text-xs text-muted-foreground truncate">{user?.email}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {planLabel && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-display tracking-wider font-bold" style={{ color: planColor ?? undefined, background: myProfile?.plan === "gold" ? "rgba(251,191,36,0.12)" : "rgba(168,85,247,0.12)", border: `1px solid ${planColor}33` }}>
+                {planLabel}
+              </span>
+            )}
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
         </button>
-        <div className="flex items-center gap-2">
-          <SettingsIcon className="w-5 h-5 text-primary" />
-          <h1 className="font-display text-2xl tracking-wide">Ajustes</h1>
-        </div>
-      </header>
+      </div>
 
-      <div className="px-5 pt-6">
+      <div className="relative z-10 px-5 pt-5">
 
-        {/* ══════════════════════════════════════════════════════
-            PREMIUM — PRIMERA SECCIÓN, MÁXIMA VISIBILIDAD
-            ══════════════════════════════════════════════════════ */}
+        {/* ══ PREMIUM ══ */}
         {subscription?.has_active_subscription ? (
           /* ── Usuario con plan activo ── */
           <div className="mb-8">
@@ -427,15 +460,12 @@ export default function Settings() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════
-            SEGURIDAD
-            ══════════════════════════════════════════════════════ */}
-        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-          SEGURIDAD
-        </h2>
-        <p className="font-sans text-sm text-muted-foreground mb-5">
-          Mantén tu cuenta protegida.
-        </p>
+        {/* ══ SEGURIDAD ══ */}
+        <div className="flex items-center gap-3 mb-4" style={{ borderTop: "1px solid rgba(168,85,247,0.30)", paddingTop: "1.5rem" }}>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, rgba(168,85,247,0.55) 0%, transparent 100%)" }} />
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Seguridad</span>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.25) 100%)" }} />
+        </div>
         <div className="space-y-3 mb-8">
           <button
             type="button"
@@ -452,15 +482,12 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            SOPORTE
-            ══════════════════════════════════════════════════════ */}
-        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-          SOPORTE
-        </h2>
-        <p className="font-sans text-sm text-muted-foreground mb-5">
-          ¿Tienes alguna duda o problema? Estamos aquí para ayudarte.
-        </p>
+        {/* ══ SOPORTE ══ */}
+        <div className="flex items-center gap-3 mb-4" style={{ borderTop: "1px solid rgba(236,72,153,0.22)", paddingTop: "1.5rem" }}>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, rgba(236,72,153,0.45) 0%, transparent 100%)" }} />
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "rgba(244,114,182,0.7)" }}>Soporte</span>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(236,72,153,0.20) 100%)" }} />
+        </div>
         <div className="space-y-3 mb-8">
           <button
             type="button"
@@ -505,15 +532,12 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            CUENTA
-            ══════════════════════════════════════════════════════ */}
-        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-          CUENTA
-        </h2>
-        <p className="font-sans text-sm text-muted-foreground mb-5">
-          Accesos y sesión.
-        </p>
+        {/* ══ CUENTA ══ */}
+        <div className="flex items-center gap-3 mb-4" style={{ borderTop: "1px solid rgba(139,92,246,0.22)", paddingTop: "1.5rem" }}>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, rgba(139,92,246,0.45) 0%, transparent 100%)" }} />
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "rgba(167,139,250,0.7)" }}>Cuenta</span>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.20) 100%)" }} />
+        </div>
         <div className="space-y-3 mb-8">
           <button
             type="button"
@@ -543,12 +567,12 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            GESTIÓN DE CUENTA
-            ══════════════════════════════════════════════════════ */}
-        <h2 className="font-display text-xl tracking-widest text-foreground mb-1">
-          GESTIÓN DE CUENTA
-        </h2>
+        {/* ══ GESTIÓN DE CUENTA ══ */}
+        <div className="flex items-center gap-3 mb-4" style={{ borderTop: "1px solid rgba(239,68,68,0.18)", paddingTop: "1.5rem" }}>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, rgba(239,68,68,0.35) 0%, transparent 100%)" }} />
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "rgba(252,165,165,0.65)" }}>Gestión de cuenta</span>
+          <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(239,68,68,0.15) 100%)" }} />
+        </div>
         <p className="font-sans text-sm text-muted-foreground mb-5">
           Tómate un descanso o elimina tu cuenta. Te pediremos un código de
           verificación enviado a tu correo.
