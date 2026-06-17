@@ -283,6 +283,7 @@ function Router() {
             <Route path="/settings/cancel-subscription">{() => <ProtectedMain component={CancelSubscription} />}</Route>
             <Route path="/settings/blocked">{() => <ProtectedMain component={BlockedUsers} />}</Route>
             <Route path="/les-gustas">{() => <ProtectedMain component={LesGustas} />}</Route>
+            <Route path="/likes-received">{() => <ProtectedMain component={LesGustas} />}</Route>
             <Route path="/admin">{() => <AdminRoute component={Admin} />}</Route>
             <Route path="/profile/:id">{() => <ProtectedRoute component={PublicProfile} />}</Route>
             <Route component={NotFound} />

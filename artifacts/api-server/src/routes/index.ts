@@ -20,6 +20,7 @@ import devicesRouter from "./devices.js";
 import adminRouter from "./admin.js";
 import reactionsRouter from "./reactions.js";
 import pushWebRouter from "./push-web.js";
+import devRouter from "./dev.js";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(devicesRouter);
 router.use(adminRouter);
 router.use(reactionsRouter);
 router.use(pushWebRouter);
+router.use(devRouter);
 
 export default router;

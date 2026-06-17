@@ -91,12 +91,26 @@ export default function Matches() {
         </h1>
         {!isLoading && !isEmpty && (
           <span
-            className="font-sans text-sm ml-auto px-2 py-0.5 rounded-full"
+            className="font-sans text-sm px-2 py-0.5 rounded-full"
             style={{ background: "rgba(168,85,247,0.12)", color: "hsl(273,80%,72%)", border: "1px solid rgba(168,85,247,0.25)" }}
           >
             {matches.length}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setLocation("/les-gustas")}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-sans text-xs font-medium transition-all active:scale-95"
+          style={{
+            background: "rgba(236,72,153,0.12)",
+            border: "1px solid rgba(236,72,153,0.25)",
+            color: "hsl(330,80%,72%)",
+          }}
+          data-testid="button-les-gustas"
+        >
+          <Sparkles className="w-3 h-3" />
+          Les gustas
+        </button>
       </header>
 
       {isLoading ? (

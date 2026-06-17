@@ -105,6 +105,7 @@ export default function Chat() {
   const [recorderActive, setRecorderActive] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
+  const [pickerAnchorRect, setPickerAnchorRect] = useState<DOMRect | null>(null);
   const [reactionOverrides, setReactionOverrides] = useState<Map<string, ReactionSummary[]>>(new Map());
   const [replyingTo, setReplyingTo] = useState<{ id: string; content: string | null; senderId: string; type: string } | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -668,7 +669,7 @@ export default function Chat() {
         )}
       </header>
 
-      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => { setActiveMsg(null); setReactionPickerMsgId(null); }}>
+      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" onClick={() => { setActiveMsg(null); setReactionPickerMsgId(null); setPickerAnchorRect(null); }}>
         {isLoading && localMessages.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -727,51 +728,37 @@ export default function Chat() {
               <div
                 key={msg.id}
                 className={`flex ${isMine ? "justify-end" : "justify-start"} group relative`}
-                onPointerDown={() => {
+                data-testid={`msg-${msg.id}`}
+                onPointerDown={(e) => {
                   if (isDeleted || isOptimistic) return;
-                  longPressTimerRef.current = setTimeout(() => setReactionPickerMsgId(msg.id), 500);
+                  const el = e.currentTarget as HTMLElement;
+                  longPressTimerRef.current = setTimeout(() => {
+                    const rect = el.getBoundingClientRect();
+                    setPickerAnchorRect(rect);
+                    setReactionPickerMsgId(msg.id);
+                  }, 500);
                 }}
-                onPointerUp={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
-                onPointerLeave={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
+                onPointerUp={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onPointerCancel={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (isDeleted || isOptimistic) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setPickerAnchorRect(rect);
+                  setReactionPickerMsgId(msg.id);
+                }}
               >
                 <div className="max-w-[78%] flex flex-col items-stretch relative">
-                  {/* ── Emoji picker (long-press to open) ── */}
-                  {reactionPickerMsgId === msg.id && !isDeleted && (
-                    <div
-                      className={`absolute z-50 bottom-full mb-1 ${isMine ? "right-0" : "left-0"}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div
-                        className="flex items-center gap-0.5 p-1.5 rounded-2xl shadow-xl border"
-                        style={{ background: "rgba(20,15,40,0.97)", borderColor: "rgba(139,92,246,0.45)" }}
-                      >
-                        {ALLOWED_EMOJIS.map((emoji) => {
-                          const rr = reactionOverrides.get(msg.id) ?? (msg.reactions ?? []);
-                          const rFound = rr.find((rx) => rx.emoji === emoji);
-                          return (
-                            <button
-                              key={emoji}
-                              type="button"
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={() => { handleReact(msg.id, emoji, rr); setReactionPickerMsgId(null); }}
-                              className="w-9 h-9 text-xl flex items-center justify-center rounded-xl transition-transform hover:scale-125 active:scale-95"
-                              style={rFound?.reacted_by_me ? { background: "rgba(139,92,246,0.3)" } : {}}
-                            >
-                              {emoji}
-                            </button>
-                          );
-                        })}
-                        <button
-                          type="button"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); setReactionPickerMsgId(null); }}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
                   <div
                     className="rounded-2xl overflow-hidden"
                     style={
@@ -1148,6 +1135,58 @@ export default function Chat() {
       )}
 
       <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+      {/* ── Emoji picker — fixed overlay so overflow-y-auto on the scroll container never clips it ── */}
+      {reactionPickerMsgId && pickerAnchorRect && (() => {
+        const pickedMsg = localMessages.find((m) => m.id === reactionPickerMsgId);
+        if (!pickedMsg) return null;
+        const isMineMsg = pickedMsg.sender_id === myId;
+        const rr = reactionOverrides.get(reactionPickerMsgId) ?? (pickedMsg.reactions ?? []);
+        const PICKER_HEIGHT = 56;
+        const topVal = Math.max(8, pickerAnchorRect.top - PICKER_HEIGHT - 8);
+        const leftVal = isMineMsg
+          ? Math.max(8, pickerAnchorRect.right - 328)
+          : Math.min(window.innerWidth - 336, Math.max(8, pickerAnchorRect.left - 8));
+        return (
+          <div
+            className="fixed z-[200]"
+            style={{ top: topVal, left: leftVal }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center gap-0.5 p-1.5 rounded-2xl shadow-2xl border"
+              style={{ background: "rgba(20,15,40,0.98)", borderColor: "rgba(139,92,246,0.50)" }}
+            >
+              {ALLOWED_EMOJIS.map((emoji) => {
+                const rFound = rr.find((rx) => rx.emoji === emoji);
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      handleReact(reactionPickerMsgId, emoji, rr);
+                      setReactionPickerMsgId(null);
+                      setPickerAnchorRect(null);
+                    }}
+                    className="w-9 h-9 text-xl flex items-center justify-center rounded-xl transition-transform hover:scale-125 active:scale-95"
+                    style={rFound?.reacted_by_me ? { background: "rgba(139,92,246,0.3)" } : {}}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setReactionPickerMsgId(null); setPickerAnchorRect(null); }}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
