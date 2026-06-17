@@ -215,12 +215,13 @@ function GridDiscover({
     saveOnlineFilters(f);
   };
 
-  // "En línea" grid uses the main GET /profiles with feed=online + online_only=true.
-  // feed=online triggers the DB-side last_active_at pre-filter (so the 200-row sample
-  // is drawn from recently-active users). online_only=true is the JS backstop.
-  // Both must come AFTER the filtersToParams spread so they are never overridden.
+  // "En línea" grid uses the main GET /profiles with feed=online.
+  // feed=online triggers the DB-side last_active_at 15-min pre-filter, which
+  // is the correct definition of "recently active". The former online_only=true
+  // JS backstop (5-min window) was removed — on a small network it produced
+  // 0 results because too few users are active within any 5-min window.
   const onlineParams = useMemo(
-    () => ({ ...filtersToParams(filters), feed: ListProfilesFeed.online, online_only: true }),
+    () => ({ ...filtersToParams(filters), feed: ListProfilesFeed.online }),
     [filters],
   );
   const onlineQueryKey = getListProfilesQueryKey(onlineParams);
@@ -466,6 +467,7 @@ function GridDiscover({
         onChange={setFilters}
         plan={plan}
         viewerHasLocation={ownProfile?.latitude != null}
+        onRequestLocation={() => geo.request()}
       />
 
       {/* ── Search results ── */}

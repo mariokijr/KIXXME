@@ -474,7 +474,12 @@ router.get("/profiles", async (req, res) => {
   // "recently active" — tightening it to 5 min here produced empty results on
   // small networks because too few users are active within any 5-min window.
   if (onlineOnly) profiles = profiles.filter((p) => p.is_online);
-  if (distanceMaxKm != null && !Number.isNaN(distanceMaxKm)) {
+  // Only apply the JS distance filter when the viewer has stored coordinates.
+  // Without them, distance_km is null for every candidate (server cannot compute
+  // haversine), so the filter would return 0 results. Gracefully degrade to
+  // "no distance restriction" and let the concurrent geo.request() on the
+  // client store coordinates, after which a refetch applies the real filter.
+  if (distanceMaxKm != null && !Number.isNaN(distanceMaxKm) && me?.latitude != null) {
     profiles = profiles.filter((p) => p.distance_km != null && p.distance_km <= distanceMaxKm);
   }
 

@@ -247,9 +247,12 @@ interface FilterSheetProps {
   feed?: DiscoverFeed;
   onFeedChange?: (f: DiscoverFeed) => void;
   viewerHasLocation?: boolean;
+  /** Called synchronously inside the distance-chip click handler so the browser
+   *  geolocation prompt fires within the user-gesture context (required on iOS). */
+  onRequestLocation?: () => void;
 }
 
-export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFeedChange, viewerHasLocation = true }: FilterSheetProps) {
+export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFeedChange, viewerHasLocation = true, onRequestLocation }: FilterSheetProps) {
   const [draft, setDraft] = useState<DiscoverFilters>(filters);
   const [draftFeed, setDraftFeed] = useState<DiscoverFeed>(feed ?? "recommended");
   const isPaid = plan === "plus" || plan === "gold";
@@ -344,7 +347,14 @@ export function FilterSheet({ open, onClose, filters, onChange, plan, feed, onFe
                   <button
                     key={opt.label}
                     type="button"
-                    onClick={() => setDraft((prev) => applyDistance(prev, opt))}
+                    onClick={() => {
+                      setDraft((prev) => applyDistance(prev, opt));
+                      // Request location synchronously within the click gesture so iOS
+                      // Safari shows the permission prompt (needs a user-activation context).
+                      if (!viewerHasLocation && opt.kind !== "world") {
+                        onRequestLocation?.();
+                      }
+                    }}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={
                       active

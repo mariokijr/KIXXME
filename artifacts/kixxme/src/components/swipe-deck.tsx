@@ -1085,6 +1085,7 @@ export function SwipeView({
         feed={feed}
         onFeedChange={setFeed}
         viewerHasLocation={ownProfile?.latitude != null}
+        onRequestLocation={() => geo.request()}
       />
       </>)}
     </div>
