@@ -31,7 +31,7 @@ export default function Chats() {
   const { data: me } = useGetMyProfile({});
 
   const { data: conversations = [], isLoading } = useListConversations({
-    query: { queryKey: getListConversationsQueryKey(), refetchInterval: 10000 },
+    query: { queryKey: getListConversationsQueryKey(), refetchInterval: 20_000 },
   });
 
   // The official "👑 Soporte KixxMe" thread (Gold only; server returns null
@@ -39,7 +39,7 @@ export default function Chats() {
   const { data: officialData } = useGetOfficialSupportTicket({
     query: {
       queryKey: getGetOfficialSupportTicketQueryKey(),
-      refetchInterval: 15000,
+      refetchInterval: 30_000,
     },
   });
   const official = officialData?.ticket ?? null;

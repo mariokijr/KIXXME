@@ -72,7 +72,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     query: {
       queryKey: getListConversationsQueryKey(),
       enabled: !!session,
-      refetchInterval: 8000,
+      refetchInterval: 30_000,
     },
   });
 
@@ -115,7 +115,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     query: {
       queryKey: getGetNotificationsSummaryQueryKey(),
       enabled: !!session,
-      refetchInterval: 12000,
+      refetchInterval: 30_000,
     },
   });
 

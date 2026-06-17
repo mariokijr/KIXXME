@@ -126,7 +126,7 @@ export default function Chat() {
     query: {
       queryKey: getListMessagesQueryKey(conversationId ?? ""),
       enabled: !!conversationId,
-      refetchInterval: 15000,
+      refetchInterval: 8_000,
     },
   });
 

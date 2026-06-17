@@ -566,7 +566,7 @@ function TicketThread({
   const { data, isLoading } = useGetSupportTicket(ticketId, {
     query: {
       queryKey: getGetSupportTicketQueryKey(ticketId),
-      refetchInterval: 5000,
+      refetchInterval: 8_000,
     },
   });
 

@@ -194,7 +194,7 @@ export default function MapView() {
   const { data: mapData, isLoading } = useListMapUsers(mapQueryParams, {
     query: {
       queryKey: getListMapUsersQueryKey(mapQueryParams),
-      refetchInterval: 5000,
+      refetchInterval: 30_000,
     },
   });
   const { start: startConversation, isPending: convPending } =
