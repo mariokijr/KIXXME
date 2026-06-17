@@ -871,9 +871,9 @@ export default function Chat() {
                           {isMine &&
                             !isOptimistic &&
                             (msg.read_at ? (
-                              <CheckCheck className="w-3 h-3 text-white/80" />
+                              <CheckCheck className="w-3.5 h-3.5" style={{ color: "hsl(217,91%,65%)" }} />
                             ) : (
-                              <Check className="w-3 h-3 text-white/50" />
+                              <Check className="w-3 h-3 text-white/45" />
                             ))}
                         </button>
                       </div>
@@ -907,7 +907,7 @@ export default function Chat() {
                     );
                   })()}
 
-                  {isMine && activeMsg === msg.id && !isDeleted && (
+                  {isMine && activeMsg === msg.id && !isDeleted && !msg.read_at && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
