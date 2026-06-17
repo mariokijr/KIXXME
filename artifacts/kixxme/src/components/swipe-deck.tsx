@@ -693,29 +693,78 @@ export function SwipeView({
   return (
     <div className="flex flex-col h-[calc(100dvh-72px)]">
 
-      {/* ── Header: logo + mode toggle + feed chips + quota + matches ── */}
-      <header
-        className="flex items-center gap-2 px-3 py-2.5 relative"
-        style={{ background: "rgba(8,7,18,0.96)", backdropFilter: "blur(24px)" }}
+      {/* ══ Top bar: mode toggle + matches + filter ══ */}
+      <div
+        className="relative px-3 pt-2.5 pb-0"
+        style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
-        {/* Glowing bottom border */}
+        {/* Neon bottom line */}
         <div
-          className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.6) 30%, rgba(236,72,153,0.5) 70%, transparent 100%)" }}
+          className="absolute bottom-0 left-0 right-0 h-[2px] pointer-events-none"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.9) 18%, rgba(168,85,247,1.0) 38%, rgba(236,72,153,0.9) 58%, rgba(168,85,247,0.9) 78%, rgba(139,92,246,0.8) 90%, transparent 100%)",
+            boxShadow: "0 0 14px 1px rgba(168,85,247,0.45)",
+          }}
         />
-        {/* Glow bloom beneath header */}
-        <div
-          className="absolute -bottom-6 left-0 right-0 h-10 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.12) 0%, rgba(236,72,153,0.04) 60%, transparent 100%)" }}
-        />
-        <KixxMeLogo size={20} withWordmark />
 
-        <div className="flex-shrink-0">
-          <ModeToggle mode={mode} setMode={setMode} />
+        {/* Row 1: mode toggle + right actions */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <ModeToggle mode={mode} setMode={setMode} />
+          </div>
+          <QuotaBar />
+          {/* Matches */}
+          <Link href="/matches">
+            <button
+              className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              aria-label="Emparejamientos"
+              data-testid="link-matches"
+            >
+              <Heart className="w-4 h-4 text-primary" />
+              {likesBadge > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                  style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                  data-testid="badge-likes"
+                >
+                  {likesBadge > 99 ? "99+" : likesBadge}
+                </span>
+              )}
+            </button>
+          </Link>
+          {/* Filters — always visible, glows when active */}
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all"
+            style={{
+              background: activeFilterCount > 0
+                ? "linear-gradient(135deg, rgba(139,92,246,0.35), rgba(236,72,153,0.22))"
+                : "rgba(255,255,255,0.05)",
+              borderColor: activeFilterCount > 0 ? "rgba(168,85,247,0.75)" : "rgba(255,255,255,0.12)",
+              boxShadow: activeFilterCount > 0 ? "0 0 14px rgba(168,85,247,0.45)" : undefined,
+            }}
+            aria-label="Filtros"
+            data-testid="button-filters"
+          >
+            <SlidersHorizontal
+              className="w-4 h-4"
+              style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.55)" }}
+            />
+            {activeFilterCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
 
+        {/* Row 2: feed chips + active filter tags — ALWAYS VISIBLE above the card */}
         <div
-          className="flex items-center gap-1.5 flex-1 overflow-x-auto"
+          className="flex items-center gap-1.5 pt-2 pb-2.5 overflow-x-auto"
           style={{ scrollbarWidth: "none" } as React.CSSProperties}
         >
           {FEED_OPTIONS.map(({ key, emoji, label }) => {
@@ -724,72 +773,99 @@ export function SwipeView({
               <button
                 key={key}
                 onClick={() => setFeed(key)}
-                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-medium transition-all duration-150"
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
                 style={
                   active
                     ? {
                         background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
                         color: "white",
+                        boxShadow: "0 0 12px rgba(168,85,247,0.50)",
                       }
                     : {
-                        background: "rgba(255,255,255,0.05)",
-                        color: "hsl(240,10%,55%)",
-                        border: "1px solid rgba(255,255,255,0.07)",
+                        background: "rgba(255,255,255,0.06)",
+                        color: "hsl(240,10%,60%)",
+                        border: "1px solid rgba(255,255,255,0.09)",
                       }
                 }
                 data-testid={`chip-feed-${key}`}
               >
-                <span className="text-[9px] leading-none">{emoji}</span>
+                <span className="text-[10px] leading-none">{emoji}</span>
                 {label}
               </button>
             );
           })}
-        </div>
 
-        <QuotaBar />
+          {/* Separator */}
+          <div className="flex-shrink-0 w-px h-4 mx-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.12)" }} />
 
-        {/* Filter button */}
-        <button
-          onClick={() => setFilterOpen(true)}
-          className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors"
-          style={{
-            background: activeFilterCount > 0 ? "rgba(139,92,246,0.2)" : "rgba(255,255,255,0.04)",
-            borderColor: activeFilterCount > 0 ? "rgba(139,92,246,0.55)" : "rgba(255,255,255,0.15)",
-          }}
-          aria-label="Filtros"
-          data-testid="button-filters"
-        >
-          <SlidersHorizontal className="w-4 h-4 text-primary" />
-          {activeFilterCount > 0 && (
-            <span
-              className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-              style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-            >
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-
-        <Link href="/matches">
+          {/* Quick filter toggle: Online only */}
           <button
-            className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border border-border/40 transition-colors hover:border-primary/50"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="Emparejamientos"
-            data-testid="link-matches"
+            onClick={() => setFilters({ ...filters, onlineOnly: !filters.onlineOnly })}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+            style={
+              filters.onlineOnly
+                ? { background: "rgba(34,197,94,0.20)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.45)", boxShadow: "0 0 10px rgba(34,197,94,0.25)" }
+                : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
+            }
           >
-            <Heart className="w-4 h-4 text-primary" />
-            {likesBadge > 0 && (
-              <span
-                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-                style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-                data-testid="badge-likes"
-              >
-                {likesBadge > 99 ? "99+" : likesBadge}
-              </span>
-            )}
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: filters.onlineOnly ? "#4ade80" : "rgba(255,255,255,0.25)" }} />
+            Online
           </button>
-        </Link>
-      </header>
+
+          {/* Quick filter: Verified only */}
+          <button
+            onClick={() => setFilters({ ...filters, verifiedOnly: !filters.verifiedOnly })}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+            style={
+              filters.verifiedOnly
+                ? { background: "rgba(56,189,248,0.18)", color: "#7dd3fc", border: "1px solid rgba(56,189,248,0.45)", boxShadow: "0 0 10px rgba(56,189,248,0.25)" }
+                : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
+            }
+          >
+            <BadgeCheck className="w-3 h-3 flex-shrink-0" />
+            Verificados
+          </button>
+
+          {/* Quick filter: distance chip (shows current km if set) */}
+          {filters.distanceMaxKm != null ? (
+            <button
+              onClick={() => setFilters({ ...filters, distanceMaxKm: null })}
+              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+              style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)", boxShadow: "0 0 10px rgba(168,85,247,0.25)" }}
+            >
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              {filters.distanceMaxKm} km ✕
+            </button>
+          ) : null}
+
+          {/* Country chip */}
+          {filters.countryOnly ? (
+            <button
+              onClick={() => setFilters({ ...filters, countryOnly: false })}
+              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+              style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
+            >
+              🌍 Mi país ✕
+            </button>
+          ) : null}
+
+          {/* "Más filtros" — opens full FilterSheet */}
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+            style={{
+              background: activeFilterCount > 0
+                ? "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(236,72,153,0.18))"
+                : "rgba(255,255,255,0.06)",
+              color: activeFilterCount > 0 ? "#c4b5fd" : "hsl(240,10%,60%)",
+              border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.55)" : "rgba(255,255,255,0.09)"}`,
+            }}
+          >
+            <SlidersHorizontal className="w-3 h-3 flex-shrink-0" />
+            Más filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+          </button>
+        </div>
+      </div>
 
       {/* ── Card area ── */}
       <div className="flex-1 min-h-0">

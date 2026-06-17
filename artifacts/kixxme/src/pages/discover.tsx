@@ -347,32 +347,91 @@ function GridDiscover({
           </Link>
         </div>
 
-        {/* Active filter chips — shown inline when filters are on */}
-        {activeFilterCount > 0 && (
-          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
-            {filters.countryOnly && (
-              <FilterChip label="🌍 Mi país" onRemove={() => setFilters({ ...filters, countryOnly: false })} />
-            )}
-            {filters.distanceMaxKm != null && (
-              <FilterChip label={`📍 ${filters.distanceMaxKm} km`} onRemove={() => setFilters({ ...filters, distanceMaxKm: null })} />
-            )}
-            {filters.onlineOnly && (
-              <FilterChip label="🟢 En línea" onRemove={() => setFilters({ ...filters, onlineOnly: false })} />
-            )}
-            {filters.verifiedOnly && (
-              <FilterChip label="✓ Verificados" onRemove={() => setFilters({ ...filters, verifiedOnly: false })} />
-            )}
-            {(filters.ageMin != null || filters.ageMax != null) && (
-              <FilterChip
-                label={`👤 ${filters.ageMin ?? 18}–${filters.ageMax ?? 99} años`}
-                onRemove={() => setFilters({ ...filters, ageMin: null, ageMax: null })}
-              />
-            )}
-            {filters.role && (
-              <FilterChip label={filters.role} onRemove={() => setFilters({ ...filters, role: null })} />
-            )}
-          </div>
-        )}
+        {/* Filter chip strip — always visible for online source; active chips for likes source */}
+        <div
+          className="flex items-center gap-1.5 pt-2 pb-2 overflow-x-auto"
+          style={{ scrollbarWidth: "none" } as React.CSSProperties}
+        >
+          {source === "online" && (
+            <>
+              {/* Quick toggle: Online only */}
+              <button
+                onClick={() => setFilters({ ...filters, onlineOnly: !filters.onlineOnly })}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+                style={
+                  filters.onlineOnly
+                    ? { background: "rgba(34,197,94,0.20)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.45)", boxShadow: "0 0 10px rgba(34,197,94,0.25)" }
+                    : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
+                }
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: filters.onlineOnly ? "#4ade80" : "rgba(255,255,255,0.25)" }} />
+                Online
+              </button>
+              {/* Quick toggle: Verified */}
+              <button
+                onClick={() => setFilters({ ...filters, verifiedOnly: !filters.verifiedOnly })}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+                style={
+                  filters.verifiedOnly
+                    ? { background: "rgba(56,189,248,0.18)", color: "#7dd3fc", border: "1px solid rgba(56,189,248,0.45)", boxShadow: "0 0 10px rgba(56,189,248,0.25)" }
+                    : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
+                }
+              >
+                <BadgeCheck className="w-3 h-3 flex-shrink-0" />
+                Verificados
+              </button>
+              {/* Distance chip if set */}
+              {filters.distanceMaxKm != null && (
+                <button
+                  onClick={() => setFilters({ ...filters, distanceMaxKm: null })}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
+                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
+                >
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  {filters.distanceMaxKm} km ✕
+                </button>
+              )}
+              {/* Country chip if set */}
+              {filters.countryOnly && (
+                <button
+                  onClick={() => setFilters({ ...filters, countryOnly: false })}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
+                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
+                >
+                  🌍 Mi país ✕
+                </button>
+              )}
+              {/* Age chip if set */}
+              {(filters.ageMin != null || filters.ageMax != null) && (
+                <button
+                  onClick={() => setFilters({ ...filters, ageMin: null, ageMax: null })}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
+                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
+                >
+                  👤 {filters.ageMin ?? 18}–{filters.ageMax ?? 99} años ✕
+                </button>
+              )}
+              {/* Separator + Más filtros */}
+              {activeFilterCount > 0 && (
+                <div className="flex-shrink-0 w-px h-4 mx-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.12)" }} />
+              )}
+              <button
+                onClick={() => setFiltersOpen(true)}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+                style={{
+                  background: activeFilterCount > 0
+                    ? "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(236,72,153,0.18))"
+                    : "rgba(255,255,255,0.06)",
+                  color: activeFilterCount > 0 ? "#c4b5fd" : "hsl(240,10%,60%)",
+                  border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.55)" : "rgba(255,255,255,0.09)"}`,
+                }}
+              >
+                <SlidersHorizontal className="w-3 h-3 flex-shrink-0" />
+                Más filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filter sheet */}
