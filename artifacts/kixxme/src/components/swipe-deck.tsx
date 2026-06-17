@@ -169,6 +169,9 @@ const SwipeCard = forwardRef<
         boxShadow: "0 28px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.09), 0 0 40px rgba(139,92,246,0.12)",
       }}
       drag={!decided}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={1}
+      dragTransition={{ bounceStiffness: 0, bounceDamping: 0 }}
       onDragEnd={handleDragEnd}
       data-testid="swipe-card"
     >
@@ -869,7 +872,7 @@ export function SwipeView({
       />
 
       {/* ── Card area ── */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 touch-none">
         <div className="relative w-full h-full">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
