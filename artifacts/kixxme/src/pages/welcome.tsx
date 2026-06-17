@@ -142,7 +142,7 @@ function ProfileCardScreen({ w }: { w: number }) {
         background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 55%)",
       }} />
       {/* Info */}
-      <div style={{ position: "absolute", bottom: 44, left: 10, right: 10 }}>
+      <div style={{ position: "absolute", bottom: 14, left: 10, right: 10 }}>
         <p style={{
           fontFamily: "'Bebas Neue',sans-serif", fontSize: Math.floor(w * 0.13),
           color: "white", lineHeight: 1.1, letterSpacing: "0.03em",
@@ -162,31 +162,6 @@ function ProfileCardScreen({ w }: { w: number }) {
             <MapPin style={{ width: 8, height: 8 }} />2 km
           </span>
         </div>
-      </div>
-      {/* Action buttons */}
-      <div style={{
-        position: "absolute", bottom: 8, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: Math.floor(w * 0.09),
-      }}>
-        {[
-          { Icon: X, bg: "rgba(16,12,36,0.92)", border: "1.5px solid rgba(255,255,255,0.12)", color: "hsl(0,84%,65%)", size: 0.18 },
-          { Icon: Star, bg: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))", border: "none", color: "white", size: 0.14, fill: true, shadow: "0 0 10px rgba(56,189,248,0.4)" },
-          { Icon: Heart, bg: BRAND_GRADIENT, border: "none", color: "white", size: 0.18, fill: true, shadow: "0 0 12px rgba(168,85,247,0.45)" },
-        ].map(({ Icon, bg, border, color, size, fill, shadow }, i) => (
-          <div key={i} style={{
-            width: Math.floor(w * size), height: Math.floor(w * size),
-            borderRadius: "50%", background: bg,
-            border: border as string | undefined,
-            boxShadow: shadow,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon style={{
-              width: Math.floor(w * size * 0.5), height: Math.floor(w * size * 0.5),
-              color, fill: fill ? color : "transparent",
-            }} />
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -488,12 +463,12 @@ export default function Welcome() {
       </div>
 
       {/* Gradient scrim — phones fade into content */}
-      <div className="absolute inset-0 z-[2] pointer-events-none" style={{
-        background: "linear-gradient(to top, #060413 44%, rgba(6,4,19,0.97) 54%, rgba(6,4,19,0.5) 66%, rgba(6,4,19,0.06) 80%, transparent 100%)",
+      <div className="absolute inset-0 z-[5] pointer-events-none" style={{
+        background: "linear-gradient(to top, #060413 42%, rgba(6,4,19,0.98) 52%, rgba(6,4,19,0.85) 60%, rgba(6,4,19,0.4) 72%, rgba(6,4,19,0.08) 84%, transparent 100%)",
       }} />
 
       {/* Flow spacer — pushes content below the phone zone */}
-      <div style={{ height: "48vh", flexShrink: 0 }} aria-hidden="true" />
+      <div style={{ height: "calc(4vh + 415px)", flexShrink: 0 }} aria-hidden="true" />
 
       {/* ── CONTENT ── */}
       <div className="relative z-10 w-full max-w-md mx-auto px-5 pt-1 pb-8 flex flex-col items-center">

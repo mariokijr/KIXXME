@@ -224,21 +224,26 @@ function GridDiscover({
       {/* ── Ambient background orbs ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
-          className="absolute -top-20 left-1/4 w-[26rem] h-[26rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.30) 0%, rgba(168,85,247,0.08) 55%, transparent 75%)", filter: "blur(44px)" }}
+          className="absolute -top-24 left-1/4 w-[32rem] h-[32rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.42) 0%, rgba(168,85,247,0.12) 52%, transparent 72%)", filter: "blur(48px)" }}
         />
         <div
-          className="absolute top-1/3 -right-20 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.26) 0%, rgba(236,72,153,0.06) 60%, transparent 80%)", filter: "blur(50px)" }}
+          className="absolute top-1/3 -right-24 w-96 h-96 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.36) 0%, rgba(236,72,153,0.08) 56%, transparent 76%)", filter: "blur(52px)" }}
         />
         <div
-          className="absolute bottom-1/4 -left-8 w-72 h-72 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%)", filter: "blur(40px)" }}
+          className="absolute bottom-1/4 -left-10 w-80 h-80 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 68%)", filter: "blur(44px)" }}
         />
-        {/* Extra warm accent at top-right */}
+        {/* Warm accent top-right */}
         <div
-          className="absolute top-0 right-0 w-48 h-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)", filter: "blur(36px)", transform: "translate(20%, -30%)" }}
+          className="absolute top-0 right-0 w-64 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.10) 0%, transparent 68%)", filter: "blur(40px)", transform: "translate(20%, -30%)" }}
+        />
+        {/* Centre bloom */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 65%)", filter: "blur(60px)" }}
         />
       </div>
       <header
@@ -545,11 +550,10 @@ function UserCardInner({
       <button
         onClick={onSuperLike}
         disabled={superLikePending}
-        className="absolute bottom-[6.5rem] right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/25 backdrop-blur-sm transition-transform active:scale-90 disabled:opacity-50"
+        className="absolute bottom-[6.5rem] right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-sm transition-transform active:scale-90 disabled:opacity-50"
         style={{
-          background:
-            "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
-          boxShadow: "0 0 12px rgba(56,189,248,0.45)",
+          background: "linear-gradient(135deg, hsl(199,89%,52%), hsl(273,85%,55%))",
+          boxShadow: "0 0 16px rgba(56,189,248,0.60), 0 0 6px rgba(168,85,247,0.35)",
         }}
         aria-label="SuperLike"
         data-testid="button-superlike"
@@ -559,22 +563,27 @@ function UserCardInner({
 
       <button
         onClick={onToggleLike}
-        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-sm transition-transform active:scale-90"
-        style={{ background: "rgba(0,0,0,0.4)" }}
+        className="absolute bottom-16 right-2 w-9 h-9 rounded-full flex items-center justify-center border backdrop-blur-sm transition-transform active:scale-90"
+        style={{
+          background: user.liked_by_me ? "rgba(236,72,153,0.30)" : "rgba(0,0,0,0.42)",
+          borderColor: user.liked_by_me ? "rgba(236,72,153,0.55)" : "rgba(255,255,255,0.22)",
+          boxShadow: user.liked_by_me ? "0 0 14px rgba(236,72,153,0.50)" : undefined,
+        }}
         aria-label={user.liked_by_me ? "Quitar me gusta" : "Me gusta"}
       >
         <Heart
           className="w-5 h-5 transition-colors"
           style={{
-            color: user.liked_by_me ? "hsl(330,85%,60%)" : "white",
-            fill: user.liked_by_me ? "hsl(330,85%,60%)" : "transparent",
+            color: user.liked_by_me ? "hsl(330,85%,65%)" : "white",
+            fill: user.liked_by_me ? "hsl(330,85%,65%)" : "transparent",
+            filter: user.liked_by_me ? "drop-shadow(0 0 4px rgba(236,72,153,0.7))" : undefined,
           }}
         />
       </button>
 
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
-        style={{ background: "rgba(0,0,0,0.5)" }}
+        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
       >
         <Link href={`/profile/${user.id}`}>
           <button
@@ -605,7 +614,7 @@ function UserCardInner({
 
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-3 pointer-events-none"
-        style={{ background: "linear-gradient(to top, rgba(6,4,20,0.96) 0%, rgba(20,10,40,0.70) 45%, transparent 100%)" }}
+        style={{ background: "linear-gradient(to top, rgba(4,2,16,0.98) 0%, rgba(14,6,36,0.82) 40%, rgba(30,10,55,0.35) 70%, transparent 100%)" }}
       >
         <p className={`font-display text-white leading-tight tracking-wide truncate${featured ? " text-xl" : " text-base"}`}>
           {user.username}
