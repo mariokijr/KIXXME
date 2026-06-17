@@ -188,7 +188,7 @@ const SwipeCard = forwardRef<
         x,
         y,
         rotate,
-        boxShadow: "0 28px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)",
+        boxShadow: "0 28px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.09), 0 0 40px rgba(139,92,246,0.12)",
       }}
       drag={!decided}
       onDragEnd={handleDragEnd}
@@ -196,11 +196,18 @@ const SwipeCard = forwardRef<
     >
       <ProfileMedia profile={profile} />
 
-      {/* Bottom gradient */}
+      {/* Bottom gradient — deep with neon bleed */}
       <div
         className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
         style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 45%, transparent 100%)",
+          background: "linear-gradient(to top, rgba(4,2,18,0.98) 0%, rgba(10,5,28,0.88) 28%, rgba(22,8,50,0.55) 58%, transparent 100%)",
+        }}
+      />
+      {/* Neon bleed at very bottom edge */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+        style={{
+          background: "linear-gradient(to top, rgba(139,92,246,0.14) 0%, rgba(236,72,153,0.06) 45%, transparent 100%)",
         }}
       />
 
@@ -693,38 +700,49 @@ export function SwipeView({
   return (
     <div className="flex flex-col h-[calc(100dvh-72px)]">
 
-      {/* ══ Top bar: mode toggle + matches + filter ══ */}
-      <div
-        className="relative px-3 pt-2.5 pb-0"
-        style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
-      >
-        {/* Neon bottom line */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-[2px] pointer-events-none"
-          style={{
-            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.9) 18%, rgba(168,85,247,1.0) 38%, rgba(236,72,153,0.9) 58%, rgba(168,85,247,0.9) 78%, rgba(139,92,246,0.8) 90%, transparent 100%)",
-            boxShadow: "0 0 14px 1px rgba(168,85,247,0.45)",
-          }}
-        />
+      {/* ══ Header: Badoo-style — title left, icons right ══ */}
+      <div className="px-4 pt-3 pb-2 flex items-start justify-between">
+        {/* Left: title + subtitle */}
+        <div>
+          <h1
+            className="font-display text-[26px] leading-tight tracking-wide"
+            style={{
+              background: "linear-gradient(110deg, #fff 0%, rgba(255,255,255,0.85) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Descubrir
+          </h1>
+          <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
+            {activeFilterCount > 0 ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}` : "¡Conoce gente nueva!"}
+          </p>
+        </div>
 
-        {/* Row 1: mode toggle + right actions */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <ModeToggle mode={mode} setMode={setMode} />
-          </div>
-          <QuotaBar />
+        {/* Right: 3 icon buttons */}
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {/* Rewind / restart deck */}
+          <button
+            onClick={restart}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+            aria-label="Reiniciar"
+          >
+            <RefreshCw className="w-4 h-4 text-white/55" />
+          </button>
+
           {/* Matches */}
           <Link href="/matches">
             <button
-              className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-              style={{ background: "rgba(255,255,255,0.04)" }}
+              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
               aria-label="Emparejamientos"
               data-testid="link-matches"
             >
-              <Heart className="w-4 h-4 text-primary" />
+              <Heart className="w-4 h-4" style={{ color: "hsl(330,85%,62%)" }} />
               {likesBadge > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
+                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
                   style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
                   data-testid="badge-likes"
                 >
@@ -733,38 +751,42 @@ export function SwipeView({
               )}
             </button>
           </Link>
-          {/* Filters — always visible, glows when active */}
+
+          {/* Filters — key feature, prominent */}
           <button
             onClick={() => setFilterOpen(true)}
-            className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all"
+            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
             style={{
               background: activeFilterCount > 0
-                ? "linear-gradient(135deg, rgba(139,92,246,0.35), rgba(236,72,153,0.22))"
-                : "rgba(255,255,255,0.05)",
-              borderColor: activeFilterCount > 0 ? "rgba(168,85,247,0.75)" : "rgba(255,255,255,0.12)",
-              boxShadow: activeFilterCount > 0 ? "0 0 14px rgba(168,85,247,0.45)" : undefined,
+                ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
+                : "rgba(255,255,255,0.06)",
+              border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
+              boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
             }}
             aria-label="Filtros"
             data-testid="button-filters"
           >
             <SlidersHorizontal
               className="w-4 h-4"
-              style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.55)" }}
+              style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
             />
             {activeFilterCount > 0 && (
               <span
-                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-                style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                style={{ background: "hsl(330,85%,52%)" }}
               >
                 {activeFilterCount}
               </span>
             )}
           </button>
         </div>
+      </div>
 
-        {/* Row 2: feed chips + active filter tags — ALWAYS VISIBLE above the card */}
+      {/* Mode toggle + feed chips row */}
+      <div className="px-4 pb-2 flex items-center gap-2">
+        <ModeToggle mode={mode} setMode={setMode} />
         <div
-          className="flex items-center gap-1.5 pt-2 pb-2.5 overflow-x-auto"
+          className="flex items-center gap-1.5 flex-1 overflow-x-auto min-w-0"
           style={{ scrollbarWidth: "none" } as React.CSSProperties}
         >
           {FEED_OPTIONS.map(({ key, emoji, label }) => {
@@ -773,99 +795,31 @@ export function SwipeView({
               <button
                 key={key}
                 onClick={() => setFeed(key)}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-sans font-semibold transition-all duration-150"
                 style={
                   active
-                    ? {
-                        background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))",
-                        color: "white",
-                        boxShadow: "0 0 12px rgba(168,85,247,0.50)",
-                      }
-                    : {
-                        background: "rgba(255,255,255,0.06)",
-                        color: "hsl(240,10%,60%)",
-                        border: "1px solid rgba(255,255,255,0.09)",
-                      }
+                    ? { background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))", color: "white", boxShadow: "0 0 10px rgba(168,85,247,0.45)" }
+                    : { background: "rgba(255,255,255,0.05)", color: "hsl(240,10%,58%)", border: "1px solid rgba(255,255,255,0.08)" }
                 }
                 data-testid={`chip-feed-${key}`}
               >
-                <span className="text-[10px] leading-none">{emoji}</span>
+                <span className="text-[9px] leading-none">{emoji}</span>
                 {label}
               </button>
             );
           })}
-
-          {/* Separator */}
-          <div className="flex-shrink-0 w-px h-4 mx-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.12)" }} />
-
-          {/* Quick filter toggle: Online only */}
-          <button
-            onClick={() => setFilters({ ...filters, onlineOnly: !filters.onlineOnly })}
-            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-            style={
-              filters.onlineOnly
-                ? { background: "rgba(34,197,94,0.20)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.45)", boxShadow: "0 0 10px rgba(34,197,94,0.25)" }
-                : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
-            }
-          >
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: filters.onlineOnly ? "#4ade80" : "rgba(255,255,255,0.25)" }} />
-            Online
-          </button>
-
-          {/* Quick filter: Verified only */}
-          <button
-            onClick={() => setFilters({ ...filters, verifiedOnly: !filters.verifiedOnly })}
-            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-            style={
-              filters.verifiedOnly
-                ? { background: "rgba(56,189,248,0.18)", color: "#7dd3fc", border: "1px solid rgba(56,189,248,0.45)", boxShadow: "0 0 10px rgba(56,189,248,0.25)" }
-                : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
-            }
-          >
-            <BadgeCheck className="w-3 h-3 flex-shrink-0" />
-            Verificados
-          </button>
-
-          {/* Quick filter: distance chip (shows current km if set) */}
-          {filters.distanceMaxKm != null ? (
-            <button
-              onClick={() => setFilters({ ...filters, distanceMaxKm: null })}
-              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-              style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)", boxShadow: "0 0 10px rgba(168,85,247,0.25)" }}
-            >
-              <MapPin className="w-3 h-3 flex-shrink-0" />
-              {filters.distanceMaxKm} km ✕
-            </button>
-          ) : null}
-
-          {/* Country chip */}
-          {filters.countryOnly ? (
-            <button
-              onClick={() => setFilters({ ...filters, countryOnly: false })}
-              className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-              style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
-            >
-              🌍 Mi país ✕
-            </button>
-          ) : null}
-
-          {/* "Más filtros" — opens full FilterSheet */}
-          <button
-            onClick={() => setFilterOpen(true)}
-            className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-            style={{
-              background: activeFilterCount > 0
-                ? "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(236,72,153,0.18))"
-                : "rgba(255,255,255,0.06)",
-              color: activeFilterCount > 0 ? "#c4b5fd" : "hsl(240,10%,60%)",
-              border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.55)" : "rgba(255,255,255,0.09)"}`,
-            }}
-          >
-            <SlidersHorizontal className="w-3 h-3 flex-shrink-0" />
-            Más filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
-          </button>
         </div>
+        <QuotaBar />
       </div>
+
+      {/* Neon separator */}
+      <div
+        className="mx-4 mb-1 h-[1.5px] rounded-full"
+        style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.8) 25%, rgba(236,72,153,0.7) 55%, rgba(139,92,246,0.7) 80%, transparent 100%)",
+          boxShadow: "0 0 8px rgba(168,85,247,0.35)",
+        }}
+      />
 
       {/* ── Card area ── */}
       <div className="flex-1 min-h-0">
@@ -938,8 +892,8 @@ export function SwipeView({
             className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
               background: "rgba(16,14,32,0.97)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              boxShadow: "0 4px 18px rgba(0,0,0,0.55)",
+              border: "1px solid rgba(251,113,133,0.20)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.60), 0 0 12px rgba(251,113,133,0.12)",
             }}
           >
             <X className="w-6 h-6 text-rose-400" />
@@ -993,8 +947,8 @@ export function SwipeView({
             className="w-[58px] h-[58px] rounded-full flex-shrink-0 flex items-center justify-center transition-transform active:scale-90"
             style={{
               background: "linear-gradient(135deg, hsl(330,85%,55%), hsl(273,85%,55%))",
-              boxShadow: "0 0 20px rgba(236,72,153,0.45)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              boxShadow: "0 0 28px rgba(236,72,153,0.60), 0 4px 20px rgba(168,85,247,0.30)",
+              border: "1px solid rgba(255,255,255,0.18)",
             }}
           >
             <Heart className="w-6 h-6 text-white" fill="white" />

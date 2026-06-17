@@ -256,182 +256,125 @@ function GridDiscover({
   const isEmpty = !isLoading && (isError || profiles.length === 0);
 
   return (
-    <div className="min-h-full relative overflow-hidden" style={{ background: "hsl(238,32%,4%)" }}>
+    <div className="min-h-full relative overflow-hidden" style={{ background: "hsl(240,35%,3%)" }}>
       {/* ── Ambient background orbs ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div
-          className="absolute -top-24 left-1/4 w-[32rem] h-[32rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.42) 0%, rgba(168,85,247,0.12) 52%, transparent 72%)", filter: "blur(48px)" }}
+          className="absolute -top-32 left-1/4 w-[36rem] h-[36rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.55) 0%, rgba(168,85,247,0.18) 48%, transparent 70%)", filter: "blur(52px)" }}
         />
         <div
-          className="absolute top-1/3 -right-24 w-96 h-96 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.36) 0%, rgba(236,72,153,0.08) 56%, transparent 76%)", filter: "blur(52px)" }}
+          className="absolute top-1/3 -right-20 w-[26rem] h-[26rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.48) 0%, rgba(236,72,153,0.12) 52%, transparent 74%)", filter: "blur(56px)" }}
         />
         <div
-          className="absolute bottom-1/4 -left-10 w-80 h-80 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 68%)", filter: "blur(44px)" }}
+          className="absolute bottom-1/4 -left-12 w-[22rem] h-[22rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.40) 0%, rgba(139,92,246,0.08) 58%, transparent 76%)", filter: "blur(48px)" }}
         />
-        {/* Warm accent top-right */}
+        {/* Warm gold accent top-right */}
         <div
-          className="absolute top-0 right-0 w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.10) 0%, transparent 68%)", filter: "blur(40px)", transform: "translate(20%, -30%)" }}
+          className="absolute top-0 right-0 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.14) 0%, transparent 65%)", filter: "blur(44px)", transform: "translate(22%, -28%)" }}
         />
-        {/* Centre bloom */}
+        {/* Deep centre bloom */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 65%)", filter: "blur(60px)" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.10) 0%, transparent 62%)", filter: "blur(64px)" }}
+        />
+        {/* Bottom glow so action bar floats on a lit surface */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(139,92,246,0.08) 0%, transparent 100%)" }}
         />
       </div>
-      {/* ── Compact top bar: mode toggle + filter + matches ── */}
+      {/* ── Header: same Badoo-style as swipe view ── */}
       <div
-        className="sticky top-0 z-20 px-3 py-2.5 relative"
+        className="sticky top-0 z-20 px-4 pt-3 pb-0 relative"
         style={{ background: "rgba(8,7,18,0.97)", backdropFilter: "blur(28px)" }}
       >
-        <div
-          className="absolute bottom-0 left-0 right-0 h-[2px]"
-          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.90) 20%, rgba(168,85,247,1.0) 40%, rgba(236,72,153,0.85) 58%, rgba(168,85,247,0.90) 76%, rgba(139,92,246,0.80) 88%, transparent 100%)", boxShadow: "0 0 12px 1px rgba(168,85,247,0.40)" }}
-        />
-        <div className="flex items-center gap-2">
-          {/* Mode toggle — takes all available space */}
-          <div className="flex-1 min-w-0">
-            <ModeToggle mode={mode} setMode={setMode} />
-          </div>
-
-          {/* Filter button — always visible in online/likes mode */}
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all"
-            style={{
-              background: activeFilterCount > 0
-                ? "linear-gradient(135deg, rgba(139,92,246,0.35), rgba(236,72,153,0.25))"
-                : "rgba(255,255,255,0.05)",
-              borderColor: activeFilterCount > 0 ? "rgba(168,85,247,0.70)" : "rgba(255,255,255,0.12)",
-              boxShadow: activeFilterCount > 0 ? "0 0 12px rgba(168,85,247,0.35)" : undefined,
-            }}
-            aria-label="Filtros"
-          >
-            <SlidersHorizontal
-              className="w-4 h-4"
-              style={{ color: activeFilterCount > 0 ? "#c4b5fd" : "rgba(255,255,255,0.50)" }}
-            />
-            {activeFilterCount > 0 && (
-              <span
-                className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white border border-background"
-                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-
-          {/* Matches button */}
-          <Link href="/matches">
-            <button
-              className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-              aria-label="Emparejamientos"
-              data-testid="link-matches"
+        {/* Row 1: title + 3 icon buttons */}
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h1
+              className="font-display text-[26px] leading-tight tracking-wide"
+              style={{
+                background: "linear-gradient(110deg, #fff 0%, rgba(255,255,255,0.85) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
             >
-              <Heart className="w-4 h-4 text-primary" />
-              {likesBadge > 0 && (
+              {source === "likes" ? "Tus Me gusta" : "En línea"}
+            </h1>
+            <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
+              {activeFilterCount > 0
+                ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
+                : source === "likes" ? "Perfiles que te han gustado" : "Activos ahora mismo"}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            {/* Matches */}
+            <Link href="/matches">
+              <button
+                className="relative w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                aria-label="Emparejamientos"
+                data-testid="link-matches"
+              >
+                <Heart className="w-4 h-4" style={{ color: "hsl(330,85%,62%)" }} />
+                {likesBadge > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
+                    data-testid="badge-likes"
+                  >
+                    {likesBadge > 99 ? "99+" : likesBadge}
+                  </span>
+                )}
+              </button>
+            </Link>
+            {/* Filters */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
+              style={{
+                background: activeFilterCount > 0
+                  ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
+                  : "rgba(255,255,255,0.06)",
+                border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
+                boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
+              }}
+              aria-label="Filtros"
+            >
+              <SlidersHorizontal
+                className="w-4 h-4"
+                style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
+              />
+              {activeFilterCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white border border-background"
-                  style={{ background: "linear-gradient(135deg, hsl(273,85%,55%), hsl(330,85%,52%))" }}
-                  data-testid="badge-likes"
+                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ background: "hsl(330,85%,52%)" }}
                 >
-                  {likesBadge > 99 ? "99+" : likesBadge}
+                  {activeFilterCount}
                 </span>
               )}
             </button>
-          </Link>
+          </div>
         </div>
 
-        {/* Filter chip strip — always visible for online source; active chips for likes source */}
-        <div
-          className="flex items-center gap-1.5 pt-2 pb-2 overflow-x-auto"
-          style={{ scrollbarWidth: "none" } as React.CSSProperties}
-        >
-          {source === "online" && (
-            <>
-              {/* Quick toggle: Online only */}
-              <button
-                onClick={() => setFilters({ ...filters, onlineOnly: !filters.onlineOnly })}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-                style={
-                  filters.onlineOnly
-                    ? { background: "rgba(34,197,94,0.20)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.45)", boxShadow: "0 0 10px rgba(34,197,94,0.25)" }
-                    : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
-                }
-              >
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: filters.onlineOnly ? "#4ade80" : "rgba(255,255,255,0.25)" }} />
-                Online
-              </button>
-              {/* Quick toggle: Verified */}
-              <button
-                onClick={() => setFilters({ ...filters, verifiedOnly: !filters.verifiedOnly })}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-                style={
-                  filters.verifiedOnly
-                    ? { background: "rgba(56,189,248,0.18)", color: "#7dd3fc", border: "1px solid rgba(56,189,248,0.45)", boxShadow: "0 0 10px rgba(56,189,248,0.25)" }
-                    : { background: "rgba(255,255,255,0.06)", color: "hsl(240,10%,60%)", border: "1px solid rgba(255,255,255,0.09)" }
-                }
-              >
-                <BadgeCheck className="w-3 h-3 flex-shrink-0" />
-                Verificados
-              </button>
-              {/* Distance chip if set */}
-              {filters.distanceMaxKm != null && (
-                <button
-                  onClick={() => setFilters({ ...filters, distanceMaxKm: null })}
-                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
-                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
-                >
-                  <MapPin className="w-3 h-3 flex-shrink-0" />
-                  {filters.distanceMaxKm} km ✕
-                </button>
-              )}
-              {/* Country chip if set */}
-              {filters.countryOnly && (
-                <button
-                  onClick={() => setFilters({ ...filters, countryOnly: false })}
-                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
-                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
-                >
-                  🌍 Mi país ✕
-                </button>
-              )}
-              {/* Age chip if set */}
-              {(filters.ageMin != null || filters.ageMax != null) && (
-                <button
-                  onClick={() => setFilters({ ...filters, ageMin: null, ageMax: null })}
-                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all"
-                  style={{ background: "rgba(168,85,247,0.20)", color: "#c4b5fd", border: "1px solid rgba(168,85,247,0.50)" }}
-                >
-                  👤 {filters.ageMin ?? 18}–{filters.ageMax ?? 99} años ✕
-                </button>
-              )}
-              {/* Separator + Más filtros */}
-              {activeFilterCount > 0 && (
-                <div className="flex-shrink-0 w-px h-4 mx-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.12)" }} />
-              )}
-              <button
-                onClick={() => setFiltersOpen(true)}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold transition-all duration-150"
-                style={{
-                  background: activeFilterCount > 0
-                    ? "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(236,72,153,0.18))"
-                    : "rgba(255,255,255,0.06)",
-                  color: activeFilterCount > 0 ? "#c4b5fd" : "hsl(240,10%,60%)",
-                  border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.55)" : "rgba(255,255,255,0.09)"}`,
-                }}
-              >
-                <SlidersHorizontal className="w-3 h-3 flex-shrink-0" />
-                Más filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
-              </button>
-            </>
-          )}
+        {/* Row 2: mode toggle */}
+        <div className="pb-2">
+          <ModeToggle mode={mode} setMode={setMode} />
         </div>
+
+        {/* Neon separator line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[1.5px]"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.8) 25%, rgba(236,72,153,0.7) 55%, rgba(139,92,246,0.7) 80%, transparent 100%)",
+            boxShadow: "0 0 8px rgba(168,85,247,0.35)",
+          }}
+        />
       </div>
 
       {/* Filter sheet */}

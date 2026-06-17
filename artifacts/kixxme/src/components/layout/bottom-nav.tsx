@@ -33,8 +33,8 @@ export default function BottomNav() {
       />
       {/* Upward bloom */}
       <div
-        className="absolute top-0 left-0 right-0 h-14 pointer-events-none"
-        style={{ background: "linear-gradient(to top, transparent 0%, rgba(168,85,247,0.08) 55%, rgba(168,85,247,0.18) 100%)" }}
+        className="absolute top-0 left-0 right-0 h-20 pointer-events-none"
+        style={{ background: "linear-gradient(to top, transparent 0%, rgba(139,92,246,0.10) 45%, rgba(168,85,247,0.22) 100%)" }}
       />
       <div className="flex justify-around items-center h-16 max-w-xl mx-auto px-2">
         {tabs.map(({ href, Icon, label }) => {
