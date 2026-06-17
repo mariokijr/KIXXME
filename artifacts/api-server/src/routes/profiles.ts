@@ -335,6 +335,36 @@ router.get("/profiles", async (req, res) => {
       .gte("longitude", box.lngMin)
       .lte("longitude", box.lngMax);
   }
+  // Distance filter: apply a bounding box DB-side BEFORE .limit(200) so the
+  // sample is already restricted to the right radius. JS-side filter (below)
+  // then does the precise haversine cut. Skip when a scope box is already set
+  // (scope is a tighter constraint) or viewer has no coordinates.
+  if (
+    distanceMaxKm != null &&
+    !Number.isNaN(distanceMaxKm) &&
+    !box &&
+    me?.latitude != null &&
+    me?.longitude != null
+  ) {
+    const distBox = boxAround(me.latitude, me.longitude, distanceMaxKm);
+    query = query
+      .gte("latitude", distBox.latMin)
+      .lte("latitude", distBox.latMax)
+      .gte("longitude", distBox.lngMin)
+      .lte("longitude", distBox.lngMax);
+  }
+  // "Mi país" filter: DB-side pre-filter so the 200-row sample is drawn from
+  // the caller's country. JS-side refinement below keeps the exact boundary.
+  if (countryOnly && me?.latitude != null && me?.longitude != null) {
+    const countryBox = detectCountryBbox(me.latitude, me.longitude);
+    if (countryBox) {
+      query = query
+        .gte("latitude", countryBox.latMin)
+        .lte("latitude", countryBox.latMax)
+        .gte("longitude", countryBox.lngMin)
+        .lte("longitude", countryBox.lngMax);
+    }
+  }
   if (interacted.size > 0) {
     query = query.not(
       "id",
@@ -342,8 +372,11 @@ router.get("/profiles", async (req, res) => {
       `(${Array.from(interacted).slice(0, 250).join(",")})`,
     );
   }
-  // "online" feed: DB-side filter so we don't waste the 200-row budget on offline users.
-  if (feed === "online") {
+  // "online" feed OR online_only=true: DB-side pre-filter so the 200-row sample
+  // is drawn from recently-active users, not the entire corpus.
+  // Without this, the JS post-filter (below) can return 0 results when none of
+  // the 200 most-recent-by-activity rows happen to be currently online.
+  if (feed === "online" || onlineOnly) {
     const onlineThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     query = query.gte("last_active_at", onlineThreshold);
   }

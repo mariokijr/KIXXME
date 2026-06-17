@@ -28,6 +28,7 @@ import {
   useGetStripeTrialStatus,
   getGetStripeTrialStatusQueryKey,
   PublicProfile,
+  ListProfilesFeed,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/lib/notifications";
@@ -200,10 +201,12 @@ function GridDiscover({
     saveOnlineFilters(f);
   };
 
-  // "En línea" grid uses the main GET /profiles with online_only=true + user filters
-  // so that distance / age / country filters apply correctly.
+  // "En línea" grid uses the main GET /profiles with feed=online + online_only=true.
+  // feed=online triggers the DB-side last_active_at pre-filter (so the 200-row sample
+  // is drawn from recently-active users). online_only=true is the JS backstop.
+  // Both must come AFTER the filtersToParams spread so they are never overridden.
   const onlineParams = useMemo(
-    () => ({ online_only: true, ...filtersToParams(filters) }),
+    () => ({ ...filtersToParams(filters), feed: ListProfilesFeed.online, online_only: true }),
     [filters],
   );
   const onlineQueryKey = getListProfilesQueryKey(onlineParams);
