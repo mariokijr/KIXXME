@@ -12,7 +12,6 @@ import {
   Flag,
   Sparkles,
   X,
-  SlidersHorizontal,
   Search,
   ArrowLeft,
 } from "lucide-react";
@@ -41,15 +40,9 @@ import { ModeToggle, type DiscoverMode } from "@/components/discover-mode-toggle
 import { SwipeView } from "@/components/swipe-deck";
 import { ReportDialog } from "@/components/report-dialog";
 import {
-  FilterSheet,
   type DiscoverFilters,
-  readFilters,
-  saveFilters,
-  countActiveFilters,
+  DEFAULT_FILTERS,
   filtersToParams,
-  readOnlineFilters,
-  saveOnlineFilters,
-  countOnlineActiveFilters,
 } from "@/components/filter-sheet";
 
 const TRIAL_BANNER_KEY = "kixxme:trial-banner-dismissed";
@@ -191,29 +184,21 @@ function GridDiscover({
     { query: { enabled: searchMode && searchQ.trim().length >= 2, queryKey: getSearchProfilesQueryKey({ q: searchQ }) } }
   );
 
-  // Filters for the "En línea" online grid (separate key, 100 km default so
-  // users see people nearby first; likes list is unfiltered regardless).
-  const [filters, setFiltersState] = useState<DiscoverFilters>(readOnlineFilters);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const activeFilterCount = countOnlineActiveFilters(filters);
+  // No user-facing filters — proximity is handled server-side automatically.
+  const [filters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
 
-  // Auto-request geolocation when a distance filter is active but the viewer has
-  // no stored coordinates. useGeolocation PUTs /profiles/me/location on success
-  // and invalidates getListProfilesQueryKey, triggering a fresh fetch with
-  // real coordinates so the bounding-box / distance filter actually works.
+  // Silently request geolocation when the component mounts and the viewer has
+  // no stored coordinates. On success useGeolocation PUTs /profiles/me/location
+  // and invalidates getListProfilesQueryKey so the grid refetches sorted by distance.
   const geo = useGeolocation();
+  const geoRequested = React.useRef(false);
   useEffect(() => {
-    const needsLoc = filters.distanceMaxKm != null || filters.countryOnly;
-    if (needsLoc && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+    if (!geoRequested.current && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+      geoRequested.current = true;
       geo.request();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.distanceMaxKm, filters.countryOnly, ownProfile?.latitude]);
-
-  const setFilters = (f: DiscoverFilters) => {
-    setFiltersState(f);
-    saveOnlineFilters(f);
-  };
+  }, [ownProfile]);
 
   // "En línea" grid uses the main GET /profiles with feed=online.
   // feed=online triggers the DB-side last_active_at 15-min pre-filter, which
@@ -376,9 +361,7 @@ function GridDiscover({
                   {source === "likes" ? "Tus Me gusta" : "En línea"}
                 </h1>
                 <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
-                  {activeFilterCount > 0
-                    ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
-                    : source === "likes" ? "Perfiles que te han gustado" : "Activos ahora mismo"}
+                  {source === "likes" ? "Perfiles que te han gustado" : "Activos ahora mismo"}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 pt-0.5">
@@ -412,33 +395,6 @@ function GridDiscover({
                     )}
                   </button>
                 </Link>
-                {/* Filters */}
-                <button
-                  type="button"
-                  onClick={() => setFiltersOpen(true)}
-                  className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
-                  style={{
-                    background: activeFilterCount > 0
-                      ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
-                      : "rgba(255,255,255,0.06)",
-                    border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
-                    boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
-                  }}
-                  aria-label="Filtros"
-                >
-                  <SlidersHorizontal
-                    className="w-4 h-4"
-                    style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
-                  />
-                  {activeFilterCount > 0 && (
-                    <span
-                      className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
-                      style={{ background: "hsl(330,85%,52%)" }}
-                    >
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
               </div>
             </>
           )}
@@ -459,16 +415,7 @@ function GridDiscover({
         />
       </div>
 
-      {/* Filter sheet */}
-      <FilterSheet
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        filters={filters}
-        onChange={setFilters}
-        plan={plan}
-        viewerHasLocation={ownProfile?.latitude != null}
-        onRequestLocation={() => geo.request()}
-      />
+
 
       {/* ── Search results ── */}
       {searchMode && (

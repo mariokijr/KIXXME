@@ -534,8 +534,20 @@ router.get("/profiles", async (req, res) => {
     } else if (sort === "online") {
       profiles.sort((a, b) => Number(b.is_online) - Number(a.is_online));
     }
+  } else if (feed === "recommended" && me?.latitude != null) {
+    // When the viewer has stored coordinates, sort by distance closest-first as
+    // the base sort so nearby users appear first in "Para ti". Users without
+    // coordinates (distance_km == null) are placed at the end of the feed;
+    // they still appear — the plan/verified priority layers run on top so Gold
+    // users near the viewer always float higher than free users far away.
+    profiles.sort((a, b) => {
+      if (a.distance_km != null && b.distance_km != null) return a.distance_km - b.distance_km;
+      if (a.distance_km == null) return 1;
+      if (b.distance_km == null) return -1;
+      return 0;
+    });
   }
-  // recommended + new: DB order (last_active_at / created_at) is already the base.
+  // recommended (no coords) + new: DB order (last_active_at / created_at) is already the base.
 
   // Descubrir priority layering. Array.sort is stable, so each pass preserves
   // the prior order as its tie-breaker; the LAST sort applied is the strongest

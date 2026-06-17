@@ -29,7 +29,6 @@ import {
   Flag,
   MessageCircle,
   Lock,
-  SlidersHorizontal,
   Search,
   ArrowLeft,
 } from "lucide-react";
@@ -66,15 +65,11 @@ import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useStartConversation } from "@/lib/use-start-conversation";
 import {
-  FilterSheet,
   type DiscoverFilters,
   type DiscoverFeed,
   FEED_OPTIONS,
   DEFAULT_FILTERS,
-  countActiveFilters,
   filtersToParams,
-  readFilters,
-  saveFilters,
   readFeed,
   saveFeed,
 } from "@/components/filter-sheet";
@@ -584,8 +579,7 @@ export function SwipeView({
   const unlikeMut = useUnlikeProfile();
 
   const [feed, setFeedState] = useState<DiscoverFeed>(readFeed);
-  const [filters, setFiltersState] = useState<DiscoverFilters>(readFilters);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<PublicProfile | null>(null);
   const [history, setHistory] = useState<{ profile: PublicProfile; dir: Decision }[]>([]);
@@ -608,29 +602,22 @@ export function SwipeView({
   const isGold = ownProfile?.plan === "gold";
   const plan = (ownProfile?.plan ?? "free") as "free" | "plus" | "gold";
 
-  // Auto-request geolocation when a distance filter is selected but the viewer
-  // has no stored coordinates yet. Once the PUT /profiles/me/location call
-  // succeeds, useGeolocation invalidates getListProfilesQueryKey so the deck
-  // refetches with the viewer's real coordinates and the bounding box applies.
+  // Silently request geolocation on mount so proximity ordering (distance-first
+  // base sort for "Para ti") kicks in automatically the first time the user
+  // opens Discover without stored coordinates.
   const geo = useGeolocation();
+  const geoRequested = React.useRef(false);
   useEffect(() => {
-    const needsLoc = filters.distanceMaxKm != null || filters.countryOnly;
-    if (needsLoc && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+    if (!geoRequested.current && ownProfile !== undefined && ownProfile?.latitude == null && geo.state === "idle") {
+      geoRequested.current = true;
       geo.request();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.distanceMaxKm, filters.countryOnly, ownProfile?.latitude]);
-  const activeFilterCount = countActiveFilters(filters) + (feed !== "recommended" ? 1 : 0);
+  }, [ownProfile]);
 
   const setFeed = (f: DiscoverFeed) => {
     setFeedState(f);
     saveFeed(f);
-    setIndex(0);
-  };
-
-  const setFilters = (f: DiscoverFilters) => {
-    setFiltersState(f);
-    saveFilters(f);
     setIndex(0);
   };
 
@@ -769,9 +756,7 @@ export function SwipeView({
                 Descubrir
               </h1>
               <p className="font-sans text-[12px] text-muted-foreground mt-0.5">
-                {activeFilterCount > 0
-                  ? `${activeFilterCount} filtro${activeFilterCount !== 1 ? "s" : ""} activo${activeFilterCount !== 1 ? "s" : ""}`
-                  : (FEED_OPTIONS.find(o => o.key === feed)?.emoji ?? "✨") + " " + (FEED_OPTIONS.find(o => o.key === feed)?.label ?? "Para ti")}
+                {(FEED_OPTIONS.find(o => o.key === feed)?.emoji ?? "✨") + " " + (FEED_OPTIONS.find(o => o.key === feed)?.label ?? "Para ti")}
               </p>
             </div>
 
@@ -819,33 +804,6 @@ export function SwipeView({
             </button>
           </Link>
 
-          {/* Filters — key feature, prominent */}
-          <button
-            onClick={() => setFilterOpen(true)}
-            className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all"
-            style={{
-              background: activeFilterCount > 0
-                ? "linear-gradient(135deg, hsl(273,85%,52%), hsl(330,85%,50%))"
-                : "rgba(255,255,255,0.06)",
-              border: `1px solid ${activeFilterCount > 0 ? "rgba(168,85,247,0.60)" : "rgba(255,255,255,0.10)"}`,
-              boxShadow: activeFilterCount > 0 ? "0 0 16px rgba(168,85,247,0.55)" : undefined,
-            }}
-            aria-label="Filtros"
-            data-testid="button-filters"
-          >
-            <SlidersHorizontal
-              className="w-4 h-4"
-              style={{ color: activeFilterCount > 0 ? "white" : "rgba(255,255,255,0.55)" }}
-            />
-            {activeFilterCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
-                style={{ background: "hsl(330,85%,52%)" }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
         </div>
           </>
         )}
@@ -1076,17 +1034,6 @@ export function SwipeView({
         />
       )}
 
-      <FilterSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        filters={filters}
-        onChange={setFilters}
-        plan={plan}
-        feed={feed}
-        onFeedChange={setFeed}
-        viewerHasLocation={ownProfile?.latitude != null}
-        onRequestLocation={() => geo.request()}
-      />
       </>)}
     </div>
   );
