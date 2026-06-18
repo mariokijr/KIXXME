@@ -16,5 +16,16 @@
   "dependencies": {
     "stripe": "^22.2.0",
     "stripe-replit-sync": "^1.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@swc/core",
+      "esbuild",
+      "msw",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
