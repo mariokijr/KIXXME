@@ -44,7 +44,7 @@ jobs:
           cache: pnpm
 
       - name: Install JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # ── 4. Android SDK 36 ──────────────────────────────────────────────────
       # ubuntu-latest ships SDK tools but may not include API 36 yet.
