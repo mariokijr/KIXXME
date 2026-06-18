@@ -69,9 +69,12 @@ catalog:
 autoInstallPeers: false
 
 onlyBuiltDependencies:
+  - '@firebase/util'
   - '@swc/core'
   - esbuild
   - msw
+  - protobufjs
+  - sharp
   - unrs-resolver
 
 overrides:
