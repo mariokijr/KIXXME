@@ -8,11 +8,11 @@ on:
       version_name:
         description: "Version name shown to users (e.g. 1.2.0)"
         required: false
-        default: "1.0"
+        default: "1.0.1"
       version_code:
         description: "Version code — integer, must be higher than the last upload"
         required: false
-        default: "1"
+        default: "2"
 
 jobs:
   build:

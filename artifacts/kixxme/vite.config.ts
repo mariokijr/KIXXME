@@ -58,7 +58,14 @@ export default defineConfig(async ({ command }) => {
       __RC_IOS_KEY__: JSON.stringify(process.env.REVENUECAT_IOS_KEY ?? ""),
       __RC_ANDROID_KEY__: JSON.stringify(process.env.REVENUECAT_ANDROID_KEY ?? ""),
     },
-    plugins: [react(), tailwindcss(), runtimeErrorOverlay(), ...replitDevPlugins],
+    plugins: [
+      react(),
+      tailwindcss(),
+      // Only show the runtime error overlay in development — it's a Replit dev tool
+      // and must not be included in production/mobile builds.
+      ...(command === "serve" ? [runtimeErrorOverlay()] : []),
+      ...replitDevPlugins,
+    ],
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "src"),

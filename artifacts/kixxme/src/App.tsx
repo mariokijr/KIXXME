@@ -20,6 +20,7 @@ import { ModerationGate } from "@/components/moderation-gate";
 import { EmailVerificationGate } from "@/components/email-verification-gate";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import BottomNav from "@/components/layout/bottom-nav";
+import { isNativeApp } from "@/lib/native";
 
 const Login = React.lazy(() => import("@/pages/login"));
 const Signup = React.lazy(() => import("@/pages/signup"));
@@ -300,6 +301,17 @@ function Router() {
   );
 }
 
+function SplashHider() {
+  const { isLoading } = useAuth();
+  useEffect(() => {
+    if (!isNativeApp || isLoading) return;
+    import("@capacitor/splash-screen")
+      .then(({ SplashScreen }) => SplashScreen.hide({ fadeOutDuration: 300 }))
+      .catch(() => {});
+  }, [isLoading]);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -311,6 +323,7 @@ function App() {
                 <LimitUpsellProvider>
                   <GoldUpsellProvider>
                     <ConfirmProvider>
+                      <SplashHider />
                       <LocationSync />
                       <PushSetup />
                       <DeepLinkSetup />
