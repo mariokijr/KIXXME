@@ -94,6 +94,7 @@ jobs:
             echo "storePassword=${STORE_PASSWORD}"
             echo "keyAlias=${KEY_ALIAS}"
             echo "keyPassword=${KEY_PASSWORD}"
+            echo "storeType=PKCS12"
           } > artifacts/kixxme/android/app/keystore.properties
 
       # ── 8. Bump version in build.gradle ───────────────────────────────────
