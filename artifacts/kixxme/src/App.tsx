@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, Component, ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +21,8 @@ import { EmailVerificationGate } from "@/components/email-verification-gate";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import BottomNav from "@/components/layout/bottom-nav";
 import { isNativeApp } from "@/lib/native";
+// Static import — avoids dynamic-chunk failures on native that would prevent hide().
+import { SplashScreen } from "@capacitor/splash-screen";
 
 const Login = React.lazy(() => import("@/pages/login"));
 const Signup = React.lazy(() => import("@/pages/signup"));
@@ -60,61 +62,63 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       className="h-[100dvh] flex flex-col relative"
       style={{ background: "hsl(238,28%,4%)" }}
     >
-      {/* Aurora ambient glow — fixed behind all content */}
-      <div
-        className="fixed inset-0 pointer-events-none overflow-hidden"
-        style={{ zIndex: 0 }}
-        aria-hidden
-      >
-        {/* Top-center violet burst */}
+      {/* Aurora ambient glow — disabled on native (CSS blur is GPU-heavy on Android WebView) */}
+      {!isNativeApp && (
         <div
-          className="absolute"
-          style={{
-            top: "-25%",
-            left: "5%",
-            width: "90%",
-            height: "70%",
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.42) 0%, transparent 65%)",
-            filter: "blur(60px)",
-          }}
-        />
-        {/* Right-side pink glow */}
-        <div
-          className="absolute"
-          style={{
-            top: "15%",
-            right: "-25%",
-            width: "70%",
-            height: "55%",
-            background: "radial-gradient(ellipse, rgba(236,72,153,0.24) 0%, transparent 68%)",
-            filter: "blur(72px)",
-          }}
-        />
-        {/* Bottom-left indigo pool */}
-        <div
-          className="absolute"
-          style={{
-            bottom: "0%",
-            left: "-15%",
-            width: "60%",
-            height: "45%",
-            background: "radial-gradient(ellipse, rgba(99,102,241,0.20) 0%, transparent 68%)",
-            filter: "blur(60px)",
-          }}
-        />
-        {/* Subtle center haze to unify */}
-        <div
-          className="absolute"
-          style={{
-            top: "35%",
-            left: "20%",
-            width: "60%",
-            height: "40%",
-            background: "radial-gradient(ellipse, rgba(168,85,247,0.10) 0%, transparent 70%)",
-            filter: "blur(80px)",
-          }}
-        />
-      </div>
+          className="fixed inset-0 pointer-events-none overflow-hidden"
+          style={{ zIndex: 0 }}
+          aria-hidden
+        >
+          {/* Top-center violet burst */}
+          <div
+            className="absolute"
+            style={{
+              top: "-25%",
+              left: "5%",
+              width: "90%",
+              height: "70%",
+              background: "radial-gradient(ellipse, rgba(139,92,246,0.42) 0%, transparent 65%)",
+              filter: "blur(60px)",
+            }}
+          />
+          {/* Right-side pink glow */}
+          <div
+            className="absolute"
+            style={{
+              top: "15%",
+              right: "-25%",
+              width: "70%",
+              height: "55%",
+              background: "radial-gradient(ellipse, rgba(236,72,153,0.24) 0%, transparent 68%)",
+              filter: "blur(72px)",
+            }}
+          />
+          {/* Bottom-left indigo pool */}
+          <div
+            className="absolute"
+            style={{
+              bottom: "0%",
+              left: "-15%",
+              width: "60%",
+              height: "45%",
+              background: "radial-gradient(ellipse, rgba(99,102,241,0.20) 0%, transparent 68%)",
+              filter: "blur(60px)",
+            }}
+          />
+          {/* Subtle center haze to unify */}
+          <div
+            className="absolute"
+            style={{
+              top: "35%",
+              left: "20%",
+              width: "60%",
+              height: "40%",
+              background: "radial-gradient(ellipse, rgba(168,85,247,0.10) 0%, transparent 70%)",
+              filter: "blur(80px)",
+            }}
+          />
+        </div>
+      )}
       <div
         className="flex-1 overflow-y-auto relative"
         style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))", zIndex: 1 }}
@@ -215,6 +219,14 @@ function HomeRedirect() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    if (!isNativeApp) return;
+    // eslint-disable-next-line no-console
+    console.log("[KixxMe] HomeRedirect isLoading=" + isLoading + " session=" + !!session
+      + " platform=" + (typeof window !== "undefined" ? (window as any).Capacitor?.getPlatform?.() ?? "web" : "ssr")
+    );
+  }, [isLoading, session]);
+
+  useEffect(() => {
     if (!isLoading && session) setLocation("/discover");
   }, [isLoading, session, setLocation]);
 
@@ -230,7 +242,9 @@ function HomeRedirect() {
       <div className="animate-pulse">
         <KixxMeLogo size={72} badge />
       </div>
-      <span className="text-3xl font-display tracking-widest text-gradient-brand animate-pulse">CARGANDO...</span>
+      <p style={{ color: "#e879f9", fontSize: 24, fontWeight: 700, letterSpacing: 4, marginTop: 16 }}>
+        CARGANDO...
+      </p>
     </div>
   );
 }
@@ -249,6 +263,10 @@ function Router() {
           <div className="animate-pulse">
             <KixxMeLogo size={56} badge />
           </div>
+          {/* Inline style so CSS-font failures don't hide the text */}
+          <p style={{ color: "#e879f9", fontSize: 20, fontWeight: 700, letterSpacing: 3, marginTop: 12 }}>
+            CARGANDO...
+          </p>
         </div>
       }
     >
@@ -305,9 +323,12 @@ function SplashHider() {
   const { isLoading } = useAuth();
   useEffect(() => {
     if (!isNativeApp || isLoading) return;
-    import("@capacitor/splash-screen")
-      .then(({ SplashScreen }) => SplashScreen.hide({ fadeOutDuration: 300 }))
-      .catch(() => {});
+    // Extra 300 ms lets the WebView paint at least one frame of real content
+    // before the splash fades, so the user never sees a raw black frame.
+    const t = setTimeout(() => {
+      SplashScreen.hide({ fadeOutDuration: 400 }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
   }, [isLoading]);
   return null;
 }
@@ -348,4 +369,38 @@ function App() {
   );
 }
 
-export default App;
+interface ErrorBoundaryState { hasError: boolean; error: string }
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false, error: "" };
+  static getDerivedStateFromError(err: unknown) {
+    return { hasError: true, error: String(err) };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: "100dvh", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", padding: 32,
+          background: "#0a0015", gap: 16,
+        }}>
+          <KixxMeLogo size={56} badge />
+          <p style={{ color: "#e879f9", fontSize: 18, fontWeight: 700, textAlign: "center" }}>
+            Algo salió mal al cargar la app
+          </p>
+          <p style={{ color: "#a78bfa", fontSize: 13, textAlign: "center", maxWidth: 300, wordBreak: "break-all" }}>
+            {this.state.error}
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
