@@ -8,11 +8,11 @@ on:
       version_name:
         description: "Version name shown to users (e.g. 1.2.0)"
         required: false
-        default: "1.0.1"
+        default: "1.0.5"
       version_code:
         description: "Version code — integer, must be higher than the last upload"
         required: false
-        default: "2"
+        default: "6"
 
 jobs:
   build:
@@ -57,23 +57,105 @@ jobs:
           yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
 
       # ── 5. Build the web bundle ────────────────────────────────────────────
-      # BASE_PATH=/ because Capacitor loads files from the root of the device.
+      # CAPACITOR_BUILD=true  → Vite uses base:"./" so asset <script>/<link>
+      #   tags are relative paths (./assets/…) instead of absolute (/assets/…).
+      #   Relative paths always resolve correctly from index.html in the Android
+      #   WebView regardless of the Capacitor URL scheme.
+      # BASE_PATH=/ still required by vite.config.ts when CAPACITOR_BUILD is not set,
+      #   but CAPACITOR_BUILD=true overrides it to "./" inside the config.
       # MOBILE_API_ORIGIN must be the full URL of your deployed API server,
-      # e.g. https://kixxme.replit.app (no trailing slash).
+      #   e.g. https://kixxme.replit.app (no trailing slash).
       - name: Build Vite web app
         working-directory: artifacts/kixxme
         env:
+          CAPACITOR_BUILD: "true"
           BASE_PATH: /
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           MOBILE_API_ORIGIN: ${{ secrets.MOBILE_API_ORIGIN }}
           REVENUECAT_ANDROID_KEY: ${{ secrets.REVENUECAT_ANDROID_KEY }}
-        run: pnpm run build
+        run: |
+          echo "=== Env-var presence check ==="
+          echo "SUPABASE_URL set:      $([[ -n "${SUPABASE_URL}" ]]      && echo YES || echo NO)"
+          echo "SUPABASE_ANON_KEY set: $([[ -n "${SUPABASE_ANON_KEY}" ]] && echo YES || echo NO)"
+          echo "MOBILE_API_ORIGIN set: $([[ -n "${MOBILE_API_ORIGIN}" ]] && echo YES || echo NO)"
+          echo "CAPACITOR_BUILD:       ${CAPACITOR_BUILD}"
+          echo "=== Building ==="
+          pnpm run build
+          echo "=== Build output ==="
+          ls -lh dist/public/
+          echo "--- dist/public/index.html ---"
+          cat dist/public/index.html
+
+      # ── 5b. DIAGNOSTIC: replace index.html with pure static HTML ───────────
+      # This replaces the Vite-built index.html (which uses <script type="module">)
+      # with a completely static page that has NO JS modules and NO React.
+      # Purpose: definitively test whether the Capacitor WebView server can serve
+      # ANY content at all. If the user sees this page, the server works and the
+      # problem is with ES module scripts. If they still see black, the server is broken.
+      - name: "DIAGNOSTIC: Replace index.html with pure static HTML"
+        working-directory: artifacts/kixxme
+        run: |
+          cat > dist/public/index.html << 'STATIC_EOF'
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body {
+                background: #ffffff;
+                color: #000000;
+                font-family: -apple-system, sans-serif;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 40px;
+                text-align: center;
+              }
+              .ok { color: #008000; font-size: 28px; font-weight: bold; margin: 12px 0; }
+              .pending { color: #cc8800; font-size: 22px; margin: 12px 0; }
+              .version { color: #888888; font-size: 14px; margin-top: 24px; }
+            </style>
+          </head>
+          <body>
+            <div style="font-size:64px; margin-bottom:20px">🟢</div>
+            <div class="ok">HTML CARGADO ✓</div>
+            <div class="pending" id="js-status">JS pendiente...</div>
+            <div class="ok" id="js-ok" style="display:none">JS EJECUTADO ✓</div>
+            <div class="version">v1.0.5 · diagnóstico puro</div>
+            <script>
+              document.getElementById('js-status').style.display = 'none';
+              document.getElementById('js-ok').style.display = 'block';
+            </script>
+          </body>
+          </html>
+          STATIC_EOF
+          echo "=== Replaced index.html with pure static diagnostic ==="
+          cat dist/public/index.html
 
       # ── 6. Sync web assets into the Android project ────────────────────────
       - name: Capacitor sync Android
         working-directory: artifacts/kixxme
         run: npx cap sync android
+
+      # ── 6b. Verify sync output ─────────────────────────────────────────────
+      - name: Verify Android assets after sync
+        run: |
+          echo "=== Checking synced assets ==="
+          ASSETS="artifacts/kixxme/android/app/src/main/assets/public"
+          if [ -d "${ASSETS}" ]; then
+            echo "assets/public EXISTS ✓"
+            ls -lh "${ASSETS}/"
+            echo "--- Android index.html (first 60 lines) ---"
+            head -60 "${ASSETS}/index.html"
+          else
+            echo "MISSING: ${ASSETS} — cap sync did not copy web assets!"
+            exit 1
+          fi
 
       # ── 7. Signing — decode keystore from the base64 secret ───────────────
       - name: Decode keystore
