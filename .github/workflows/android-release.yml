@@ -8,11 +8,11 @@ on:
       version_name:
         description: "Version name shown to users (e.g. 1.2.0)"
         required: false
-        default: "1.0.6"
+        default: "1.0.7"
       version_code:
         description: "Version code — integer, must be higher than the last upload"
         required: false
-        default: "7"
+        default: "8"
 
 jobs:
   build:
@@ -87,56 +87,6 @@ jobs:
           echo "--- dist/public/index.html ---"
           cat dist/public/index.html
 
-      # ── 5b. DIAGNOSTIC: replace index.html with pure static HTML ───────────
-      # This replaces the Vite-built index.html (which uses <script type="module">)
-      # with a completely static page that has NO JS modules and NO React.
-      # Purpose: definitively test whether the Capacitor WebView server can serve
-      # ANY content at all. If the user sees this page, the server works and the
-      # problem is with ES module scripts. If they still see black, the server is broken.
-      - name: "DIAGNOSTIC: Replace index.html with pure static HTML"
-        working-directory: artifacts/kixxme
-        run: |
-          cat > dist/public/index.html << 'STATIC_EOF'
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              * { box-sizing: border-box; margin: 0; padding: 0; }
-              body {
-                background: #ffffff;
-                color: #000000;
-                font-family: -apple-system, sans-serif;
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 40px;
-                text-align: center;
-              }
-              .ok { color: #008000; font-size: 28px; font-weight: bold; margin: 12px 0; }
-              .pending { color: #cc8800; font-size: 22px; margin: 12px 0; }
-              .version { color: #888888; font-size: 14px; margin-top: 24px; }
-            </style>
-          </head>
-          <body>
-            <div style="font-size:64px; margin-bottom:20px">🟢</div>
-            <div class="ok">HTML CARGADO ✓</div>
-            <div class="pending" id="js-status">JS pendiente...</div>
-            <div class="ok" id="js-ok" style="display:none">JS EJECUTADO ✓</div>
-            <div class="version">v1.0.5 · diagnóstico puro</div>
-            <script>
-              document.getElementById('js-status').style.display = 'none';
-              document.getElementById('js-ok').style.display = 'block';
-            </script>
-          </body>
-          </html>
-          STATIC_EOF
-          echo "=== Replaced index.html with pure static diagnostic ==="
-          cat dist/public/index.html
-
       # ── 6. Sync web assets into the Android project ────────────────────────
       - name: Capacitor sync Android
         working-directory: artifacts/kixxme
@@ -150,8 +100,8 @@ jobs:
           if [ -d "${ASSETS}" ]; then
             echo "assets/public EXISTS ✓"
             ls -lh "${ASSETS}/"
-            echo "--- Android index.html (first 60 lines) ---"
-            head -60 "${ASSETS}/index.html"
+            echo "--- Android index.html (first 30 lines) ---"
+            head -30 "${ASSETS}/index.html"
           else
             echo "MISSING: ${ASSETS} — cap sync did not copy web assets!"
             exit 1
