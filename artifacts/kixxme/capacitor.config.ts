@@ -16,8 +16,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 0,
-      launchAutoHide: false,
+      // Set to 500ms so the splash disappears quickly and the WebView becomes
+      // visible almost immediately — helps diagnose blank/black screen issues.
+      launchShowDuration: 500,
+      launchAutoHide: true,
       backgroundColor: "#080712",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
