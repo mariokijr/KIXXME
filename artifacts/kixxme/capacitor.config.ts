@@ -7,18 +7,17 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
   },
+  android: {
+    allowMixedContent: false,
+    backgroundColor: "#080712",
+  },
   ios: {
-    // LiveKit/WebRTC needs inline playback; Capacitor enables
-    // allowsInlineMediaPlayback by default. Keep app-bound domains off so
-    // getUserMedia + remote origins keep working inside WKWebView.
     limitsNavigationsToAppBoundDomains: false,
     contentInset: "always",
   },
   plugins: {
     SplashScreen: {
-      // Set to 500ms so the splash disappears quickly and the WebView becomes
-      // visible almost immediately — helps diagnose blank/black screen issues.
-      launchShowDuration: 500,
+      launchShowDuration: 800,
       launchAutoHide: true,
       backgroundColor: "#080712",
       showSpinner: false,
